@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Agentic-SDD local files
+.agent/agents/*.local.md
+
+# Tool-specific generated directories (from sync-agent-config.sh)
+.codex/
+.opencode/
