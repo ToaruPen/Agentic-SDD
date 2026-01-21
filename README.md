@@ -149,11 +149,65 @@ AGENTS.md               # AIエージェント設定
 
 ## 対応AIツール
 
-- Codex CLI
-- OpenCode
 - Claude Code
+- OpenCode
+- Codex CLI
 
 `.agent/` を正本とし、各ツール用設定は同期スクリプトで生成可能。
+
+### ツール別セットアップ
+
+#### Claude Code
+
+`AGENTS.md`が自動認識されます。追加設定は不要です。
+
+```bash
+# プロジェクトルートで起動
+claude
+```
+
+#### OpenCode
+
+同期スクリプトを実行してコマンド/エージェント設定を配置してください。
+
+```bash
+# 1. 同期スクリプトを実行
+./scripts/sync-agent-config.sh opencode
+
+# 2. OpenCodeを起動
+opencode
+```
+
+#### Codex CLI
+
+同期スクリプトを実行してコマンド/ルール設定を配置してください。
+
+```bash
+# 1. 同期スクリプトを実行
+./scripts/sync-agent-config.sh codex
+
+# 2. Codex CLIを起動
+codex
+```
+
+### 正本と同期の仕組み
+
+```
+.agent/          <- 正本（編集はここで行う）
+    |
+    +---> .opencode/  <- OpenCode用（自動生成、.gitignore対象）
+    +---> .codex/     <- Codex CLI用（自動生成、.gitignore対象）
+```
+
+**注意**: `.agent/`内のファイルを編集した場合は、再度同期スクリプトを実行してください。
+
+```bash
+# すべてのツール用設定を同期
+./scripts/sync-agent-config.sh all
+
+# 変更内容のプレビュー（実際には変更しない）
+./scripts/sync-agent-config.sh --dry-run
+```
 
 ---
 
