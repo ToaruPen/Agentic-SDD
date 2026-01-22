@@ -174,9 +174,16 @@ sync_opencode() {
     mkdir -p "$target_dir/commands" "$target_dir/agents" "$target_dir/skills"
 
     # Legacy cleanup (older versions of this repo generated these paths)
-    rm -rf "$target_dir/rules" 2>/dev/null || true
-    rm -f "$target_dir/commands/init.md" 2>/dev/null || true
-    rm -f "$target_dir/agents/reviewer.md" 2>/dev/null || true
+    # Avoid running rm unless the path actually exists (helps reduce unnecessary prompts).
+    if [ -d "$target_dir/rules" ]; then
+        rm -rf "$target_dir/rules"
+    fi
+    if [ -f "$target_dir/commands/init.md" ]; then
+        rm -f "$target_dir/commands/init.md"
+    fi
+    if [ -f "$target_dir/agents/reviewer.md" ]; then
+        rm -f "$target_dir/agents/reviewer.md"
+    fi
 
     # -----------------
     # Commands
@@ -259,7 +266,6 @@ name: $skill_name
 description: >-
   $skill_description
 compatibility: opencode
-license: MIT
 ---
 EOF
             cat "$source_file"

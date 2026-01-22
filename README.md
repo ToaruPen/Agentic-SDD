@@ -186,6 +186,13 @@ opencode
 - `agents/` - `@sdd-reviewer` などのサブエージェント
 - `skills/` - `sdd-*` / `tdd-*` のスキル（必要時に `skill` ツールでロード）
 
+##### （任意）グローバル `/agentic-sdd` コマンド
+
+新規プロジェクトへ Agentic-SDD を導入するための OpenCode グローバルコマンド例を用意しています。
+
+1. `templates/opencode/commands/agentic-sdd.md` を `~/.config/opencode/commands/agentic-sdd.md` に配置
+2. OpenCode で `/agentic-sdd` を実行
+
 #### Codex CLI
 
 同期スクリプトを実行してコマンド/ルール設定を配置してください。
