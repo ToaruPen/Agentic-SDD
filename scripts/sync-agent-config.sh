@@ -157,27 +157,162 @@ sync_opencode() {
         fi
     fi
     
+    # OpenCode は `.opencode/commands`, `.opencode/agents`, `.opencode/skills` を読み込む。
+    # `.opencode/rules` は探索対象ではないため生成しない。
+    # Ref:
+    # - Commands: https://opencode.ai/docs/commands/
+    # - Agents: https://opencode.ai/docs/agents/
+    # - Skills: https://opencode.ai/docs/skills/
     if [ "$DRY_RUN" = true ]; then
-        log_info "[DRY-RUN] mkdir -p $target_dir/commands $target_dir/rules $target_dir/agents"
-        log_info "[DRY-RUN] cp -r .agent/commands/* $target_dir/commands/"
-        log_info "[DRY-RUN] cp -r .agent/rules/* $target_dir/rules/"
-        log_info "[DRY-RUN] cp -r .agent/agents/* $target_dir/agents/"
-    else
-        mkdir -p "$target_dir/commands" "$target_dir/rules" "$target_dir/agents"
-        
-        # OpenCode は .agent/ と同じ構造
-        if [ -d ".agent/commands" ]; then
-            cp -r .agent/commands/* "$target_dir/commands/" 2>/dev/null || true
-        fi
-        if [ -d ".agent/rules" ]; then
-            cp -r .agent/rules/* "$target_dir/rules/" 2>/dev/null || true
-        fi
-        if [ -d ".agent/agents" ]; then
-            cp -r .agent/agents/* "$target_dir/agents/" 2>/dev/null || true
-        fi
-        
-        log_info "OpenCode への同期が完了しました"
+        log_info "[DRY-RUN] mkdir -p $target_dir/commands $target_dir/agents $target_dir/skills"
+        log_info "[DRY-RUN] generate commands from .agent/commands -> $target_dir/commands (init.md -> sdd-init.md)"
+        log_info "[DRY-RUN] generate agent(s) from .agent/agents -> $target_dir/agents (frontmatter added)"
+        log_info "[DRY-RUN] generate skills from skills/*.md and .agent/rules/*.md -> $target_dir/skills/*/SKILL.md"
+        return
     fi
+
+    mkdir -p "$target_dir/commands" "$target_dir/agents" "$target_dir/skills"
+
+    # Legacy cleanup (older versions of this repo generated these paths)
+    rm -rf "$target_dir/rules" 2>/dev/null || true
+    rm -f "$target_dir/commands/init.md" 2>/dev/null || true
+    rm -f "$target_dir/agents/reviewer.md" 2>/dev/null || true
+
+    # -----------------
+    # Commands
+    # -----------------
+    if [ -d ".agent/commands" ]; then
+        for cmd_file in .agent/commands/*.md; do
+            [ -f "$cmd_file" ] || continue
+
+            local cmd_base
+            cmd_base=$(basename "$cmd_file" .md)
+
+            local target_name="$cmd_base"
+            local cmd_description="Agentic-SDD command: $cmd_base"
+            local cmd_agent="build"
+
+            case "$cmd_base" in
+                init)
+                    # OpenCode built-in `/init` generates AGENTS.md.
+                    # Avoid overriding it; expose Agentic-SDD init as `/sdd-init`.
+                    target_name="sdd-init"
+                    cmd_description="Initialize Agentic-SDD workflow files in a project"
+                    ;;
+                create-prd)
+                    cmd_description="Create a PRD via 7 questions and checks"
+                    ;;
+                create-epic)
+                    cmd_description="Create an epic from a PRD (3 tables required)"
+                    ;;
+                create-issues)
+                    cmd_description="Create issues from an epic (granularity rules)"
+                    ;;
+                impl)
+                    cmd_description="Implement an issue after full estimate"
+                    ;;
+                review)
+                    cmd_description="Review with DoD and sync-docs"
+                    cmd_agent="sdd-reviewer"
+                    ;;
+                sync-docs)
+                    cmd_description="Check PRD/Epic/code consistency (sync-docs)"
+                    ;;
+            esac
+
+            local target_cmd_file="$target_dir/commands/$target_name.md"
+            {
+                cat << EOF
+---
+description: $cmd_description
+agent: $cmd_agent
+---
+EOF
+                if [ "$cmd_base" = "init" ]; then
+                    cat << 'EOF'
+注意: OpenCode の組み込み `/init`（AGENTS.md 生成）との衝突を避けるため、このコマンドは `/sdd-init` として提供されます。
+
+EOF
+                fi
+                cat "$cmd_file"
+            } > "$target_cmd_file"
+        done
+    fi
+
+    # -----------------
+    # Skills
+    # -----------------
+    generate_skill_from_file() {
+        local skill_name="$1"
+        local skill_description="$2"
+        local source_file="$3"
+
+        [ -f "$source_file" ] || return 0
+
+        local skill_dir="$target_dir/skills/$skill_name"
+        mkdir -p "$skill_dir"
+
+        {
+            cat << EOF
+---
+name: $skill_name
+description: >-
+  $skill_description
+compatibility: opencode
+license: MIT
+---
+EOF
+            cat "$source_file"
+        } > "$skill_dir/SKILL.md"
+    }
+
+    # Project design skills
+    generate_skill_from_file "sdd-estimation" "Full estimation (11 sections) and confidence rules" "skills/estimation.md"
+    generate_skill_from_file "sdd-api-endpoint" "REST API endpoint design checklist" "skills/api-endpoint.md"
+    generate_skill_from_file "sdd-crud-screen" "CRUD screen design checklist" "skills/crud-screen.md"
+    generate_skill_from_file "sdd-error-handling" "Error classification, handling, and logging guidelines" "skills/error-handling.md"
+    generate_skill_from_file "tdd-testing" "Test strategy, pyramid, and coverage guidance" "skills/testing.md"
+
+    # Agentic-SDD rules (loaded on-demand via the skill tool)
+    generate_skill_from_file "sdd-rule-docs-sync" "Rules for keeping PRD, Epic, and code in sync" ".agent/rules/docs-sync.md"
+    generate_skill_from_file "sdd-rule-dod" "Definition of Done checklist" ".agent/rules/dod.md"
+    generate_skill_from_file "sdd-rule-epic" "Epic generation constraints and checklists" ".agent/rules/epic.md"
+    generate_skill_from_file "sdd-rule-issue" "Issue granularity rules and exception labels" ".agent/rules/issue.md"
+    generate_skill_from_file "sdd-rule-branch" "Git branch naming rules" ".agent/rules/branch.md"
+    generate_skill_from_file "sdd-rule-commit" "Conventional Commits message rules" ".agent/rules/commit.md"
+    generate_skill_from_file "sdd-rule-datetime" "Date/time formatting rules" ".agent/rules/datetime.md"
+
+    # -----------------
+    # Agents
+    # -----------------
+    if [ -f ".agent/agents/reviewer.md" ]; then
+        {
+            cat << 'EOF'
+---
+description: Reviews PRs/issues with Agentic-SDD DoD and sync-docs
+mode: subagent
+temperature: 0.1
+tools:
+  write: false
+  edit: false
+---
+EOF
+            cat ".agent/agents/reviewer.md"
+            cat << 'EOF'
+
+---
+
+## Notes (OpenCode)
+
+When needed, load these skills:
+
+- sdd-rule-dod
+- sdd-rule-docs-sync
+EOF
+        } > "$target_dir/agents/sdd-reviewer.md"
+    fi
+
+    log_info "OpenCode への同期が完了しました"
 }
 
 # 確認プロンプト

@@ -170,6 +170,8 @@ claude
 
 同期スクリプトを実行してコマンド/エージェント設定を配置してください。
 
+**注意**: OpenCode には組み込みの `/init`（AGENTS.md 生成）があるため、Agentic-SDD の `/init` は OpenCode 用には `/sdd-init` として配置されます。
+
 ```bash
 # 1. 同期スクリプトを実行
 ./scripts/sync-agent-config.sh opencode
@@ -177,6 +179,12 @@ claude
 # 2. OpenCodeを起動
 opencode
 ```
+
+同期後、`.opencode/` 以下に以下が生成されます（`.gitignore` 対象）：
+
+- `commands/` - `/create-prd` 等のカスタムコマンド
+- `agents/` - `@sdd-reviewer` などのサブエージェント
+- `skills/` - `sdd-*` / `tdd-*` のスキル（必要時に `skill` ツールでロード）
 
 #### Codex CLI
 
