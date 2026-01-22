@@ -1,0 +1,363 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+DEFAULT_REPO_URL="https://github.com/ToaruPen/Agentic-SDD.git"
+
+# Fallback is used when no config/env is set.
+# Keep this pinned to a known-good commit for reproducibility.
+DEFAULT_REF_FALLBACK="ec81584145a17d1091fdc0302223f72668663553"
+
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/agentic-sdd"
+DEFAULT_REF_FILE="$CONFIG_DIR/default-ref"
+DEFAULT_REPO_FILE="$CONFIG_DIR/repo"
+
+CACHE_DIR_DEFAULT="${XDG_CACHE_HOME:-$HOME/.cache}/agentic-sdd"
+
+usage() {
+    cat <<'EOF'
+Usage: agentic-sdd [OPTIONS] [tool] [mode]
+
+Install Agentic-SDD into the current project directory.
+
+Positional arguments (optional):
+  tool: opencode | codex | claude | all | none
+  mode: minimal | full
+
+Options:
+  --target <dir>        Target directory (default: git root or pwd)
+  --tool <tool>         Tool selection (default: $AGENTIC_SDD_DEFAULT_TOOL or none)
+  --mode <mode>         Install mode (default: $AGENTIC_SDD_DEFAULT_MODE or minimal)
+  --ref <sha|ref>       Agentic-SDD ref to fetch (default: config or pinned fallback)
+  --repo <url>          Agentic-SDD git repo URL (default: config or GitHub)
+  --force               Overwrite conflicting files (backs up first)
+  --dry-run             Show what would change
+  --no-cache            Do not use on-disk repo cache
+  --cache-dir <dir>     Override cache dir (default: $XDG_CACHE_HOME/.cache/agentic-sdd)
+  -h, --help            Show help
+
+Environment variables:
+  AGENTIC_SDD_DEFAULT_TOOL    Default tool when none specified
+  AGENTIC_SDD_DEFAULT_MODE    Default mode when none specified
+  AGENTIC_SDD_REF             Override default ref
+  AGENTIC_SDD_REPO            Override default repo
+  AGENTIC_SDD_CACHE_DIR       Override cache dir
+
+Config files:
+  $XDG_CONFIG_HOME/agentic-sdd/default-ref
+  $XDG_CONFIG_HOME/agentic-sdd/repo
+
+Examples:
+  agentic-sdd
+  agentic-sdd opencode
+  agentic-sdd codex full
+  agentic-sdd --ref <sha> --tool all
+EOF
+}
+
+log_info() { echo "[INFO] $*"; }
+log_warn() { echo "[WARN] $*"; }
+log_error() { echo "[ERROR] $*" >&2; }
+
+require_cmd() {
+    local cmd="$1"
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        log_error "Missing command: $cmd"
+        exit 1
+    fi
+}
+
+mktemp_dir() {
+    local dir
+    dir="$(mktemp -d 2>/dev/null)" || dir="$(mktemp -d -t agentic-sdd)"
+    printf '%s\n' "$dir"
+}
+
+read_config_value() {
+    local file="$1"
+    [ -f "$file" ] || return 0
+    local val
+    val="$(sed -e 's/[[:space:]]*$//' -e '/^[[:space:]]*$/d' "$file" | head -n 1 2>/dev/null || true)"
+    printf '%s' "$val"
+}
+
+is_sha40() {
+    local v="$1"
+    [[ "$v" =~ ^[0-9a-f]{40}$ ]]
+}
+
+resolve_ref_to_sha() {
+    local repo="$1"
+    local ref="$2"
+
+    if is_sha40 "$ref"; then
+        printf '%s\n' "$ref"
+        return 0
+    fi
+
+    # Try to resolve common ref shapes.
+    local out
+    out="$(git ls-remote "$repo" \
+        "refs/tags/${ref}^{}" \
+        "refs/tags/${ref}" \
+        "refs/heads/${ref}" \
+        "$ref" 2>/dev/null || true)"
+
+    if [ -z "$out" ]; then
+        return 1
+    fi
+
+    local sha=""
+    while IFS=$'\t' read -r line_sha _line_ref; do
+        if [ -n "$line_sha" ]; then
+            sha="$line_sha"
+            break
+        fi
+    done <<< "$out"
+
+    if [ -z "$sha" ]; then
+        return 1
+    fi
+
+    printf '%s\n' "$sha"
+}
+
+fetch_repo_at_sha() {
+    local dest="$1"
+    local repo="$2"
+    local sha="$3"
+
+    mkdir -p "$dest"
+
+    git init -q "$dest"
+    git -C "$dest" remote add origin "$repo"
+    git -C "$dest" fetch -q --depth 1 origin "$sha"
+    git -C "$dest" checkout -q --detach FETCH_HEAD
+}
+
+TOOL=""
+MODE=""
+TARGET_DIR=""
+REF=""
+REPO=""
+FORCE=false
+DRY_RUN=false
+NO_CACHE=false
+CACHE_DIR_OVERRIDE=""
+
+declare -a EXTRA_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --target)
+            TARGET_DIR="$2"
+            shift 2
+            ;;
+        --tool)
+            TOOL="$2"
+            shift 2
+            ;;
+        --mode)
+            MODE="$2"
+            shift 2
+            ;;
+        --ref)
+            REF="$2"
+            shift 2
+            ;;
+        --repo)
+            REPO="$2"
+            shift 2
+            ;;
+        --cache-dir)
+            CACHE_DIR_OVERRIDE="$2"
+            shift 2
+            ;;
+        --force)
+            FORCE=true
+            shift
+            ;;
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        --no-cache)
+            NO_CACHE=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        *)
+            EXTRA_ARGS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+for arg in "${EXTRA_ARGS[@]}" "$@"; do
+    case "$arg" in
+        opencode|codex|claude|all|none)
+            TOOL="$arg"
+            ;;
+        minimal|full)
+            MODE="$arg"
+            ;;
+        *)
+            log_error "Unknown argument: $arg"
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+require_cmd git
+
+if [ -z "$REPO" ]; then
+    REPO="${AGENTIC_SDD_REPO:-}"
+fi
+if [ -z "$REPO" ]; then
+    REPO="$(read_config_value "$DEFAULT_REPO_FILE")"
+fi
+if [ -z "$REPO" ]; then
+    REPO="$DEFAULT_REPO_URL"
+fi
+
+if [ -z "$REF" ]; then
+    REF="${AGENTIC_SDD_REF:-}"
+fi
+if [ -z "$REF" ]; then
+    REF="$(read_config_value "$DEFAULT_REF_FILE")"
+fi
+if [ -z "$REF" ]; then
+    REF="$DEFAULT_REF_FALLBACK"
+fi
+
+if [ -z "$TOOL" ]; then
+    TOOL="${AGENTIC_SDD_DEFAULT_TOOL:-none}"
+fi
+if [ -z "$MODE" ]; then
+    MODE="${AGENTIC_SDD_DEFAULT_MODE:-minimal}"
+fi
+
+case "$TOOL" in
+    none|opencode|codex|claude|all) ;;
+    *)
+        log_error "Invalid tool: $TOOL (expected none|opencode|codex|claude|all)"
+        exit 1
+        ;;
+esac
+
+case "$MODE" in
+    minimal|full) ;;
+    *)
+        log_error "Invalid mode: $MODE (expected minimal|full)"
+        exit 1
+        ;;
+esac
+
+if [ -z "$TARGET_DIR" ]; then
+    TARGET_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+fi
+
+if [ ! -d "$TARGET_DIR" ]; then
+    log_error "Target directory does not exist: $TARGET_DIR"
+    exit 1
+fi
+
+TARGET_DIR="$(cd -- "$TARGET_DIR" && pwd)"
+
+log_info "Agentic-SDD repo: $REPO"
+log_info "Requested ref: $REF"
+
+sha="$(resolve_ref_to_sha "$REPO" "$REF" || true)"
+if [ -z "$sha" ]; then
+    log_error "Failed to resolve ref: $REF"
+    exit 1
+fi
+
+log_info "Resolved sha: $sha"
+
+cache_dir="$CACHE_DIR_DEFAULT"
+if [ -n "$CACHE_DIR_OVERRIDE" ]; then
+    cache_dir="$CACHE_DIR_OVERRIDE"
+elif [ -n "${AGENTIC_SDD_CACHE_DIR:-}" ]; then
+    cache_dir="$AGENTIC_SDD_CACHE_DIR"
+fi
+
+repo_dir=""
+cleanup_tmp=""
+
+if [ "$NO_CACHE" = true ]; then
+    tmpdir="$(mktemp_dir)"
+    cleanup_tmp="$tmpdir"
+    repo_dir="$tmpdir/Agentic-SDD"
+    fetch_repo_at_sha "$repo_dir" "$REPO" "$sha"
+else
+    repo_dir="$cache_dir/repos/$sha"
+    if [ ! -d "$repo_dir" ] || [ ! -f "$repo_dir/scripts/install-agentic-sdd.sh" ]; then
+        mkdir -p "$cache_dir/repos"
+        tmpdir="$(mktemp_dir)"
+        cleanup_tmp="$tmpdir"
+        partial="$tmpdir/Agentic-SDD"
+        fetch_repo_at_sha "$partial" "$REPO" "$sha"
+        rm -rf "$repo_dir"
+        mkdir -p "$(dirname "$repo_dir")"
+        mv "$partial" "$repo_dir"
+    fi
+fi
+
+if [ -n "$cleanup_tmp" ]; then
+    trap 'rm -rf "$cleanup_tmp"' EXIT
+fi
+
+installer="$repo_dir/scripts/install-agentic-sdd.sh"
+if [ ! -f "$installer" ]; then
+    log_error "Missing installer: $installer"
+    exit 1
+fi
+
+install_args=(
+    --target "$TARGET_DIR"
+    --mode "$MODE"
+    --tool "$TOOL"
+)
+
+if [ "$FORCE" = true ]; then
+    install_args+=(--force)
+fi
+
+if [ "$DRY_RUN" = true ]; then
+    install_args+=(--dry-run)
+fi
+
+# Preflight conflict check (avoid partial installs)
+if [ "$FORCE" = false ] && [ "$DRY_RUN" = false ]; then
+    set +e
+    preflight_out="$(bash "$installer" "${install_args[@]}" --dry-run 2>&1)"
+    preflight_code=$?
+    set -e
+
+    # If dry-run itself failed for other reasons, surface it.
+    if [ "$preflight_code" -ne 0 ]; then
+        echo "$preflight_out"
+        exit "$preflight_code"
+    fi
+
+    conflict_lines="$(printf '%s\n' "$preflight_out" | grep -F "[DRY-RUN] conflict:" || true)"
+    if [ -n "$conflict_lines" ]; then
+        log_error "Conflicts found (no changes made)."
+        printf '%s\n' "$conflict_lines" >&2
+        log_error "Re-run with --force to overwrite (backups will be created)."
+        exit 2
+    fi
+fi
+
+log_info "Installing into: $TARGET_DIR (mode=$MODE tool=$TOOL force=$FORCE dry-run=$DRY_RUN)"
+
+bash "$installer" "${install_args[@]}"

@@ -114,6 +114,33 @@ skipped=0
 conflicts=0
 declare -a conflict_paths=()
 
+scan_conflict_file() {
+    local src="$1"
+    local dst="$2"
+
+    [ -f "$src" ] || return 0
+    [ -e "$dst" ] || return 0
+
+    if cmp -s "$src" "$dst"; then
+        return 0
+    fi
+
+    conflict_paths+=("$dst")
+    ((conflicts+=1))
+}
+
+scan_conflict_dir() {
+    local src_dir="$1"
+    local dst_dir="$2"
+
+    [ -d "$src_dir" ] || return 0
+
+    while IFS= read -r -d '' rel; do
+        rel=${rel#./}
+        scan_conflict_file "$src_dir/$rel" "$dst_dir/$rel"
+    done < <(cd "$src_dir" && find . -type f -print0)
+}
+
 backup_path() {
     local path="$1"
     local ts
@@ -212,6 +239,41 @@ ensure_gitignore_line() {
 log_info "Installing Agentic-SDD into: $TARGET_DIR"
 log_info "Mode: $MODE, Tool: $TOOL, Force: $FORCE, Dry-run: $DRY_RUN"
 
+# Fail-fast conflict scan (avoid partial installs when not using --force)
+if [ "$DRY_RUN" = false ] && [ "$FORCE" = false ]; then
+    scan_conflict_dir "$SOURCE_ROOT/.agent" "$TARGET_DIR/.agent"
+    scan_conflict_file "$SOURCE_ROOT/docs/prd/_template.md" "$TARGET_DIR/docs/prd/_template.md"
+    scan_conflict_file "$SOURCE_ROOT/docs/epics/_template.md" "$TARGET_DIR/docs/epics/_template.md"
+    scan_conflict_file "$SOURCE_ROOT/docs/decisions.md" "$TARGET_DIR/docs/decisions.md"
+    scan_conflict_file "$SOURCE_ROOT/docs/glossary.md" "$TARGET_DIR/docs/glossary.md"
+    scan_conflict_dir "$SOURCE_ROOT/skills" "$TARGET_DIR/skills"
+    scan_conflict_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts"
+
+    if [ "$MODE" = "full" ]; then
+        scan_conflict_dir "$SOURCE_ROOT/.github" "$TARGET_DIR/.github"
+    fi
+
+    # AGENTS.md (do not overwrite; use append file when target already has AGENTS.md)
+    if [ -f "$TARGET_DIR/AGENTS.md" ]; then
+        scan_conflict_file "$SOURCE_ROOT/AGENTS.md" "$TARGET_DIR/AGENTS.md.agentic-sdd.append.md"
+    else
+        scan_conflict_file "$SOURCE_ROOT/AGENTS.md" "$TARGET_DIR/AGENTS.md"
+    fi
+
+    if [ "$conflicts" -gt 0 ]; then
+        log_error "Conflicts found: $conflicts"
+        for p in "${conflict_paths[@]}"; do
+            log_error "  - $p"
+        done
+        log_error "Re-run with --force to overwrite (backups will be created)."
+        exit 2
+    fi
+
+    # Reset counters before real copy (scan_conflict_* shares the same counters)
+    conflicts=0
+    conflict_paths=()
+fi
+
 # Core workflow files
 copy_dir "$SOURCE_ROOT/.agent" "$TARGET_DIR/.agent"
 
@@ -251,6 +313,8 @@ if [ "$DRY_RUN" = true ]; then
     exit 0
 fi
 
+# Conflicts should already be handled by the pre-scan above.
+# Keep this check as a safety net for race conditions.
 if [ "$conflicts" -gt 0 ] && [ "$FORCE" = false ]; then
     log_error "Conflicts found: $conflicts"
     for p in "${conflict_paths[@]}"; do

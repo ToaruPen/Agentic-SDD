@@ -188,10 +188,18 @@ opencode
 
 ##### （任意）グローバル `/agentic-sdd` コマンド
 
-新規プロジェクトへ Agentic-SDD を導入するための OpenCode グローバルコマンド例を用意しています。
+新規プロジェクトへ Agentic-SDD を導入するためのグローバル定義（OpenCode/Codex/Claude/Clawdbot）と、共通の実行コマンド `agentic-sdd` を用意しています。
 
-1. `templates/opencode/commands/agentic-sdd.md` を `~/.config/opencode/commands/agentic-sdd.md` に配置
-2. OpenCode で `/agentic-sdd` を実行
+セットアップ:
+
+```bash
+# このリポジトリを clone して、リポジトリルートで実行
+./scripts/setup-global-agentic-sdd.sh
+```
+
+既存ファイルがある場合は `.bak.<timestamp>` に退避してから上書きします。
+
+セットアップ後、各ツールで `/agentic-sdd` を実行してください。
 
 #### Codex CLI
 
