@@ -21,7 +21,7 @@
 | `docs/prd/_template.md` | PRDテンプレート |
 | `docs/epics/_template.md` | Epicテンプレート |
 | `docs/glossary.md` | 用語集 |
-| `DESIGN_V3.md` | 設計書（正本） |
+| `DESIGN.md` | 設計書（正本） |
 
 ---
 
@@ -135,6 +135,6 @@ Epic（実装計画）
 
 ## 参照
 
-- 設計書: `DESIGN_V3.md`
+- 設計書: `DESIGN.md`
 - 用語集: `docs/glossary.md`
 - 意思決定: `docs/decisions.md`
