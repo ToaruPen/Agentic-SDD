@@ -8,13 +8,17 @@ This repository publishes GitHub Releases on tag push.
 2) Create and push a tag:
 
 ```bash
-git tag vX.Y.Z
-git push origin vX.Y.Z
+git tag X.Y.Z
+git push origin X.Y.Z
 ```
+
+Notes:
+
+- `vX.Y.Z` is also supported.
 
 3) GitHub Actions `release` workflow creates/updates the GitHub Release and uploads:
 
 - `agentic-sdd` (helper CLI)
-- `agentic-sdd-vX.Y.Z-template.tar.gz`
-- `agentic-sdd-vX.Y.Z-template.zip`
+- `agentic-sdd-<tag>-template.tar.gz`
+- `agentic-sdd-<tag>-template.zip`
 - `SHA256SUMS.txt`
