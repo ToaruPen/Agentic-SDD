@@ -1,0 +1,77 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          need_pkgs=()
+          command -v zip >/dev/null 2>&1 || need_pkgs+=(zip)
+          command -v gh >/dev/null 2>&1 || need_pkgs+=(gh)
+          if [ ${#need_pkgs[@]} -gt 0 ]; then
+            sudo apt-get update
+            sudo apt-get install -y "${need_pkgs[@]}"
+          fi
+
+          tag="${GITHUB_REF_NAME}"
+          mkdir -p dist
+
+          cp "scripts/agentic-sdd" "dist/agentic-sdd"
+          chmod +x "dist/agentic-sdd"
+
+          # Template bundle: tracked files excluding workflows.
+          files_file="$(mktemp)"
+          git ls-files ":!:.github/workflows/*" > "$files_file"
+
+          tar -czf "dist/agentic-sdd-${tag}-template.tar.gz" \
+            --transform "s,^,agentic-sdd-${tag}/," \
+            -T "$files_file"
+
+          pkg_dir="pkg/agentic-sdd-${tag}"
+          rm -rf "pkg"
+          mkdir -p "$pkg_dir"
+
+          while IFS= read -r f; do
+            [ -f "$f" ] || continue
+            mkdir -p "$pkg_dir/$(dirname "$f")"
+            cp -p "$f" "$pkg_dir/$f"
+          done < "$files_file"
+
+          (cd pkg && zip -qr "../dist/agentic-sdd-${tag}-template.zip" "agentic-sdd-${tag}")
+
+          rm -f "$files_file"
+          rm -rf "pkg"
+
+          sha256sum dist/* > dist/SHA256SUMS.txt
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag="${GITHUB_REF_NAME}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/* --clobber
+          else
+            gh release create "$tag" dist/* --title "$tag" --generate-notes
+          fi

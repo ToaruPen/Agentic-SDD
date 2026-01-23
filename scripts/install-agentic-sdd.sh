@@ -291,7 +291,9 @@ copy_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts"
 
 # GitHub templates (optional)
 if [ "$MODE" = "full" ]; then
-    copy_dir "$SOURCE_ROOT/.github" "$TARGET_DIR/.github"
+    # Copy issue/PR templates only. Workflows in this repo are for Agentic-SDD itself.
+    copy_file "$SOURCE_ROOT/.github/PULL_REQUEST_TEMPLATE.md" "$TARGET_DIR/.github/PULL_REQUEST_TEMPLATE.md"
+    copy_dir "$SOURCE_ROOT/.github/ISSUE_TEMPLATE" "$TARGET_DIR/.github/ISSUE_TEMPLATE"
 fi
 
 # AGENTS.md
