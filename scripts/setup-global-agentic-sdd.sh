@@ -35,6 +35,19 @@ backup_path() {
     echo "${path}.bak.$(timestamp)"
 }
 
+clawdbot_workspace_backup_dir() {
+    local workspace_skill_dir="$1"
+    local workspace_skills_root
+    workspace_skills_root="$(dirname "$workspace_skill_dir")"
+    local workspace_root
+    workspace_root="$(dirname "$workspace_skills_root")"
+
+    local backup_root="$workspace_root/.agentic-sdd-backups/clawdbot-skills"
+    mkdir -p "$backup_root"
+
+    echo "$backup_root/agentic-sdd.$(timestamp)"
+}
+
 require_cmd() {
     local cmd="$1"
     if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -129,7 +142,19 @@ detect_clawdbot_workspace_skill_dir() {
     p="$(printf '%s\n' "$out" | sed -n 's/^  Path: //p' | head -n 1)"
     [ -n "$p" ] || return 0
 
-    printf '%s\n' "$(dirname "$p")"
+    local reported_dir
+    reported_dir="$(dirname "$p")"
+
+    local skills_root
+    skills_root="$(dirname "$reported_dir")"
+
+    local canonical_dir="$skills_root/agentic-sdd"
+    if [ -d "$canonical_dir" ]; then
+        printf '%s\n' "$canonical_dir"
+        return 0
+    fi
+
+    printf '%s\n' "$reported_dir"
 }
 
 DRY_RUN=false
@@ -214,7 +239,7 @@ if [ -n "$workspace_skill_dir" ] \
     if [ -L "$workspace_skill_dir" ]; then
         log_info "Clawdbot workspace skill already symlinked: $workspace_skill_dir"
     else
-        backup_dir="$(backup_path "$workspace_skill_dir")"
+        backup_dir="$(clawdbot_workspace_backup_dir "$workspace_skill_dir")"
         if [ "$DRY_RUN" = true ]; then
             log_info "[DRY-RUN] mv: $workspace_skill_dir -> $backup_dir"
             log_info "[DRY-RUN] ln -s: $shared_skill_dir -> $workspace_skill_dir"
@@ -223,6 +248,28 @@ if [ -n "$workspace_skill_dir" ] \
             ln -s "$shared_skill_dir" "$workspace_skill_dir"
         fi
     fi
+
+    # If older backups exist inside <workspace>/skills, move them out of the skills directory
+    # to avoid being picked up as duplicate skills.
+    workspace_skills_root="$(dirname "$workspace_skill_dir")"
+    workspace_backup_root="$(dirname "$workspace_skills_root")/.agentic-sdd-backups/clawdbot-skills"
+
+    if [ "$DRY_RUN" = true ]; then
+        log_info "[DRY-RUN] scan for stray backups in: $workspace_skills_root"
+    else
+        mkdir -p "$workspace_backup_root"
+    fi
+
+    shopt -s nullglob
+    for d in "$workspace_skills_root"/agentic-sdd.bak.*; do
+        [ -d "$d" ] || continue
+        if [ "$DRY_RUN" = true ]; then
+            log_info "[DRY-RUN] mv: $d -> $workspace_backup_root/$(basename "$d")"
+        else
+            mv "$d" "$workspace_backup_root/$(basename "$d")"
+        fi
+    done
+    shopt -u nullglob
 fi
 
 log_info "Done."
