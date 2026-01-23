@@ -16,14 +16,12 @@ Git ブランチの命名規約。
 
 ## Type
 
-| Type | 用途 | 例 |
-|------|------|---|
-| `feature` | 新機能 | `feature/issue-123-user-registration` |
-| `fix` | バグ修正 | `fix/issue-456-null-pointer` |
-| `docs` | ドキュメント | `docs/issue-789-api-documentation` |
-| `refactor` | リファクタリング | `refactor/issue-101-extract-utils` |
-| `test` | テスト追加 | `test/issue-102-add-unit-tests` |
-| `chore` | その他 | `chore/issue-103-update-deps` |
+- `feature`: 新機能（例: `feature/issue-123-user-registration`）
+- `fix`: バグ修正（例: `fix/issue-456-null-pointer`）
+- `docs`: ドキュメント（例: `docs/issue-789-api-documentation`）
+- `refactor`: リファクタリング（例: `refactor/issue-101-extract-utils`）
+- `test`: テスト追加（例: `test/issue-102-add-unit-tests`）
+- `chore`: その他（例: `chore/issue-103-update-deps`）
 
 ---
 
@@ -55,12 +53,10 @@ user-profile                         # typeなし、issue番号なし
 
 ## 特殊ブランチ
 
-| ブランチ | 用途 | 保護 |
-|---------|------|------|
-| `main` | 本番リリース | 直接push禁止 |
-| `develop` | 開発統合（使用する場合） | 直接push禁止 |
-| `release/*` | リリース準備 | 状況による |
-| `hotfix/*` | 緊急修正 | 状況による |
+- `main`: 本番リリース（保護: 直接push禁止）
+- `develop`: 開発統合（使用する場合）（保護: 直接push禁止）
+- `release/*`: リリース準備（保護: 状況による）
+- `hotfix/*`: 緊急修正（保護: 状況による）
 
 ---
 
@@ -79,11 +75,9 @@ chore/tmp-experiment
 
 ## ブランチの寿命
 
-| 種類 | 推奨寿命 | 備考 |
-|-----|---------|------|
-| feature | 1〜5日 | 長期化したら分割を検討 |
-| fix | 1日以内 | 緊急度による |
-| docs | 1日以内 | - |
+- feature: 1〜5日（長期化したら分割を検討）
+- fix: 1日以内（緊急度による）
+- docs: 1日以内
 
 ---
 

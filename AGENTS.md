@@ -6,7 +6,7 @@
 
 ## プロジェクト概要
 
-**Agentic-SDD（Agentic Spec-Driven Development）**
+Agentic-SDD（Agentic Spec-Driven Development）
 
 非エンジニアがLLM暴走を防ぎつつ、AI駆動開発を進めるためのワークフローテンプレート。
 
@@ -14,27 +14,24 @@
 
 ## 重要ファイル
 
-| ファイル | 役割 |
-|---------|------|
-| `.agent/commands/` | コマンド定義（create-prd, create-epic等） |
-| `.agent/rules/` | ルール定義（docs-sync, dod, epic, issue） |
-| `docs/prd/_template.md` | PRDテンプレート |
-| `docs/epics/_template.md` | Epicテンプレート |
-| `docs/glossary.md` | 用語集 |
-| `DESIGN.md` | 設計書（正本） |
+- `.agent/commands/`: コマンド定義（create-prd, create-epic 等）
+- `.agent/rules/`: ルール定義（docs-sync, dod, epic, issue 等）
+- `docs/prd/_template.md`: PRDテンプレート
+- `docs/epics/_template.md`: Epicテンプレート
+- `docs/glossary.md`: 用語集
+- `DESIGN.md`: 設計書（正本）
 
 ---
 
 ## コマンド一覧
 
-| コマンド | 説明 |
-|---------|------|
-| `/create-prd` | PRD作成（7問質問形式） |
-| `/create-epic` | Epic作成（3表必須） |
-| `/create-issues` | Issue作成（粒度規約適用） |
-| `/impl` | 実装（Full見積もり必須） |
-| `/review` | レビュー（DoD確認） |
-| `/sync-docs` | ドキュメント同期チェック |
+- `/create-prd`: PRD作成（7問質問形式）
+- `/create-epic`: Epic作成（必須提出物: 外部サービス一覧/コンポーネント一覧/新規技術一覧）
+- `/create-issues`: Issue作成（粒度規約適用）
+- `/impl`: 実装（Full見積もり必須）
+- `/tdd`: TDDで実装（Red→Green→Refactor）
+- `/review`: レビュー（DoD確認）
+- `/sync-docs`: ドキュメント同期チェック
 
 ---
 
@@ -50,7 +47,7 @@
 
 ### 2. Epic作成時
 
-- 3表（外部サービス/コンポーネント/新規技術）必須
+- 必須提出物（外部サービス一覧/コンポーネント一覧/新規技術一覧）を必ず含む
 - 技術方針別の制限を適用
 - 代替案を必ず提示
 - 「将来のため」だけの複雑化は禁止
@@ -78,7 +75,7 @@
 ## 禁止事項
 
 - 禁止語の使用（適切に、なるべく、高速など）
-- 3表なしでのEpic作成
+- 必須提出物なしでのEpic作成
 - 粒度規約無視のIssue作成
 - Lite見積もり（Full必須）
 - 参照なしでの差分報告
@@ -88,11 +85,9 @@
 
 ## カウント定義
 
-| 用語 | カウント単位 |
-|-----|-------------|
-| 外部サービス数 | SaaS、マネージドDB、認証基盤、外部API を各1 |
-| コンポーネント数 | 別プロセス、別ジョブ、別ワーカー、別バッチ を各1 |
-| 新規技術 | DB、キュー、認証、観測基盤、フレームワーク、クラウドサービス を各1 |
+- 外部サービス数: SaaS、マネージドDB、認証基盤、外部API を各1
+- コンポーネント数: 別プロセス、別ジョブ、別ワーカー、別バッチ を各1
+- 新規技術: DB、キュー、認証、観測基盤、フレームワーク、クラウドサービス を各1
 
 ---
 
@@ -119,15 +114,7 @@
 
 ## ドキュメント正本の階層
 
-```
-PRD（要件）← 最も優先度が高い
-   │
-   ▼
-Epic（実装計画）
-   │
-   ▼
-実装（コード）
-```
+優先順位: PRD（要件） > Epic（実装計画） > 実装（コード）
 
 矛盾がある場合は上位に従う。
 

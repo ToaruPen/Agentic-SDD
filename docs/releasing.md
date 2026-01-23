@@ -2,10 +2,16 @@
 
 This repository publishes GitHub Releases on tag push.
 
+Trigger:
+- Push a git tag (recommended: `vX.Y.Z`)
+
+Automation:
+- GitHub Actions workflow: `release`
+
 ## Create a release
 
-1) Update `CHANGELOG.md`.
-2) Create and push a tag:
+1. Update `CHANGELOG.md`.
+2. Create and push a tag:
 
 ```bash
 git tag X.Y.Z
@@ -16,7 +22,7 @@ Notes:
 
 - `vX.Y.Z` is also supported.
 
-3) GitHub Actions `release` workflow creates/updates the GitHub Release and uploads:
+3. GitHub Actions `release` workflow creates/updates the GitHub Release and uploads:
 
 - `agentic-sdd` (helper CLI)
 - `agentic-sdd-<tag>-template.tar.gz`

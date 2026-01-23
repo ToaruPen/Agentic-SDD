@@ -6,70 +6,94 @@
 
 ## 概要
 
-このドキュメントでは、プロジェクトで使用するデータモデルを定義します。
-PRD/Epicで決定した要件に基づいて、具体的なスキーマを記載してください。
+- PRD/Epicで決定した要件に基づいて、スキーマを具体化する。
+- 図表（Markdown表、ASCIIアート）は使用せず、テキストのみで記述する。
 
 ---
 
 ## エンティティ一覧
 
-| エンティティ | 説明 | テーブル名 |
-|-------------|------|-----------|
-| [例: User] | [ユーザー情報] | [users] |
-| [例: Post] | [投稿情報] | [posts] |
+Entity-1
+名前: [例: User]
+説明: [ユーザー情報]
+テーブル名: [users]
+
+Entity-2
+名前: [例: Post]
+説明: [投稿情報]
+テーブル名: [posts]
 
 ---
 
 ## エンティティ詳細
 
-### [エンティティ名]
+### Entity: [エンティティ名]
 
-**説明**: [このエンティティの役割]
-
-**テーブル名**: `[table_name]`
+説明: [このエンティティの役割]
+テーブル名: `[table_name]`
 
 #### カラム定義
 
-| カラム名 | 型 | 必須 | デフォルト | 説明 |
-|---------|---|------|----------|------|
-| id | UUID/BIGINT | Yes | auto | 主キー |
-| [column] | [type] | [Yes/No] | [default] | [説明] |
-| created_at | TIMESTAMP | Yes | now() | 作成日時 |
-| updated_at | TIMESTAMP | Yes | now() | 更新日時 |
+Column-1
+カラム名: id
+型: UUID/BIGINT
+必須: Yes
+デフォルト: auto
+説明: 主キー
+
+Column-2
+カラム名: [column]
+型: [type]
+必須: [Yes/No]
+デフォルト: [default]
+説明: [説明]
+
+Column-3
+カラム名: created_at
+型: TIMESTAMP
+必須: Yes
+デフォルト: now()
+説明: 作成日時
+
+Column-4
+カラム名: updated_at
+型: TIMESTAMP
+必須: Yes
+デフォルト: now()
+説明: 更新日時
 
 #### インデックス
 
-| インデックス名 | カラム | 種類 | 用途 |
-|---------------|-------|------|------|
-| [idx_name] | [column] | [UNIQUE/INDEX] | [検索用途] |
+Index-1
+インデックス名: [idx_name]
+カラム: [column]
+種類: [UNIQUE/INDEX]
+用途: [検索用途]
 
 #### リレーション
 
-| 関連先 | 種類 | 外部キー | 説明 |
-|-------|------|---------|------|
-| [Entity] | [1:N/N:1/N:N] | [fk_column] | [関連の説明] |
+Relation-1
+関連先: [Entity]
+種類: [1:N / N:1 / N:N / 1:1]
+外部キー: [fk_column]
+説明: [関連の説明]
 
 ---
 
-## ER図
+## リレーション一覧（ER相当）
 
-```
-┌─────────────┐       ┌─────────────┐
-│    User     │       │    Post     │
-├─────────────┤       ├─────────────┤
-│ id (PK)     │───┐   │ id (PK)     │
-│ email       │   │   │ title       │
-│ name        │   └──<│ user_id(FK) │
-│ created_at  │       │ content     │
-│ updated_at  │       │ created_at  │
-└─────────────┘       │ updated_at  │
-                      └─────────────┘
+表記:
+- 1:N: 1対多
+- N:1: 多対1
+- N:N: 多対多
+- 1:1: 1対1
 
-記号:
-  ──<  1対多
-  >──< 多対多
-  ──── 1対1
-```
+Relation-1
+from: [User]
+to: [Post]
+種類: 1:N
+外部キー: posts.user_id
+説明: [例: User has many Posts]
 
 ---
 
@@ -77,41 +101,53 @@ PRD/Epicで決定した要件に基づいて、具体的なスキーマを記載
 
 ### 一意制約
 
-| エンティティ | カラム | 説明 |
-|-------------|-------|------|
-| [User] | [email] | [メールアドレスは一意] |
+Unique-1
+エンティティ: [User]
+カラム: [email]
+説明: [メールアドレスは一意]
 
 ### 外部キー制約
 
-| 子テーブル | 親テーブル | ON DELETE | ON UPDATE |
-|-----------|-----------|-----------|-----------|
-| [posts] | [users] | [CASCADE/SET NULL/RESTRICT] | [CASCADE] |
+FK-1
+子テーブル: [posts]
+親テーブル: [users]
+ON DELETE: [CASCADE/SET NULL/RESTRICT]
+ON UPDATE: [CASCADE]
 
 ### チェック制約
 
-| テーブル | カラム | 制約 |
-|---------|-------|------|
-| [users] | [age] | [age >= 0] |
+Check-1
+テーブル: [users]
+カラム: [age]
+制約: [age >= 0]
 
 ---
 
 ## 列挙型（Enum）
 
-### [EnumName]
+### Enum: [EnumName]
 
-| 値 | 説明 |
-|---|------|
-| [VALUE_1] | [説明] |
-| [VALUE_2] | [説明] |
+Value-1
+値: [VALUE_1]
+説明: [説明]
+
+Value-2
+値: [VALUE_2]
+説明: [説明]
 
 ---
 
 ## マイグレーション履歴
 
-| バージョン | 日付 | 内容 |
-|-----------|------|------|
-| 001 | YYYY-MM-DD | 初期スキーマ作成 |
-| 002 | YYYY-MM-DD | [変更内容] |
+Migration-1
+バージョン: 001
+日付: YYYY-MM-DD
+内容: 初期スキーマ作成
+
+Migration-2
+バージョン: 002
+日付: YYYY-MM-DD
+内容: [変更内容]
 
 ---
 
@@ -119,33 +155,50 @@ PRD/Epicで決定した要件に基づいて、具体的なスキーマを記載
 
 ### 命名規則
 
-| 対象 | 規則 | 例 |
-|-----|------|---|
-| テーブル名 | スネークケース、複数形 | `users`, `user_profiles` |
-| カラム名 | スネークケース | `created_at`, `user_id` |
-| インデックス名 | `idx_テーブル_カラム` | `idx_users_email` |
-| 外部キー名 | `fk_テーブル_参照テーブル` | `fk_posts_users` |
+テーブル名
+規則: スネークケース、複数形
+例: `users`, `user_profiles`
+
+カラム名
+規則: スネークケース
+例: `created_at`, `user_id`
+
+インデックス名
+規則: `idx_<table>_<column>`
+例: `idx_users_email`
+
+外部キー名
+規則: `fk_<table>_<ref_table>`
+例: `fk_posts_users`
 
 ### 共通カラム
 
-すべてのテーブルに以下を含める：
+Column
+カラム名: id
+型: UUID or BIGINT
+説明: 主キー
 
-| カラム | 型 | 説明 |
-|-------|---|------|
-| id | UUID or BIGINT | 主キー |
-| created_at | TIMESTAMP | 作成日時 |
-| updated_at | TIMESTAMP | 更新日時 |
+Column
+カラム名: created_at
+型: TIMESTAMP
+説明: 作成日時
+
+Column
+カラム名: updated_at
+型: TIMESTAMP
+説明: 更新日時
 
 ### 論理削除（使用する場合）
 
-| カラム | 型 | 説明 |
-|-------|---|------|
-| deleted_at | TIMESTAMP NULL | 削除日時（NULLなら未削除） |
+Column
+カラム名: deleted_at
+型: TIMESTAMP NULL
+説明: 削除日時（NULLなら未削除）
 
 ---
 
 ## 関連ファイル
 
-- `docs/prd/*.md` - PRD（要件）
-- `docs/epics/*.md` - Epic（実装計画）
-- `docs/decisions.md` - 技術的意思決定
+- `docs/prd/*.md`: PRD（要件）
+- `docs/epics/*.md`: Epic（実装計画）
+- `docs/decisions.md`: 技術的意思決定

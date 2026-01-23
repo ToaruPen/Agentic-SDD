@@ -210,7 +210,7 @@ sync_opencode() {
                     cmd_description="Create a PRD via 7 questions and checks"
                     ;;
                 create-epic)
-                    cmd_description="Create an epic from a PRD (3 tables required)"
+                    cmd_description="Create an epic from a PRD (3 required lists)"
                     ;;
                 create-issues)
                     cmd_description="Create issues from an epic (granularity rules)"
@@ -278,6 +278,7 @@ EOF
     generate_skill_from_file "sdd-crud-screen" "CRUD screen design checklist" "skills/crud-screen.md"
     generate_skill_from_file "sdd-error-handling" "Error classification, handling, and logging guidelines" "skills/error-handling.md"
     generate_skill_from_file "tdd-testing" "Test strategy, pyramid, and coverage guidance" "skills/testing.md"
+    generate_skill_from_file "tdd-protocol" "TDD execution protocol, legacy refactor tactics, and determinism seams" "skills/tdd-protocol.md"
 
     # Agentic-SDD rules (loaded on-demand via the skill tool)
     generate_skill_from_file "sdd-rule-docs-sync" "Rules for keeping PRD, Epic, and code in sync" ".agent/rules/docs-sync.md"

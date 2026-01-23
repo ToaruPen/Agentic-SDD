@@ -39,36 +39,24 @@ Agentic-SDDのファイルを追加しますか？
 
 以下のディレクトリとファイルを作成：
 
-```
-.agent/
-├── commands/
-│   ├── create-prd.md
-│   ├── create-epic.md
-│   ├── create-issues.md
-│   ├── impl.md
-│   ├── review.md
-│   └── sync-docs.md
-├── rules/
-│   ├── docs-sync.md
-│   ├── dod.md
-│   ├── epic.md
-│   └── issue.md
-└── agents/
-    └── (空)
 
-docs/
-├── prd/
-│   └── _template.md
-├── epics/
-│   └── _template.md
-├── decisions.md
-└── glossary.md
-
-skills/
-└── estimation.md
-
-AGENTS.md
-```
+- `.agent/commands/create-prd.md`
+- `.agent/commands/create-epic.md`
+- `.agent/commands/create-issues.md`
+- `.agent/commands/impl.md`
+- `.agent/commands/review.md`
+- `.agent/commands/sync-docs.md`
+- `.agent/rules/docs-sync.md`
+- `.agent/rules/dod.md`
+- `.agent/rules/epic.md`
+- `.agent/rules/issue.md`
+- `.agent/agents/`（空ディレクトリ）
+- `docs/prd/_template.md`
+- `docs/epics/_template.md`
+- `docs/decisions.md`
+- `docs/glossary.md`
+- `skills/estimation.md`
+- `AGENTS.md`
 
 ### Phase 4: 既存ファイルとの統合
 
@@ -128,11 +116,9 @@ Agentic-SDDのセットアップが完了しました。
 
 ## オプション
 
-| オプション | 説明 |
-|-----------|------|
-| `--force` | 既存ファイルを上書き（確認なし） |
-| `--dry-run` | 実際にはファイルを作成せずプレビュー |
-| `--minimal` | 最小構成のみ作成（skills/は除外） |
+- `--force`: 既存ファイルを上書き（確認なし）
+- `--dry-run`: 実際にはファイルを作成せずプレビュー
+- `--minimal`: 最小構成のみ作成（skills/は除外）
 
 ## 既存プロジェクトへの適用
 
