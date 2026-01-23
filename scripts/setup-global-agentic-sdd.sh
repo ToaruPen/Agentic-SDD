@@ -64,8 +64,19 @@ write_file() {
     local dst_dir
     dst_dir="$(dirname "$dst")"
 
+    if [ -f "$dst" ] && [ "$(cat "$dst" 2>/dev/null || true)" = "${content}"$'\n' ]; then
+        if [ "$dry_run" = true ]; then
+            log_info "[DRY-RUN] identical: $dst"
+        fi
+        return 0
+    fi
+
     if [ "$dry_run" = true ]; then
-        log_info "[DRY-RUN] write: $dst"
+        if [ -f "$dst" ]; then
+            log_info "[DRY-RUN] overwrite: $dst (backup: $(backup_path "$dst"))"
+        else
+            log_info "[DRY-RUN] create: $dst"
+        fi
         return 0
     fi
 
