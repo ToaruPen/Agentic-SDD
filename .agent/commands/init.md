@@ -1,6 +1,11 @@
 # /init
 
-Initialize the Agentic-SDD workflow files in a project.
+Initialize Agentic-SDD in a project.
+
+Important:
+
+- The installation entrypoint is the global `/agentic-sdd` command (helper CLI: `agentic-sdd`).
+- This command (`/init`, OpenCode: `/sdd-init`) is a post-install checklist and a safe upgrade guide.
 
 Note: OpenCode has a built-in `/init` (generates AGENTS.md). When generating OpenCode commands,
 this command is exposed as `/sdd-init` to avoid conflicts.
@@ -15,116 +20,104 @@ User-facing interactions remain in Japanese.
 
 ## Flow
 
-### Phase 1: Collect project info (ask in Japanese)
+### Phase 1: Verify current state
+
+1. Confirm you are at the project root (git root).
+2. Check whether Agentic-SDD is already installed:
+   - `.agent/` exists
+   - `docs/prd/_template.md` exists
+   - `scripts/install-agentic-sdd.sh` exists
+3. If not installed:
+   - Tell the user to run `/agentic-sdd` (recommended) and STOP.
+
+User-facing message example (Japanese):
 
 ```text
-プロジェクトを初期化します。以下の質問に答えてください。
-
-1. プロジェクト名は？
-2. このプロジェクトは新規ですか、既存ですか？
-3. 使用するプログラミング言語/フレームワークは？（決まっていない場合は「未定」）
-4. GitHubリポジトリは既にありますか？
+このリポジトリにはまだ Agentic-SDD が導入されていません。
+まず `/agentic-sdd` を実行して導入してください（導入後に必要なら `/sdd-init` を実行してください）。
 ```
 
-### Phase 2: Confirm the existing structure (existing projects)
+### Phase 2: Install/upgrade via `/agentic-sdd` (recommended)
+
+Run a dry-run first:
 
 ```text
-現在のディレクトリ構造:
-[構造を表示]
-
-Agentic-SDDのファイルを追加しますか？
-- .agent/ ディレクトリ
-- docs/ ディレクトリ（既存の場合はマージ）
-- AGENTS.md
+/agentic-sdd --dry-run [tool] [mode]
 ```
 
-### Phase 3: Install files
+If the command exits with code 2 (conflicts), summarize conflicts and ask whether to re-run with `--force`.
 
-Create these directories/files (mode-dependent):
+Then install/upgrade:
 
-- `.agent/` (commands, rules, agents, schemas)
-- `docs/` (`prd/_template.md`, `epics/_template.md`, `decisions.md`, `glossary.md`)
-- `skills/` (design skills)
-- `scripts/` (install/sync/review-cycle helpers)
-- `AGENTS.md`
-
-### Phase 4: Merge with existing files
-
-If `docs/` already exists:
-
-- Keep existing files
-- Add `docs/prd/` and `docs/epics/` subdirectories
-- Add `_template.md` files
-
-If `AGENTS.md` already exists:
-
-- Create a backup (`AGENTS.md.bak`)
-- Overwrite or ask for a manual merge
-
-### Phase 5: Update `.gitignore`
-
-Add (as needed):
-
-```
-# Agentic-SDD
-.agent/agents/*.local.md
-.agentic-sdd/
-.opencode/
-.codex/
+```text
+/agentic-sdd [tool] [mode]
 ```
 
-### Phase 6: Finish
+Notes:
+
+- `mode=minimal`: install workflow files (no GitHub issue/PR templates).
+- `mode=full`: also install `.github/PULL_REQUEST_TEMPLATE.md` and `.github/ISSUE_TEMPLATE/*`.
+- If `AGENTS.md` already exists, the installer will NOT overwrite it. It writes:
+  - `AGENTS.md.agentic-sdd.append.md` (manual merge required)
+
+### Phase 3: Tool config sync
+
+If you installed with `--tool none` or you edited `.agent/` after installation, re-generate tool configs:
+
+```bash
+# Sync for all tools
+./scripts/sync-agent-config.sh all
+```
+
+OpenCode note: restart OpenCode after sync.
+
+### Phase 4: Finish
 
 Output a short completion message and next steps (in Japanese), for example:
 
 ```text
 ## 初期化完了
 
-Agentic-SDDのセットアップが完了しました。
+Agentic-SDD の導入が完了しました。
 
 次のステップ:
 1. PRD作成: /create-prd [プロジェクト名]
 2. 用語集の更新: docs/glossary.md
-3. 技術方針の決定: シンプル優先 / バランス / 拡張性優先
+3. 技術方針の決定: シンプル優先 / バランス
 ```
 
 ## Options
 
-- `--force`: overwrite existing files (no prompts)
-- `--dry-run`: preview only
-- `--minimal`: install minimal set only (exclude `skills/`)
+This command is a guide. Installation is performed by `/agentic-sdd`.
 
-## Applying to an existing project
+Common `/agentic-sdd` options:
 
-Suggested gradual migration:
-
-```text
-Week 1: use /create-prd only
-Week 2: add /create-epic
-Week 3: add /create-issues
-Week 4: use the full workflow
-```
+- `--mode minimal|full`
+- `--tool none|opencode|codex|claude|all`
+- `--dry-run`
+- `--force`
+- `--ref <tag>` (install a specific release tag)
 
 ## Troubleshooting
 
-### Q: Conflicts with existing docs/
+### Q: `/agentic-sdd` is not available
 
-A: `docs/prd/` and `docs/epics/` are subdirectories and typically do not conflict.
+Run the global setup once by cloning the Agentic-SDD repo and running:
 
-### Q: AGENTS.md already exists
+```bash
+./scripts/setup-global-agentic-sdd.sh
+```
 
-A: Use `--dry-run` and manually merge if needed.
+Alternative (without global setup): clone the Agentic-SDD repo and run the installer directly:
 
-### Q: Team usage
+```bash
+./scripts/install-agentic-sdd.sh --target <project-dir> --mode minimal
+```
 
-A: Commit these to the repository:
+### Q: `AGENTS.md` already exists
 
-- `.agent/`
-- `docs/prd/_template.md`, `docs/epics/_template.md`, `docs/decisions.md`, `docs/glossary.md`
-- `skills/`
-- `scripts/`
-- `.gitignore` (if updated)
-- `AGENTS.md`
+A: This is expected. The installer writes `AGENTS.md.agentic-sdd.append.md` instead of overwriting.
+Manually merge it into your existing `AGENTS.md`.
 
 ## Related
 

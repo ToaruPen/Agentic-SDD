@@ -19,14 +19,14 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues) remai
 ## Workflow
 
 ```
-/init* -> /create-prd -> /create-epic -> /create-issues -> /estimation -> /impl|/tdd -> /review-cycle -> /review
+/agentic-sdd* -> /create-prd -> /create-epic -> /create-issues -> /estimation -> /impl|/tdd -> /review-cycle -> /review
      |            |              |              |              |            |              |            |
      v            v              v              v              v            v              v            v
-   7 questions   3-layer guard  LOC-based      Full estimate   Implement    Local loop      DoD gate
-   + checklist   + 3 required   50-300 LOC     + approval      + tests      review.json     + sync-docs
+    Install       7 questions    3-layer guard  LOC-based       Full estimate Implement      Local loop    DoD gate
+                  + checklist    + 3 required   50-300 LOC      + approval    + tests        review.json   + sync-docs
 ```
 
-\* One-time project initialization. On OpenCode, use `/sdd-init` instead of `/init`.
+\* One-time install of Agentic-SDD workflow files in the repo.
 
 ---
 
@@ -59,15 +59,23 @@ Note: worktrees share the same `.git` database. Merge incrementally (finish one,
 
 ## Quick Start
 
-### 0) Initialize (one-time)
+### 0) Install (one-time per repo)
 
-If Agentic-SDD is not installed in your repository yet, initialize the project first:
+If Agentic-SDD is not installed in your repository yet, install it first:
 
 ```
-/init [project-name]
+/agentic-sdd opencode minimal
 ```
 
-On OpenCode, use `/sdd-init` (OpenCode has a built-in `/init`).
+If you do not have `/agentic-sdd` yet, set it up once by cloning this repo and running:
+
+```bash
+./scripts/setup-global-agentic-sdd.sh
+```
+
+Use `full` instead of `minimal` if you want GitHub issue/PR templates.
+
+After installation, OpenCode exposes Agentic-SDD's init checklist as `/sdd-init` (because `/init` is built-in).
 
 ### 1) Create a PRD
 
@@ -191,10 +199,14 @@ scripts/
 ├── install-agentic-sdd.sh
 ├── assemble-sot.py
 ├── extract-issue-files.py
+├── resolve-sync-docs-inputs.py
+├── sot_refs.py
 ├── review-cycle.sh
 ├── setup-global-agentic-sdd.sh
 ├── sync-agent-config.sh
+├── test-install-agentic-sdd.sh
 ├── test-review-cycle.sh
+├── test-sync-docs-inputs.sh
 ├── test-worktree.sh
 ├── validate-review-json.py
 └── worktree.sh
@@ -285,7 +297,7 @@ Generated under `.opencode/` (gitignored):
 - `agents/` - subagents like `@sdd-reviewer`
 - `skills/` - `sdd-*` / `tdd-*` skills (load via the `skill` tool)
 
-##### (Optional) Global `/agentic-sdd` command
+##### Global `/agentic-sdd` command
 
 This repo provides global definitions (OpenCode/Codex/Claude/Clawdbot) and a helper CLI `agentic-sdd`
 to install Agentic-SDD into new projects.
