@@ -54,6 +54,14 @@ User-facing output remains in Japanese.
 
 ---
 
+## Deterministic inputs and diff source
+
+PRD/Epic resolution and diff source selection are defined in:
+
+- `.agent/commands/sync-docs.md`
+
+Rule: if PRD/Epic or diff source is ambiguous, STOP and ask the user (do not guess).
+
 ## How to reference
 
 PRD:
