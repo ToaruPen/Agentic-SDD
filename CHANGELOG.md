@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.13] - 2026-01-25
+
+- Make `/agentic-sdd` the documented one-time installation entrypoint (README).
+- Align `/init` (`/sdd-init`) documentation with the actual installer behavior.
+- Add a smoke test for `scripts/install-agentic-sdd.sh`.
+
 ## [0.2.12] - 2026-01-25
 
 - Clarify deterministic PRD/Epic and diff source resolution for `/sync-docs`.
