@@ -15,6 +15,10 @@ Invariant (SoT)
 - If you detect a contradiction, STOP and ask a human with references (PRD/Epic/code:line).
   Do not invent requirements.
 
+Release hygiene (required)
+- After making changes to this repo, you MUST update `CHANGELOG.md`, publish a GitHub Release (tag),
+  and update pinned scripts (e.g. `scripts/agentic-sdd` default ref).
+
 0) Bootstrap
 - Read AGENTS.md (this section + command list). Read README.md only if needed (Workflow section).
 - Read `.agent/commands/`, `.agent/rules/`, and `skills/` on-demand for the next command only.

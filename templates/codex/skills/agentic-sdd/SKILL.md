@@ -24,6 +24,12 @@ Arguments (optional): $ARGUMENTS
 AGENTIC_SDD_DEFAULT_TOOL=opencode agentic-sdd $ARGUMENTS
 ```
 
+To install a specific released version:
+
+```bash
+AGENTIC_SDD_DEFAULT_TOOL=opencode agentic-sdd --ref <tag> $ARGUMENTS
+```
+
 If you are installing for Codex instead:
 
 ```bash

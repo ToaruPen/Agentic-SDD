@@ -19,12 +19,14 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues) remai
 ## Workflow
 
 ```
-/create-prd -> /create-epic -> /create-issues -> /impl -> /review-cycle -> /review
+/init* -> /create-prd -> /create-epic -> /create-issues -> /impl -> /review-cycle -> /review
      |            |              |              |             |            |
      v            v              v              v             v            v
-  7 questions   3-layer guard  LOC-based      Full estimate  Local loop   DoD gate
-  + checklist   + 3 required   50-300 LOC     + confidence   review.json  + sync-docs
+   7 questions   3-layer guard  LOC-based      Full estimate  Local loop   DoD gate
+   + checklist   + 3 required   50-300 LOC     + confidence   review.json  + sync-docs
 ```
+
+\* One-time project initialization. On OpenCode, use `/sdd-init` instead of `/init`.
 
 ---
 
@@ -56,6 +58,16 @@ Note: worktrees share the same `.git` database. Merge incrementally (finish one,
 ---
 
 ## Quick Start
+
+### 0) Initialize (one-time)
+
+If Agentic-SDD is not installed in your repository yet, initialize the project first:
+
+```
+/init [project-name]
+```
+
+On OpenCode, use `/sdd-init` (OpenCode has a built-in `/init`).
 
 ### 1) Create a PRD
 
