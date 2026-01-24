@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-01-25
+
+- Add Issue "in progress" locking to `worktree.sh new` using `gh issue develop` linked branches.
+- Make `/review-cycle` a required local gate before committing in `/impl`.
+- Add linked-branch work status checks to `/impl` Phase 1 to prevent duplicate work.
+
 ## [0.2.2] - 2026-01-25
 
 - Simplify `review.json` schema (v3) by removing unused fields and enforcing strict keys.
