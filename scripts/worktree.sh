@@ -130,6 +130,12 @@ cmd_new() {
   local worktrees_root=""
   local tool="${AGENTIC_SDD_WORKTREE_TOOL:-}"
   local use_existing_branch=0
+  local lock_issue="${AGENTIC_SDD_WORKTREE_LOCK_ISSUE:-1}"
+
+  case "$lock_issue" in
+    0|1) ;;
+    *) lock_issue=1 ;;
+  esac
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -151,9 +157,13 @@ cmd_new() {
         tool="$2"; shift 2 ;;
       --use-existing-branch)
         use_existing_branch=1; shift ;;
+      --lock-issue)
+        lock_issue=1; shift ;;
+      --no-lock-issue)
+        lock_issue=0; shift ;;
       -h|--help)
         cat <<'EOF'
-Usage: scripts/worktree.sh new --issue <number> [--desc <short description>] [options]
+ Usage: scripts/worktree.sh new --issue <number> [--desc <short description>] [options]
 
 Options:
   --branch <name>         Explicit branch name (skips --type/--desc naming)
@@ -161,13 +171,15 @@ Options:
   --desc <text>           Used to build branch name when --branch is omitted
   --base <ref>            Start point (default: main)
   --dir <path>            Worktree directory (default: computed under --worktrees-root)
-  --worktrees-root <dir>  Root directory for worktrees (default: ../.worktrees/<repo>)
-  --tool <none|opencode|codex|all>
-                          Run sync-agent-config in the new worktree (default: env or opencode)
-  --use-existing-branch   Allow using an existing local branch (default: fail)
+   --worktrees-root <dir>  Root directory for worktrees (default: ../.worktrees/<repo>)
+   --tool <none|opencode|codex|all>
+                           Run sync-agent-config in the new worktree (default: env or opencode)
+   --use-existing-branch   Allow reusing an existing linked/local branch (default: fail)
+   --lock-issue            Create a linked branch on the Issue via `gh issue develop` (default)
+   --no-lock-issue         Skip Issue lock/linking (offline / local-only)
 
-Notes:
-  - Branch naming rules: .agent/rules/branch.md
+ Notes:
+   - Branch naming rules: .agent/rules/branch.md
 EOF
         exit 0
         ;;
@@ -199,6 +211,112 @@ EOF
     none|opencode|codex|all) ;;
     *) eprint "Invalid --tool: $tool (expected none|opencode|codex|all)"; exit 2 ;;
   esac
+
+  # If Issue locking is enabled, treat linked branches as the SoT for "in progress".
+  # This is fail-fast: by default, do not create a new worktree if the Issue already has
+  # any linked branch.
+  declare -a linked_branches=()
+  if [[ "$lock_issue" -eq 1 && "$issue" =~ ^[0-9]+$ ]]; then
+    require_cmd gh
+
+    local list_out
+    if ! list_out="$(gh issue develop --list "$issue" 2>&1)"; then
+      eprint "Failed to list linked branches for Issue #$issue:"
+      eprint "$list_out"
+      exit 1
+    fi
+
+    while IFS= read -r line; do
+      for token in $line; do
+        token="${token#-}"
+        token="${token#,}"
+        token="${token%:}"
+        token="${token%\`}"; token="${token#\`}"
+        token="${token%\"}"; token="${token#\"}"
+        if git check-ref-format --branch "$token" >/dev/null 2>&1; then
+          linked_branches+=("$token")
+        fi
+      done
+    done <<<"$list_out"
+  fi
+
+  # Reuse an existing linked branch (resume/recreate worktree).
+  if [[ "${#linked_branches[@]}" -gt 0 ]]; then
+    if [[ "$use_existing_branch" -ne 1 ]]; then
+      eprint "Issue #$issue already has linked branch(es):"
+      for b in "${linked_branches[@]}"; do
+        eprint "  - $b"
+      done
+      eprint "Re-run with --use-existing-branch to reuse."
+      exit 2
+    fi
+
+    if [[ -n "$branch" ]]; then
+      found=0
+      for b in "${linked_branches[@]}"; do
+        if [[ "$b" == "$branch" ]]; then
+          found=1
+          break
+        fi
+      done
+      if [[ "$found" -ne 1 ]]; then
+        eprint "--branch is not a linked branch for Issue #$issue: $branch"
+        eprint "Linked branches:"
+        for b in "${linked_branches[@]}"; do
+          eprint "  - $b"
+        done
+        exit 2
+      fi
+    else
+      if [[ "${#linked_branches[@]}" -eq 1 ]]; then
+        branch="${linked_branches[0]}"
+      else
+        eprint "Issue #$issue has multiple linked branches; specify --branch."
+        eprint "Linked branches:"
+        for b in "${linked_branches[@]}"; do
+          eprint "  - $b"
+        done
+        exit 2
+      fi
+    fi
+
+    if [[ -z "$dir" ]]; then
+      dir="$worktrees_root/$(printf '%s' "$branch" | tr '/' '-')"
+    fi
+
+    if [[ -e "$dir" ]]; then
+      eprint "Worktree path already exists: $dir"
+      exit 2
+    fi
+
+    mkdir -p "$(dirname "$dir")"
+
+    if ! branch_exists "$branch"; then
+      remote="origin"
+      if ! git remote get-url "$remote" >/dev/null 2>&1; then
+        eprint "Remote '$remote' not found; cannot fetch linked branch: $branch"
+        eprint "Create the branch locally or re-run with --no-lock-issue."
+        exit 1
+      fi
+      if ! git fetch "$remote" "$branch:refs/heads/$branch" 1>&2; then
+        eprint "Failed to fetch linked branch from '$remote': $branch"
+        exit 1
+      fi
+    fi
+
+    git worktree add "$dir" "$branch" 1>&2
+
+    if [[ "$tool" != "none" ]]; then
+      if [[ ! -x "$dir/scripts/sync-agent-config.sh" ]]; then
+        eprint "Warning: sync-agent-config.sh not found/executable in new worktree: $dir"
+      else
+        (cd "$dir" && ./scripts/sync-agent-config.sh --force "$tool") 1>&2
+      fi
+    fi
+
+    printf '%s\n' "$dir"
+    return 0
+  fi
 
   if [[ -z "$branch" ]]; then
     if [[ ! "$issue" =~ ^[0-9]+$ ]]; then
@@ -236,15 +354,39 @@ EOF
 
   mkdir -p "$(dirname "$dir")"
 
-  if branch_exists "$branch"; then
-    if [[ "$use_existing_branch" -ne 1 ]]; then
-      eprint "Branch already exists: $branch"
-      eprint "If you want to use it, re-run with --use-existing-branch"
-      exit 2
+  if [[ "$lock_issue" -eq 1 && "$issue" =~ ^[0-9]+$ ]]; then
+    local develop_out
+    if ! develop_out="$(gh issue develop "$issue" --name "$branch" 2>&1)"; then
+      eprint "Failed to create a linked branch for Issue #$issue:"
+      eprint "$develop_out"
+      exit 1
     fi
+
+    if ! branch_exists "$branch"; then
+      remote="origin"
+      if ! git remote get-url "$remote" >/dev/null 2>&1; then
+        eprint "Remote '$remote' not found; cannot fetch linked branch: $branch"
+        eprint "Re-run with --no-lock-issue to skip Issue locking."
+        exit 1
+      fi
+      if ! git fetch "$remote" "$branch:refs/heads/$branch" 1>&2; then
+        eprint "Failed to fetch linked branch from '$remote': $branch"
+        exit 1
+      fi
+    fi
+
     git worktree add "$dir" "$branch" 1>&2
   else
-    git worktree add "$dir" -b "$branch" "$base" 1>&2
+    if branch_exists "$branch"; then
+      if [[ "$use_existing_branch" -ne 1 ]]; then
+        eprint "Branch already exists: $branch"
+        eprint "If you want to use it, re-run with --use-existing-branch"
+        exit 2
+      fi
+      git worktree add "$dir" "$branch" 1>&2
+    else
+      git worktree add "$dir" -b "$branch" "$base" 1>&2
+    fi
   fi
 
   if [[ "$tool" != "none" ]]; then

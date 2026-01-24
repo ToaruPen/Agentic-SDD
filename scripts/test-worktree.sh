@@ -38,6 +38,8 @@ set -euo pipefail
 
 # Minimal stub for:
 #   gh issue view <n> --json body
+#   gh issue develop --list <n>
+#   gh issue develop <n> --name <branch>
 #   gh -R OWNER/REPO issue view <n> --json body
 
 repo=""
@@ -46,27 +48,96 @@ if [[ ${1:-} == "-R" ]]; then
   shift 2
 fi
 
-if [[ ${1:-} != "issue" || ${2:-} != "view" ]]; then
+if [[ ${1:-} != "issue" ]]; then
   echo "unsupported" >&2
   exit 2
 fi
 
-issue="${3:-}"
+sub="${2:-}"
+case "$sub" in
+  view)
+    issue="${3:-}"
+    body=""
+    case "$issue" in
+      1)
+        body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/a.ts`\n- [ ] `src/shared.ts`\n'
+        ;;
+      2)
+        body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/b.ts`\n- [ ] `src/shared.ts`\n'
+        ;;
+      *)
+        body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/other.ts`\n'
+        ;;
+    esac
 
-body=""
-case "$issue" in
-  1)
-    body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/a.ts`\n- [ ] `src/shared.ts`\n'
+    printf '{"body":%s}\n' "$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' <<<"$body")"
     ;;
-  2)
-    body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/b.ts`\n- [ ] `src/shared.ts`\n'
+  develop)
+    shift 2
+
+    list=0
+    name=""
+    issue=""
+
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        -l|--list)
+          list=1
+          shift
+          ;;
+        -n|--name)
+          name="${2:-}"
+          shift 2
+          ;;
+        -b|--base)
+          # ignored
+          shift 2
+          ;;
+        -c|--checkout)
+          # ignored
+          shift
+          ;;
+        *)
+          issue="$1"
+          shift
+          ;;
+      esac
+    done
+
+    if [[ -z "$issue" ]]; then
+      echo "missing issue" >&2
+      exit 2
+    fi
+
+    state_file="$(dirname "$0")/gh_issue_develop_state"
+    if [[ "$list" -eq 1 ]]; then
+      if [[ -f "$state_file" ]]; then
+        awk -v issue="$issue" '$1 == issue {print $2}' "$state_file"
+      fi
+      exit 0
+    fi
+
+    if [[ -z "$name" ]]; then
+      echo "missing --name" >&2
+      exit 2
+    fi
+
+    if [[ -f "$state_file" ]] && awk -v issue="$issue" '$1 == issue {found=1} END{exit found?0:1}' "$state_file"; then
+      echo "issue already has linked branch" >&2
+      exit 1
+    fi
+
+    echo "$issue $name" >> "$state_file"
+    if ! git show-ref --verify --quiet "refs/heads/$name"; then
+      git branch "$name" HEAD
+    fi
+    exit 0
     ;;
   *)
-    body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/other.ts`\n'
+    echo "unsupported" >&2
+    exit 2
     ;;
 esac
-
-printf '{"body":%s}\n' "$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' <<<"$body")"
 EOF
 chmod +x "$tmpdir/bin/gh"
 
@@ -170,15 +241,44 @@ fi
 # worktree.sh check: no conflict
 (cd "$tmpdir" && ./scripts/worktree.sh check --issue-body-file issue-1.md --issue-body-file issue-3.md) >/dev/null
 
-# worktree.sh new/remove
+
+# worktree.sh new/remove (Issue lock enabled by default; gh is stubbed)
 worktrees_root="$tmpdir/wt"
-wt_dir="$(cd "$tmpdir" && ./scripts/worktree.sh new --issue 99 --desc "parallel test" --base HEAD --tool none --worktrees-root "$worktrees_root")"
+wt_dir="$(cd "$tmpdir" && PATH="$tmpdir/bin:$PATH" ./scripts/worktree.sh new --issue 99 --desc "parallel test" --base HEAD --tool none --worktrees-root "$worktrees_root")"
 
 if [[ ! -d "$wt_dir" ]]; then
   eprint "Expected worktree dir to exist: $wt_dir"
   exit 1
 fi
 
+
 (cd "$tmpdir" && ./scripts/worktree.sh remove --dir "$wt_dir")
+
+# Creating the same Issue again should fail unless --use-existing-branch is set
+set +e
+(cd "$tmpdir" && PATH="$tmpdir/bin:$PATH" ./scripts/worktree.sh new --issue 99 --desc "parallel test" --base HEAD --tool none --worktrees-root "$worktrees_root") >/dev/null 2>"$tmpdir/stderr-issue-lock"
+code_lock=$?
+set -e
+
+if [[ "$code_lock" -eq 0 ]]; then
+  eprint "Expected failure due to existing Issue lock"
+  exit 1
+fi
+
+if ! grep -q "already has linked branch" "$tmpdir/stderr-issue-lock" && ! grep -q "linked branch" "$tmpdir/stderr-issue-lock"; then
+  eprint "Expected Issue lock error message, got:"
+  cat "$tmpdir/stderr-issue-lock" >&2
+  exit 1
+fi
+
+# Recreate worktree from the linked branch (no --desc required)
+wt_dir2="$(cd "$tmpdir" && PATH="$tmpdir/bin:$PATH" ./scripts/worktree.sh new --issue 99 --use-existing-branch --tool none --worktrees-root "$worktrees_root")"
+
+if [[ ! -d "$wt_dir2" ]]; then
+  eprint "Expected worktree dir to exist: $wt_dir2"
+  exit 1
+fi
+
+(cd "$tmpdir" && ./scripts/worktree.sh remove --dir "$wt_dir2")
 
 eprint "OK: scripts/test-worktree.sh"

@@ -474,7 +474,7 @@ AGENTS.md
 - [ ] Issueが粒度規約（50〜300行）に収まる
 - [ ] 見積もりがFull（11セクション）で作成されている
 - [ ] /sync-docsで「差分なし」になる
-- [ ] （任意）/review-cycle で review.json が生成できる
+- [ ] /review-cycle で review.json が生成できる
 - [ ] PRがマージされる
 
 ---

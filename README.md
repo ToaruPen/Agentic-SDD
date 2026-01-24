@@ -19,7 +19,7 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues) remai
 ## Workflow
 
 ```
-/create-prd -> /create-epic -> /create-issues -> /impl -> (/review-cycle)* -> /review
+/create-prd -> /create-epic -> /create-issues -> /impl -> /review-cycle -> /review
      |            |              |              |             |            |
      v            v              v              v             v            v
   7 questions   3-layer guard  LOC-based      Full estimate  Local loop   DoD gate
@@ -38,6 +38,9 @@ Guardrails:
 - Only mark Issues as `parallel-ok` when declared file sets are disjoint
 
 Helper script:
+
+Note: `worktree.sh new` uses `gh issue develop` to create a linked branch on the Issue as the
+"in progress" source of truth. It fails fast if the Issue already has linked branches.
 
 ```bash
 # Detect overlaps before starting
@@ -87,7 +90,7 @@ Create Issues following the granularity rules (50-300 LOC).
 
 Create a Full estimate (11 sections) before implementation.
 
-### 4.5) (Optional) Local review cycle
+### 4.5) Local review cycle (required)
 
 ```
 /review-cycle [scope-id]

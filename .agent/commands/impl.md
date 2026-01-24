@@ -18,6 +18,13 @@ User-facing output and artifacts remain in Japanese.
 1. Read the specified Issue
 2. Identify the related Epic and PRD
 3. Extract AC
+4. Check work status (required)
+   - List linked branches (SoT): `gh issue develop --list <issue-number>`
+   - If any linked branch exists and you are not on it, report and stop
+   - (Optional) For each linked branch, check PRs: `gh pr list --head "<branch>" --state all`
+   - If no linked branch exists, create one *before* starting the estimate
+     - Recommended: `/worktree new --issue <issue-number> --desc "<ascii short desc>"` and re-run `/impl` inside that worktree
+     - Alternative (no worktree): `gh issue develop <issue-number> --name "<branch>" --checkout`
 
 ### Phase 2: Create the Full estimate (required)
 
@@ -183,9 +190,20 @@ Example (Japanese):
 1. Create a branch (see `.agent/rules/branch.md`)
 2. Implement per the estimate
 3. Add/update tests
-4. Commit (see `.agent/rules/commit.md`)
 
-### Phase 7: Finish
+### Phase 6.5: Local review (required)
+
+Run `/review-cycle` before committing:
+
+1. Execute review checks
+2. Fix any issues found
+3. Re-run until pass
+
+### Phase 7: Commit
+
+1. Commit in a working state (see `.agent/rules/commit.md`)
+
+### Phase 8: Finish
 
 Report actual vs estimated, and suggest next steps.
 
@@ -198,9 +216,8 @@ Example (Japanese):
 - 実際の工数: [3h]（見積もり: 2.5-5h → 範囲内）
 
 次のステップ:
-1. （任意）/review-cycle でローカルレビューを回す
-2. /review を実行して最終セルフレビュー
-3. PRを作成
+1. /review を実行して最終セルフレビュー
+2. PRを作成
 ```
 
 ## N/A examples

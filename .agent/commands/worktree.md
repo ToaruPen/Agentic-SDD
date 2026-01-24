@@ -71,6 +71,10 @@ If overlaps exist, fail-fast and:
 
 Create a separate branch/worktree per Issue.
 
+`./scripts/worktree.sh new` will also create a linked branch on the GitHub Issue via
+`gh issue develop` (SoT for "in progress"). It fails fast if the Issue already has
+linked branches.
+
 ```bash
 ./scripts/worktree.sh new --issue 123 --desc "add user profile" --tool opencode
 ./scripts/worktree.sh new --issue 124 --desc "add settings page" --tool opencode
@@ -86,7 +90,7 @@ Merge in a "finish one, merge one" manner to reduce conflicts.
 
 For each Issue, run:
 
-- `/review-cycle` (optional)
+- `/review-cycle` (required)
 - `/review` (required; includes `/sync-docs`)
 
 ## Options

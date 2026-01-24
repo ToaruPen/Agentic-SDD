@@ -27,7 +27,7 @@ Invariant (SoT)
 
 2) Complete one Issue (iterate)
 - /impl: write a Full estimate (11 sections) first -> implement -> test
-- (Optional) /review-cycle: iterate using review.json (fix -> re-run)
+- /review-cycle: run locally before committing (fix -> re-run)
 - /review: always run /sync-docs; if there is a diff, follow SoT and re-check
 
 3) PR / merge
