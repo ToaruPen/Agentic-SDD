@@ -391,6 +391,7 @@ Agentic-SDD/
 ├── scripts/
 │   ├── agentic-sdd
 │   ├── install-agentic-sdd.sh
+│   ├── assemble-sot.py
 │   ├── review-cycle.sh
 │   ├── setup-global-agentic-sdd.sh
 │   ├── sync-agent-config.sh

@@ -17,11 +17,23 @@ Options:
   -h, --help Show help
 
 Required environment:
-  SOT            Source of truth pointers (paths / links / summary)
-  TESTS          Short test summary (can be 'not run: reason')
-                OR set TEST_COMMAND to run tests and auto-populate TESTS.
+  One of:
+    SOT                  Manual source-of-truth (paths / links / summary)
+    GH_ISSUE             GitHub issue number or URL (uses `gh issue view`)
+    GH_ISSUE_BODY_FILE   Local file containing issue body (test/offline)
+    SOT_FILES            Extra SoT files (repo-relative paths, space-separated)
+
+  And:
+    TESTS                Short test summary (can be 'not run: reason')
+                        OR set TEST_COMMAND to run tests and auto-populate TESTS.
 
 Optional environment:
+  GH_ISSUE             GitHub issue number or URL
+  GH_REPO              Repo for gh (OWNER/REPO)
+  GH_INCLUDE_COMMENTS  1 to include comments in issue JSON (default: 0)
+  GH_ISSUE_BODY_FILE   Local file containing issue body (test/offline)
+  SOT_FILES            Extra SoT files (repo-relative paths, space-separated)
+  SOT_MAX_CHARS        Max chars for assembled SoT bundle (0 = no limit)
   TEST_COMMAND     Command to run tests (captures full output to tests.txt)
   DIFF_MODE        staged|worktree|auto (default: auto)
   DIFF_FILE        Optional path to a diff file (overrides DIFF_MODE)
@@ -99,8 +111,26 @@ sot="${SOT:-}"
 tests_summary="${TESTS:-}"
 test_command="${TEST_COMMAND:-}"
 
-if [[ -z "$sot" ]]; then
-  eprint "SOT is required (paths / links / summary)."
+gh_issue="${GH_ISSUE:-}"
+gh_repo="${GH_REPO:-}"
+gh_include_comments="${GH_INCLUDE_COMMENTS:-0}"
+gh_issue_body_file="${GH_ISSUE_BODY_FILE:-}"
+sot_files_raw="${SOT_FILES:-}"
+sot_max_chars="${SOT_MAX_CHARS:-0}"
+
+declare -a sot_files=()
+if [[ -n "$sot_files_raw" ]]; then
+  # shellcheck disable=SC2206
+  sot_files=($sot_files_raw)
+fi
+
+if [[ -z "$sot" && -z "$gh_issue" && -z "$gh_issue_body_file" && ${#sot_files[@]} -eq 0 ]]; then
+  eprint "SoT is required. Set one of: SOT, GH_ISSUE, GH_ISSUE_BODY_FILE, SOT_FILES"
+  exit 2
+fi
+
+if [[ ! "$sot_max_chars" =~ ^[0-9]+$ ]]; then
+  eprint "Invalid SOT_MAX_CHARS: $sot_max_chars (expected integer)"
   exit 2
 fi
 
@@ -129,6 +159,10 @@ run_dir="${scope_root}/${run_id}"
 out_json="${run_dir}/review.json"
 out_diff="${run_dir}/diff.patch"
 out_tests="${run_dir}/tests.txt"
+
+out_sot="${run_dir}/sot.txt"
+out_issue_json="${run_dir}/issue.json"
+out_issue_body="${run_dir}/issue.txt"
 
 diff_source=""
 
@@ -299,6 +333,7 @@ print_plan() {
   eprint "- out_json: $out_json"
   eprint "- out_diff: $out_diff"
   eprint "- out_tests: $out_tests"
+  eprint "- out_sot: $out_sot"
   eprint "- diff_mode: $diff_mode"
   if [[ -n "$diff_source" ]]; then
     eprint "- diff_source: $diff_source"
@@ -313,15 +348,92 @@ print_plan() {
     eprint "- exec_timeout_sec: $exec_timeout_sec"
   fi
   eprint "- constraints: $constraints"
-  eprint "- sot: $sot"
+  if [[ -n "$gh_issue" ]]; then
+    eprint "- gh_issue: $gh_issue"
+    if [[ -n "$gh_repo" ]]; then
+      eprint "- gh_repo: $gh_repo"
+    fi
+    eprint "- gh_include_comments: $gh_include_comments"
+  fi
+  if [[ -n "$gh_issue_body_file" ]]; then
+    eprint "- gh_issue_body_file: $gh_issue_body_file"
+  fi
+  if [[ ${#sot_files[@]} -gt 0 ]]; then
+    eprint "- sot_files: ${sot_files[*]}"
+  fi
+  eprint "- sot_max_chars: $sot_max_chars"
+  if [[ -n "$sot" ]]; then
+    eprint "- sot: $sot"
+  fi
   if [[ -n "$test_command" ]]; then
     eprint "- test_command: $test_command"
   fi
   eprint "- tests_summary: $tests_summary"
 }
 
+write_sot() {
+  local issue_json_arg=""
+  local issue_body_arg=""
+
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    return 0
+  fi
+
+  ensure_run_dir
+
+  if [[ -n "$gh_issue" ]]; then
+    if ! command -v gh >/dev/null 2>&1; then
+      eprint "gh not found (required for GH_ISSUE)"
+      exit 1
+    fi
+
+    fields="title,url,body,number"
+    if [[ "$gh_include_comments" == "1" ]]; then
+      fields="title,url,body,number,comments"
+    fi
+
+    gh_cmd=(gh issue view "$gh_issue" --json "$fields")
+    if [[ -n "$gh_repo" ]]; then
+      gh_cmd=(gh -R "$gh_repo" issue view "$gh_issue" --json "$fields")
+    fi
+
+    "${gh_cmd[@]}" > "$out_issue_json"
+    issue_json_arg="$out_issue_json"
+  fi
+
+  if [[ -n "$gh_issue_body_file" ]]; then
+    if [[ ! -f "$gh_issue_body_file" ]]; then
+      eprint "GH_ISSUE_BODY_FILE not found: $gh_issue_body_file"
+      exit 2
+    fi
+    cp -p "$gh_issue_body_file" "$out_issue_body"
+    issue_body_arg="$out_issue_body"
+  fi
+
+  if [[ -z "$issue_json_arg" && -z "$issue_body_arg" ]]; then
+    issue_body_arg=""
+  fi
+
+  assemble_cmd=(python3 "$script_dir/assemble-sot.py" --repo-root "$repo_root" --manual-sot "$sot" --max-chars "$sot_max_chars")
+  if [[ -n "$issue_json_arg" ]]; then
+    assemble_cmd+=(--issue-json "$issue_json_arg")
+  fi
+  if [[ -n "$issue_body_arg" ]]; then
+    assemble_cmd+=(--issue-body-file "$issue_body_arg")
+  fi
+
+  if [[ ${#sot_files[@]} -gt 0 ]]; then
+    for f in "${sot_files[@]}"; do
+      assemble_cmd+=(--sot-file "$f")
+    done
+  fi
+
+  "${assemble_cmd[@]}" > "$out_sot"
+}
+
 write_diff
 write_tests
+write_sot
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   print_plan
@@ -389,7 +501,9 @@ PROMPT
   printf 'Facet: %s\n' "$facet"
   printf 'Facet-Slug: %s\n' "$facet_slug"
   printf 'Scope-ID: %s\n' "$scope_id"
-  printf 'SoT: %s\n' "$sot"
+  printf 'SoT:\n'
+  cat "$out_sot"
+  printf '\n'
   printf 'Tests: %s\n' "$tests_summary"
   printf 'Constraints: %s\n' "$constraints"
   printf 'Diff:\n'

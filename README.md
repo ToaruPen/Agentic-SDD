@@ -68,6 +68,8 @@ Full見積もり（11セクション）を作成してから実装。
 
 開発中に `review.json` を生成し、修正→再レビューを反復する。
 
+`GH_ISSUE=123` を指定すると、Issue本文と `- PRD:` / `- Epic:` 参照を読み込み、SoTを自動で組み立てる。
+
 ### 5. レビュー
 
 ```
@@ -114,6 +116,7 @@ skills/                 # 方式設計スキル
 scripts/
 ├── agentic-sdd
 ├── install-agentic-sdd.sh
+├── assemble-sot.py
 ├── review-cycle.sh
 ├── setup-global-agentic-sdd.sh
 ├── sync-agent-config.sh
