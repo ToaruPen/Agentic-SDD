@@ -5,32 +5,19 @@
   "required": [
     "schema_version",
     "scope_id",
-    "facet",
-    "facet_slug",
     "status",
     "findings",
     "questions",
-    "uncertainty",
-    "overall_correctness",
-    "overall_explanation",
-    "overall_confidence_score"
+    "overall_explanation"
   ],
   "properties": {
     "schema_version": {
       "type": "integer",
       "enum": [
-        2
+        3
       ]
     },
     "scope_id": {
-      "type": "string",
-      "minLength": 1
-    },
-    "facet": {
-      "type": "string",
-      "minLength": 1
-    },
-    "facet_slug": {
       "type": "string",
       "minLength": 1
     },
@@ -51,7 +38,6 @@
         "required": [
           "title",
           "body",
-          "confidence_score",
           "priority",
           "code_location"
         ],
@@ -65,15 +51,14 @@
             "type": "string",
             "minLength": 1
           },
-          "confidence_score": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1
-          },
           "priority": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 3
+            "type": "string",
+            "enum": [
+              "P0",
+              "P1",
+              "P2",
+              "P3"
+            ]
           },
           "code_location": {
             "type": "object",
@@ -116,27 +101,9 @@
         "type": "string"
       }
     },
-    "uncertainty": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "overall_correctness": {
-      "type": "string",
-      "enum": [
-        "patch is correct",
-        "patch is incorrect"
-      ]
-    },
     "overall_explanation": {
       "type": "string",
       "minLength": 1
-    },
-    "overall_confidence_score": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 1
     }
   }
 }

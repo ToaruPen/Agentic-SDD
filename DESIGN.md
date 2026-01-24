@@ -354,9 +354,10 @@ Agentic-SDD/
 │   │   ├── tdd.md
 │   │   ├── review-cycle.md
 │   │   ├── review.md
-│   │   └── sync-docs.md
+│   │   ├── sync-docs.md
+│   │   └── worktree.md
 │   ├── schemas/
-│   │   └── review.json          # review-v2 JSON schema (review-cycle output)
+│   │   └── review.json          # review schema v3 (review-cycle output)
 │   ├── rules/
 │   │   ├── datetime.md
 │   │   ├── commit.md
@@ -374,7 +375,8 @@ Agentic-SDD/
 │   ├── error-handling.md
 │   ├── testing.md
 │   ├── tdd-protocol.md
-│   └── estimation.md            # Full必須 + 信頼度
+│   ├── estimation.md            # Full必須 + 信頼度
+│   └── worktree-parallel.md
 ├── docs/
 │   ├── prd/
 │   │   └── _template.md         # 7問(Q6選択式) + 禁止語 + 異常系AC
@@ -392,11 +394,14 @@ Agentic-SDD/
 │   ├── agentic-sdd
 │   ├── install-agentic-sdd.sh
 │   ├── assemble-sot.py
+│   ├── extract-issue-files.py
 │   ├── review-cycle.sh
 │   ├── setup-global-agentic-sdd.sh
 │   ├── sync-agent-config.sh
 │   ├── test-review-cycle.sh
-│   └── validate-review-json.py
+│   ├── test-worktree.sh
+│   ├── validate-review-json.py
+│   └── worktree.sh
 ├── AGENTS.md
 └── README.md
 ```

@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 
 
 STATUS_ALLOWED = {"Approved", "Approved with nits", "Blocked", "Question"}
-OVERALL_CORRECTNESS_ALLOWED = {"patch is correct", "patch is incorrect"}
+PRIORITY_ALLOWED = {"P0", "P1", "P2", "P3"}
 
 
 def eprint(msg: str) -> None:
@@ -35,22 +35,16 @@ def is_repo_relative_path(path: str) -> bool:
 def validate_review(
     obj: Dict[str, Any],
     expected_scope_id: Optional[str],
-    expected_facet_slug: Optional[str],
 ) -> List[str]:
     errors: List[str] = []
 
     required = {
         "schema_version",
         "scope_id",
-        "facet",
-        "facet_slug",
         "status",
         "findings",
         "questions",
-        "uncertainty",
-        "overall_correctness",
         "overall_explanation",
-        "overall_confidence_score",
     }
 
     missing = required - set(obj.keys())
@@ -58,8 +52,12 @@ def validate_review(
         errors.append(f"missing keys: {sorted(missing)}")
         return errors
 
-    if obj.get("schema_version") != 2:
-        errors.append("schema_version must be 2")
+    extra = set(obj.keys()) - required
+    if extra:
+        errors.append(f"unexpected keys: {sorted(extra)}")
+
+    if obj.get("schema_version") != 3:
+        errors.append("schema_version must be 3")
 
     scope_id = obj.get("scope_id")
     if not isinstance(scope_id, str) or not scope_id:
@@ -67,18 +65,6 @@ def validate_review(
     elif expected_scope_id is not None and scope_id != expected_scope_id:
         errors.append(
             f"scope_id mismatch: expected {expected_scope_id}, got {scope_id}"
-        )
-
-    facet = obj.get("facet")
-    if not isinstance(facet, str) or not facet:
-        errors.append("facet must be a non-empty string")
-
-    facet_slug = obj.get("facet_slug")
-    if not isinstance(facet_slug, str) or not facet_slug:
-        errors.append("facet_slug must be a non-empty string")
-    elif expected_facet_slug is not None and facet_slug != expected_facet_slug:
-        errors.append(
-            f"facet_slug mismatch: expected {expected_facet_slug}, got {facet_slug}"
         )
 
     status = obj.get("status")
@@ -97,36 +83,23 @@ def validate_review(
         errors.append("questions must be an array of strings")
         questions = []
 
-    uncertainty = obj.get("uncertainty")
-    if not isinstance(uncertainty, list) or any(
-        not isinstance(x, str) for x in uncertainty
-    ):
-        errors.append("uncertainty must be an array of strings")
-
-    overall_correctness = obj.get("overall_correctness")
-    if overall_correctness not in OVERALL_CORRECTNESS_ALLOWED:
-        errors.append(
-            f"overall_correctness must be one of {sorted(OVERALL_CORRECTNESS_ALLOWED)}"
-        )
-
     overall_explanation = obj.get("overall_explanation")
     if not isinstance(overall_explanation, str) or not overall_explanation:
         errors.append("overall_explanation must be a non-empty string")
-
-    overall_confidence = obj.get("overall_confidence_score")
-    if not isinstance(overall_confidence, (int, float)) or not (
-        0.0 <= float(overall_confidence) <= 1.0
-    ):
-        errors.append("overall_confidence_score must be a number 0.0-1.0")
 
     # Validate findings
     for idx, item in enumerate(findings):
         if not isinstance(item, dict):
             errors.append(f"findings[{idx}] is not an object")
             continue
-        for k in ["title", "body", "confidence_score", "priority", "code_location"]:
+        required_finding_keys = {"title", "body", "priority", "code_location"}
+        for k in sorted(required_finding_keys):
             if k not in item:
                 errors.append(f"findings[{idx}] missing key: {k}")
+
+        extra_finding = set(item.keys()) - required_finding_keys
+        if extra_finding:
+            errors.append(f"findings[{idx}] unexpected keys: {sorted(extra_finding)}")
 
         title = item.get("title")
         if not isinstance(title, str) or not title:
@@ -138,20 +111,28 @@ def validate_review(
         if not isinstance(body, str) or not body:
             errors.append(f"findings[{idx}].body must be a non-empty string")
 
-        confidence = item.get("confidence_score")
-        if not isinstance(confidence, (int, float)) or not (
-            0.0 <= float(confidence) <= 1.0
-        ):
-            errors.append(f"findings[{idx}].confidence_score must be a number 0.0-1.0")
-
         priority = item.get("priority")
-        if not isinstance(priority, int) or not (0 <= priority <= 3):
-            errors.append(f"findings[{idx}].priority must be an int 0-3")
+        if not isinstance(priority, str) or priority not in PRIORITY_ALLOWED:
+            errors.append(
+                f"findings[{idx}].priority must be one of {sorted(PRIORITY_ALLOWED)}"
+            )
 
         code_location = item.get("code_location")
         if not isinstance(code_location, dict):
             errors.append(f"findings[{idx}].code_location must be an object")
             continue
+
+        required_code_location_keys = {"repo_relative_path", "line_range"}
+        missing_code_location = required_code_location_keys - set(code_location.keys())
+        if missing_code_location:
+            errors.append(
+                f"findings[{idx}].code_location missing keys: {sorted(missing_code_location)}"
+            )
+        extra_code_location = set(code_location.keys()) - required_code_location_keys
+        if extra_code_location:
+            errors.append(
+                f"findings[{idx}].code_location unexpected keys: {sorted(extra_code_location)}"
+            )
 
         repo_relative_path = code_location.get("repo_relative_path")
         if not isinstance(repo_relative_path, str) or not is_repo_relative_path(
@@ -165,6 +146,18 @@ def validate_review(
         if not isinstance(line_range, dict):
             errors.append(f"findings[{idx}].code_location.line_range must be an object")
             continue
+
+        required_line_range_keys = {"start", "end"}
+        missing_line_range = required_line_range_keys - set(line_range.keys())
+        if missing_line_range:
+            errors.append(
+                f"findings[{idx}].code_location.line_range missing keys: {sorted(missing_line_range)}"
+            )
+        extra_line_range = set(line_range.keys()) - required_line_range_keys
+        if extra_line_range:
+            errors.append(
+                f"findings[{idx}].code_location.line_range unexpected keys: {sorted(extra_line_range)}"
+            )
 
         start = line_range.get("start")
         end = line_range.get("end")
@@ -182,21 +175,6 @@ def validate_review(
             )
 
     # Cross-field constraints
-    if (
-        status in {"Blocked", "Question"}
-        and overall_correctness != "patch is incorrect"
-    ):
-        errors.append(
-            "Blocked/Question must have overall_correctness='patch is incorrect'"
-        )
-    if (
-        status in {"Approved", "Approved with nits"}
-        and overall_correctness != "patch is correct"
-    ):
-        errors.append(
-            "Approved/Approved with nits must have overall_correctness='patch is correct'"
-        )
-
     if status == "Approved":
         if len(findings) != 0:
             errors.append("Approved must have findings=[]")
@@ -205,19 +183,23 @@ def validate_review(
 
     if status == "Approved with nits":
         blocking = [
-            f for f in findings if isinstance(f, dict) and f.get("priority") in (0, 1)
+            f
+            for f in findings
+            if isinstance(f, dict) and f.get("priority") in ("P0", "P1")
         ]
         if blocking:
-            errors.append("Approved with nits must not include priority 0/1 findings")
+            errors.append("Approved with nits must not include P0/P1 findings")
         if len(questions) != 0:
             errors.append("Approved with nits must have questions=[]")
 
     if status == "Blocked":
         blocking = [
-            f for f in findings if isinstance(f, dict) and f.get("priority") in (0, 1)
+            f
+            for f in findings
+            if isinstance(f, dict) and f.get("priority") in ("P0", "P1")
         ]
         if not blocking:
-            errors.append("Blocked must include at least one priority 0/1 finding")
+            errors.append("Blocked must include at least one P0/P1 finding")
 
     if status == "Question":
         if len(questions) == 0:
@@ -230,7 +212,6 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Validate review.json output.")
     parser.add_argument("path", help="Path to review.json")
     parser.add_argument("--scope-id", default="", help="Expected scope_id")
-    parser.add_argument("--facet-slug", default="", help="Expected facet_slug")
     parser.add_argument(
         "--format", action="store_true", help="Rewrite JSON with pretty formatting"
     )
@@ -252,8 +233,7 @@ def main() -> int:
         return 1
 
     expected_scope_id = args.scope_id.strip() or None
-    expected_facet_slug = args.facet_slug.strip() or None
-    errors = validate_review(data, expected_scope_id, expected_facet_slug)
+    errors = validate_review(data, expected_scope_id)
     if errors:
         eprint("review.json validation failed:")
         return die(errors)

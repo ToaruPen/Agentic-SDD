@@ -70,7 +70,7 @@ Decide next actions based on `review.json.status`:
 
 - `Approved`: stop (next is `/review`)
 - `Approved with nits`: usually stop (batch-fix nits; optionally re-run once)
-- `Blocked`: continue (fix priority 0/1 and re-run)
+- `Blocked`: continue (fix P0/P1 and re-run)
 - `Question`: continue (answer questions and re-run; if you cannot answer, define policy/spec first)
 
 ## Examples
@@ -96,4 +96,4 @@ DIFF_MODE=staged \
 ## Related
 
 - `.agent/commands/review.md` - final gate (DoD + `/sync-docs`)
-- `.agent/schemas/review.json` - review JSON schema (review-v2 compatible)
+- `.agent/schemas/review.json` - review JSON schema (schema v3)

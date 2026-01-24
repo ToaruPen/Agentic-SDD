@@ -6,7 +6,7 @@ usage() {
   cat <<'EOF'
 Usage: review-cycle.sh <scope-id> [run-id] [--dry-run]
 
-Generate a review JSON (review-v2 compatible) via `codex exec --output-schema`.
+Generate a review JSON (schema v3) via `codex exec --output-schema`.
 
 Positional arguments:
   scope-id   Identifier for the reviewed scope (e.g. issue-123)
@@ -456,9 +456,6 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-facet='Overall review (review-cycle)'
-facet_slug='overall'
-
 tmp_json="${out_json}.tmp.$$"
 
 {
@@ -474,32 +471,37 @@ Review rules:
 - Ignore trivial style unless it obscures meaning or violates documented standards.
 
 Priority:
-- 0: must-fix (correctness/security/data-loss)
-- 1: should-fix (likely bug / broken tests / risky behavior)
-- 2: improvement (maintainability/perf minor)
-- 3: nit (small clarity)
+- P0: must-fix (correctness/security/data-loss)
+- P1: should-fix (likely bug / broken tests / risky behavior)
+- P2: improvement (maintainability/perf minor)
+- P3: nit (small clarity)
 
 Status rules:
-- Approved: findings=[] and questions=[] and overall_correctness="patch is correct"
-- Approved with nits: findings may exist but must not include priority 0/1; questions=[]; overall_correctness="patch is correct"
-- Blocked: must include at least one priority 0/1 finding; overall_correctness="patch is incorrect"
-- Question: must include at least one question; overall_correctness="patch is incorrect"
+- Approved: findings=[] and questions=[]
+- Approved with nits: findings may exist but must not include P0/P1; questions=[]
+- Blocked: must include at least one P0/P1 finding
+- Question: must include at least one question
 
 Finding requirements:
 - body: 1 short paragraph (Markdown allowed)
-- confidence_score: 0.0-1.0
 - code_location.repo_relative_path: repo-relative; do not use absolute paths
 - code_location.line_range: keep as small as possible; overlap the diff
 
+Do not output these keys (they are intentionally omitted for determinism):
+
+- facet
+- facet_slug
+- uncertainty
+- overall_correctness
+- overall_confidence_score
+- findings[].confidence_score
+
 Output requirements:
 - scope_id must match the "Scope-ID" value below
-- facet and facet_slug must match the values below
-- questions and uncertainty must be arrays (use [] when none)
+- questions must be an array (use [] when none)
 - No markdown fences, no extra prose.
 PROMPT
-  printf 'Schema-Version: 2\n'
-  printf 'Facet: %s\n' "$facet"
-  printf 'Facet-Slug: %s\n' "$facet_slug"
+  printf 'Schema-Version: 3\n'
   printf 'Scope-ID: %s\n' "$scope_id"
   printf 'SoT:\n'
   cat "$out_sot"
@@ -533,7 +535,7 @@ fi
 
 mv "$tmp_json" "$out_json"
 
-validate_args=("$out_json" --scope-id "$scope_id" --facet-slug "$facet_slug")
+validate_args=("$out_json" --scope-id "$scope_id")
 if [[ "$format_json" != "0" ]]; then
   validate_args+=(--format)
 fi

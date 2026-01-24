@@ -166,17 +166,12 @@ fi
 mkdir -p "$(dirname "$out")"
 cat > "$out" <<'JSON'
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "scope_id": "issue-1",
-  "facet": "Overall review (review-cycle)",
-  "facet_slug": "overall",
   "status": "Approved",
   "findings": [],
   "questions": [],
-  "uncertainty": [],
-  "overall_correctness": "patch is correct",
-  "overall_explanation": "stub",
-  "overall_confidence_score": 0.9
+  "overall_explanation": "stub"
 }
 JSON
 EOF
@@ -251,20 +246,71 @@ fi
 # Validator smoke test
 cat > "$tmpdir/review.json" <<'EOF'
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "scope_id": "issue-1",
-  "facet": "Overall review (review-cycle)",
-  "facet_slug": "overall",
   "status": "Approved",
   "findings": [],
   "questions": [],
-  "uncertainty": [],
-  "overall_correctness": "patch is correct",
-  "overall_explanation": "No issues.",
-  "overall_confidence_score": 0.9
+  "overall_explanation": "No issues."
 }
 EOF
 
-python3 "$validator_py" "$tmpdir/review.json" --scope-id issue-1 --facet-slug overall >/dev/null
+python3 "$validator_py" "$tmpdir/review.json" --scope-id issue-1 >/dev/null
+
+# Validator: Blocked requires at least one P0/P1
+cat > "$tmpdir/review-blocked.json" <<'EOF'
+{
+  "schema_version": 3,
+  "scope_id": "issue-2",
+  "status": "Blocked",
+  "findings": [
+    {
+      "title": "Must fix",
+      "body": "blocking",
+      "priority": "P0",
+      "code_location": {
+        "repo_relative_path": "hello.txt",
+        "line_range": {"start": 1, "end": 1}
+      }
+    }
+  ],
+  "questions": [],
+  "overall_explanation": "Blocking issue."
+}
+EOF
+
+python3 "$validator_py" "$tmpdir/review-blocked.json" --scope-id issue-2 >/dev/null
+
+# Validator: numeric priority should fail
+cat > "$tmpdir/review-bad-priority.json" <<'EOF'
+{
+  "schema_version": 3,
+  "scope_id": "issue-3",
+  "status": "Blocked",
+  "findings": [
+    {
+      "title": "Bad priority type",
+      "body": "blocking",
+      "priority": 0,
+      "code_location": {
+        "repo_relative_path": "hello.txt",
+        "line_range": {"start": 1, "end": 1}
+      }
+    }
+  ],
+  "questions": [],
+  "overall_explanation": "Blocking issue."
+}
+EOF
+
+set +e
+python3 "$validator_py" "$tmpdir/review-bad-priority.json" --scope-id issue-3 >/dev/null 2>"$tmpdir/stderr3"
+code3=$?
+set -e
+
+if [[ "$code3" -eq 0 ]]; then
+  eprint "Expected failure for numeric priority"
+  exit 1
+fi
 
 eprint "OK: scripts/test-review-cycle.sh"
