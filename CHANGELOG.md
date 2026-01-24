@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-01-25
+
+- Add an implementation gate checklist to prevent skipping estimate/test/quality steps.
+- Split estimation from `/impl` into a dedicated `/estimation` command.
+- Require Full estimate + explicit user approval before starting `/tdd`.
+- Make `/create-issues` require an explicit user choice for GitHub vs local output (no recommendations).
+- Strengthen DoD with explicit quality check expectations (or "not run: reason" with approval).
+- Document `/tdd` in the README and keep the directory structure listing in sync.
+
 ## [0.2.5] - 2026-01-25
 
 - Make `/review` the SoT for review taxonomy (P0-P3, status rules) shared by `/review-cycle`.
