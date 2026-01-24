@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # /agentic-sdd - Install Agentic-SDD
 
-Install Agentic-SDD into the current project.
+Install Agentic-SDD into the current project directory.
 
 Arguments (optional): $ARGUMENTS
 
@@ -15,9 +15,9 @@ Arguments (optional): $ARGUMENTS
 
 ## Steps
 
-1) Ensure the helper command is available:
+1) Ensure the helper command is available on PATH:
 
-- Recommended: install it once by cloning the Agentic-SDD repo and running `./scripts/setup-global-agentic-sdd.sh`.
+- Recommended: install/update it once by cloning the Agentic-SDD repo and running `./scripts/setup-global-agentic-sdd.sh`.
 
 2) Run the installer via the helper:
 

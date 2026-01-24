@@ -13,6 +13,7 @@ Installs:
   - ~/.config/agentic-sdd/default-ref (pinned to this repo's HEAD)
   - ~/.config/agentic-sdd/repo
   - OpenCode command: ~/.config/opencode/commands/agentic-sdd.md
+  - OpenCode skill: ~/.config/opencode/skills/agentic-sdd (symlink to ~/.codex/skills/agentic-sdd)
   - Codex skill: ~/.codex/skills/agentic-sdd/SKILL.md
   - Claude skill: ~/.claude/skills/agentic-sdd/SKILL.md
   - Clawdbot shared skill: ~/.clawdbot/skills/agentic-sdd/SKILL.md
@@ -128,6 +129,49 @@ copy_with_backup() {
     cp -p "$src" "$dst"
 }
 
+ensure_symlink_with_backup() {
+    local src="$1"
+    local dst="$2"
+    local dry_run="$3"
+
+    if [ ! -e "$src" ]; then
+        log_error "Missing symlink source: $src"
+        exit 1
+    fi
+
+    local dst_dir
+    dst_dir="$(dirname "$dst")"
+
+    if [ -L "$dst" ]; then
+        local target
+        target="$(readlink "$dst" 2>/dev/null || true)"
+        if [ "$target" = "$src" ]; then
+            if [ "$dry_run" = true ]; then
+                log_info "[DRY-RUN] identical symlink: $dst"
+            fi
+            return 0
+        fi
+    fi
+
+    if [ "$dry_run" = true ]; then
+        if [ -e "$dst" ] || [ -L "$dst" ]; then
+            log_info "[DRY-RUN] overwrite: $dst (backup: $(backup_path "$dst"))"
+        else
+            log_info "[DRY-RUN] create: $dst"
+        fi
+        log_info "[DRY-RUN] ln -s: $src -> $dst"
+        return 0
+    fi
+
+    mkdir -p "$dst_dir"
+
+    if [ -e "$dst" ] || [ -L "$dst" ]; then
+        mv "$dst" "$(backup_path "$dst")"
+    fi
+
+    ln -s "$src" "$dst"
+}
+
 ensure_executable() {
     local path="$1"
     local dry_run="$2"
@@ -225,6 +269,12 @@ copy_with_backup \
 copy_with_backup \
     "$SOURCE_ROOT/templates/codex/skills/agentic-sdd/SKILL.md" \
     "$home/.codex/skills/agentic-sdd/SKILL.md" \
+    "$DRY_RUN"
+
+# 4.1) OpenCode skill (symlink to the Codex skill)
+ensure_symlink_with_backup \
+    "$home/.codex/skills/agentic-sdd" \
+    "$home/.config/opencode/skills/agentic-sdd" \
     "$DRY_RUN"
 
 # 5) Claude skill
