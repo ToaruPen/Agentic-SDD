@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-01-25
+
+- Document `/init` as the one-time workflow entrypoint (OpenCode: `/sdd-init`).
+- Require release hygiene in `AGENTS.md` (changelog + release + pinned script updates).
+- Add `--ref <tag>` example to the Codex `agentic-sdd` skill.
+
 ## [0.2.3] - 2026-01-25
 
 - Add Issue "in progress" locking to `worktree.sh new` using `gh issue develop` linked branches.
