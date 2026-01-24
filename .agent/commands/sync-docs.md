@@ -1,41 +1,41 @@
 # /sync-docs
 
-PRD、Epic、実装コード間の整合性をチェックするコマンド。
+Check consistency across PRD, Epic, and implementation.
 
-## 使用方法
+User-facing output remains in Japanese.
+
+## Usage
 
 ```
-/sync-docs [PRDファイル名]
+/sync-docs [prd-file]
 ```
 
-省略時は現在のブランチに関連するPRDを自動検出。
+If omitted, auto-detect the PRD related to the current branch.
 
-## 実行フロー
+## Flow
 
-### Phase 1: ファイル収集
+### Phase 1: Collect inputs
 
-1. PRDファイルを特定（`docs/prd/*.md`）
-2. 関連するEpicファイルを特定（`docs/epics/*.md`）
-3. 実装コードの変更を収集（git diff または指定範囲）
+1. Identify PRD file (`docs/prd/*.md`)
+2. Identify related Epic file (`docs/epics/*.md`)
+3. Collect implementation changes (git diff or specified range)
 
-### Phase 2: 差分検出
+### Phase 2: Detect diffs
 
-以下の観点で差分をチェック：
+Check diffs from these angles:
 
-- 機能要件: PRD=セクション4 / 比較=Epic技術設計・コード
-- AC: PRD=セクション5 / 比較=テストコード・実装
-- スコープ外: PRD=Q5 / 比較=実装範囲
-- 技術制約: PRD=Q6 / 比較=Epic技術選定
+- Functional requirements: PRD section 4 vs Epic design / code
+- AC: PRD section 5 vs tests / implementation
+- Out of scope: PRD Q5 vs implementation scope
+- Technical constraints: PRD Q6 vs Epic tech choices
 
-### Phase 3: 差分分類
+### Phase 3: Classify diffs
 
-検出した差分を以下に分類：
+- Spec change: PRD requirements changed (action: update PRD)
+- Interpretation change: PRD interpretation changed (action: update Epic)
+- Implementation-driven: changes due to technical constraints (action: record reason / fix code)
 
-- 仕様変更: PRDの要求自体が変わる（対応: PRD更新が必要）
-- 解釈変更: PRDの解釈が変わる（対応: Epic更新が必要）
-- 実装都合: 技術的制約による変更（対応: 理由を記録）
-
-### Phase 4: レポート出力
+### Phase 4: Output the report
 
 ```markdown
 ## 同期結果
@@ -65,9 +65,9 @@ PRD、Epic、実装コード間の整合性をチェックするコマンド。
 [差分の具体的な内容]
 ```
 
-## 出力例
+## Examples
 
-### 差分なしの場合
+No diff:
 
 ```markdown
 ## 同期結果
@@ -86,7 +86,7 @@ PRD、Epic、実装コード間の整合性をチェックするコマンド。
 PRD、Epic、実装コードは同期されています。
 ```
 
-### 差分ありの場合
+Diff exists:
 
 ```markdown
 ## 同期結果
@@ -114,25 +114,25 @@ PRDでは「ユーザー一覧をページネーションで取得」と記載�
 2. PRDのACを更新するか、現状維持するか確認
 ```
 
-## 実行タイミング
+## When to run
 
-- PR作成時: 必須（DoD）（理由: 乖離を検出）
-- マージ後: 推奨（理由: 確認用）
-- 実装中の大きな変更時: 推奨（理由: 早期発見）
+- When creating a PR: required (DoD)
+- After merge: recommended
+- During implementation when making a large change: recommended
 
-## オプション
+## Options
 
-- `--verbose`: 詳細な差分情報を表示
-- `--fix`: 自動修正可能な差分を修正（確認付き）
-- `--epic [ファイル名]`: 特定のEpicのみチェック
+- `--verbose`: show detailed diffs
+- `--fix`: apply safe auto-fixes (with confirmation)
+- `--epic [file]`: check a specific Epic only
 
-## 関連ルール
+## Related
 
-- `.agent/rules/docs-sync.md` - ドキュメント同期ルール
+- `.agent/rules/docs-sync.md` - documentation sync rules
 - `.agent/rules/dod.md` - Definition of Done
 
-## 注意事項
+## Notes
 
-- 参照（PRD/Epic/コード）は**必須**。省略禁止。
-- 差分を暗黙的に無視しない。
-- 上位ドキュメント（PRD）を勝手に変更しない。
+- References (PRD/Epic/code) are required; do not omit.
+- Do not ignore diffs implicitly.
+- Do not modify higher-level docs (PRD) without explicit confirmation.

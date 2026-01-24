@@ -1,18 +1,21 @@
 # /create-prd
 
-PRD（Product Requirements Document）を作成するコマンド。
+Create a PRD (Product Requirements Document).
 
-## 使用方法
+User-facing interactions and the resulting PRD must be in Japanese.
+
+## Usage
 
 ```
-/create-prd [プロジェクト名]
+/create-prd [project-name]
 ```
 
-## 実行フロー
+## Flow
 
-### Phase 1: 7つの質問
+### Phase 1: Ask 7 questions (in Japanese)
 
-ユーザーに以下の質問を順番に行う。各質問には良い/悪い例を提示する。
+Ask the user the following questions in order. Provide a good/bad example for each question.
+You can reuse the examples embedded in `docs/prd/_template.md`.
 
 ```
 Q1: 解決したい問題は？
@@ -24,130 +27,86 @@ Q6: 技術的制約は？（選択式）
 Q7: 成功指標（測り方）は？
 ```
 
-### Phase 2: Q6の選択式回答
+### Phase 2: Q6 choice-based constraints
 
-Q6は以下の選択形式で回答を収集する：
+Collect answers using the following choices:
 
-- 既存言語/フレームワーク固定
-  - 選択肢: Yes / No / Unknown
-  - Yesの場合: 具体名を確認
-- デプロイ先固定
-  - 選択肢: Yes / No / Unknown
-  - Yesの場合: 環境名を確認
-- 期限
-  - 選択肢: [日付] / Unknown
-- 予算上限
-  - 選択肢: ある / ない / Unknown
-- 個人情報/機密データ
-  - 選択肢: Yes / No / Unknown
-  - Yesの場合: セキュリティ要件を追記
-- 監査ログ要件
-  - 選択肢: Yes / No / Unknown
-  - Yesの場合: 監査要件を追記
+- Existing language/framework fixed
+  - Choices: Yes / No / Unknown
+  - If Yes: confirm the exact name
+- Deployment target fixed
+  - Choices: Yes / No / Unknown
+  - If Yes: confirm the environment
+- Deadline
+  - Choices: [date] / Unknown
+- Budget cap
+  - Choices: ある / ない / Unknown
+- PII / confidential data
+  - Choices: Yes / No / Unknown
+  - If Yes: add security requirements
+- Audit log requirement
+  - Choices: Yes / No / Unknown
+  - If Yes: add audit requirements
 
-**Unknown運用ルール:**
-- Unknownが2つ以上ある場合、PRD完成とみなさない
-- Unknownの項目は Epic 生成時に確認質問が必須
+Unknown policy:
+- If there are 2+ Unknown items, the PRD is not considered complete
+- Unknown items must be confirmed during Epic creation
 
-### Phase 3: PRD生成
+### Phase 3: Generate the PRD file
 
-1. `docs/prd/_template.md` をコピー
-2. 収集した回答を埋め込み
-3. `docs/prd/[プロジェクト名].md` として保存
+1. Copy `docs/prd/_template.md`
+2. Fill in the collected answers
+3. Save as `docs/prd/[project-name].md`
 
-### Phase 4: 禁止語チェック
+### Phase 4: Banned vague words check
 
-生成したPRDに以下の禁止語が含まれていないかチェック：
+Ensure the generated PRD does not contain banned vague words (see `docs/prd/_template.md`).
+If found:
 
-- 適切に: 「〜の条件を満たす場合」
-- なるべく: 「〜以上/以下」
-- できるだけ: 「最大〜まで」「最小〜」
-- 高速: 「〜秒以内」「〜ms以内」
-- 簡単に: 「〜ステップで」「〜クリックで」
-- ユーザーフレンドリー: 具体的なUI要件を列挙
-- 柔軟に: 「〜の場合は〜、〜の場合は〜」
+1. Point out the exact location
+2. Suggest a measurable rewrite
+3. Ask the user to update the PRD
 
-禁止語が見つかった場合：
-1. 該当箇所を指摘
-2. 言い換え案を提示
-3. ユーザーに修正を求める
+### Phase 5: Completion checklist
 
-### Phase 5: 完成チェックリスト検証
-
-以下のチェックリストをすべて検証：
+Validate all items:
 
 ```
-□ 目的・背景が1-3文で書かれている
-□ ユーザーストーリーが1つ以上ある
-□ 機能要件が3つ以上列挙されている
-□ ACが検証可能な形式で3つ以上ある
-□ ACに異常系（エラー/権限不足/入力不正）が最低1つある
-□ スコープ外が明記されている
-□ 曖昧な表現がない（禁止語辞書参照）
-□ 数値・条件が具体的
-□ 成功指標が測定可能な形式で書かれている
-□ Q6のUnknownが2つ未満である
+[] Purpose/background is written in 1-3 sentences
+[] At least 1 user story exists
+[] At least 3 functional requirements are listed
+[] At least 3 testable AC items exist
+[] At least 1 negative/abnormal AC exists (error/permission/input)
+[] Out-of-scope items are explicitly listed
+[] No vague expressions remain (banned words)
+[] Numbers/conditions are specific
+[] Success metrics are measurable
+[] Q6 Unknown count is < 2
 ```
 
-未達成の項目がある場合：
-1. 不足項目を指摘
-2. 具体的な改善案を提示
-3. ユーザーに追記を求める
+If any item is missing:
+1. Identify what is missing
+2. Propose concrete additions
+3. Ask the user to fill the gaps
 
-### Phase 6: 完成確認
+### Phase 6: Done
 
-すべてのチェックが完了したら：
-1. PRDファイルのパスを表示
-2. 次のステップ（`/create-epic`）を案内
+When complete:
 
-## 出力ファイル
+1. Output the PRD file path
+2. Suggest the next step: `/create-epic`
+
+## Output
 
 ```
-docs/prd/[プロジェクト名].md
+docs/prd/[project-name].md
 ```
 
-## ACガイド（参照用）
+## Related
 
-ACは**観測可能**なものに限定する：
-
-OK例:
-- 「〜画面に〜が表示される」
-- 「HTTPステータス200が返る」
-- 「DBに〜レコードが作成される」
-- 「ログに〜が出力される」
-- 「エラー時に〜メッセージが表示される」
-
-NG例:
-- 「使いやすい」
-- 「速い」
-- 「問題なく動く」
-- 「エラーが起きない」
-- 「エラーが処理される」
-
-## 良い/悪い回答例（ユーザーに提示用）
-
-### Q1: 解決したい問題は？
-
-- 良い例: 「毎月の経費精算に3時間かかっている。これを30分以内にしたい」
-- 悪い例: 「経費精算を楽にしたい」
-
-### Q4: 完成と言える状態は？
-
-- 良い例: 「ユーザーがログインし、経費を入力し、承認者に通知が届く」
-- 悪い例: 「経費精算ができる」
-
-### 異常系ACの例
-
-- 良い例: 「入力が空の場合、"必須項目です"とエラーメッセージが表示される」
-  - 悪い例: 「バリデーションが動く」
-- 良い例: 「権限がないユーザーがアクセスした場合、403ページが表示される」
-  - 悪い例: 「権限チェックされる」
-
-## 関連ルール
-
-- `.agent/rules/docs-sync.md` - ドキュメント同期ルール
+- `.agent/rules/docs-sync.md` - documentation sync rules
 - `.agent/rules/dod.md` - Definition of Done
 
-## 次のコマンド
+## Next command
 
-PRD完成後は `/create-epic` を実行して実装計画を作成する。
+After the PRD is complete, run `/create-epic`.

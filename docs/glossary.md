@@ -1,68 +1,70 @@
-# 用語集（Glossary）
+# Glossary
 
-プロジェクトで使用する用語の定義。
-
----
-
-## Agentic-SDD 固有用語
-
-- PRD: Product Requirements Document。要件定義書。7つの質問形式で作成。
-- Epic: 実装計画書。PRDから技術設計とIssue分割を行う。
-- AC: Acceptance Criteria。受け入れ条件。観測可能な形式で記載。
-- DoD: Definition of Done。完了の定義。PRやIssueが完了とみなされる基準。
-- sync-docs: PRD/Epic/実装間の整合性チェックコマンド。
+Definitions of terms used in this repository and in the Agentic-SDD workflow.
 
 ---
 
-## 技術方針
+## Agentic-SDD Terms
 
-- シンプル優先: 外部サービス1つまで、新規ライブラリ3つまで、マイクロサービス禁止。
-- バランス: 外部サービス3つまで、新規ライブラリ5つまで、要理由で非同期基盤可。
-- 拡張性優先: 制限なし。ただしすべての選択に理由が必要。
-
----
-
-## カウント定義
-
-- 外部サービス数
-  - 定義: ネットワーク越しに依存する別管理のサービス
-  - カウント単位: SaaS、マネージドDB、認証基盤、外部API を各1
-- コンポーネント数
-  - 定義: デプロイ単位
-  - カウント単位: 別プロセス、別ジョブ、別ワーカー、別バッチ を各1
-- 新規技術
-  - 定義: 新規に導入する主要技術カテゴリ
-  - カウント単位: DB、キュー、認証、観測基盤、フレームワーク、クラウドサービス を各1
+- PRD: Product Requirements Document. A requirements doc created via 7 questions.
+- Epic: Implementation plan derived from a PRD (includes technical design and Issue splitting).
+- AC: Acceptance Criteria. Must be observable/testable.
+- DoD: Definition of Done. Criteria for considering an Issue/PR complete.
+- sync-docs: Command/process to verify consistency across PRD/Epic/implementation.
+- SoT: Source of Truth.
 
 ---
 
-## Issue関連
+## Technical Policy
 
-- 粒度規約: Issue のサイズ基準。変更行数50〜300行、ファイル数1〜5、AC数2〜5。
-- 例外ラベル: 粒度規約を外れる場合に付与するラベル。理由・影響・リスクの記入が必須。
-- blocked: 他のIssueの完了を待っているラベル。
-- parallel-ok: 他のIssueと並行して作業可能なラベル。
-
----
-
-## 見積もり関連
-
-- Full見積もり: 11セクションの見積もり形式。本プロジェクトでは必須。
-- 信頼度: 見積もりの確信度。High/Med/Low の3段階。
-- レンジ: 見積もりの幅。例: 2〜4h、50〜100行。
+- シンプル優先 (Simple-first): Max 1 external service, max 3 new libraries, microservices forbidden.
+- バランス (Balanced): Max 3 external services, max 5 new libraries, async infra allowed with explicit reason.
+- 拡張性優先 (Extensibility-first): No hard limits, but every choice requires a reason.
 
 ---
 
-## 禁止語
+## Counting Definitions
 
-- 禁止語: PRDで使用禁止の曖昧な表現。「適切に」「なるべく」「高速」など。
-- 言い換え: 禁止語を具体的な表現に置き換えたもの。「〜秒以内」「〜以上」など。
+- External services
+  - Definition: separately managed services used over the network
+  - Counting unit: each SaaS / managed DB / identity provider / external API counts as 1
+- Components
+  - Definition: deployable unit
+  - Counting unit: each separate process / job / worker / batch counts as 1
+- New tech
+  - Definition: major technology category newly introduced
+  - Counting unit: each DB / queue / auth / observability / framework / cloud service counts as 1
 
 ---
 
-## プロジェクト固有用語
+## Issue Terms
 
-> プロジェクトごとに以下に追加してください。
+- Granularity rules: target size for a single Issue (50-300 LOC, 1-5 files, 2-5 AC).
+- Exception labels: labels used when violating granularity rules (required fields: reason / impact / risk).
+- blocked: label indicating the Issue is blocked by another Issue.
+- parallel-ok: label indicating work can proceed in parallel.
 
-- [用語1]: [定義]
-- [用語2]: [定義]
+---
+
+## Estimation Terms
+
+- Full estimate: 11-section estimation format (required in this repo).
+- Confidence: High / Med / Low.
+- Range: estimate ranges such as 2-4h, 50-100 LOC.
+
+---
+
+## PRD Banned Vague Words
+
+- Banned vague words: ambiguous expressions that must not be used in PRDs (see `docs/prd/_template.md`).
+  Examples: "適切に", "なるべく", "高速".
+- Rewrite: replace vague words with measurable conditions (numbers, thresholds, concrete rules).
+
+---
+
+## Project-specific Terms
+
+Add project-specific terms here.
+
+- [term-1]: [definition]
+- [term-2]: [definition]

@@ -1,93 +1,93 @@
 # Definition of Done (DoD)
 
-PRやタスクが「完了」とみなされるための基準。
+Criteria for considering work "done" (Issue / PR / Epic / PRD).
 
 ---
 
-## Issue完了の条件
+## Issue done
 
-### 必須チェックリスト
+Required:
 
-- [ ] すべてのACが満たされている
-- [ ] テストが追加/更新されている（該当する場合）
-- [ ] `/sync-docs` で「差分なし」または差分が承認済み
-- [ ] コードレビューが完了している
-- [ ] CIが通っている（該当する場合）
+- [ ] All AC are satisfied
+- [ ] Tests are added/updated (when applicable)
+- [ ] `/sync-docs` is "no diff" or the diff is explicitly approved
+- [ ] Code review is complete
+- [ ] CI passes (when applicable)
 
-### 任意チェックリスト
+Optional:
 
-- [ ] ドキュメントが更新されている
-- [ ] パフォーマンスが許容範囲内
-- [ ] セキュリティ考慮事項が確認済み
-
----
-
-## PR完了の条件
-
-### 必須
-
-- AC達成: Issue記載のすべてのACを満たす
-- sync-docs実行: `/sync-docs` を実行し、差分を確認
-- テスト: 新規/変更コードにテストがある
-- レビュー: 最低1名のApprove
-
-### sync-docs結果の扱い
-
-- 差分なし: PRマージ可能
-- 差分あり（軽微）: 差分を記録してマージ
-- 差分あり（重大）: PRD/Epic更新後にマージ
+- [ ] Documentation updated
+- [ ] Performance is acceptable
+- [ ] Security considerations reviewed
 
 ---
 
-## Epic完了の条件
+## PR done
 
-- [ ] すべての関連Issueがクローズ
-- [ ] 必須提出物（3一覧）が最新化されている
-- [ ] PRDとの整合性が確認済み
+Required:
 
----
+- AC: all Issue AC are satisfied
+- sync-docs: run `/sync-docs` and assess drift
+- Tests: new/changed code is covered
+- Review: at least one approval
 
-## PRD完了の条件
+How to handle sync-docs result:
 
-完成チェックリスト（`docs/prd/_template.md` 参照）がすべて満たされていること：
-
-- [ ] 目的・背景が1-3文で書かれている
-- [ ] ユーザーストーリーが1つ以上ある
-- [ ] 機能要件が3つ以上列挙されている
-- [ ] ACが検証可能な形式で3つ以上ある
-- [ ] ACに異常系が最低1つある
-- [ ] スコープ外が明記されている
-- [ ] 曖昧な表現がない
-- [ ] 数値・条件が具体的
-- [ ] 成功指標が測定可能
-- [ ] Q6のUnknownが2つ未満
+- No diff: ready to merge
+- Diff (minor): record the diff and merge
+- Diff (major): update PRD/Epic before merging
 
 ---
 
-## 見積もり完了の条件
+## Epic done
 
-Full形式（11セクション）がすべて記載されていること：
+- [ ] All related Issues are closed
+- [ ] The 3 required lists are up-to-date
+- [ ] Consistency with PRD is confirmed
+
+---
+
+## PRD done
+
+All completion checklist items in `docs/prd/_template.md` are satisfied:
+
+- [ ] Purpose/background written in 1-3 sentences
+- [ ] At least 1 user story exists
+- [ ] At least 3 functional requirements are listed
+- [ ] At least 3 testable AC items exist
+- [ ] At least 1 negative/abnormal AC exists
+- [ ] Out of scope is explicitly listed
+- [ ] No vague expressions remain
+- [ ] Numbers/conditions are specific
+- [ ] Success metrics are measurable
+- [ ] Q6 Unknown count is < 2
+
+---
+
+## Estimate done
+
+Full estimate (11 sections) is fully written:
 
 ```
-0. 前提確認
-1. 依頼内容の解釈
-2. 変更対象（ファイル:行）
-3. 作業項目と工数（レンジ + 信頼度）
-4. DB影響          ← N/Aの場合は理由明記
-5. ログ出力        ← N/Aの場合は理由明記
-6. I/O一覧         ← N/Aの場合は理由明記
-7. リファクタ候補  ← N/Aの場合は理由明記
-8. フェーズ分割    ← N/Aの場合は理由明記
-9. テスト計画
-10. 矛盾点/不明点/確認事項
-11. 変更しないこと
+0. Preconditions
+1. Interpretation
+2. Change targets (file:line)
+3. Tasks and effort (range + confidence)
+4. DB impact            <- write reason when N/A
+5. Logging              <- write reason when N/A
+6. I/O list              <- write reason when N/A
+7. Refactor candidates   <- write reason when N/A
+8. Phasing               <- write reason when N/A
+9. Test plan
+10. Contradictions/unknowns/questions
+11. Out of scope (will not change)
 ```
 
 ---
 
-## 関連ファイル
+## Related
 
-- `.agent/rules/docs-sync.md` - ドキュメント同期ルール
-- `.agent/commands/sync-docs.md` - 同期コマンド
-- `.agent/commands/review.md` - レビューコマンド
-- `skills/estimation.md` - 見積もりスキル
+- `.agent/rules/docs-sync.md` - documentation sync rules
+- `.agent/commands/sync-docs.md` - sync-docs command
+- `.agent/commands/review.md` - review command
+- `skills/estimation.md` - estimation skill

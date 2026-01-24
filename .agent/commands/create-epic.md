@@ -1,157 +1,112 @@
 # /create-epic
 
-PRDから実装計画（Epic）を作成するコマンド。
+Create an Epic (implementation plan) from a PRD.
 
-## 使用方法
+The generated Epic document remains in Japanese (use `docs/epics/_template.md`).
 
-```
-/create-epic [PRDファイル名]
-```
-
-## 実行フロー
-
-### Phase 1: PRD読み込み
-
-1. 指定されたPRDファイルを読み込み
-2. PRDの完成チェックリストを再確認
-3. Q6のUnknown項目を抽出
-
-### Phase 2: Unknown項目の解消
-
-PRDのQ6でUnknownだった項目について確認質問：
+## Usage
 
 ```
-PRDで以下の項目がUnknownでした。Epicを作成する前に確認させてください。
-
-1. [項目名]: [選択肢]を選んでください
-2. [項目名]: [選択肢]を選んでください
+/create-epic [prd-file]
 ```
 
-### Phase 3: 技術方針の確認
+## Flow
 
-PRDの「規模感」と「技術方針」を確認し、制限を適用：
+### Phase 1: Read the PRD
 
-**シンプル優先の制限:**
+1. Read the specified PRD file
+2. Re-check the PRD completion checklist
+3. Extract Q6 items that are `Unknown`
 
-- 外部サービス数: 最大1
-- 新規導入ライブラリ: 最大3
-- 新規コンポーネント数: 最大3
-- 非同期基盤: 禁止
-- マイクロサービス分割: 禁止
-- コンテナオーケストレーション: 禁止
+### Phase 2: Resolve Unknown items
 
-**バランスの制限:**
+Before creating the Epic, ask the user (in Japanese) to resolve each `Unknown` item.
+If 2+ Unknown items exist in Q6, the PRD is not complete and you must stop.
 
-- 外部サービス数: 最大3
-- 新規導入ライブラリ: 最大5
-- 新規コンポーネント数: 最大5
-- 非同期基盤: 使う場合は理由を明記
-- マイクロサービス分割: する場合は理由を明記
+### Phase 3: Apply the technical policy constraints
 
-### Phase 4: 必須提出物（3一覧）の作成
+Use PRD section 7 (scale/policy) and PRD Q6 constraints to apply limits.
 
-以下の3つの表を**必ず**作成：
+Simple-first:
 
-#### 外部サービス一覧
+- External services: max 1
+- New libraries: max 3
+- New components: max 3
+- Async infrastructure: forbidden
+- Microservices: forbidden
+- Container orchestration: forbidden
 
-外部サービス-1
-名称: [ここに記載]
-用途: [ここに記載]
-必須理由: [ここに記載]
-代替案: [ここに記載]
+Balanced:
 
-#### コンポーネント一覧
+- External services: max 3
+- New libraries: max 5
+- New components: max 5
+- Async infrastructure: allowed with explicit reason
+- Microservices: allowed with explicit reason
 
-コンポーネント-1
-名称: [ここに記載]
-責務: [ここに記載]
-デプロイ形態: [ここに記載]
+### Phase 4: Create the 3 required lists
 
-#### 新規技術一覧
+Always include these three lists in the Epic (write "なし" if not applicable):
 
-新規技術-1
-名称: [ここに記載]
-カテゴリ: [ここに記載]
-既存との差: [ここに記載]
-導入理由: [ここに記載]
+- External services
+- Components
+- New tech
 
-### Phase 5: カウント定義の適用
+### Phase 5: Apply counting definitions
 
-- 外部サービス数
-  - 定義: ネットワーク越しに依存する別管理のサービス
-  - カウント単位: SaaS、マネージドDB、認証基盤、外部API を各1
-- コンポーネント数
-  - 定義: デプロイ単位
-  - カウント単位: 別プロセス、別ジョブ、別ワーカー、別バッチ を各1
-- 新規技術
-  - 定義: 新規に導入する主要技術カテゴリ
-  - カウント単位: DB、キュー、認証、観測基盤、フレームワーク、クラウドサービス を各1
+- External services: each SaaS / managed DB / identity provider / external API counts as 1
+- Components: each deployable unit (process/job/worker/batch) counts as 1
+- New tech: each major category (DB/queue/auth/observability/framework/cloud service) counts as 1
 
-### Phase 6: 代替案の提示
+### Phase 6: Provide simpler alternatives
 
-単純な代替案がある場合は**必ず両方提示**：
+If a simpler alternative exists, present both options and record the chosen option and the reason
+in the Epic (follow the template's "技術選定" section style).
 
-```
-## 技術選定: データベース
+### Phase 7: Create an Issue split proposal
 
-### 案A（推奨）: PostgreSQL
-- 理由: [理由]
-- メリット: [メリット]
-- デメリット: [デメリット]
+Split Issues following `.agent/rules/issue.md`:
 
-### 案B: SQLite
-- 理由: [理由]
-- メリット: [メリット]
-- デメリット: [デメリット]
+- LOC: 50-300
+- Files: 1-5
+- AC: 2-5
 
-### 選択
-→ 案Aを採用。理由: [選択理由]
-```
-
-### Phase 7: Issue分割案の作成
-
-`.agent/rules/issue.md` のルールに従って分割：
-
-- 変更行数: 50〜300行
-- 変更ファイル数: 1〜5ファイル
-- AC数: 2〜5個
-
-### Phase 8: チェックリスト検証
+### Phase 8: Validation checklist
 
 ```
-□ 新規技術/サービス名が5つ以下
-□ 新規コンポーネント数が上限以内
-□ 各選択に「なぜこれを選んだか」の理由がある
-□ 代替案（よりシンプルな方法）が提示されている
-□ 「将来のため」だけを理由にした項目がない
-□ 必須提出物（外部サービス一覧/コンポーネント一覧/新規技術一覧）が揃っている
+[] New tech/service names <= 5
+[] New component count is within the policy limit
+[] Every choice has a reason
+[] Simpler alternative(s) are presented when applicable
+[] No item is justified only by "for future extensibility"
+[] The 3 required lists are present
 ```
 
-### Phase 9: Epic生成
+### Phase 9: Generate the Epic
 
-1. `docs/epics/_template.md` をコピー
-2. 収集した情報を埋め込み
-3. `docs/epics/[PRD名]-epic.md` として保存
+1. Copy `docs/epics/_template.md`
+2. Fill in the collected information
+3. Save as `docs/epics/[prd-name]-epic.md`
 
-## 出力ファイル
+## Output
 
 ```
-docs/epics/[PRD名]-epic.md
+docs/epics/[prd-name]-epic.md
 ```
 
-## 禁止事項
+## Prohibited
 
-- 「将来の拡張性」だけを理由にした複雑化
-- シンプル優先時のマイクロサービス提案
-- 必須提出物（外部サービス一覧/コンポーネント一覧/新規技術一覧）の省略
-- 代替案なしでの技術選定
+- Adding complexity justified only by "for future extensibility"
+- Proposing microservices under Simple-first
+- Omitting the 3 required lists
+- Making a tech choice without presenting a simpler alternative (when one exists)
 
-## 関連ルール
+## Related
 
-- `.agent/rules/epic.md` - Epic生成ルール（カウント定義、許可/禁止リスト）
-- `.agent/rules/issue.md` - Issue粒度規約
-- `.agent/rules/docs-sync.md` - ドキュメント同期ルール
+- `.agent/rules/epic.md` - epic generation rules
+- `.agent/rules/issue.md` - issue granularity rules
+- `.agent/rules/docs-sync.md` - documentation sync rules
 
-## 次のコマンド
+## Next command
 
-Epic完成後は `/create-issues` を実行してIssueを作成する。
+After the Epic is complete, run `/create-issues`.

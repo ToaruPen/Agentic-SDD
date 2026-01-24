@@ -240,7 +240,7 @@ agent: $cmd_agent
 EOF
                 if [ "$cmd_base" = "init" ]; then
                     cat << 'EOF'
-注意: OpenCode の組み込み `/init`（AGENTS.md 生成）との衝突を避けるため、このコマンドは `/sdd-init` として提供されます。
+Note: OpenCode has a built-in `/init` (generates AGENTS.md). To avoid conflicts, this command is provided as `/sdd-init`.
 
 EOF
                 fi

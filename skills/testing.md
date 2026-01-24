@@ -1,125 +1,108 @@
-# テスト設計スキル
+# Testing Skill
 
-テスト戦略・種別・カバレッジ方針に関するガイドライン。
+Guidelines for test strategy, test types, and coverage.
 
----
+Language/framework-agnostic; concept-based.
 
-## 概要
-
-このスキルは、アプリケーションのテスト設計・実装における
-指針を提供します。
-言語/フレームワーク非依存で、概念ベースで記述しています。
+This document covers test design and writing. For TDD operations (Red/Green/Refactor), seams,
+and legacy tactics, see `skills/tdd-protocol.md`.
 
 ---
 
-## TDD 実行規約（入口）
+## Test pyramid (rule of thumb)
 
-このドキュメントは「テストの設計・書き方」を扱います。
-
-TDD（Red → Green → Refactor）の回し方、非決定性の制御（Seam）、レガシー改修（Extract/Sprout）などの
-実行規約は `skills/tdd-protocol.md` を参照してください。
-
----
-
-## テストピラミッド
-
-- Unit: 70% 目安（速い / メンテコスト低い）
-- Integration: 20% 目安（中程度 / メンテコスト中程度）
-- E2E: 10% 目安（遅い / メンテコスト高い）
+- Unit: ~70% (fast, low maintenance)
+- Integration: ~20% (moderate)
+- E2E: ~10% (slow, high maintenance)
 
 ---
 
-## テスト種別
+## Test types
 
-### Unit テスト
+### Unit tests
 
-**対象**: 単一の関数/クラス/モジュール
+Scope: a single function/class/module.
 
+Model: provide inputs, assert outputs/side-effects. Mock external dependencies.
 
-モデル: 入力を与え、出力/副作用を検証する。外部依存はモック化する。
+Characteristics:
 
-**特徴**:
-- 外部依存をモック化
-- 高速に実行可能
-- 境界値・異常系を網羅
+- Mock external dependencies
+- Fast
+- Cover boundaries and negative paths
 
-### Integration テスト
+### Integration tests
 
-**対象**: 複数コンポーネントの連携
+Scope: interactions between multiple components.
 
+Model: verify combined behavior (e.g. API + DB).
 
-モデル: 複数コンポーネントの連携結果を検証する（例: APIとDBの連携）。
+Characteristics:
 
-**特徴**:
-- 実際のDB/外部サービスを使用（またはテスト用）
-- コンポーネント間の連携を確認
-- Unit より遅いが、より現実に近い
+- Use real or test instances of DB/external systems
+- Verify cross-component behavior
+- Slower than unit, closer to reality
 
-### E2E テスト
+### E2E tests
 
-**対象**: システム全体のフロー
+Scope: end-to-end user flows.
 
+Model: verify key user scenarios from input to output.
 
-モデル: ユーザー操作から結果までの主要フローを通して検証する。
+Characteristics:
 
-**特徴**:
-- ユーザーシナリオをテスト
-- 最も遅いが、最も現実に近い
-- 主要フローのみに絞る
+- Closest to real behavior
+- Slowest
+- Keep to critical flows only
 
 ---
 
-## テストの書き方
+## Writing tests
 
-### AAA パターン
+### AAA pattern
 
 ```
-// Arrange（準備）
+// Arrange
 const user = createTestUser();
 const repository = new UserRepository();
 
-// Act（実行）
+// Act
 const result = await repository.save(user);
 
-// Assert（検証）
+// Assert
 expect(result.id).toBeDefined();
 expect(result.name).toBe(user.name);
 ```
 
-### テスト名の命名
+### Naming tests
 
 ```
-// パターン1: should〜when〜
+// Pattern 1: should-when
 "should return error when email is invalid"
 
-// パターン2: 日本語（チームの方針による）
-"メールアドレスが不正な場合、エラーを返す"
-
-// パターン3: given-when-then
+// Pattern 2: given-when-then
 "given invalid email, when saving user, then returns validation error"
 ```
 
 ---
 
-## カバレッジ
+## Coverage
 
-### カバレッジの種類
+Coverage types:
 
-- Line: 行カバレッジ（目標目安: 80%+）
-- Branch: 分岐カバレッジ（目標目安: 70%+）
-- Function: 関数カバレッジ（目標目安: 90%+）
+- Line coverage (target guideline: 80%+)
+- Branch coverage (target guideline: 70%+)
+- Function coverage (target guideline: 90%+)
 
-### カバレッジの考え方
-
-**高カバレッジ ≠ 高品質**
+Coverage != quality.
 
 ```
-// カバレッジ100%だが意味のないテスト
+// 100% coverage but meaningless (no assertion)
 test("adds numbers", () => {
-  add(1, 2);  // アサーションなし！
+  add(1, 2);
 });
 
-// カバレッジは同じだが意味のあるテスト
+// Meaningful assertions
 test("adds numbers correctly", () => {
   expect(add(1, 2)).toBe(3);
   expect(add(-1, 1)).toBe(0);
@@ -127,114 +110,114 @@ test("adds numbers correctly", () => {
 });
 ```
 
-### カバレッジ除外の判断
+What can be excluded:
 
-除外してよい:
-- 自動生成コード
-- 設定ファイル
-- 型定義のみ
+- Generated code
+- Config files
+- Type-only definitions
 
-除外すべきでない:
-- ビジネスロジック
-- エラーハンドリング
-- 重要な分岐処理
+What should not be excluded:
 
----
-
-## テスト対象の優先度
-
-### 必ずテストすべき
-
-- ビジネスロジック: バグの影響が大きい
-- バリデーション: セキュリティに関わる
-- エラーハンドリング: 障害時の挙動を保証
-- 境界値: バグが発生しやすい
-
-### テストを検討すべき
-
-- 外部連携: 障害対応に必要
-- 複雑な条件分岐: バグが入りやすい
-- パフォーマンスクリティカル: 劣化を検知
-
-### テスト不要な場合も
-
-- 単純なgetter/setter: 自明
-- フレームワークの機能: 既にテスト済み
-- 一時的なコード: ROI が低い
+- Business logic
+- Error handling
+- Important branching logic
 
 ---
 
-## テストデータ
+## What to test (priority)
 
-### テストデータの管理
+Must test:
 
-- ファクトリ関数: 動的にデータ生成
-- Fixture ファイル: 静的なテストデータ
-- Seed データ: DBの初期データ
+- Business logic (high impact)
+- Validation (often security-related)
+- Error handling (behavior under failure)
+- Boundaries (high bug density)
 
-### テストデータの原則
+Consider testing:
 
-- 各テストは独立（他のテストに依存しない）
-- テストごとにデータを準備・クリーンアップ
-- 本番データをテストに使用しない
+- External integrations
+- Complex branching
+- Performance-critical code (detect regressions)
 
----
+May not need tests:
 
-## モック/スタブ
-
-### 使い分け
-
-- Mock: 呼び出しを検証したい
-- Stub: 固定値を返したい
-- Spy: 実際の処理 + 呼び出し記録
-- Fake: 簡易的な代替実装
-
-### モックの注意点
-
-- モックしすぎると実際の動作と乖離
-- 外部依存のみをモック（内部ロジックはモックしない）
-- モックの戻り値は実際のAPIと一致させる
+- Trivial getters/setters
+- Framework internals already tested
+- Short-lived throwaway code (low ROI)
 
 ---
 
-## チェックリスト
+## Test data
 
-### テスト計画時
+Approaches:
 
-- [ ] テスト対象の優先度が決まっている
-- [ ] テスト種別（Unit/Integration/E2E）が決まっている
-- [ ] カバレッジ目標が設定されている
+- Factory functions (generate data)
+- Fixture files (static data)
+- Seed data (DB baseline)
 
-### テスト実装時
+Principles:
 
-- [ ] AAAパターンで書かれている
-- [ ] テスト名が内容を表している
-- [ ] 正常系・異常系の両方がある
-- [ ] 境界値がテストされている
-- [ ] テスト同士が独立している
-
-### テストメンテナンス時
-
-- [ ] 不要なテストが削除されている
-- [ ] 壊れたテストが放置されていない
-- [ ] テストの実行時間が許容範囲内
+- Tests are independent
+- Setup/teardown per test
+- Never use production data
 
 ---
 
-## アンチパターン
+## Mocks / stubs
 
-- アサーションなしのテスト: 何も検証していない → 意味のあるアサーションを追加
-- 1テストで複数の検証: 失敗原因が不明確 → テストを分割
-- テスト間の依存: 実行順で結果が変わる → 各テストを独立に
-- 本番データ使用: セキュリティリスク → テストデータを生成
-- 遅いテストの放置: CI が遅くなる → 最適化 or 分離
-- カバレッジ100%信仰: 意味のないテストが増える → 品質を重視
+When to use:
+
+- Mock: verify calls/interactions
+- Stub: return fixed values
+- Spy: run real code while recording calls
+- Fake: lightweight replacement implementation
+
+Notes:
+
+- Over-mocking diverges from reality
+- Mock external dependencies only (do not mock core logic)
+- Mock outputs should match real APIs
 
 ---
 
-## 関連ファイル
+## Checklists
 
-- `skills/error-handling.md` - エラーハンドリング（異常系テスト）
-- `skills/api-endpoint.md` - API設計（APIテスト）
-- `skills/tdd-protocol.md` - TDD 実行規約（運用）
+Planning:
+
+- [ ] Test priorities are decided
+- [ ] Test types are chosen (Unit/Integration/E2E)
+- [ ] Coverage expectations are set
+
+Implementation:
+
+- [ ] Uses AAA
+- [ ] Names express behavior
+- [ ] Has both happy and negative paths
+- [ ] Boundaries are tested
+- [ ] Tests are independent
+
+Maintenance:
+
+- [ ] Unneeded tests removed
+- [ ] Broken tests not left behind
+- [ ] Runtime is acceptable
+
+---
+
+## Anti-patterns
+
+- No assertions: verifies nothing -> add meaningful assertions
+- Multiple concerns in one test: unclear failures -> split tests
+- Test order dependency: flaky behavior -> isolate each test
+- Using production data: security risk -> generate test data
+- Leaving slow tests: CI slows down -> optimize or separate
+- Coverage worship: inflates meaningless tests -> focus on quality
+
+---
+
+## Related
+
+- `skills/error-handling.md` - error handling (negative-path tests)
+- `skills/api-endpoint.md` - API design (API tests)
+- `skills/tdd-protocol.md` - TDD execution protocol
 - `.agent/rules/dod.md` - Definition of Done

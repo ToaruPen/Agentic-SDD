@@ -1,10 +1,10 @@
-# コミットメッセージルール
+# Commit Message Rules
 
-Conventional Commits に基づくコミットメッセージの規約。
+Commit message conventions based on Conventional Commits.
 
 ---
 
-## 基本フォーマット
+## Base format
 
 ```
 <type>(<scope>): <description>
@@ -16,25 +16,25 @@ Conventional Commits に基づくコミットメッセージの規約。
 
 ---
 
-## Type（必須）
+## Type (required)
 
-- `feat`: 新機能（絵文字: ✨ 任意）
-- `fix`: バグ修正（絵文字: 🐛 任意）
-- `docs`: ドキュメントのみ（絵文字: 📝 任意）
-- `style`: コードの意味に影響しない変更（空白、フォーマット等）（絵文字: 💄 任意）
-- `refactor`: バグ修正でも機能追加でもないコード変更（絵文字: ♻️ 任意）
-- `perf`: パフォーマンス改善（絵文字: ⚡ 任意）
-- `test`: テストの追加・修正（絵文字: ✅ 任意）
-- `build`: ビルドシステムや外部依存に関する変更（絵文字: 📦 任意）
-- `ci`: CI設定の変更（絵文字: 👷 任意）
-- `chore`: その他の変更（ソースやテストの変更なし）（絵文字: 🔧 任意）
-- `revert`: 以前のコミットの取り消し（絵文字: ⏪ 任意）
+- `feat`: new feature
+- `fix`: bug fix
+- `docs`: documentation only
+- `style`: formatting only (no semantic change)
+- `refactor`: refactor (no bug fix / no feature)
+- `perf`: performance improvement
+- `test`: add/update tests
+- `build`: build system / dependencies
+- `ci`: CI changes
+- `chore`: misc (no src/test changes)
+- `revert`: revert a previous commit
 
 ---
 
-## Scope（任意）
+## Scope (optional)
 
-変更の影響範囲を示す。プロジェクトに応じて定義。
+Scope indicates the area of change (project-defined).
 
 ```
 feat(api): add user registration endpoint
@@ -44,14 +44,14 @@ docs(readme): update installation instructions
 
 ---
 
-## Description（必須）
+## Description (required)
 
-- 命令形で記述（例: "add" not "added"）
-- 小文字で開始
-- 末尾にピリオドを付けない
-- 50文字以内を目安
+- Use imperative mood ("add" not "added")
+- Start with lowercase
+- No trailing period
+- Keep within ~50 chars
 
-### 良い例
+Good:
 
 ```
 feat(auth): add password reset functionality
@@ -59,19 +59,19 @@ fix(api): handle null response from external service
 refactor(utils): extract validation logic to separate module
 ```
 
-### 悪い例
+Bad:
 
 ```
-feat(auth): Added password reset functionality.  # 過去形、ピリオド
-fix: bug fix  # 具体性がない
-Update code  # type がない
+feat(auth): Added password reset functionality.
+fix: bug fix
+Update code
 ```
 
 ---
 
-## Body（任意）
+## Body (optional)
 
-変更の理由や詳細を説明する場合に使用。
+Use the body to explain "why" and notable details.
 
 ```
 feat(auth): add password reset functionality
@@ -84,9 +84,9 @@ Closes #123
 
 ---
 
-## Footer（任意）
+## Footer (optional)
 
-### Breaking Changes
+Breaking changes:
 
 ```
 feat(api)!: change response format for user endpoint
@@ -94,7 +94,7 @@ feat(api)!: change response format for user endpoint
 BREAKING CHANGE: The user endpoint now returns an array instead of an object.
 ```
 
-### Issue参照
+Issue references:
 
 ```
 fix(cart): correct total calculation
@@ -105,23 +105,9 @@ Closes #789
 
 ---
 
-## 絵文字の使用（任意）
+## Examples
 
-絵文字を使用する場合は type の前に配置：
-
-```
-✨ feat(auth): add OAuth2 support
-🐛 fix(api): handle timeout errors
-📝 docs(readme): add API documentation
-```
-
-**注意**: チームで統一すること。混在は避ける。
-
----
-
-## 例
-
-### 機能追加
+Feature:
 
 ```
 feat(user): add profile picture upload
@@ -133,7 +119,7 @@ feat(user): add profile picture upload
 Closes #234
 ```
 
-### バグ修正
+Bug fix:
 
 ```
 fix(payment): correct tax calculation for international orders
@@ -144,7 +130,7 @@ Now only product prices are taxed.
 Fixes #567
 ```
 
-### リファクタリング
+Refactor:
 
 ```
 refactor(api): extract authentication middleware
@@ -154,7 +140,7 @@ refactor(api): extract authentication middleware
 - No functional changes
 ```
 
-### ドキュメント
+Docs:
 
 ```
 docs(contributing): add commit message guidelines
@@ -162,23 +148,23 @@ docs(contributing): add commit message guidelines
 
 ---
 
-## コミット粒度
+## Commit granularity
 
-### 原則
+Principles:
 
-- 1コミット = 1つの論理的な変更
-- 動作する状態でコミット
-- レビューしやすいサイズに保つ
+- One commit = one logical change
+- Commit in a working state
+- Keep reviewable size
 
-### 分割の目安
+Split examples:
 
-- 機能追加 + バグ修正: 関連する機能追加 + テスト に分ける
-- リファクタ + 新機能: 小さなリファクタのみ に分ける
-- 複数の独立した修正: 1つの問題に対する修正 に分ける
+- Feature + bug fix: split into feature and fix/test commits
+- Refactor + feature: split into a refactor-only commit and a feature commit
+- Multiple independent fixes: split per problem
 
 ---
 
-## 関連ファイル
+## Related
 
-- `.agent/rules/branch.md` - ブランチ命名ルール
-- `.agent/rules/datetime.md` - 日時フォーマットルール
+- `.agent/rules/branch.md` - branch naming rules
+- `.agent/rules/datetime.md` - datetime formatting rules

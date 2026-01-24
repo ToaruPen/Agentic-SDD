@@ -1,128 +1,160 @@
 # AGENTS.md
 
-このリポジトリでAIエージェントが従うべきルール。
+Rules for AI agents working in this repository.
+
+Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues) remain in Japanese.
+This control documentation is written in English to reduce token usage during agent bootstrap.
+
+## Start Here (Development Cycle Protocol)
+
+Minimal protocol for a first-time agent to decide the next action.
+
+```text
+Invariant (SoT)
+- Priority order: PRD (requirements) > Epic (implementation plan) > Implementation (code)
+- If you detect a contradiction, STOP and ask a human with references (PRD/Epic/code:line).
+  Do not invent requirements.
+
+0) Bootstrap
+- Read AGENTS.md (this section + command list). Read README.md only if needed (Workflow section).
+- Read `.agent/commands/`, `.agent/rules/`, and `skills/` on-demand for the next command only.
+
+1) Entry decision (where to start)
+- No PRD: /create-prd
+- PRD exists but no Epic: /create-epic
+- Epic exists but no Issues / not split: /create-issues
+- Issues exist: /impl <issue-id> (or /tdd <issue-id> for TDD)
+
+2) Complete one Issue (iterate)
+- /impl: write a Full estimate (11 sections) first -> implement -> test
+- (Optional) /review-cycle: iterate using review.json (fix -> re-run)
+- /review: always run /sync-docs; if there is a diff, follow SoT and re-check
+
+3) PR / merge
+- Create a PR only after /review passes (do not change anything outside the Issue scope)
+```
 
 ---
 
-## プロジェクト概要
+## Project Overview
 
-Agentic-SDD（Agentic Spec-Driven Development）
+Agentic-SDD (Agentic Spec-Driven Development)
 
-非エンジニアがLLM暴走を防ぎつつ、AI駆動開発を進めるためのワークフローテンプレート。
-
----
-
-## 重要ファイル
-
-- `.agent/commands/`: コマンド定義（create-prd, create-epic 等）
-- `.agent/rules/`: ルール定義（docs-sync, dod, epic, issue 等）
-- `docs/prd/_template.md`: PRDテンプレート
-- `docs/epics/_template.md`: Epicテンプレート
-- `docs/glossary.md`: 用語集
-- `DESIGN.md`: 設計書（正本）
+A workflow template to help non-engineers run AI-driven development while preventing LLM overreach.
 
 ---
 
-## コマンド一覧
+## Key Files
 
-- `/create-prd`: PRD作成（7問質問形式）
-- `/create-epic`: Epic作成（必須提出物: 外部サービス一覧/コンポーネント一覧/新規技術一覧）
-- `/create-issues`: Issue作成（粒度規約適用）
-- `/impl`: 実装（Full見積もり必須）
-- `/tdd`: TDDで実装（Red→Green→Refactor）
-- `/review-cycle`: ローカルレビューサイクル（codex execでreview.json生成）
-- `/review`: レビュー（DoD確認）
-- `/sync-docs`: ドキュメント同期チェック
+- `.agent/commands/`: command definitions (create-prd, create-epic, ...)
+- `.agent/rules/`: rule definitions (docs-sync, dod, epic, issue, ...)
+- `docs/prd/_template.md`: PRD template (Japanese output)
+- `docs/epics/_template.md`: Epic template (Japanese output)
+- `docs/glossary.md`: glossary
+- `DESIGN.md`: design spec (source of truth for this template itself)
 
 ---
 
-## 必須ルール
+## Commands
 
-### 1. PRD作成時
-
-- 7問の質問形式で作成
-- Q6（技術的制約）は選択式
-- 禁止語辞書をチェック
-- 異常系ACを最低1つ含む
-- Unknownが2つ以上ならPRD未完成
-
-### 2. Epic作成時
-
-- 必須提出物（外部サービス一覧/コンポーネント一覧/新規技術一覧）を必ず含む
-- 技術方針別の制限を適用
-- 代替案を必ず提示
-- 「将来のため」だけの複雑化は禁止
-
-### 3. Issue作成時
-
-- 粒度規約: 50〜300行、1〜5ファイル、2〜5 AC
-- 例外ラベル使用時は必須記入欄を埋める
-- 依存関係を明記
-
-### 4. 見積もり時
-
-- Full（11セクション）必須
-- 該当なしは「N/A（理由）」と明記
-- 信頼度（High/Med/Low）を付与
-
-### 5. レビュー時
-
-- `/sync-docs` を実行
-- 差分があれば参照（PRD/Epic/コード）を明記
-- DoDチェックリストを確認
+- `/create-prd`: create a PRD (7 questions)
+- `/create-epic`: create an Epic (requires 3 lists: external services / components / new tech)
+- `/create-issues`: create Issues (granularity rules)
+- `/impl`: implement an Issue (Full estimate required)
+- `/tdd`: implement via TDD (Red -> Green -> Refactor)
+- `/review-cycle`: local review loop (codex exec -> review.json)
+- `/review`: review (DoD check)
+- `/sync-docs`: consistency check between PRD/Epic/code
 
 ---
 
-## 禁止事項
+## Mandatory Rules
 
-- 禁止語の使用（適切に、なるべく、高速など）
-- 必須提出物なしでのEpic作成
-- 粒度規約無視のIssue作成
-- Lite見積もり（Full必須）
-- 参照なしでの差分報告
-- 上位ドキュメント（PRD）の無断変更
+### 1) When creating a PRD
 
----
+- Use the 7-question format
+- Q6 (technical constraints) is choice-based
+- Check banned vague words (see PRD template)
+- Include at least one negative/abnormal AC
+- If there are 2+ Unknown items, the PRD is not considered complete
 
-## カウント定義
+### 2) When creating an Epic
 
-- 外部サービス数: SaaS、マネージドDB、認証基盤、外部API を各1
-- コンポーネント数: 別プロセス、別ジョブ、別ワーカー、別バッチ を各1
-- 新規技術: DB、キュー、認証、観測基盤、フレームワーク、クラウドサービス を各1
+- Always include the 3 required lists (external services / components / new tech)
+- Apply the constraints per technical policy
+- Always present simpler alternatives when available
+- Do not add complexity "for future extensibility" only
 
----
+### 3) When creating Issues
 
-## 技術方針別制限
+- Granularity: 50-300 LOC, 1-5 files, 2-5 AC
+- If using an exception label, fill in all required fields
+- Explicitly state dependencies
 
-### シンプル優先
+### 4) When estimating
 
-- 外部サービス: 最大1
-- 新規ライブラリ: 最大3
-- 新規コンポーネント: 最大3
-- 非同期基盤: 禁止
-- マイクロサービス: 禁止
-- K8s等: 禁止
+- Full estimate (11 sections) is mandatory
+- For non-applicable sections, write `N/A` with a reason
+- Include confidence (High/Med/Low)
 
-### バランス
+### 5) When reviewing
 
-- 外部サービス: 最大3
-- 新規ライブラリ: 最大5
-- 新規コンポーネント: 最大5
-- 非同期基盤: 要理由
-- マイクロサービス: 要理由
+- Run `/sync-docs`
+- If there is a diff, provide references (PRD/Epic/code)
+- Check the DoD checklist
 
 ---
 
-## ドキュメント正本の階層
+## Prohibited
 
-優先順位: PRD（要件） > Epic（実装計画） > 実装（コード）
-
-矛盾がある場合は上位に従う。
+- Using banned vague words in PRDs (e.g. "適切に", "なるべく", "高速"; see `docs/prd/_template.md`)
+- Creating an Epic without the required lists
+- Creating Issues that ignore the granularity rules
+- Lite estimates (Full is required)
+- Reporting diffs without references
+- Changing higher-level docs (PRD) without explicit confirmation
 
 ---
 
-## 参照
+## Counting Definitions
 
-- 設計書: `DESIGN.md`
-- 用語集: `docs/glossary.md`
-- 意思決定: `docs/decisions.md`
+- External services: count each SaaS / managed DB / identity provider / external API as 1
+- Components: count each deployable unit (process/job/worker/batch) as 1
+- New tech: count each major category (DB/queue/auth/observability/framework/cloud service) as 1
+
+---
+
+## Constraints by Technical Policy
+
+### Simple-first
+
+- External services: max 1
+- New libraries: max 3
+- New components: max 3
+- Async infrastructure: forbidden
+- Microservices: forbidden
+- Kubernetes (and similar): forbidden
+
+### Balanced
+
+- External services: max 3
+- New libraries: max 5
+- New components: max 5
+- Async infrastructure: allowed with an explicit reason
+- Microservices: allowed with an explicit reason
+
+---
+
+## Source-of-Truth Hierarchy
+
+Priority: PRD (requirements) > Epic (implementation plan) > Implementation (code)
+
+If there is a contradiction, follow the higher-level document.
+
+---
+
+## References
+
+- Design spec: `DESIGN.md`
+- Glossary: `docs/glossary.md`
+- Decisions: `docs/decisions.md`

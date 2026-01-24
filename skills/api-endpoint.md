@@ -1,106 +1,101 @@
-# API エンドポイント設計スキル
+# API Endpoint Design Skill
 
-REST API エンドポイントの設計・実装ガイドライン。
+Guidelines and checklists for designing and implementing REST API endpoints.
 
----
-
-## 概要
-
-このスキルは、REST API エンドポイントを設計・実装する際の指針を提供します。
-言語/フレームワーク非依存で、概念ベースで記述しています。
+Language/framework-agnostic; concept-based.
 
 ---
 
-## 設計原則
+## Principles
 
-### 1. リソース指向
+### 1) Resource-oriented
 
-- URLはリソース（名詞）を表す
-- 操作はHTTPメソッドで表現
+- URLs represent resources (nouns)
+- Operations are expressed by HTTP methods
 
 ```
-GET    /users      # ユーザー一覧取得
-GET    /users/:id  # ユーザー詳細取得
-POST   /users      # ユーザー作成
-PUT    /users/:id  # ユーザー更新（全体）
-PATCH  /users/:id  # ユーザー更新（部分）
-DELETE /users/:id  # ユーザー削除
+GET    /users      # list users
+GET    /users/:id  # get a user
+POST   /users      # create a user
+PUT    /users/:id  # replace a user
+PATCH  /users/:id  # update a user
+DELETE /users/:id  # delete a user
 ```
 
-### 2. 一貫性
+### 2) Consistency
 
-- 命名規則を統一（複数形、ケバブケース等）
-- レスポンス形式を統一
-- エラー形式を統一
+- Consistent naming (plural, kebab-case, etc)
+- Consistent response envelope
+- Consistent error format
 
-### 3. ステートレス
+### 3) Stateless
 
-- セッション状態をサーバーに持たない
-- 認証情報はリクエストごとに送信
-
----
-
-## URL設計
-
-### 基本パターン
-
-- `/resources`: コレクション。例: `/users`
-- `/resources/:id`: 単一リソース。例: `/users/123`
-- `/resources/:id/sub-resources`: ネスト。例: `/users/123/posts`
-
-### 命名規則
-
-- 推奨: `/users` / 非推奨: `/user` / 理由: 複数形で統一
-- 推奨: `/user-profiles` / 非推奨: `/userProfiles` / 理由: ケバブケース
-- 推奨: `/users/123` / 非推奨: `/users?id=123` / 理由: パスパラメータ
-
-### クエリパラメータ
-
-- ページネーション: `page`, `limit`（例: `?page=2&limit=20`）
-- ソート: `sort`, `order`（例: `?sort=created_at&order=desc`）
-- フィルタ: フィールド名（例: `?status=active`）
-- 検索: `q`, `search`（例: `?q=keyword`）
+- No server-side session state
+- Auth context is provided per request
 
 ---
 
-## HTTPメソッド
+## URL design
 
-- GET: 取得（冪等性: Yes / 安全性: Yes）
-- POST: 作成（冪等性: No / 安全性: No）
-- PUT: 全体更新（冪等性: Yes / 安全性: No）
-- PATCH: 部分更新（冪等性: No / 安全性: No）
-- DELETE: 削除（冪等性: Yes / 安全性: No）
+Basic patterns:
 
----
+- `/resources`: collection (e.g. `/users`)
+- `/resources/:id`: single resource (e.g. `/users/123`)
+- `/resources/:id/sub-resources`: nested resources (e.g. `/users/123/posts`)
 
-## ステータスコード
+Naming conventions:
 
-### 成功
+- Preferred: `/users`; avoid: `/user` (use plural)
+- Preferred: `/user-profiles`; avoid: `/userProfiles` (use kebab-case)
+- Preferred: `/users/123`; avoid: `/users?id=123` (use path params)
 
-- 200: 成功（データあり）（例: GET, PUT, PATCH）
-- 201: 作成成功（例: POST）
-- 204: 成功（データなし）（例: DELETE）
+Query parameters:
 
-### クライアントエラー
-
-- 400: リクエスト不正（例: バリデーションエラー）
-- 401: 認証エラー（例: 未ログイン）
-- 403: 認可エラー（例: 権限なし）
-- 404: リソースなし（例: 存在しないID）
-- 409: 競合（例: 重複登録）
-- 422: 処理不能（例: ビジネスロジックエラー）
-
-### サーバーエラー
-
-- 500: サーバーエラー（例: 予期しないエラー）
-- 502: Bad Gateway（例: 外部サービスエラー）
-- 503: サービス利用不可（例: メンテナンス中）
+- Pagination: `page`, `limit` (e.g. `?page=2&limit=20`)
+- Sorting: `sort`, `order` (e.g. `?sort=created_at&order=desc`)
+- Filtering: field names (e.g. `?status=active`)
+- Search: `q` / `search` (e.g. `?q=keyword`)
 
 ---
 
-## リクエスト/レスポンス形式
+## HTTP methods
 
-### リクエストボディ
+- GET: read (idempotent: yes / safe: yes)
+- POST: create (idempotent: no / safe: no)
+- PUT: replace (idempotent: yes / safe: no)
+- PATCH: update (idempotent: no / safe: no)
+- DELETE: delete (idempotent: yes / safe: no)
+
+---
+
+## Status codes
+
+Success:
+
+- 200: success with body (GET, PUT, PATCH)
+- 201: created (POST)
+- 204: success without body (DELETE)
+
+Client errors:
+
+- 400: bad request (validation)
+- 401: unauthenticated
+- 403: unauthorized
+- 404: not found
+- 409: conflict (duplicate)
+- 422: unprocessable (business rule)
+
+Server errors:
+
+- 500: unexpected error
+- 502: bad gateway (upstream error)
+- 503: service unavailable
+
+---
+
+## Request/response format
+
+Request body:
 
 ```json
 {
@@ -109,7 +104,7 @@ DELETE /users/:id  # ユーザー削除
 }
 ```
 
-### 成功レスポンス（単一）
+Success response (single):
 
 ```json
 {
@@ -122,7 +117,7 @@ DELETE /users/:id  # ユーザー削除
 }
 ```
 
-### 成功レスポンス（一覧）
+Success response (list):
 
 ```json
 {
@@ -138,15 +133,15 @@ DELETE /users/:id  # ユーザー削除
 }
 ```
 
-### エラーレスポンス
+Error response:
 
 ```json
 {
   "error": {
     "code": "VALIDATION_ERROR",
-    "message": "入力値が不正です",
+    "message": "Invalid input.",
     "details": [
-      { "field": "email", "message": "メールアドレスの形式が不正です" }
+      { "field": "email", "message": "Email format is invalid." }
     ]
   }
 }
@@ -154,45 +149,45 @@ DELETE /users/:id  # ユーザー削除
 
 ---
 
-## チェックリスト
+## Checklist
 
-### 設計時
+Design:
 
-- [ ] URLがリソース指向になっている
-- [ ] HTTPメソッドが適切に選択されている
-- [ ] ステータスコードが適切に定義されている
-- [ ] リクエスト/レスポンス形式が統一されている
-- [ ] エラーレスポンスが定義されている
+- [ ] URL is resource-oriented
+- [ ] HTTP methods are appropriate
+- [ ] Status codes are appropriate
+- [ ] Request/response format is consistent
+- [ ] Error format is defined
 
-### 実装時
+Implementation:
 
-- [ ] 入力バリデーションが実装されている
-- [ ] 認証・認可が実装されている
-- [ ] エラーハンドリングが実装されている
-- [ ] ログ出力が適切に行われている
-- [ ] テストが作成されている
+- [ ] Input validation exists
+- [ ] AuthN/AuthZ exists (when applicable)
+- [ ] Error handling exists
+- [ ] Logging is appropriate
+- [ ] Tests exist
 
-### セキュリティ
+Security:
 
-- [ ] 入力がサニタイズされている
-- [ ] SQLインジェクション対策がされている
-- [ ] XSS対策がされている
-- [ ] レート制限が考慮されている
-- [ ] 機密情報がレスポンスに含まれていない
-
----
-
-## アンチパターン
-
-- 動詞をURLに含める: `/getUsers` → `GET /users`
-- 全部POSTで処理: 意図が不明確 → HTTPメソッドを使い分ける
-- ステータスコード200のみ: エラー判定困難 → 適切なステータスコードを返す
-- エラー詳細を常に返す: セキュリティリスク → 本番は概要のみ返す
+- [ ] Inputs are sanitized
+- [ ] SQL injection is considered
+- [ ] XSS is considered
+- [ ] Rate limiting is considered (when applicable)
+- [ ] No secrets/PII leak in responses
 
 ---
 
-## 関連ファイル
+## Anti-patterns
 
-- `skills/error-handling.md` - エラーハンドリング
-- `skills/testing.md` - テスト設計
+- Verb in URL: `/getUsers` -> `GET /users`
+- Using POST for everything: unclear intent -> use appropriate methods
+- Always returning 200: hard to distinguish errors -> use proper codes
+- Always returning detailed errors: security risk -> keep prod errors minimal
+
+---
+
+## Related
+
+- `skills/error-handling.md` - error handling
+- `skills/testing.md` - testing
 - `.agent/rules/dod.md` - Definition of Done

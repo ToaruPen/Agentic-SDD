@@ -1,60 +1,61 @@
-# 日時フォーマットルール
+# Datetime Formatting Rules
 
-ドキュメントやコード内での日時表記の統一ルール。
+Rules for consistent date/time formatting in docs and code.
 
 ---
 
-## 基本フォーマット
+## Base formats
 
-### 日付
+### Date
 
 ```
 YYYY-MM-DD
 ```
 
-例: `2024-03-15`
+Example: `2024-03-15`
 
-### 日時（タイムスタンプ）
+### Timestamp
 
 ```
 YYYY-MM-DDTHH:mm:ssZ        # UTC
 YYYY-MM-DDTHH:mm:ss+09:00   # JST
 ```
 
-例: 
-- `2024-03-15T10:30:00Z`（UTC）
-- `2024-03-15T19:30:00+09:00`（JST）
+Examples:
+
+- `2024-03-15T10:30:00Z` (UTC)
+- `2024-03-15T19:30:00+09:00` (JST)
 
 ---
 
-## 使用場面
+## Where to use
 
-- ドキュメントの日付: `YYYY-MM-DD`（例: `2024-03-15`）
-- コミットメッセージ: 不要（gitが自動付与）
-- ログ出力: ISO 8601（UTC推奨）（例: `2024-03-15T10:30:00Z`）
-- APIレスポンス: ISO 8601（UTC推奨）（例: `2024-03-15T10:30:00Z`）
-- ファイル名: `YYYYMMDD` または `YYYY-MM-DD`（例: `20240315` / `2024-03-15`）
-
----
-
-## タイムゾーン
-
-### 原則
-
-- **UTC を基準とする**
-- ローカルタイムを使用する場合は、タイムゾーンを明記
-
-### 表記
-
-- `Z`: UTC（+00:00）
-- `+09:00`: JST（日本標準時）
-- `+00:00`: UTC（明示的）
+- Document dates: `YYYY-MM-DD`
+- Commit messages: not needed (git provides timestamps)
+- Logs: ISO 8601 (prefer UTC)
+- API responses: ISO 8601 (prefer UTC)
+- Filenames: `YYYYMMDD` or `YYYY-MM-DD` (e.g. `20240315` / `2024-03-15`)
 
 ---
 
-## ドキュメント内での使用
+## Time zones
 
-### PRD / Epic / Issue
+Principles:
+
+- Use UTC as the default
+- If you use local time, include the offset explicitly
+
+Notation:
+
+- `Z`: UTC (+00:00)
+- `+09:00`: JST
+- `+00:00`: explicit UTC
+
+---
+
+## In documents
+
+PRD / Epic / Issue:
 
 ```markdown
 ## メタ情報
@@ -63,7 +64,7 @@ YYYY-MM-DDTHH:mm:ss+09:00   # JST
 - 更新日: 2024-03-20
 ```
 
-### 変更履歴
+Change log:
 
 ```markdown
 ## 変更履歴
@@ -74,36 +75,36 @@ YYYY-MM-DDTHH:mm:ss+09:00   # JST
 
 ---
 
-## コード内での使用
+## In code
 
-### 推奨
+Preferred:
 
 ```typescript
-// ISO 8601 形式（UTC）
+// ISO 8601 (UTC)
 const timestamp = new Date().toISOString();
 // => "2024-03-15T10:30:00.000Z"
 ```
 
-### 非推奨
+Not recommended:
 
 ```typescript
-// ローカルタイム（タイムゾーン不明）
+// Local time (timezone not explicit)
 const timestamp = new Date().toString();
 // => "Fri Mar 15 2024 19:30:00 GMT+0900 (Japan Standard Time)"
 ```
 
 ---
 
-## 禁止フォーマット
+## Forbidden formats
 
-- `03/15/2024`: 曖昧（MM/DD vs DD/MM）→ `2024-03-15`
-- `15-Mar-2024`: パース困難 → `2024-03-15`
-- `2024年3月15日`: 日本語依存 → `2024-03-15`
-- タイムゾーンなしの時刻: 曖昧 → `Z` または `+09:00` を付与
+- `03/15/2024`: ambiguous (MM/DD vs DD/MM) -> `2024-03-15`
+- `15-Mar-2024`: hard to parse -> `2024-03-15`
+- `2024年3月15日`: locale-dependent -> `2024-03-15`
+- Time without timezone: ambiguous -> add `Z` or `+09:00`
 
 ---
 
-## 関連ファイル
+## Related
 
-- `.agent/rules/commit.md` - コミットメッセージルール
-- `docs/prd/_template.md` - PRDテンプレート
+- `.agent/rules/commit.md` - commit message rules
+- `docs/prd/_template.md` - PRD template

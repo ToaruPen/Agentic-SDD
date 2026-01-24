@@ -1,26 +1,28 @@
-# ドキュメント同期ルール
+# Documentation Sync Rules
 
-PRD、Epic、実装コード間の整合性を保つためのルール。
-
----
-
-## 正本の階層
-
-優先順位: PRD（要件） > Epic（実装計画） > 実装（コード）
-
-**原則**: 上位ドキュメントが正本。矛盾がある場合は上位に従う。
+Rules to keep PRD, Epic, and implementation code consistent.
 
 ---
 
-## 同期タイミング
+## Source-of-truth hierarchy
 
-- PR作成時: 必須（DoD）（理由: 乖離を検出）
-- マージ後: 推奨（理由: 確認用）
-- 実装中の大きな変更時: 推奨（理由: 早期発見）
+Priority: PRD (requirements) > Epic (implementation plan) > Implementation (code)
+
+Principle: higher-level docs are the source of truth. If there is a contradiction, follow the higher-level doc.
 
 ---
 
-## /sync-docs 出力形式
+## When to sync
+
+- When creating a PR: required (DoD) (reason: detect drift)
+- After merge: recommended (reason: confirmation)
+- During implementation when making a large change: recommended (reason: early detection)
+
+---
+
+## `/sync-docs` output format
+
+User-facing output remains in Japanese.
 
 ```markdown
 ## 同期結果
@@ -52,21 +54,21 @@ PRD、Epic、実装コード間の整合性を保つためのルール。
 
 ---
 
-## 参照の書き方
+## How to reference
 
-### PRD参照
+PRD:
 
 ```
 PRD: docs/prd/my-project.md セクション 5. AC
 ```
 
-### Epic参照
+Epic:
 
 ```
 Epic: docs/epics/my-project-epic.md セクション 3.2 技術選定
 ```
 
-### コード参照
+Code:
 
 ```
 該当コード: src/api/handlers.ts:42-58
@@ -74,43 +76,44 @@ Epic: docs/epics/my-project-epic.md セクション 3.2 技術選定
 
 ---
 
-## 差分検出のルール
+## Diff classification rules
 
-### 仕様変更（PRD更新が必要）
+Spec change (PRD update required):
 
-- ACの追加/削除/変更
-- 機能要件の追加/削除/変更
-- スコープの変更
+- Add/remove/change AC
+- Add/remove/change functional requirements
+- Change scope
 
-### 解釈変更（Epic更新が必要）
+Interpretation change (Epic update required):
 
-- 技術選定の変更
-- コンポーネント構成の変更
-- データモデルの変更
+- Change tech choices
+- Change component architecture
+- Change data model
 
-### 実装都合（実装修正または理由記録）
+Implementation-driven (fix code or record reason):
 
-- パフォーマンス最適化
-- ライブラリの制約による回避策
-- バグ修正
-
----
-
-## 差分発見時の対応
-
-1. **差分の種類を特定**
-2. **参照を明記**（PRD/Epic/コードの該当箇所）
-3. **推奨アクションを提示**
-4. **ユーザーに確認**
-
-**禁止事項:**
-- 差分を暗黙的に無視する
-- 参照なしで差分を報告する
-- 上位ドキュメントを勝手に変更する
+- Performance optimization
+- Workaround due to library constraints
+- Bug fix
 
 ---
 
-## 関連ファイル
+## When a diff is found
 
-- `.agent/commands/sync-docs.md` - 同期コマンド
-- `.agent/rules/dod.md` - Definition of Done（sync-docs必須）
+1. Identify the diff type
+2. Provide explicit references (PRD/Epic/code)
+3. Provide recommended actions
+4. Ask the user to confirm
+
+Forbidden:
+
+- Ignoring the diff implicitly
+- Reporting a diff without references
+- Changing higher-level docs without explicit confirmation
+
+---
+
+## Related files
+
+- `.agent/commands/sync-docs.md` - sync-docs command
+- `.agent/rules/dod.md` - Definition of Done (sync-docs required)

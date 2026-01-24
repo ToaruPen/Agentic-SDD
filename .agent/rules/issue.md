@@ -1,121 +1,125 @@
-# Issue粒度規約
+# Issue Granularity Rules
 
-Issueの適切なサイズと構造を定義するルール。
-
----
-
-## 原則
-
-- 変更行数: 50〜300行
-- 変更ファイル数: 1〜5ファイル
-- AC数: 2〜5個
+Rules defining the appropriate size and structure of a single Issue.
 
 ---
 
-## 大きすぎるサイン（分割が必要）
+## Principles
 
-以下のいずれかに該当する場合は分割を検討：
-
-- [ ] 変更行数が300行を超える見込み
-- [ ] 変更ファイル数が6ファイル以上
-- [ ] ACが6個以上ある
-- [ ] 「〜と〜と〜をする」のように複数の動詞がある
-
-### 分割の例
-
-**Before（大きすぎる）:**
-```
-Issue: ユーザー管理機能を実装する
-- ユーザー登録
-- ユーザー編集
-- ユーザー削除
-- ユーザー一覧表示
-- 権限管理
-```
-
-**After（適切なサイズ）:**
-```
-Issue #1: ユーザー登録APIを実装する
-Issue #2: ユーザー編集APIを実装する
-Issue #3: ユーザー削除APIを実装する
-Issue #4: ユーザー一覧APIを実装する
-Issue #5: 権限管理を実装する
-```
+- LOC: 50-300
+- Files: 1-5
+- AC: 2-5
 
 ---
 
-## 小さすぎるサイン（統合を検討）
+## Signs an Issue is too large (split needed)
 
-以下のいずれかに該当する場合は統合を検討：
+Consider splitting if any applies:
 
-- [ ] 変更行数が50行未満
-- [ ] ACが1個だけ
-- [ ] 他のIssueと常にセットで作業する
+- [ ] Expected LOC > 300
+- [ ] Files >= 6
+- [ ] AC >= 6
+- [ ] Multiple verbs ("do A and B and C")
 
-### 統合の例
+Example:
 
-**Before（小さすぎる）:**
+Before (too large):
+
 ```
-Issue #1: Userモデルを作成する（20行）
-Issue #2: Userマイグレーションを作成する（15行）
-Issue #3: Userバリデーションを追加する（10行）
+Issue: Implement user management
+- User registration
+- User edit
+- User delete
+- User list
+- Permission management
 ```
 
-**After（適切なサイズ）:**
+After (appropriate size):
+
 ```
-Issue #1: Userモデルとマイグレーションを作成する（45行）
-  - Userモデル作成
-  - マイグレーション作成
-  - バリデーション追加
+Issue #1: Implement user registration API
+Issue #2: Implement user edit API
+Issue #3: Implement user delete API
+Issue #4: Implement user list API
+Issue #5: Implement permission management
 ```
 
 ---
 
-## 例外ラベル
+## Signs an Issue is too small (consider merging)
 
-原則を外れる場合は、以下のラベルを付与し**必須項目を記入**：
+Consider merging if any applies:
+
+- [ ] Expected LOC < 50
+- [ ] Only 1 AC
+- [ ] Always done together with another Issue
+
+Example:
+
+Before (too small):
+
+```
+Issue #1: Create User model (20 LOC)
+Issue #2: Create User migration (15 LOC)
+Issue #3: Add User validation (10 LOC)
+```
+
+After (appropriate size):
+
+```
+Issue #1: Create User model + migration (45 LOC)
+  - Create model
+  - Create migration
+  - Add validation
+```
+
+---
+
+## Exception labels
+
+If you must violate the principles, add an exception label and fill all required fields:
 
 - `bulk-format`
-  - 用途: 自動整形/リネーム
-  - 必須: 理由（整形ツール名）
-  - 必須: 影響/レビュー観点（機能変更がないことを確認）
-  - 必須: 想定リスク（意図しない変更混入）
+  - Purpose: automated formatting/renaming
+  - Required: reason (tool name)
+  - Required: impact/review focus (confirm no functional change)
+  - Required: risk
 - `test-heavy`
-  - 用途: テスト追加で行数増
-  - 必須: 理由（テスト対象）
-  - 必須: 影響/レビュー観点（テストカバレッジ確認）
-  - 必須: 想定リスク（テスト漏れ）
+  - Purpose: large test additions
+  - Required: reason (what is being tested)
+  - Required: impact/review focus (coverage/quality)
+  - Required: risk
 - `config-risk`
-  - 用途: 設定変更で影響大
-  - 必須: 理由（変更内容）
-  - 必須: 影響/レビュー観点（影響範囲の特定）
-  - 必須: 想定リスク（設定ミスによる障害）
+  - Purpose: config changes with wide impact
+  - Required: reason (what changes)
+  - Required: impact/review focus (blast radius)
+  - Required: risk
 - `refactor-scope`
-  - 用途: リファクタで広範囲
-  - 必須: 理由（リファクタ目的）
-  - 必須: 影響/レビュー観点（既存動作の維持確認）
-  - 必須: 想定リスク（予期しない動作変更）
+  - Purpose: broad refactor
+  - Required: reason (refactor goal)
+  - Required: impact/review focus (behavior preserved)
+  - Required: risk
 
-### 例外ラベルの記入例
+Example:
 
 ```markdown
 ## 例外ラベル: `bulk-format`
 
-理由: Prettierによる全ファイル整形（設定変更に伴う）
-影響/レビュー観点: 機能変更がないことを確認。空白・改行のみの変更
-想定リスク: 意図しないコード変更が混入する可能性
+理由: Prettier format across the repo (triggered by config update)
+影響/レビュー観点: Confirm no functional change; whitespace-only diffs
+想定リスク: Unintended code changes mixed in
 ```
 
 ---
 
-## 依存関係の表現
+## Expressing dependencies
 
-### 必須記載事項
+Required fields:
 
-1. **Blocked by**: 依存するIssue番号と理由
-2. **先に終わると何が可能になるか**: 1行で説明
+1. Blocked by: dependent Issue number and reason
+2. 先に終わると何が可能になるか: one-line description of what becomes possible after completion
 
-### 記載例
+Example:
 
 ```markdown
 ## 依存関係
@@ -124,14 +128,14 @@ Issue #1: Userモデルとマイグレーションを作成する（45行）
 - 先に終わると何が可能になるか: APIエンドポイントの実装が開始可能
 ```
 
-### ラベル
+Labels:
 
-- `blocked`: 他のIssueの完了を待っている
-- `parallel-ok`: 他のIssueと並行して作業可能
+- `blocked`
+- `parallel-ok`
 
 ---
 
-## Issue本文テンプレート
+## Issue body template (Japanese output)
 
 ```markdown
 ## 概要
@@ -165,18 +169,19 @@ Issue #1: Userモデルとマイグレーションを作成する（45行）
 
 ---
 
-## 初回サイクルの運用
+## First-cycle guidance
 
-初回サイクルでは例外ラベルを**使わない**ことを推奨。
+On the first cycle, avoid using exception labels.
 
-理由：
-- 規約の感覚を掴むため
-- 必要になったら使う
+Reason:
+
+- Build intuition for the standard granularity
+- Introduce exceptions only when truly necessary
 
 ---
 
-## 関連ファイル
+## Related
 
-- `.agent/commands/create-issues.md` - Issue作成コマンド
-- `.agent/rules/epic.md` - Epic生成ルール
+- `.agent/commands/create-issues.md` - create-issues command
+- `.agent/rules/epic.md` - epic generation rules
 - `.agent/rules/dod.md` - Definition of Done

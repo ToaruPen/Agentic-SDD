@@ -1,24 +1,27 @@
 # /impl
 
-Issueの実装を開始するコマンド。Full見積もりを作成してから実装に着手する。
+Implement an Issue.
 
-## 使用方法
+You must create a Full estimate (11 sections) before starting implementation.
+User-facing output and artifacts remain in Japanese.
+
+## Usage
 
 ```
-/impl [Issue番号]
+/impl [issue-number]
 ```
 
-## 実行フロー
+## Flow
 
-### Phase 1: Issue読み込み
+### Phase 1: Read the Issue
 
-1. 指定されたIssueを読み込み
-2. 関連するEpic、PRDを特定
-3. ACを抽出
+1. Read the specified Issue
+2. Identify the related Epic and PRD
+3. Extract AC
 
-### Phase 2: Full見積もり作成（必須）
+### Phase 2: Create the Full estimate (required)
 
-**11セクションすべてを記載**。該当なしは「N/A（理由）」と明記。
+Write all 11 sections. If a section is not applicable, write `N/A (reason)`.
 
 ```markdown
 ## Full見積もり
@@ -146,42 +149,49 @@ content: [テスト内容]
 - [変更しないこと2]
 ```
 
-### Phase 3: 信頼度の判定
+### Phase 3: Confidence rules
 
-- High: 類似実績あり、影響範囲が明確（対応: レンジは狭くてOK）
-- Med: 一部不確実だがレンジ内で収まる見込み（対応: レンジはやや広めに）
-- Low: 不確実性が高い、Unknownが残っている（対応: レンジを2倍に広げる or 確認質問を出す）
+- High: similar prior work, clear scope (range can be tight)
+- Med: some uncertainty, but likely within range (range slightly wider)
+- Low: high uncertainty / Unknowns remain (double the range or ask questions first)
 
-### Phase 4: 確認事項の解消
+### Phase 4: Resolve open questions
 
-セクション10に確認事項がある場合：
-1. ユーザーに質問
-2. 回答を待つ
-3. 見積もりを更新
+If section 10 contains questions:
 
-### Phase 5: 実装開始の確認
+1. Ask the user (in Japanese)
+2. Wait for answers
+3. Update the estimate accordingly
 
-```
+### Phase 5: Start implementation
+
+Summarize the estimate and any open questions. If there are open questions, stop.
+
+Example (Japanese):
+
+```text
 見積もりが完成しました。
 
 - 合計推定行数: [50-100行]
 - 合計工数: [2.5-5h]
 - 全体信頼度: [Med]
 - 確認事項: [なし / あり（要回答）]
-
-実装を開始してよろしいですか？
 ```
 
-### Phase 6: 実装
+### Phase 6: Implement
 
-1. ブランチを作成（`.agent/rules/branch.md` 参照）
-2. 見積もりに沿って実装
-3. テストを作成
-4. コミット（`.agent/rules/commit.md` 参照）
+1. Create a branch (see `.agent/rules/branch.md`)
+2. Implement per the estimate
+3. Add/update tests
+4. Commit (see `.agent/rules/commit.md`)
 
-### Phase 7: 実装完了
+### Phase 7: Finish
 
-```
+Report actual vs estimated, and suggest next steps.
+
+Example (Japanese):
+
+```text
 実装が完了しました。
 
 - 実際の行数: [75行]（見積もり: 50-100行 → 範囲内）
@@ -193,7 +203,7 @@ content: [テスト内容]
 3. PRを作成
 ```
 
-## 見積もりのN/A記載ルール
+## N/A examples
 
 - 4. DB影響: N/A（本Issueはフロントエンドのみ、DB操作なし）
 - 5. ログ出力: N/A（ログ変更なし。既存のエラーログで十分）
@@ -201,17 +211,17 @@ content: [テスト内容]
 - 7. リファクタ候補: N/A（新規コードのため候補なし）
 - 8. フェーズ分割: N/A（単一フェーズ。推定50行以下）
 
-## オプション
+## Options
 
-- `--estimate-only`: 見積もりのみ作成（実装は開始しない）
-- `--skip-confirm`: 実装開始の確認をスキップ
+- `--estimate-only`: write the estimate only (do not implement)
+- `--skip-confirm`: skip any start-confirm step
 
-## 関連ファイル
+## Related
 
-- `skills/estimation.md` - 見積もりスキル詳細
+- `skills/estimation.md` - estimation skill details
 - `.agent/rules/dod.md` - Definition of Done
-- `.agent/rules/issue.md` - Issue粒度規約
+- `.agent/rules/issue.md` - issue granularity rules
 
-## 次のコマンド
+## Next command
 
-実装完了後は `/review` を実行する。
+After implementation, run `/review`.

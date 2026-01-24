@@ -1,156 +1,123 @@
-# Epic生成ルール
+# Epic Generation Rules
 
-Epic作成時のAI制御ルール。過剰提案を抑止し、シンプルな設計を促す。
-
----
-
-## 3層構造
-
-- Layer 1: PRD制約（規模感・技術方針・既存制約）
-- Layer 2: AIルール（カウント定義・許可/禁止リスト）
-- Layer 3: レビュー観点（チェックリスト）
+Rules that constrain Epic generation to prevent overreach and keep designs simple.
 
 ---
 
-## Layer 1: PRD制約
+## 3-layer structure
 
-PRDから以下を引き継ぐ：
-
-- 規模感: PRD セクション7
-- 技術方針: PRD セクション7
-- 既存制約: PRD Q6
+- Layer 1: PRD constraints (scale, technical policy, fixed constraints)
+- Layer 2: AI rules (counting definitions, allow/deny lists)
+- Layer 3: Review checklist
 
 ---
 
-## Layer 2: AIルール
+## Layer 1: PRD constraints
 
-### カウント定義
+Carry over from PRD:
 
-- 外部サービス数
-  - 定義: ネットワーク越しに依存する別管理のサービス
-  - カウント単位: SaaS、マネージドDB、認証基盤、外部API を各1
-- コンポーネント数
-  - 定義: デプロイ単位
-  - カウント単位: 別プロセス、別ジョブ、別ワーカー、別バッチ を各1
-- 新規技術
-  - 定義: 新規に導入する主要技術カテゴリ
-  - カウント単位: DB、キュー、認証、観測基盤、フレームワーク、クラウドサービス を各1
-
-### 許可/禁止リスト
-
-#### シンプル優先
-
-- 外部サービス数: 最大1（例: DBのみ）
-- 新規導入ライブラリ: 最大3
-- 新規コンポーネント数: 最大3
-- 非同期基盤（キュー/イベントストリーム）: 禁止
-- マイクロサービス分割: 禁止
-- コンテナオーケストレーション（K8s等）: 禁止
-
-#### バランス
-
-- 外部サービス数: 最大3
-- 新規導入ライブラリ: 最大5
-- 新規コンポーネント数: 最大5
-- 非同期基盤: 使う場合は理由を明記
-- マイクロサービス分割: する場合は理由を明記
-
-#### 拡張性優先
-
-制限なし。ただし、すべての選択に理由が必要。
-
-### 例外条件
-
-PRDに明記された必須条件がある場合のみ、上記制限を超えることが許可される。
-
-例:
-- PRD: 「リアルタイム通知が必須」→ WebSocket/非同期基盤の使用を許可
-- PRD: 「認証は既存IdPを使用」→ 外部認証サービスの使用を許可
+- Scale: PRD section 7
+- Technical policy: PRD section 7
+- Fixed constraints: PRD Q6
 
 ---
 
-## Layer 3: レビュー観点
+## Layer 2: AI rules
 
-### 新規技術カウントのルール
+### Counting definitions
 
-- カウント対象: **新規に導入/提案する技術名・サービス名のみ**
-- カウント除外: 既存プロジェクトで使用中の技術
+- External services
+  - Definition: separately managed services used over the network
+  - Unit: each SaaS / managed DB / identity provider / external API counts as 1
+- Components
+  - Definition: deployable unit
+  - Unit: each process / job / worker / batch counts as 1
+- New tech
+  - Definition: major technology category newly introduced
+  - Unit: each DB / queue / auth / observability / framework / cloud service counts as 1
 
-### チェックリスト
+### Allow/deny lists
+
+Simple-first:
+
+- External services: max 1 (e.g. DB only)
+- New libraries: max 3
+- New components: max 3
+- Async infrastructure (queue/event stream): forbidden
+- Microservices: forbidden
+- Container orchestration (K8s etc): forbidden
+
+Balanced:
+
+- External services: max 3
+- New libraries: max 5
+- New components: max 5
+- Async infrastructure: allowed with explicit reason
+- Microservices: allowed with explicit reason
+
+Extensibility-first:
+
+- No hard limits, but every choice requires a reason
+
+### Exception condition
+
+Exceed limits only when the PRD explicitly requires it.
+
+Examples:
+
+- PRD: "リアルタイム通知が必須" -> allow WebSocket/async
+- PRD: "認証は既存IdPを使用" -> allow external IdP
+
+---
+
+## Layer 3: Review checklist
+
+New-tech counting:
+
+- Count only newly introduced/proposed tech/service names
+- Do not count tech already used in the project
+
+Checklist:
 
 ```
-□ 新規技術/サービス名が5つ以下
-□ 新規コンポーネント数が上限以内
-□ 各選択に「なぜこれを選んだか」の理由がある
-□ 代替案（よりシンプルな方法）が提示されている
-□ 「将来のため」だけを理由にした項目がない
-□ 必須提出物（外部サービス一覧/コンポーネント一覧/新規技術一覧）が揃っている
-```
-
----
-
-## 必須提出物（3一覧）
-
-Epicには以下の表を**必ず**付ける：
-
-### 外部サービス一覧
-
-外部サービス-1
-名称: (例) PostgreSQL
-用途: データ永続化
-必須理由: RDB必須
-代替案: SQLite（小規模なら）
-
-### コンポーネント一覧
-
-コンポーネント-1
-名称: (例) API Server
-責務: HTTPリクエスト処理
-デプロイ形態: コンテナ
-
-### 新規技術一覧
-
-新規技術-1
-名称: (例) Redis
-既存との差: 新規導入
-導入理由: セッション管理
-
----
-
-## 生成ルール
-
-1. 単純な代替案がある場合は**必ず両方提示**
-2. 「シンプル優先」時はモノリシック構成を基本とする
-3. 「将来の拡張性」だけを理由にした複雑化は禁止
-
----
-
-## 違反時の対応
-
-チェックリストに違反がある場合：
-
-1. 違反箇所を指摘
-2. シンプルな代替案を提示
-3. ユーザーに選択を求める
-
-例:
-```
-⚠️ 技術方針「シンプル優先」に対して、以下の違反があります：
-
-- 外部サービス数: 3（上限1）
-  - AWS S3, Redis, PostgreSQL
-
-提案:
-- ファイルストレージをローカルに変更 → S3を削除
-- セッションをDBに保存 → Redisを削除
-
-これでよろしいですか？
+[] New tech/service names <= 5
+[] New component count is within policy limit
+[] Every choice has a reason
+[] Simpler alternative(s) are presented when applicable
+[] No item is justified only by "for future extensibility"
+[] The 3 required lists are present
 ```
 
 ---
 
-## 関連ファイル
+## Required artifacts (3 lists)
 
-- `.agent/commands/create-epic.md` - Epic作成コマンド
-- `docs/epics/_template.md` - Epicテンプレート
-- `.agent/rules/issue.md` - Issue粒度規約
+Every Epic must include these lists (write "なし" if not applicable):
+
+- External services list
+- Components list
+- New tech list
+
+---
+
+## Generation rules
+
+1. If a simpler alternative exists, present both
+2. Under Simple-first, prefer a monolithic design
+3. Do not add complexity justified only by "for future extensibility"
+
+---
+
+## If rules are violated
+
+1. Point out the violation
+2. Propose a simpler alternative
+3. Ask the user to choose
+
+---
+
+## Related
+
+- `.agent/commands/create-epic.md` - create-epic command
+- `docs/epics/_template.md` - Epic template
+- `.agent/rules/issue.md` - Issue granularity rules

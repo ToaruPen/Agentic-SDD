@@ -1,95 +1,88 @@
-# Skills（方式設計スキル）
+# Skills
 
-実装時に参照する設計パターンとチェックリスト集。
+Design skills: patterns and checklists to consult during implementation.
 
----
-
-## 概要
-
-Skills は、特定の実装パターンにおける設計指針とチェックリストを提供します。
-言語/フレームワーク非依存で、概念ベースで記述されています。
+These docs are language/framework-agnostic and concept-based.
 
 ---
 
-## スキル一覧
+## Skill list
 
-- [estimation.md](./estimation.md): 見積もりスキル（Issue実装前の見積もり作成）
-- [api-endpoint.md](./api-endpoint.md): API エンドポイント設計（REST API の設計・実装）
-- [crud-screen.md](./crud-screen.md): CRUD 画面設計（一覧・詳細・作成・編集画面）
-- [error-handling.md](./error-handling.md): エラーハンドリング（エラー分類・処理・通知）
-- [testing.md](./testing.md): テスト設計（テスト戦略・種別・カバレッジ）
-- [tdd-protocol.md](./tdd-protocol.md): TDD 実行規約（変更作業の進め方: Red/Green/Refactor）
+- [estimation.md](./estimation.md): estimation (create a Full estimate before implementation)
+- [api-endpoint.md](./api-endpoint.md): REST API endpoint design
+- [crud-screen.md](./crud-screen.md): CRUD screen design
+- [error-handling.md](./error-handling.md): error handling (classification/processing/UX/logging)
+- [testing.md](./testing.md): testing strategy/types/coverage
+- [tdd-protocol.md](./tdd-protocol.md): TDD execution protocol (Red/Green/Refactor)
 
 ---
 
-## 使い方
+## How to use
 
-### 1. 実装前に参照
+### 1) Consult before implementation
 
 ```
-/impl #123 を実行する前に、関連するスキルを確認:
+Before running /impl #123, check relevant skills:
 
-- APIを実装する場合 → api-endpoint.md
-- 画面を実装する場合 → crud-screen.md
-- エラー処理を設計する場合 → error-handling.md
+- Implementing an API -> api-endpoint.md
+- Implementing a screen -> crud-screen.md
+- Designing error handling -> error-handling.md
 ```
 
-### 2. チェックリストとして使用
+### 2) Use as a checklist
 
-各スキルには実装時のチェックリストが含まれています。
-実装完了時にチェックリストを確認してください。
+Each skill contains a checklist. Use it when you finish implementation.
 
-### 3. レビュー時に参照
+### 3) Use for reviews
 
-レビュー時にスキルのチェックリストを観点として使用できます。
+Use skill checklists as review focus areas.
 
 ---
 
-## スキルの構成
+## Skill structure
 
-各スキルファイルは以下の構成で記述されています：
+Each skill file follows this structure:
 
 ```markdown
-# スキル名
+# Skill name
 
-## 概要
-[このスキルが扱う範囲]
+## Overview
+[scope]
 
-## 設計原則
-[基本的な考え方]
+## Principles
+[guiding principles]
 
-## パターン
-[具体的な設計パターン]
+## Patterns
+[concrete patterns]
 
-## チェックリスト
-[実装時の確認項目]
+## Checklist
+[items to verify]
 
-## アンチパターン
-[避けるべき実装]
+## Anti-patterns
+[things to avoid]
 
-## 関連ファイル
-[参照すべき他のファイル]
+## Related
+[other files to consult]
 ```
 
 ---
 
-## プロジェクト固有のスキル追加
+## Adding project-specific skills
 
-プロジェクト固有のスキルを追加する場合：
+1. Add a new `.md` file under `skills/`
+2. Follow the structure above
+3. Add it to this README
 
-1. `skills/` ディレクトリに新しい `.md` ファイルを作成
-2. 上記の構成に従って記述
-3. この README に追加
+Examples:
 
-例：
-- `skills/authentication.md` - 認証フロー
-- `skills/file-upload.md` - ファイルアップロード
-- `skills/batch-processing.md` - バッチ処理
+- `skills/authentication.md` - authentication flows
+- `skills/file-upload.md` - file uploads
+- `skills/batch-processing.md` - batch processing
 
 ---
 
-## 関連ファイル
+## Related
 
-- `.agent/commands/impl.md` - 実装コマンド
+- `.agent/commands/impl.md` - implementation command
 - `.agent/rules/dod.md` - Definition of Done
-- `docs/decisions.md` - 技術的意思決定
+- `docs/decisions.md` - engineering decisions

@@ -1,26 +1,28 @@
 # /review
 
-PRやIssueのレビューを実行するコマンド。
+Review a PR or an Issue.
 
-## 使用方法
+User-facing output remains in Japanese.
+
+## Usage
 
 ```
-/review [PR番号 または Issue番号]
+/review [PR-number | Issue-number]
 ```
 
-省略時は現在のブランチに関連するPRをレビュー。
+If omitted, review the PR associated with the current branch.
 
-## 実行フロー
+## Flow
 
-### Phase 1: 対象の特定
+### Phase 1: Identify the target
 
-1. PR番号またはIssue番号を特定
-2. 関連するPRD、Epicを特定
-3. 変更ファイル一覧を取得
+1. Identify the PR number or Issue number
+2. Identify related PRD and Epic
+3. Collect the list of changed files
 
-### Phase 2: /sync-docs の実行
+### Phase 2: Run `/sync-docs` (required)
 
-**必須**: レビュー前に `/sync-docs` を実行
+Run `/sync-docs` before reviewing.
 
 ```markdown
 ## 同期結果
@@ -42,28 +44,28 @@ PRやIssueのレビューを実行するコマンド。
 - 該当コード: [ファイル:行]
 ```
 
-### Phase 3: DoD チェック
+### Phase 3: DoD check
 
-#### Issue完了の条件
+Issue completion (required):
 
 ```
-□ すべてのACが満たされている
-□ テストが追加/更新されている（該当する場合）
-□ /sync-docs で「差分なし」または差分が承認済み
-□ コードレビューが完了している
-□ CIが通っている（該当する場合）
+[] All AC are satisfied
+[] Tests are added/updated (when applicable)
+[] /sync-docs is "no diff" or diff is approved
+[] Code review is complete
+[] CI passes (when applicable)
 ```
 
-#### PR完了の条件
+PR completion (required):
 
-- AC達成: Issue記載のすべてのACを満たす
-- sync-docs実行: 差分なし、または差分が承認済み
-- テスト: 新規/変更コードにテストがある
-- レビュー: 最低1名のApproveがある
+- AC: all Issue AC satisfied
+- sync-docs: no diff or diff is approved
+- Tests: new/changed code is covered
+- Review: at least one approval exists
 
-### Phase 4: ACの検証
+### Phase 4: Verify AC
 
-Issue記載のACを1つずつ検証：
+Verify each AC one-by-one.
 
 ```markdown
 ## AC検証結果
@@ -79,17 +81,17 @@ Issue記載のACを1つずつ検証：
 - 証跡: [スクリーンショット / ログ / テスト結果]
 ```
 
-### Phase 5: コードレビュー観点
+### Phase 5: Review focus areas
 
-- 正確性: ACを満たしているか
-- 可読性: コードが理解しやすいか
-- テスト: テストが十分か
-- セキュリティ: 脆弱性がないか
-- パフォーマンス: 問題がないか
+- Correctness: does it satisfy AC / PRD / Epic?
+- Readability: names, structure, consistency
+- Testing: meaningful assertions, enough coverage
+- Security: input validation, auth, secret handling
+- Performance: obvious issues
 
-### Phase 6: 見積もりとの比較
+### Phase 6: Compare against the estimate
 
-実装結果と見積もりを比較：
+Compare actuals vs estimate.
 
 ```markdown
 ## 見積もり比較
@@ -102,7 +104,7 @@ Issue記載のACを1つずつ検証：
 [差異が大きい場合は理由を記載]
 ```
 
-### Phase 7: レビュー結果の出力
+### Phase 7: Output the review result
 
 ```markdown
 ## レビュー結果
@@ -117,7 +119,7 @@ Approve / Request Changes / Comment
 - [x] すべてのACが満たされている
 - [x] テストが追加/更新されている
 - [x] /sync-docs で差分なし
-- [ ] コードレビューが完了している ← 本レビューで完了予定
+- [ ] コードレビューが完了している
 - [x] CIが通っている
 
 ### AC検証結果
@@ -133,26 +135,25 @@ Approve / Request Changes / Comment
 [総評やアドバイス]
 ```
 
-## sync-docs結果の扱い
+## How to handle sync-docs results
 
-- 差分なし: PRマージ可能
-- 差分あり（軽微）: 差分を記録してマージ
-- 差分あり（重大）: PRD/Epic更新後にマージ
+- No diff: ready to merge
+- Diff (minor): record the diff and proceed
+- Diff (major): update PRD/Epic before merging
 
-## オプション
+## Options
 
-- `--quick`: sync-docsとAC検証のみ（コード詳細レビューなし）
-- `--full`: すべての観点でフルレビュー
-- `--ac-only`: AC検証のみ
+- `--quick`: only sync-docs + AC verification
+- `--full`: full review across all focus areas
+- `--ac-only`: only AC verification
 
-## 関連ルール
+## Related
 
 - `.agent/rules/dod.md` - Definition of Done
-- `.agent/rules/docs-sync.md` - ドキュメント同期ルール
-- `.agent/commands/sync-docs.md` - 同期コマンド
+- `.agent/rules/docs-sync.md` - documentation sync rules
+- `.agent/commands/sync-docs.md` - sync-docs command
 
-## 次のステップ
+## Next steps
 
-レビュー完了後：
-- Approve → マージ可能
-- Request Changes → 修正後、再度 `/review`
+- Approve: can merge
+- Request Changes: fix and re-run `/review`

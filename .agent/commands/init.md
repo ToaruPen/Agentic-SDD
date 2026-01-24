@@ -1,18 +1,23 @@
 # /init
 
-Agentic-SDDワークフローを新しいプロジェクトに適用するための初期化コマンド。
+Initialize the Agentic-SDD workflow files in a project.
 
-## 使用方法
+Note: OpenCode has a built-in `/init` (generates AGENTS.md). When generating OpenCode commands,
+this command is exposed as `/sdd-init` to avoid conflicts.
 
-```
-/init [プロジェクト名]
-```
+User-facing interactions remain in Japanese.
 
-## 実行フロー
-
-### Phase 1: プロジェクト情報の収集
+## Usage
 
 ```
+/init [project-name]
+```
+
+## Flow
+
+### Phase 1: Collect project info (ask in Japanese)
+
+```text
 プロジェクトを初期化します。以下の質問に答えてください。
 
 1. プロジェクト名は？
@@ -21,11 +26,9 @@ Agentic-SDDワークフローを新しいプロジェクトに適用するため
 4. GitHubリポジトリは既にありますか？
 ```
 
-### Phase 2: ディレクトリ構造の確認
+### Phase 2: Confirm the existing structure (existing projects)
 
-既存プロジェクトの場合、現在のディレクトリ構造を確認：
-
-```
+```text
 現在のディレクトリ構造:
 [構造を表示]
 
@@ -35,67 +38,32 @@ Agentic-SDDのファイルを追加しますか？
 - AGENTS.md
 ```
 
-### Phase 3: ファイルの配置
+### Phase 3: Install files
 
-以下のディレクトリとファイルを作成：
+Create these directories/files (mode-dependent):
 
-
-- `.agent/commands/init.md`
-- `.agent/commands/create-prd.md`
-- `.agent/commands/create-epic.md`
-- `.agent/commands/create-issues.md`
-- `.agent/commands/impl.md`
-- `.agent/commands/tdd.md`
-- `.agent/commands/review-cycle.md`
-- `.agent/commands/review.md`
-- `.agent/commands/sync-docs.md`
-
-- `.agent/rules/docs-sync.md`
-- `.agent/rules/dod.md`
-- `.agent/rules/epic.md`
-- `.agent/rules/issue.md`
-- `.agent/rules/branch.md`
-- `.agent/rules/commit.md`
-- `.agent/rules/datetime.md`
-
-- `.agent/agents/reviewer.md`
-- `.agent/schemas/review.json`
-
-- `docs/prd/_template.md`
-- `docs/epics/_template.md`
-- `docs/decisions.md`
-- `docs/glossary.md`
-
-- `skills/README.md`
-- `skills/estimation.md`
-- `skills/api-endpoint.md`
-- `skills/crud-screen.md`
-- `skills/error-handling.md`
-- `skills/testing.md`
-- `skills/tdd-protocol.md`
-
-- `scripts/install-agentic-sdd.sh`
-- `scripts/sync-agent-config.sh`
-- `scripts/review-cycle.sh`
-- `scripts/test-review-cycle.sh`
-- `scripts/validate-review-json.py`
-
+- `.agent/` (commands, rules, agents, schemas)
+- `docs/` (`prd/_template.md`, `epics/_template.md`, `decisions.md`, `glossary.md`)
+- `skills/` (design skills)
+- `scripts/` (install/sync/review-cycle helpers)
 - `AGENTS.md`
 
-### Phase 4: 既存ファイルとの統合
+### Phase 4: Merge with existing files
 
-既存の `docs/` がある場合：
-- 既存ファイルは保持
-- `prd/`, `epics/` サブディレクトリを追加
-- `_template.md` ファイルを配置
+If `docs/` already exists:
 
-既存の `AGENTS.md` がある場合：
-- バックアップを作成（`AGENTS.md.bak`）
-- 新しい内容で上書き or マージを確認
+- Keep existing files
+- Add `docs/prd/` and `docs/epics/` subdirectories
+- Add `_template.md` files
 
-### Phase 5: .gitignore の更新
+If `AGENTS.md` already exists:
 
-`.gitignore` に以下を追加（必要に応じて）：
+- Create a backup (`AGENTS.md.bak`)
+- Overwrite or ask for a manual merge
+
+### Phase 5: Update `.gitignore`
+
+Add (as needed):
 
 ```
 # Agentic-SDD
@@ -105,94 +73,65 @@ Agentic-SDDのファイルを追加しますか？
 .codex/
 ```
 
-### Phase 6: 初期化完了
+### Phase 6: Finish
 
-```markdown
+Output a short completion message and next steps (in Japanese), for example:
+
+```text
 ## 初期化完了
 
 Agentic-SDDのセットアップが完了しました。
 
-### 作成されたファイル
-- .agent/commands/ (9ファイル)
-- .agent/rules/ (7ファイル)
-- .agent/schemas/review.json
-- .agent/agents/reviewer.md
-- docs/prd/_template.md
-- docs/epics/_template.md
-- docs/decisions.md
-- docs/glossary.md
-- skills/ (7ファイル)
-- scripts/ (主要スクリプト群)
-- AGENTS.md
-
-### 次のステップ
-
-1. **PRD作成**: `/create-prd [プロジェクト名]`
-   - 7つの質問に答えてPRDを作成
-
-2. **用語集の更新**: `docs/glossary.md`
-   - プロジェクト固有の用語を追加
-
-3. **技術方針の決定**: 
-   - シンプル優先 / バランス / 拡張性優先
-
-### 推奨: 初回サイクル
-
-初めて使う場合は以下の設定を推奨:
-- 技術方針: シンプル優先
-- 題材: 小さすぎず、単一機能
-- 例外ラベル: 使わない
+次のステップ:
+1. PRD作成: /create-prd [プロジェクト名]
+2. 用語集の更新: docs/glossary.md
+3. 技術方針の決定: シンプル優先 / バランス / 拡張性優先
 ```
 
-## オプション
+## Options
 
-- `--force`: 既存ファイルを上書き（確認なし）
-- `--dry-run`: 実際にはファイルを作成せずプレビュー
-- `--minimal`: 最小構成のみ作成（skills/は除外）
+- `--force`: overwrite existing files (no prompts)
+- `--dry-run`: preview only
+- `--minimal`: install minimal set only (exclude `skills/`)
 
-## 既存プロジェクトへの適用
+## Applying to an existing project
 
-既存プロジェクトに適用する場合の注意点：
+Suggested gradual migration:
 
-1. **既存のドキュメント**: `docs/` 内の既存ファイルは保持
-2. **既存のAGENTS.md**: バックアップを作成してから更新
-3. **既存のワークフロー**: 段階的に移行を推奨
-
-### 段階的移行の例
-
-```
-Week 1: /create-prd のみ使用
-Week 2: /create-epic を追加
-Week 3: /create-issues を追加
-Week 4: フルワークフローを適用
+```text
+Week 1: use /create-prd only
+Week 2: add /create-epic
+Week 3: add /create-issues
+Week 4: use the full workflow
 ```
 
-## トラブルシューティング
+## Troubleshooting
 
-### Q: 既存の docs/ と競合する
+### Q: Conflicts with existing docs/
 
-A: `docs/prd/` と `docs/epics/` はサブディレクトリなので、既存ファイルとは競合しません。
+A: `docs/prd/` and `docs/epics/` are subdirectories and typically do not conflict.
 
-### Q: AGENTS.md を既に使っている
+### Q: AGENTS.md already exists
 
-A: `--dry-run` で内容を確認し、必要に応じて手動でマージしてください。
+A: Use `--dry-run` and manually merge if needed.
 
-### Q: チームで使う場合
+### Q: Team usage
 
-A: 初期化後、以下をリポジトリにコミットしてください：
-- `.agent/` ディレクトリ全体
+A: Commit these to the repository:
+
+- `.agent/`
 - `docs/prd/_template.md`, `docs/epics/_template.md`, `docs/decisions.md`, `docs/glossary.md`
-- `skills/` ディレクトリ全体
-- `scripts/` ディレクトリ全体
-- `.gitignore`（追加した場合）
+- `skills/`
+- `scripts/`
+- `.gitignore` (if updated)
 - `AGENTS.md`
 
-## 関連ファイル
+## Related
 
-- `AGENTS.md` - AIエージェント設定
-- `README.md` - プロジェクト概要
-- `.agent/rules/` - ルール定義
+- `AGENTS.md` - AI agent rules
+- `README.md` - overview
+- `.agent/rules/` - rules
 
-## 次のコマンド
+## Next command
 
-初期化後は `/create-prd` を実行してPRDを作成する。
+After init, run `/create-prd`.

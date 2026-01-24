@@ -1,90 +1,94 @@
 # Agentic-SDD
 
-非エンジニアがLLM暴走を防ぎつつ、AI駆動開発を進めるためのワークフローテンプレート。
+A workflow template to help non-engineers run AI-driven development while preventing LLM overreach.
 
-**Agentic-SDD = Agentic Spec-Driven Development**
+Agentic-SDD = Agentic Spec-Driven Development
 
----
-
-## コンセプト
-
-- コードが一意に決まるレベルで要件・仕様を決めてから実装
-- AIの過剰提案を抑止し、シンプルな設計を促す
-- PRD→Epic→Issues→実装→レビューの一貫したフロー
+Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues) remain in Japanese.
 
 ---
 
-## ワークフロー
+## Concept
+
+- Decide requirements/specs until the implementation is largely determined
+- Prevent overreach and push toward simpler designs
+- Use a consistent flow: PRD -> Epic -> Issues -> Implementation -> Review
+
+---
+
+## Workflow
 
 ```
-/create-prd → /create-epic → /create-issues → /impl → (/review-cycle)* → /review
-     │            │              │              │             │            │
-     ▼            ▼              ▼              ▼             ▼            ▼
-  7問質問      3層抑止       行数ベース     Full見積      ローカル反復     DoD確認
-  +チェック    +3表必須      50〜300行     +信頼度      review.json      +sync-docs
+/create-prd -> /create-epic -> /create-issues -> /impl -> (/review-cycle)* -> /review
+     |            |              |              |             |            |
+     v            v              v              v             v            v
+  7 questions   3-layer guard  LOC-based      Full estimate  Local loop   DoD gate
+  + checklist   + 3 required   50-300 LOC     + confidence   review.json  + sync-docs
 ```
 
 ---
 
-## クイックスタート
+## Quick Start
 
-### 1. PRD作成
-
-```
-/create-prd [プロジェクト名]
-```
-
-7つの質問に答えてPRDを作成。Q6は選択式、異常系ACが必須。
-
-### 2. Epic作成
+### 1) Create a PRD
 
 ```
-/create-epic [PRDファイル名]
+/create-prd [project-name]
 ```
 
-技術設計とIssue分割案を作成。3つの一覧表（外部サービス/コンポーネント/新規技術）が必須。
+Answer 7 questions to create a PRD. Q6 is choice-based; at least one negative/abnormal AC is required.
 
-### 3. Issue作成
-
-```
-/create-issues [Epicファイル名]
-```
-
-粒度規約（50〜300行）に従ってIssueを作成。
-
-### 4. 実装
+### 2) Create an Epic
 
 ```
-/impl [Issue番号]
+/create-epic [prd-file]
 ```
 
-Full見積もり（11セクション）を作成してから実装。
+Create a technical plan and an Issue split proposal. Three lists are required:
+external services / components / new tech.
 
-### 4.5 （任意）ローカルレビューサイクル
+### 3) Create Issues
+
+```
+/create-issues [epic-file]
+```
+
+Create Issues following the granularity rules (50-300 LOC).
+
+### 4) Implement
+
+```
+/impl [issue-number]
+```
+
+Create a Full estimate (11 sections) before implementation.
+
+### 4.5) (Optional) Local review cycle
 
 ```
 /review-cycle [scope-id]
 ```
 
-開発中に `review.json` を生成し、修正→再レビューを反復する。
+Generate `review.json` during development and iterate (fix -> re-review).
 
-`GH_ISSUE=123` を指定すると、Issue本文と `- PRD:` / `- Epic:` 参照を読み込み、SoTを自動で組み立てる。
+If you set `GH_ISSUE=123`, it reads the Issue body and `- PRD:` / `- Epic:` references
+to assemble SoT automatically.
 
-### 5. レビュー
+### 5) Review
 
 ```
 /review
 ```
 
-DoD確認と `/sync-docs` を実行。
+Run the DoD check and `/sync-docs`.
 
 ---
 
-## ディレクトリ構造
+## Directory Structure
 
 ```
 .agent/
-├── commands/           # コマンド定義
+├── commands/           # command definitions
 │   ├── create-prd.md
 │   ├── create-epic.md
 │   ├── create-issues.md
@@ -94,7 +98,7 @@ DoD確認と `/sync-docs` を実行。
 │   └── sync-docs.md
 ├── schemas/            # JSON schema
 │   └── review.json
-├── rules/              # ルール定義
+├── rules/              # rule definitions
 │   ├── docs-sync.md
 │   ├── dod.md
 │   ├── epic.md
@@ -104,13 +108,13 @@ DoD確認と `/sync-docs` を実行。
 
 docs/
 ├── prd/
-│   └── _template.md    # PRDテンプレート
+│   └── _template.md    # PRD template (Japanese output)
 ├── epics/
-│   └── _template.md    # Epicテンプレート
-├── decisions.md        # 意思決定記録
-└── glossary.md         # 用語集
+│   └── _template.md    # Epic template (Japanese output)
+├── decisions.md        # ADR log
+└── glossary.md         # glossary
 
-skills/                 # 方式設計スキル
+skills/                 # design skills
 └── estimation.md
 
 scripts/
@@ -123,167 +127,168 @@ scripts/
 ├── test-review-cycle.sh
 └── validate-review-json.py
 
-AGENTS.md               # AIエージェント設定
+AGENTS.md               # AI agent rules
 ```
 
 ---
 
-## 主要なルール
+## Key Rules (Overview)
 
-### PRD完成条件
+### PRD completion
 
-- 7問の質問形式（Q6は選択式）
-- 完成チェックリスト（10項目）
-- 禁止語辞書（曖昧な表現を排除）
-- 異常系AC必須
+- 7-question format (Q6 is choice-based)
+- Completion checklist (10 items)
+- Banned vague words dictionary (avoid ambiguity)
+- At least one negative/abnormal AC
 
-### Epic過剰提案抑止
+### Epic overreach guardrails
 
-- 3層構造（PRD制約→AIルール→レビュー観点）
-- カウント定義（外部サービス/コンポーネント/新規技術）
-- 許可/禁止リスト（技術方針別）
-- 必須提出物（3表）
+- 3-layer structure (PRD constraints -> AI rules -> review checklist)
+- Counting definitions (external services / components / new tech)
+- Allow/deny list per technical policy
+- Required artifacts (3 lists)
 
-### Issue粒度規約
+### Issue granularity
 
-- 変更行数: 50〜300行
-- 変更ファイル数: 1〜5ファイル
-- AC数: 2〜5個
-- 例外ラベル（必須記入欄付き）
+- LOC: 50-300
+- Files: 1-5
+- AC: 2-5
+- Exception labels require required fields
 
-### 見積もりルール
+### Estimation
 
-- Full必須（11セクション）
-- 信頼度（High/Med/Low）
-- N/A明記ルール
+- Full estimate required (11 sections)
+- Confidence levels (High/Med/Low)
+- Always write `N/A (reason)` when not applicable
 
-### ドキュメント正本ルール
+### Source-of-truth rules
 
-- PRD→Epic→実装の階層
-- `/sync-docs` 出力強化（参照必須）
-
----
-
-## 設計資料
-
-詳細な設計は `DESIGN.md` を参照。
+- PRD -> Epic -> Implementation priority
+- `/sync-docs` output requires references
 
 ---
 
-## 対応AIツール
+## Design Spec
+
+See `DESIGN.md` for the full design.
+
+---
+
+## Supported AI Tools
 
 - Claude Code
 - OpenCode
 - Codex CLI
 
-`.agent/` を正本とし、各ツール用設定は同期スクリプトで生成可能。
+`.agent/` is the source of truth. Tool-specific configs can be generated via the sync script.
 
-### ツール別セットアップ
+### Tool setup
 
 #### Claude Code
 
-`AGENTS.md`が自動認識されます。追加設定は不要です。
+It reads `AGENTS.md` automatically.
 
 ```bash
-# プロジェクトルートで起動
+# Run at the project root
 claude
 ```
 
 #### OpenCode
 
-同期スクリプトを実行してコマンド/エージェント設定を配置してください。
+Run the sync script to generate OpenCode configs.
 
-**注意**: OpenCode には組み込みの `/init`（AGENTS.md 生成）があるため、Agentic-SDD の `/init` は OpenCode 用には `/sdd-init` として配置されます。
+Note: OpenCode has a built-in `/init` (generates AGENTS.md), so Agentic-SDD's init is exposed as `/sdd-init`.
 
 ```bash
-# 1. 同期スクリプトを実行
+# 1) Sync
 ./scripts/sync-agent-config.sh opencode
 
-# 2. OpenCodeを起動
+# 2) Start OpenCode
 opencode
 ```
 
-同期後、`.opencode/` 以下に以下が生成されます（`.gitignore` 対象）：
+Generated under `.opencode/` (gitignored):
 
-- `commands/` - `/create-prd` 等のカスタムコマンド
-- `agents/` - `@sdd-reviewer` などのサブエージェント
-- `skills/` - `sdd-*` / `tdd-*` のスキル（必要時に `skill` ツールでロード）
+- `commands/` - custom commands like `/create-prd`
+- `agents/` - subagents like `@sdd-reviewer`
+- `skills/` - `sdd-*` / `tdd-*` skills (load via the `skill` tool)
 
-##### （任意）グローバル `/agentic-sdd` コマンド
+##### (Optional) Global `/agentic-sdd` command
 
-新規プロジェクトへ Agentic-SDD を導入するためのグローバル定義（OpenCode/Codex/Claude/Clawdbot）と、共通の実行コマンド `agentic-sdd` を用意しています。
+This repo provides global definitions (OpenCode/Codex/Claude/Clawdbot) and a helper CLI `agentic-sdd`
+to install Agentic-SDD into new projects.
 
-セットアップ:
+Setup:
 
 ```bash
-# このリポジトリを clone して、リポジトリルートで実行
+# Clone this repo and run at the repo root
 ./scripts/setup-global-agentic-sdd.sh
 ```
 
-既存ファイルがある場合は `.bak.<timestamp>` に退避してから上書きします。
+Existing files are backed up as `.bak.<timestamp>` before overwrite.
 
-セットアップ後、各ツールで `/agentic-sdd` を実行してください。
+After setup, run `/agentic-sdd` in each tool.
 
 #### Codex CLI
 
-同期スクリプトを実行してコマンド/ルール設定を配置してください。
+Run the sync script to generate Codex CLI configs.
 
 ```bash
-# 1. 同期スクリプトを実行
+# 1) Sync
 ./scripts/sync-agent-config.sh codex
 
-# 2. Codex CLIを起動
+# 2) Start Codex CLI
 codex
 ```
 
-### 正本と同期の仕組み
+### Source-of-truth and sync
 
 ```
-.agent/          <- 正本（編集はここで行う）
+.agent/          <- source of truth (edit here)
     |
-    +---> .opencode/  <- OpenCode用（自動生成、.gitignore対象）
-    +---> .codex/     <- Codex CLI用（自動生成、.gitignore対象）
+    +---> .opencode/  <- for OpenCode (generated, gitignored)
+    +---> .codex/     <- for Codex CLI (generated, gitignored)
 ```
 
-**注意**: `.agent/`内のファイルを編集した場合は、再度同期スクリプトを実行してください。
+If you edit files under `.agent/`, re-run the sync script.
 
 ```bash
-# すべてのツール用設定を同期
+# Sync for all tools
 ./scripts/sync-agent-config.sh all
 
-# 変更内容のプレビュー（実際には変更しない）
+# Preview (no changes)
 ./scripts/sync-agent-config.sh --dry-run
 ```
 
 ---
 
-## 初回サイクルガイド
+## First-cycle Guide
 
-### 題材の選び方
+### Pick a topic
 
-- 推奨: 小さすぎず、単一機能
-- 避ける: 外部サービス連携多数、認証、大規模リファクタ
+- Recommended: single feature, not too small
+- Avoid: many external integrations, auth, large refactors
 
-### 初回ルール
+### Suggested defaults
 
-| 項目 | 初回ルール |
-|-----|----------|
-| 見積もり | Full必須 |
-| 例外ラベル | 使わない |
-| 技術方針 | シンプル優先 |
-| Q6のUnknown | 0を目指す |
+| Item | Default |
+|------|---------|
+| Estimation | Full required |
+| Exception labels | Do not use |
+| Technical policy | Simple-first |
+| Q6 Unknowns | Aim for 0 |
 
-### 成功判定
+### Success criteria
 
-- [ ] PRDが完成チェックリストをすべて満たす
-- [ ] Epicに3つの一覧表がすべてある
-- [ ] Issueが粒度規約に収まる
-- [ ] 見積もりがFullで作成されている
-- [ ] `/sync-docs` で「差分なし」になる
-- [ ] PRがマージされる
+- PRD passes all completion checklist items
+- Epic contains all three required lists
+- Issues fit granularity rules
+- Estimates are Full (11 sections)
+- `/sync-docs` yields "no diff"
+- PR gets merged
 
 ---
 
-## ライセンス
+## License
 
 MIT

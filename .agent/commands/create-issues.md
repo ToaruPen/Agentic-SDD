@@ -1,142 +1,98 @@
 # /create-issues
 
-EpicからIssueを作成するコマンド。
+Create Issues from an Epic.
 
-## 使用方法
+Issue bodies are user-facing artifacts and should remain in Japanese.
+
+## Usage
 
 ```
-/create-issues [Epicファイル名]
+/create-issues [epic-file]
 ```
 
-## 実行フロー
+## Flow
 
-### Phase 1: Epic読み込み
+### Phase 1: Read the Epic
 
-1. 指定されたEpicファイルを読み込み
-2. セクション4「Issue分割案」を抽出
-3. 依存関係を確認
+1. Read the specified Epic file
+2. Extract section 4 (Issue split plan)
+3. Identify dependencies
 
-### Phase 2: 粒度チェック
+### Phase 2: Granularity check
 
-各Issueが以下の粒度規約を満たすかチェック：
+Each Issue must satisfy:
 
-- 変更行数: 50〜300行
-- 変更ファイル数: 1〜5ファイル
-- AC数: 2〜5個
+- LOC: 50-300
+- Files: 1-5
+- AC: 2-5
 
-### Phase 3: 分割サイン検出
+### Phase 3: Split/merge signals
 
-#### 大きすぎるサイン（分割が必要）
+Too large (split needed):
 
-- [ ] 変更行数が300行を超える見込み
-- [ ] 変更ファイル数が6ファイル以上
-- [ ] ACが6個以上ある
-- [ ] 「〜と〜と〜をする」のように複数の動詞がある
+- Expected LOC > 300
+- Files >= 6
+- AC >= 6
+- Multiple verbs ("do A and B and C")
 
-#### 小さすぎるサイン（統合を検討）
+Too small (consider merging):
 
-- [ ] 変更行数が50行未満
-- [ ] ACが1個だけ
-- [ ] 他のIssueと常にセットで作業する
+- Expected LOC < 50
+- Only 1 AC
+- Always done together with another Issue
 
-### Phase 4: 例外ラベルの適用
+### Phase 4: Exception labels
 
-原則を外れる場合は、以下のラベルを付与し**必須項目を記入**：
+If an Issue violates the rules, apply an exception label and fill all required fields (see `.agent/rules/issue.md`).
 
 - `bulk-format`
-  - 用途: 自動整形/リネーム
-  - 必須: 理由（整形ツール名）
-  - 必須: 影響/レビュー観点（機能変更がないことを確認）
-  - 必須: 想定リスク（意図しない変更混入）
 - `test-heavy`
-  - 用途: テスト追加で行数増
-  - 必須: 理由（テスト対象）
-  - 必須: 影響/レビュー観点（テストカバレッジ確認）
-  - 必須: 想定リスク（テスト漏れ）
 - `config-risk`
-  - 用途: 設定変更で影響大
-  - 必須: 理由（変更内容）
-  - 必須: 影響/レビュー観点（影響範囲の特定）
-  - 必須: 想定リスク（設定ミスによる障害）
 - `refactor-scope`
-  - 用途: リファクタで広範囲
-  - 必須: 理由（リファクタ目的）
-  - 必須: 影響/レビュー観点（既存動作の維持確認）
-  - 必須: 想定リスク（予期しない動作変更）
 
-### Phase 5: Issue本文の生成
+### Phase 5: Generate the Issue body
 
-```markdown
-## 概要
+Use the Issue body template in `.agent/rules/issue.md`.
+Always include:
 
-[Epicから引き継いだ説明]
+- Epic/PRD references
+- AC (observable)
+- Estimated change size
+- Dependencies ("Blocked by" + "what becomes possible")
 
-## 背景
+### Phase 6: Create Issues
 
-- Epic: [Epicファイルへのリンク]
-- PRD: [PRDファイルへのリンク]
+Create GitHub Issues via `gh issue create`, or output local markdown files.
 
-## 受け入れ条件（AC）
+## Output format
 
-- [ ] AC1: [観測可能な条件]
-- [ ] AC2: [観測可能な条件]
-
-## 技術メモ
-
-- 変更対象ファイル: [ファイル一覧]
-- 推定行数: [50-100行]
-
-## 依存関係
-
-- Blocked by: #[Issue番号]（[理由]）
-- 先に終わると何が可能になるか: [説明]
-
-## ラベル
-
-- [ ] `parallel-ok` / `blocked`
-- [ ] 例外ラベル（該当する場合）
-```
-
-### Phase 6: 依存関係の表現
-
-- Issue本文に「Blocked by #xxx」を記載
-- Issue本文に「先に終わると何が可能になるか」を1行追加
-- ラベル「blocked」「parallel-ok」を付与
-
-### Phase 7: Issue作成
-
-1. GitHub Issue として作成（`gh issue create` を使用）
-2. または、ローカルファイルとして出力
-
-## 出力形式
-
-### GitHub Issue作成時
+GitHub Issues:
 
 ```bash
-gh issue create --title "[Issue名]" --body "[本文]" --label "[ラベル]"
+gh issue create --title "[title]" --body "[body]" --label "[labels]"
 ```
 
-### ローカルファイル出力時
+Local files:
 
 ```
 issues/
-- 001-環境構築.md
-- 002-DBスキーマ作成.md
-- 003-ユーザーAPI実装.md
+- 001-setup.md
+- 002-db-schema.md
+- 003-user-api.md
 ```
 
-## オプション
+## Options
 
-- `--dry-run`: Issue作成せずプレビューのみ
-- `--local`: GitHub Issueではなくローカルファイルに出力
-- `--start [番号]`: 指定番号のIssueから作成開始
+- `--dry-run`: preview only
+- `--local`: output local files instead of GitHub Issues
+- `--start [number]`: start from a specific Issue number
 
-## 関連ルール
+## Related
 
-- `.agent/rules/issue.md` - Issue粒度規約
-- `.agent/rules/epic.md` - Epic生成ルール
-- `.agent/rules/docs-sync.md` - ドキュメント同期ルール
+- `.agent/rules/issue.md` - issue granularity rules
+- `.agent/rules/epic.md` - epic generation rules
+- `.agent/rules/docs-sync.md` - documentation sync rules
 
-## 次のコマンド
+## Next command
 
-Issue作成後は `/impl` を実行して実装を開始する。
+After Issues are created, run `/impl`.

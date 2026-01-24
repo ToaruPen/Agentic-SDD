@@ -1,38 +1,38 @@
-# ブランチ命名ルール
+# Branch Naming Rules
 
-Git ブランチの命名規約。
+Git branch naming conventions.
 
 ---
 
-## 基本フォーマット
+## Base format
 
 ```
 <type>/issue-<number>-<short-description>
 ```
 
-例: `feature/issue-123-user-registration`
+Example: `feature/issue-123-user-registration`
 
 ---
 
 ## Type
 
-- `feature`: 新機能（例: `feature/issue-123-user-registration`）
-- `fix`: バグ修正（例: `fix/issue-456-null-pointer`）
-- `docs`: ドキュメント（例: `docs/issue-789-api-documentation`）
-- `refactor`: リファクタリング（例: `refactor/issue-101-extract-utils`）
-- `test`: テスト追加（例: `test/issue-102-add-unit-tests`）
-- `chore`: その他（例: `chore/issue-103-update-deps`）
+- `feature`: new feature (e.g. `feature/issue-123-user-registration`)
+- `fix`: bug fix (e.g. `fix/issue-456-null-pointer`)
+- `docs`: documentation (e.g. `docs/issue-789-api-documentation`)
+- `refactor`: refactor (e.g. `refactor/issue-101-extract-utils`)
+- `test`: tests (e.g. `test/issue-102-add-unit-tests`)
+- `chore`: misc (e.g. `chore/issue-103-update-deps`)
 
 ---
 
-## Short Description
+## Short description
 
-- 小文字のみ
-- 単語はハイフン `-` で区切る
-- 簡潔に（3〜5単語程度）
-- 動詞から始める
+- Lowercase only
+- Use hyphens (`-`) between words
+- Keep it short (about 3-5 words)
+- Start with a verb
 
-### 良い例
+Good:
 
 ```
 feature/issue-123-add-user-profile
@@ -40,62 +40,60 @@ fix/issue-456-handle-null-response
 refactor/issue-789-extract-validation
 ```
 
-### 悪い例
+Bad:
 
 ```
-feature/issue-123-AddUserProfile     # 大文字混在
-feature/issue-123-add_user_profile   # アンダースコア
-feature/123                          # 説明なし
-user-profile                         # typeなし、issue番号なし
+feature/issue-123-AddUserProfile     # mixed case
+feature/issue-123-add_user_profile   # underscores
+feature/123                          # missing description
+user-profile                         # missing type and issue number
 ```
 
 ---
 
-## 特殊ブランチ
+## Special branches
 
-- `main`: 本番リリース（保護: 直接push禁止）
-- `develop`: 開発統合（使用する場合）（保護: 直接push禁止）
-- `release/*`: リリース準備（保護: 状況による）
-- `hotfix/*`: 緊急修正（保護: 状況による）
+- `main`: production release (protected; no direct push)
+- `develop`: integration (if used; protected; no direct push)
+- `release/*`: release preparation (policy-dependent)
+- `hotfix/*`: emergency fixes (policy-dependent)
 
 ---
 
-## Issue番号がない場合
+## When there is no Issue number
 
-Issue番号がない場合は、日付または短いIDを使用：
+Use a date or a short id:
 
 ```
 feature/20240315-quick-fix
 chore/tmp-experiment
 ```
 
-**注意**: 可能な限りIssueを作成してから作業する。
+Note: create an Issue whenever possible.
 
 ---
 
-## ブランチの寿命
+## Branch lifetime
 
-- feature: 1〜5日（長期化したら分割を検討）
-- fix: 1日以内（緊急度による）
-- docs: 1日以内
+- feature: 1-5 days (split if it gets long)
+- fix: within 1 day (depending on urgency)
+- docs: within 1 day
 
 ---
 
-## マージ後の削除
-
-マージ完了後、ブランチは削除する：
+## Delete after merge
 
 ```bash
-# ローカルブランチ削除
+# Delete local branch
 git branch -d feature/issue-123-user-registration
 
-# リモートブランチ削除
+# Delete remote branch
 git push origin --delete feature/issue-123-user-registration
 ```
 
 ---
 
-## 関連ファイル
+## Related
 
-- `.agent/rules/commit.md` - コミットメッセージルール
-- `.agent/rules/issue.md` - Issue粒度規約
+- `.agent/rules/commit.md` - commit message rules
+- `.agent/rules/issue.md` - issue granularity rules

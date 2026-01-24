@@ -1,183 +1,177 @@
-# CRUD 画面設計スキル
+# CRUD Screen Design Skill
 
-一覧・詳細・作成・編集・削除画面の設計ガイドライン。
+Guidelines for designing list/detail/create/edit/delete screens.
 
----
-
-## 概要
-
-このスキルは、基本的なCRUD（Create, Read, Update, Delete）画面を
-設計・実装する際の指針を提供します。
-言語/フレームワーク非依存で、概念ベースで記述しています。
+Language/framework-agnostic; concept-based.
 
 ---
 
-## 画面構成
+## Screen set
 
-### 基本的なCRUD画面セット
+Typical CRUD routes:
 
-- 一覧: `/users`（Read: 複数）
-- 詳細: `/users/:id`（Read: 単一）
-- 作成: `/users/new`（Create）
-- 編集: `/users/:id/edit`（Update）
-- 削除: モーダル/確認（Delete）
-
----
-
-## 一覧画面
-
-### 必須要素
-
-- テーブル/リスト: データの表示
-- ページネーション: 大量データ対応
-- 検索: フィルタリング
-- 新規作成ボタン: 作成画面への遷移
-
-### オプション要素
-
-- ソート: カラムクリックで並び替え
-- フィルタ: 状態/カテゴリ等で絞り込み
-- 一括操作: 複数選択して削除等
-- エクスポート: CSV/Excel出力
-
-### 状態管理
-
-- Loading: データ取得中（スピナー表示）
-- Success（データあり）: テーブル表示
-- Success（データなし）: 空状態表示
-- Error: エラー表示（リトライ可能）
+- List: `/users` (Read: collection)
+- Detail: `/users/:id` (Read: single)
+- Create: `/users/new` (Create)
+- Edit: `/users/:id/edit` (Update)
+- Delete: modal/confirm (Delete)
 
 ---
 
-## 詳細画面
+## List screen
 
-### 必須要素
+Required:
 
-- データ表示: 各フィールドの値
-- 編集ボタン: 編集画面への遷移
-- 削除ボタン: 削除確認モーダル
-- 戻るボタン: 一覧への遷移
+- Table/list: show data
+- Pagination: handle large datasets
+- Search: filtering
+- Create button: navigation to create
 
-### レイアウトパターン
+Optional:
 
-- カード形式: シンプルな情報
-- タブ形式: 情報量が多い場合
-- セクション形式: 関連情報をグループ化
+- Sorting: click column headers
+- Filters: status/category, etc
+- Bulk actions: multi-select + delete, etc
+- Export: CSV/Excel
+
+States:
+
+- Loading: show spinner/skeleton
+- Success (has data): show table
+- Success (empty): show empty state
+- Error: show error + retry
 
 ---
 
-## 作成・編集画面
+## Detail screen
 
-### フォーム要素
+Required:
 
-- 入力フィールド: テキスト、数値、日付等
-- バリデーション: リアルタイム + 送信時
-- 保存ボタン: データの保存
-- キャンセルボタン: 変更を破棄して戻る
+- Field display
+- Edit button
+- Delete button (confirm modal)
+- Back to list
 
-### バリデーション
+Layout patterns:
 
-- 入力時: フォーマットチェック（リアルタイム）
-- フォーカスアウト時: 必須チェック
-- 送信時: 全項目の再検証
-- サーバー側: ビジネスルールの検証
+- Card: simple information
+- Tabs: large amount of information
+- Sections: group related information
 
-### エラー表示
+---
+
+## Create/Edit screens
+
+Form elements:
+
+- Inputs: text, number, date, etc
+- Validation: realtime + on submit
+- Save button
+- Cancel button
+
+Validation timing:
+
+- On input: format checks
+- On blur: required checks
+- On submit: re-validate all fields
+- Server-side: business rules
+
+Error display:
 
 ```
-フィールドレベル: フィールド直下に赤字で表示
-    例: 「メールアドレスの形式が不正です」
+Field-level: show red text under the field
+  e.g. "Email format is invalid."
 
-フォームレベル: フォーム上部にまとめて表示
-    例: 「入力内容に3件のエラーがあります」
+Form-level: show a summary at the top
+  e.g. "There are 3 errors in your input."
 ```
 
 ---
 
-## 削除処理
+## Delete flow
 
-### 確認フロー
+Confirm flow:
 
-1. 削除ボタンをクリック
-2. 確認モーダルを表示（例: 「本当に削除しますか？」）
-3. キャンセル: モーダルを閉じる
-4. 確認: 削除APIを呼び出す
-5. API成功: 一覧に戻る + 成功メッセージ
-6. API失敗: エラーメッセージを表示
+1. Click delete
+2. Show confirm modal (e.g. "Are you sure?")
+3. Cancel: close modal
+4. Confirm: call delete API
+5. Success: return to list + success message
+6. Failure: show error message
 
-### 削除の種類
+Delete types:
 
-- 物理削除: DBから完全削除（用途: 不要データ）
-- 論理削除: フラグで削除扱い（用途: 復元可能性が必要）
-
----
-
-## 共通パターン
-
-### ローディング状態
-
-- 初回読み込み: 全画面スピナー or スケルトン
-- 部分更新: インラインスピナー
-- 送信中: ボタン無効化 + スピナー
-
-### 成功/エラーメッセージ
-
-- 成功: トースト（緑）（自動消去: 3-5秒後）
-- 警告: トースト（黄）（自動消去: 手動 or 5秒後）
-- エラー: トースト（赤）or インライン（自動消去: 手動）
-
-### 未保存データの警告
-
-1. フォーム入力中にページ離脱が発生
-2. 確認ダイアログを表示（例: 「保存されていない変更があります」）
-3. 留まる: 編集を継続
-4. 離脱: 変更を破棄
+- Hard delete: remove from DB (when data is truly disposable)
+- Soft delete: mark as deleted (when restore/audit matters)
 
 ---
 
-## チェックリスト
+## Common patterns
 
-### 一覧画面
+Loading:
 
-- [ ] データ取得中のローディング表示
-- [ ] データなしの空状態表示
-- [ ] エラー時のリトライ機能
-- [ ] ページネーションが動作する
-- [ ] 検索/フィルタが動作する
+- Initial load: full-page spinner or skeleton
+- Partial update: inline spinner
+- Submitting: disable button + spinner
 
-### 詳細画面
+Success/error messages:
 
-- [ ] データ取得中のローディング表示
-- [ ] 存在しないIDへのアクセス時404表示
-- [ ] 編集・削除ボタンが動作する
+- Success: toast (auto-dismiss after 3-5s)
+- Warning: toast (auto-dismiss or manual)
+- Error: toast or inline (usually manual dismiss)
 
-### 作成・編集画面
+Unsaved changes warning:
 
-- [ ] バリデーションが動作する
-- [ ] エラーメッセージが適切に表示される
-- [ ] 保存成功時にメッセージ表示
-- [ ] 未保存データの警告が動作する
-- [ ] キャンセル時に確認がある
-
-### 削除
-
-- [ ] 削除前に確認がある
-- [ ] 削除成功時にメッセージ表示
-- [ ] 削除後に一覧へ遷移する
+1. User attempts to leave while form is dirty
+2. Show confirm dialog (e.g. "You have unsaved changes")
+3. Stay: continue editing
+4. Leave: discard changes
 
 ---
 
-## アンチパターン
+## Checklist
 
-- 確認なしで削除: 誤操作リスク → 確認モーダルを追加
-- 全データ一括取得: パフォーマンス低下 → ページネーションを導入
-- クライアント側のみのバリデーション: セキュリティリスク → サーバー側でも検証
-- エラー時に入力内容消去: ユーザー体験低下 → 入力値を保持
+List:
+
+- [ ] Loading state
+- [ ] Empty state
+- [ ] Retry on error
+- [ ] Pagination works
+- [ ] Search/filter works
+
+Detail:
+
+- [ ] Loading state
+- [ ] 404 handling for missing id
+- [ ] Edit/delete buttons work
+
+Create/Edit:
+
+- [ ] Validation works
+- [ ] Error messages are clear
+- [ ] Success message on save
+- [ ] Unsaved changes warning
+- [ ] Cancel confirmation (when needed)
+
+Delete:
+
+- [ ] Confirm before delete
+- [ ] Success message
+- [ ] Navigate back to list
 
 ---
 
-## 関連ファイル
+## Anti-patterns
 
-- `skills/api-endpoint.md` - API設計
-- `skills/error-handling.md` - エラーハンドリング
-- `skills/testing.md` - テスト設計
+- Delete without confirmation: high risk -> add confirm modal
+- Fetch all records: slow -> add pagination
+- Client-only validation: security risk -> validate on server too
+- Clearing user input on error: bad UX -> preserve input state
+
+---
+
+## Related
+
+- `skills/api-endpoint.md` - API design
+- `skills/error-handling.md` - error handling
+- `skills/testing.md` - testing

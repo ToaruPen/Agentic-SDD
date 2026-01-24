@@ -1,202 +1,195 @@
-# エラーハンドリングスキル
+# Error Handling Skill
 
-エラーの分類・処理・通知に関する設計ガイドライン。
+Guidelines for designing error classification, handling, logging, and user messaging.
 
----
-
-## 概要
-
-このスキルは、アプリケーションにおけるエラーハンドリングの
-設計・実装指針を提供します。
-言語/フレームワーク非依存で、概念ベースで記述しています。
+Language/framework-agnostic; concept-based.
 
 ---
 
-## エラー分類
+## Error classification
 
-### 発生源による分類
+### By source
 
-- ユーザーエラー: ユーザーの入力/操作ミス（例: 必須項目未入力、形式不正）
-- ビジネスエラー: ビジネスルール違反（例: 残高不足、権限なし）
-- システムエラー: システム内部の問題（例: NullPointer、型エラー）
-- 外部エラー: 外部サービスの問題（例: APIタイムアウト、DB接続失敗）
+- User error: invalid input/operation (missing required fields, invalid format)
+- Business error: business rule violation (insufficient balance, forbidden action)
+- System error: internal bug (null reference, type error)
+- External error: dependency failure (API timeout, DB connection failure)
 
-### 回復可能性による分類
+### By recoverability
 
-- 回復可能: ユーザーが対処できる（対応: 具体的な対処法を提示）
-- 回復不能（一時的）: リトライで回復可能性あり（対応: リトライ導線を提示）
-- 回復不能（永続的）: システム対応が必要（対応: サポート連絡先を提示）
+- Recoverable: user can fix (show concrete guidance)
+- Unrecoverable (temporary): may succeed after retry (provide retry path)
+- Unrecoverable (permanent): requires support (provide support contact)
 
 ---
 
-## エラー処理の原則
+## Principles
 
-### 1. Fail Fast
+### 1) Fail fast
 
-問題を早期に検出し、明確に失敗させる。
+Detect problems early and fail explicitly.
 
 ```
-// Good: 事前チェックで早期失敗
+// Good: validate early
 if (!userId) {
   throw new ValidationError("userId is required");
 }
 
-// Bad: nullのまま処理を続行
+// Bad: continue with null/undefined
 const user = users.find(u => u.id === userId); // undefined
-user.name; // 後でエラー
+user.name; // crashes later
 ```
 
-### 2. 適切な粒度でキャッチ
+### 2) Catch at the right granularity
 
 ```
-// Good: 適切な粒度
+// Good: classify and handle
 try {
   await saveUser(user);
 } catch (error) {
   if (error instanceof ValidationError) {
-    // バリデーションエラー処理
+    // handle validation error
   } else if (error instanceof DatabaseError) {
-    // DBエラー処理
+    // handle DB error
   } else {
-    // 予期しないエラー
+    // unexpected error
     throw error;
   }
 }
 
-// Bad: 全部キャッチして握りつぶす
+// Bad: catch and swallow
 try {
   await saveUser(user);
 } catch (error) {
-  console.log(error); // 何もしない
+  console.log(error);
 }
 ```
 
-### 3. 意味のあるエラーメッセージ
+### 3) Meaningful messages
 
-- ユーザー向け: 何が問題か、どうすればいいか
-- 開発者向け: スタックトレース、コンテキスト
-
----
-
-## エラーの伝播
-
-### レイヤー別の責務
-
-- UI層: エラーメッセージの表示、ユーザーへの通知
-- アプリケーション層: エラーの変換（技術的→ユーザー向け）、ログ記録
-- ドメイン層/インフラ層: 技術的エラーの発生、例外のスロー
+- For users: what happened and what to do
+- For developers: stack trace and context
 
 ---
 
-## ログ出力
+## Error propagation by layer
 
-### ログレベル
-
-- ERROR: 即時対応が必要（例: 決済失敗、DB接続不可）
-- WARN: 注意が必要（例: リトライ発生、非推奨API使用）
-- INFO: 正常な重要イベント（例: ユーザー登録、ログイン）
-- DEBUG: デバッグ用（例: 関数の入出力、中間状態）
-
-### ログに含めるべき情報
-
-- タイムスタンプ: いつ発生したか
-- エラー種別: どんなエラーか
-- メッセージ: 何が起きたか
-- コンテキスト: リクエストID、ユーザーID等
-- スタックトレース: どこで発生したか
-
-### 機密情報の除外
-
-ログに含めてはいけない情報：
-- パスワード
-- アクセストークン
-- クレジットカード番号
-- 個人情報（必要に応じてマスク）
+- UI: display messages and notify the user
+- Application: translate technical errors -> user-facing errors; log
+- Domain/infra: raise technical errors; do not format UI messages
 
 ---
 
-## ユーザーへの通知
+## Logging
 
-### 通知パターン
+Log levels:
 
-- インライン: フィールド単位のエラー（例: 「メールアドレスが不正です」）
-- トースト: 一時的な通知（例: 「保存しました」「エラーが発生しました」）
-- モーダル: 重要な確認が必要（例: 「セッションが切れました。再ログインしてください」）
-- 専用ページ: 致命的エラー（例: 404ページ、500ページ）
+- ERROR: immediate action needed
+- WARN: needs attention
+- INFO: important normal events
+- DEBUG: debugging details
 
-### メッセージの書き方
+Include:
 
-良い例:
-- 「メールアドレスの形式が正しくありません」
-- 「サーバーに接続できません。しばらく待ってからお試しください」
-- 「このページは存在しません」
+- Timestamp
+- Error type
+- Message
+- Context (request id, user id, etc)
+- Stack trace
 
-悪い例:
-- 「ValidationError: email」
-- 「500 Internal Server Error」
-- 「null pointer exception」
+Never log:
+
+- Passwords
+- Access tokens
+- Credit card numbers
+- PII (mask if needed)
 
 ---
 
-## リトライ戦略
+## User notification
 
-### リトライすべきエラー
+Patterns:
 
-- ネットワークタイムアウト: リトライ Yes（理由: 一時的な問題）
-- 429 Too Many Requests: リトライ Yes（待機後）（理由: レート制限）
-- 503 Service Unavailable: リトライ Yes（理由: 一時的な問題）
-- 400 Bad Request: リトライ No（理由: リクエストが不正）
-- 401 Unauthorized: リトライ No（理由: 認証が必要）
+- Inline field errors (e.g. "Email is invalid")
+- Toast/snackbar for transient notifications
+- Modal for important actions (e.g. "Session expired. Please log in again")
+- Dedicated pages for fatal errors (404/500)
 
-### Exponential Backoff
+Message quality:
+
+Good:
+
+- "Email format is invalid."
+- "Cannot connect to the server. Please try again later."
+- "This page does not exist."
+
+Bad:
+
+- "ValidationError: email"
+- "500 Internal Server Error"
+- "null pointer exception"
+
+---
+
+## Retry strategy
+
+Retry candidates:
+
+- Network timeout: retry (temporary)
+- 429 Too Many Requests: retry after wait
+- 503 Service Unavailable: retry (temporary)
+- 400 Bad Request: do not retry
+- 401 Unauthorized: do not retry (needs auth)
+
+Exponential backoff example:
 
 ```
-1回目: 即時
-2回目: 1秒後
-3回目: 2秒後
-4回目: 4秒後
-5回目: 8秒後
-（最大リトライ回数に達したら失敗）
+Attempt 1: immediately
+Attempt 2: after 1s
+Attempt 3: after 2s
+Attempt 4: after 4s
+Attempt 5: after 8s
+(fail after max attempts)
 ```
 
 ---
 
-## チェックリスト
+## Checklist
 
-### 設計時
+Design:
 
-- [ ] エラーの分類が定義されている
-- [ ] 各エラーの処理方針が決まっている
-- [ ] ユーザー向けメッセージが定義されている
-- [ ] ログ出力の方針が決まっている
+- [ ] Error categories are defined
+- [ ] Handling policy per category is defined
+- [ ] User-facing messages are defined
+- [ ] Logging policy is defined
 
-### 実装時
+Implementation:
 
-- [ ] 適切な粒度で例外をキャッチしている
-- [ ] エラーメッセージが具体的で有用
-- [ ] 機密情報がログに含まれていない
-- [ ] リトライ戦略が実装されている（該当する場合）
+- [ ] Exceptions are caught at an appropriate layer
+- [ ] Messages are specific and actionable
+- [ ] Secrets are not logged
+- [ ] Retry policy exists (when applicable)
 
-### テスト時
+Testing:
 
-- [ ] 正常系だけでなく異常系もテストしている
-- [ ] エラーメッセージが正しく表示されることを確認
-- [ ] ログが正しく出力されることを確認
-
----
-
-## アンチパターン
-
-- 例外を握りつぶす: 問題が隠蔽される → 例外を分類して処理し、想定外は再スロー
-- 全部同じエラーメッセージ: 原因特定困難 → メッセージを具体化する
-- 技術的エラーをそのまま表示: ユーザー混乱 → ユーザー向けの文言に変換して表示
-- エラー時にデータ消失: ユーザー体験低下 → 入力データを保持
-- 無限リトライ: リソース枯渇 → 最大回数を設定
+- [ ] Negative paths are tested (not only happy path)
+- [ ] User-facing messages are verified
+- [ ] Logs are emitted as expected (when relevant)
 
 ---
 
-## 関連ファイル
+## Anti-patterns
 
-- `skills/api-endpoint.md` - API設計（エラーレスポンス）
-- `skills/testing.md` - テスト設計（異常系テスト）
+- Swallowing exceptions: hides problems -> classify and rethrow unexpected errors
+- One generic message for everything: hard to debug -> make messages specific
+- Showing technical errors to users: confusion -> translate to user-friendly text
+- Losing user input on error: bad UX -> preserve input state
+- Infinite retries: resource exhaustion -> set a max retry count
+
+---
+
+## Related
+
+- `skills/api-endpoint.md` - API design (error responses)
+- `skills/testing.md` - testing (negative-path tests)
 - `.agent/rules/dod.md` - Definition of Done
