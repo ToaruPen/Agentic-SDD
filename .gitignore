@@ -10,6 +10,9 @@
 # Agentic-SDD local files
 .agent/agents/*.local.md
 
+# Local review-cycle outputs
+.agentic-sdd/
+
 # Tool-specific generated directories (from sync-agent-config.sh)
 .codex/
 .opencode/

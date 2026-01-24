@@ -307,6 +307,7 @@ fi
 # .gitignore updates
 ensure_gitignore_line "$TARGET_DIR/.gitignore" "# Agentic-SDD"
 ensure_gitignore_line "$TARGET_DIR/.gitignore" ".agent/agents/*.local.md"
+ensure_gitignore_line "$TARGET_DIR/.gitignore" ".agentic-sdd/"
 ensure_gitignore_line "$TARGET_DIR/.gitignore" ".opencode/"
 ensure_gitignore_line "$TARGET_DIR/.gitignore" ".codex/"
 

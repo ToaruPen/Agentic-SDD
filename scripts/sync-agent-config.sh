@@ -222,6 +222,9 @@ sync_opencode() {
                     cmd_description="Review with DoD and sync-docs"
                     cmd_agent="sdd-reviewer"
                     ;;
+                review-cycle)
+                    cmd_description="Run local review cycle (codex exec -> review.json)"
+                    ;;
                 sync-docs)
                     cmd_description="Check PRD/Epic/code consistency (sync-docs)"
                     ;;

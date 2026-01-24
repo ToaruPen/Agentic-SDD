@@ -30,6 +30,7 @@ Agentic-SDD（Agentic Spec-Driven Development）
 - `/create-issues`: Issue作成（粒度規約適用）
 - `/impl`: 実装（Full見積もり必須）
 - `/tdd`: TDDで実装（Red→Green→Refactor）
+- `/review-cycle`: ローカルレビューサイクル（codex execでreview.json生成）
 - `/review`: レビュー（DoD確認）
 - `/sync-docs`: ドキュメント同期チェック
 

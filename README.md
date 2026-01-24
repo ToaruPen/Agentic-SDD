@@ -17,11 +17,11 @@
 ## ワークフロー
 
 ```
-/create-prd → /create-epic → /create-issues → /impl → /review
-     │            │              │              │         │
-     ▼            ▼              ▼              ▼         ▼
-  7問質問      3層抑止       行数ベース     Full見積    DoD確認
-  +チェック    +3表必須      50〜300行     +信頼度    +sync-docs
+/create-prd → /create-epic → /create-issues → /impl → (/review-cycle)* → /review
+     │            │              │              │             │            │
+     ▼            ▼              ▼              ▼             ▼            ▼
+  7問質問      3層抑止       行数ベース     Full見積      ローカル反復     DoD確認
+  +チェック    +3表必須      50〜300行     +信頼度      review.json      +sync-docs
 ```
 
 ---
@@ -60,6 +60,14 @@
 
 Full見積もり（11セクション）を作成してから実装。
 
+### 4.5 （任意）ローカルレビューサイクル
+
+```
+/review-cycle [scope-id]
+```
+
+開発中に `review.json` を生成し、修正→再レビューを反復する。
+
 ### 5. レビュー
 
 ```
@@ -79,8 +87,11 @@ DoD確認と `/sync-docs` を実行。
 │   ├── create-epic.md
 │   ├── create-issues.md
 │   ├── impl.md
+│   ├── review-cycle.md
 │   ├── review.md
 │   └── sync-docs.md
+├── schemas/            # JSON schema
+│   └── review.json
 ├── rules/              # ルール定義
 │   ├── docs-sync.md
 │   ├── dod.md
@@ -99,6 +110,15 @@ docs/
 
 skills/                 # 方式設計スキル
 └── estimation.md
+
+scripts/
+├── agentic-sdd
+├── install-agentic-sdd.sh
+├── review-cycle.sh
+├── setup-global-agentic-sdd.sh
+├── sync-agent-config.sh
+├── test-review-cycle.sh
+└── validate-review-json.py
 
 AGENTS.md               # AIエージェント設定
 ```

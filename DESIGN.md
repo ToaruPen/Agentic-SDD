@@ -352,8 +352,11 @@ Agentic-SDD/
 │   │   ├── create-issues.md
 │   │   ├── impl.md
 │   │   ├── tdd.md
+│   │   ├── review-cycle.md
 │   │   ├── review.md
 │   │   └── sync-docs.md
+│   ├── schemas/
+│   │   └── review.json          # review-v2 JSON schema (review-cycle output)
 │   ├── rules/
 │   │   ├── datetime.md
 │   │   ├── commit.md
@@ -376,7 +379,7 @@ Agentic-SDD/
 │   ├── prd/
 │   │   └── _template.md         # 7問(Q6選択式) + 禁止語 + 異常系AC
 │   ├── epics/
-│   │   └── _template.md         # 必須提出物（3表）含む
+│   │   └── _template.md         # 必須提出物（3一覧）含む
 │   ├── data-model.md
 │   ├── decisions.md             # テンプレ付き
 │   └── glossary.md              # 用語集
@@ -386,7 +389,13 @@ Agentic-SDD/
 │   │   └── bug.md
 │   └── PULL_REQUEST_TEMPLATE.md
 ├── scripts/
-│   └── sync-agent-config.sh
+│   ├── agentic-sdd
+│   ├── install-agentic-sdd.sh
+│   ├── review-cycle.sh
+│   ├── setup-global-agentic-sdd.sh
+│   ├── sync-agent-config.sh
+│   ├── test-review-cycle.sh
+│   └── validate-review-json.py
 ├── AGENTS.md
 └── README.md
 ```
@@ -401,7 +410,7 @@ Agentic-SDD/
 | 2 | 正本ルール | `docs-sync.md`, `dod.md`, `sync-docs.md` |
 | 3 | Epic関連 | `create-epic.md`, `epic.md`, `docs/epics/_template.md` |
 | 4 | Issue関連 | `create-issues.md`, `issue.md` |
-| 5 | レビュー | `review.md` |
+| 5 | レビュー | `review-cycle.md`, `review.md` |
 | 6 | 実装 | `impl.md`, `estimation.md` |
 
 ---
@@ -459,6 +468,7 @@ AGENTS.md
 - [ ] Issueが粒度規約（50〜300行）に収まる
 - [ ] 見積もりがFull（11セクション）で作成されている
 - [ ] /sync-docsで「差分なし」になる
+- [ ] （任意）/review-cycle で review.json が生成できる
 - [ ] PRがマージされる
 
 ---
@@ -471,6 +481,7 @@ AGENTS.md
 | AC異常系 | なし | **最低1つ必須** |
 | カウント定義 | なし | **外部サービス/コンポーネント/新規技術を定義** |
 | Epic必須提出物 | なし | **3つの一覧表必須** |
+| review-cycle | なし | **review.json によるローカル反復** |
 | 見積もり信頼度 | なし | **High/Med/Low必須** |
 | 見積もりモード | Lite/Full選択 | **Full必須** |
 | 例外ラベル | ラベルのみ | **必須記入欄追加** |

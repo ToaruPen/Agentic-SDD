@@ -40,22 +40,46 @@ Agentic-SDDのファイルを追加しますか？
 以下のディレクトリとファイルを作成：
 
 
+- `.agent/commands/init.md`
 - `.agent/commands/create-prd.md`
 - `.agent/commands/create-epic.md`
 - `.agent/commands/create-issues.md`
 - `.agent/commands/impl.md`
+- `.agent/commands/tdd.md`
+- `.agent/commands/review-cycle.md`
 - `.agent/commands/review.md`
 - `.agent/commands/sync-docs.md`
+
 - `.agent/rules/docs-sync.md`
 - `.agent/rules/dod.md`
 - `.agent/rules/epic.md`
 - `.agent/rules/issue.md`
-- `.agent/agents/`（空ディレクトリ）
+- `.agent/rules/branch.md`
+- `.agent/rules/commit.md`
+- `.agent/rules/datetime.md`
+
+- `.agent/agents/reviewer.md`
+- `.agent/schemas/review.json`
+
 - `docs/prd/_template.md`
 - `docs/epics/_template.md`
 - `docs/decisions.md`
 - `docs/glossary.md`
+
+- `skills/README.md`
 - `skills/estimation.md`
+- `skills/api-endpoint.md`
+- `skills/crud-screen.md`
+- `skills/error-handling.md`
+- `skills/testing.md`
+- `skills/tdd-protocol.md`
+
+- `scripts/install-agentic-sdd.sh`
+- `scripts/sync-agent-config.sh`
+- `scripts/review-cycle.sh`
+- `scripts/test-review-cycle.sh`
+- `scripts/validate-review-json.py`
+
 - `AGENTS.md`
 
 ### Phase 4: 既存ファイルとの統合
@@ -76,6 +100,9 @@ Agentic-SDDのファイルを追加しますか？
 ```
 # Agentic-SDD
 .agent/agents/*.local.md
+.agentic-sdd/
+.opencode/
+.codex/
 ```
 
 ### Phase 6: 初期化完了
@@ -86,13 +113,16 @@ Agentic-SDDのファイルを追加しますか？
 Agentic-SDDのセットアップが完了しました。
 
 ### 作成されたファイル
-- .agent/commands/ (6ファイル)
-- .agent/rules/ (4ファイル)
+- .agent/commands/ (9ファイル)
+- .agent/rules/ (7ファイル)
+- .agent/schemas/review.json
+- .agent/agents/reviewer.md
 - docs/prd/_template.md
 - docs/epics/_template.md
 - docs/decisions.md
 - docs/glossary.md
-- skills/estimation.md
+- skills/ (7ファイル)
+- scripts/ (主要スクリプト群)
 - AGENTS.md
 
 ### 次のステップ
@@ -151,7 +181,10 @@ A: `--dry-run` で内容を確認し、必要に応じて手動でマージし�
 
 A: 初期化後、以下をリポジトリにコミットしてください：
 - `.agent/` ディレクトリ全体
-- `docs/prd/_template.md`, `docs/epics/_template.md`
+- `docs/prd/_template.md`, `docs/epics/_template.md`, `docs/decisions.md`, `docs/glossary.md`
+- `skills/` ディレクトリ全体
+- `scripts/` ディレクトリ全体
+- `.gitignore`（追加した場合）
 - `AGENTS.md`
 
 ## 関連ファイル
