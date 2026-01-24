@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-01-25
+
+- Make `/review` the SoT for review taxonomy (P0-P3, status rules) shared by `/review-cycle`.
+- Refocus `/review-cycle` docs on the iteration protocol (fix -> re-review) and reference `/review` for criteria.
+- Update reviewer agent guidance to use P0-P3 and review.json-aligned statuses.
+- Merge README review steps into "5) Review (/review (/review-cycle))".
+
 ## [0.2.4] - 2026-01-25
 
 - Document `/init` as the one-time workflow entrypoint (OpenCode: `/sdd-init`).
