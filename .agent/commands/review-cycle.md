@@ -7,6 +7,10 @@ Iterate locally during development using:
 This command uses `codex exec` to generate `review.json` (review result JSON).
 The final gate remains `/review` (DoD + `/sync-docs`).
 
+Review taxonomy (status/priority) and output rules are defined in:
+
+- `.agent/commands/review.md` (SoT)
+
 ## Usage
 
 ```
@@ -22,6 +26,17 @@ The final gate remains `/review` (DoD + `/sync-docs`).
 2. Run tests (optional) and record results
 3. Generate `review.json` via `codex exec --output-schema`
 4. Validate JSON and save under `.agentic-sdd/`
+
+## Iteration protocol (how far/how to loop)
+
+- Run `/review-cycle` at least once before committing (see `/impl`).
+- After each run, decide next action based on `review.json.status`:
+  - `Blocked`: fix all `P0`/`P1` findings and re-run.
+  - `Question`: answer questions (do not guess). If you cannot answer from the repo, stop and ask the user, then re-run after clarifying.
+  - `Approved with nits`: optionally batch-fix `P2`/`P3` (do not chase style-only churn). If you change code, re-run once.
+  - `Approved`: stop and proceed.
+- Do not re-run without a code/spec change.
+- Rule of thumb: converge within 1-3 cycles. If you are still `Blocked`/`Question` after ~3 meaningful attempts, stop and escalate (likely missing/contradicting SoT or scope too large).
 
 ## Required inputs (env vars)
 
@@ -63,15 +78,6 @@ The final gate remains `/review` (DoD + `/sync-docs`).
 - Parse `- Epic:` / `- PRD:` lines in the Issue body, read referenced `docs/epics/...` / `docs/prd/...`, and include them
   - PRD/Epic are included as a "wide excerpt" (the initial `##` section plus `## 1.` to `## 8.`)
   - If `- Epic:` / `- PRD:` exists but cannot be resolved, fail-fast
-
-## Status and next action
-
-Decide next actions based on `review.json.status`:
-
-- `Approved`: stop (next is `/review`)
-- `Approved with nits`: usually stop (batch-fix nits; optionally re-run once)
-- `Blocked`: continue (fix P0/P1 and re-run)
-- `Question`: continue (answer questions and re-run; if you cannot answer, define policy/spec first)
 
 ## Examples
 

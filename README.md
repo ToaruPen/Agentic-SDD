@@ -102,24 +102,26 @@ Create Issues following the granularity rules (50-300 LOC).
 
 Create a Full estimate (11 sections) before implementation.
 
-### 4.5) Local review cycle (required)
+### 5) Review (`/review` (`/review-cycle`))
 
-```
-/review-cycle [scope-id]
-```
-
-Generate `review.json` during development and iterate (fix -> re-review).
-
-If you set `GH_ISSUE=123`, it reads the Issue body and `- PRD:` / `- Epic:` references
-to assemble SoT automatically.
-
-### 5) Review
+Final gate:
 
 ```
 /review
 ```
 
 Run the DoD check and `/sync-docs`.
+
+During development (and before committing, per `/impl`), iterate locally with:
+
+```
+/review-cycle [scope-id]
+```
+
+`/review-cycle` generates `review.json` and is meant to be used in a fix -> re-review loop.
+
+If you set `GH_ISSUE=123`, it reads the Issue body and `- PRD:` / `- Epic:` references
+to assemble SoT automatically.
 
 ---
 

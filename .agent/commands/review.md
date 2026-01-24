@@ -2,6 +2,11 @@
 
 Review a PR or an Issue.
 
+This command is the SoT for review taxonomy (status/priority) shared by:
+
+- `/review` (human-readable Japanese review output)
+- `/review-cycle` (machine-readable `review.json` output)
+
 User-facing output remains in Japanese.
 
 ## Usage
@@ -44,7 +49,47 @@ Run `/sync-docs` before reviewing.
 - 該当コード: [ファイル:行]
 ```
 
-### Phase 3: DoD check
+### Phase 3: Review taxonomy (required)
+
+#### Priorities (P0-P3)
+
+- P0: must-fix (correctness/security/data-loss)
+- P1: should-fix (likely bug / broken tests / risky behavior)
+- P2: improvement (maintainability/perf minor)
+- P3: nit (small clarity)
+
+#### Status (`review.json.status`)
+
+- `Approved`: `findings=[]` and `questions=[]`
+- `Approved with nits`: findings may exist but must not include `P0`/`P1`; `questions=[]`
+- `Blocked`: must include at least one `P0`/`P1` finding
+- `Question`: must include at least one question
+
+Recommended status selection precedence:
+
+1. If any `P0`/`P1` finding exists -> `Blocked`
+2. Else if any question exists -> `Question`
+3. Else if any finding exists -> `Approved with nits`
+4. Else -> `Approved`
+
+#### Scope rules
+
+- Only flag issues introduced by this diff (do not flag pre-existing issues).
+- Be concrete; avoid speculation; explain impact.
+- Ignore trivial style unless it obscures meaning or violates documented standards.
+- For each finding, include evidence (`file:line`).
+
+#### `review.json` shape (schema v3; used by `/review-cycle`)
+
+- Required keys: `schema_version`, `scope_id`, `status`, `findings`, `questions`, `overall_explanation`
+- Finding keys:
+  - `title`: short title
+  - `body`: 1 short paragraph (Markdown allowed)
+  - `priority`: `P0|P1|P2|P3`
+  - `code_location.repo_relative_path`: repo-relative path
+  - `code_location.line_range`: `{start,end}` (keep as small as possible; overlap the diff)
+
+### Phase 4: DoD check
 
 Issue completion (required):
 
@@ -63,7 +108,7 @@ PR completion (required):
 - Tests: new/changed code is covered
 - Review: at least one approval exists
 
-### Phase 4: Verify AC
+### Phase 5: Verify AC
 
 Verify each AC one-by-one.
 
@@ -81,7 +126,7 @@ Verify each AC one-by-one.
 - 証跡: [スクリーンショット / ログ / テスト結果]
 ```
 
-### Phase 5: Review focus areas
+### Phase 6: Review focus areas
 
 - Correctness: does it satisfy AC / PRD / Epic?
 - Readability: names, structure, consistency
@@ -89,7 +134,7 @@ Verify each AC one-by-one.
 - Security: input validation, auth, secret handling
 - Performance: obvious issues
 
-### Phase 6: Compare against the estimate
+### Phase 7: Compare against the estimate
 
 Compare actuals vs estimate.
 
@@ -104,13 +149,16 @@ Compare actuals vs estimate.
 [差異が大きい場合は理由を記載]
 ```
 
-### Phase 7: Output the review result
+### Phase 8: Output the review result
 
 ```markdown
 ## レビュー結果
 
-### 総合判定
-Approve / Request Changes / Comment
+### 総合判定（Status）
+Approved / Approved with nits / Blocked / Question
+
+### GitHub推奨アクション
+Approve / Request changes / Comment
 
 ### sync-docs結果
 差分なし / 差分あり（承認済み） / 差分あり（要対応）
@@ -127,12 +175,16 @@ Approve / Request Changes / Comment
 - AC2: 達成
 - AC3: 達成
 
-### 指摘事項
-1. [指摘内容]（重要度: 高/中/低）
-2. [指摘内容]（重要度: 高/中/低）
+### 指摘事項（P0-P3）
+1. [P0] [指摘タイトル]（該当: [file:line]）
+2. [P2] [指摘タイトル]（該当: [file:line]）
 
-### コメント
-[総評やアドバイス]
+### 質問（Question の場合は必須）
+- [質問1]
+- [質問2]
+
+### 総評
+[総評（日本語）]
 ```
 
 ## How to handle sync-docs results
@@ -155,5 +207,7 @@ Approve / Request Changes / Comment
 
 ## Next steps
 
-- Approve: can merge
-- Request Changes: fix and re-run `/review`
+- Approved: can merge
+- Approved with nits: can merge (optionally batch-fix P2/P3)
+- Blocked: fix P0/P1 -> run `/review-cycle` -> re-run `/review`
+- Question: answer questions (do not guess) -> run `/review-cycle` -> re-run `/review`

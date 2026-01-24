@@ -53,32 +53,37 @@ Note: Review outputs are user-facing; write them in Japanese.
 
 ---
 
-## Review decision
+## Review taxonomy (SoT)
 
-### Approve
+Follow `.agent/commands/review.md` for the canonical review taxonomy.
 
-All of the following:
+### Priorities (P0-P3)
 
-- All AC are satisfied
-- No critical issues
-- DoD is met
+- P0: must-fix (correctness/security/data-loss)
+- P1: should-fix (likely bug / broken tests / risky behavior)
+- P2: improvement (maintainability/perf minor)
+- P3: nit (small clarity)
 
-### Request Changes
+### Status
 
-Any of the following:
+- `Approved`: no findings, no questions
+- `Approved with nits`: findings are only `P2`/`P3`, no questions
+- `Blocked`: at least one `P0`/`P1` finding exists
+- `Question`: at least one question exists
 
-- Some AC are not satisfied
-- Security issue
-- Major bug
-- Tests missing/insufficient
+Recommended status selection precedence:
 
-### Comment
+1. If any `P0`/`P1` finding exists -> `Blocked`
+2. Else if any question exists -> `Question`
+3. Else if any finding exists -> `Approved with nits`
+4. Else -> `Approved`
 
-Use when:
+GitHub action mapping (secondary):
 
-- Minor improvements
-- Questions/clarifications
-- Future improvement notes
+- `Approved` -> Approve
+- `Approved with nits` -> Approve (optionally with a comment)
+- `Blocked` -> Request changes
+- `Question` -> Comment
 
 ---
 
@@ -87,20 +92,17 @@ Use when:
 Format:
 
 ```
-[importance] Category: コメント内容
+[P0] Category: コメント内容（該当: file:line）
+[P2] Category: コメント内容（該当: file:line）
 
-例:
-[Must] Security: ユーザー入力がサニタイズされていません
-[Should] Readability: この関数は分割を検討してください
-[Nit] Style: 一貫性のため const を使用してください
+質問:
+- 質問内容
 ```
 
-Importance levels:
+Notes:
 
-- `[Must]`: required fix (do not approve until fixed)
-- `[Should]`: recommended fix (can skip with rationale)
-- `[Nit]`: minor (optional)
-- `[Question]`: question (needs an answer)
+- Use `P0-P3` for findings. Put questions under a separate "質問" section.
+- Always include evidence (`file:line`) for findings.
 
 ---
 
@@ -132,7 +134,7 @@ Always run `/sync-docs` during review:
 - [ ] パフォーマンスに問題がない
 
 ### 判定
-- [ ] Approve / [ ] Request Changes / [ ] Comment
+- [ ] Approved / [ ] Approved with nits / [ ] Blocked / [ ] Question
 ```
 
 ---
