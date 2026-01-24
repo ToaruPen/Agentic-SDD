@@ -27,10 +27,12 @@ Release hygiene (required)
 - No PRD: /create-prd
 - PRD exists but no Epic: /create-epic
 - Epic exists but no Issues / not split: /create-issues
-- Issues exist: /impl <issue-id> (or /tdd <issue-id> for TDD)
+- Issues exist: ask the user to choose /impl vs /tdd (do not choose on your own)
+  - Then run: /impl <issue-id> or /tdd <issue-id>
 
 2) Complete one Issue (iterate)
-- /impl: write a Full estimate (11 sections) first -> implement -> test
+- /impl or /tdd: pass the implementation gates (.agent/rules/impl-gate.md)
+  - Full estimate (11 sections) -> user approval -> implement -> add/run tests
 - /review-cycle: run locally before committing (fix -> re-run)
 - /review: always run /sync-docs; if there is a diff, follow SoT and re-check
 
@@ -71,6 +73,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/create-prd`: create a PRD (7 questions)
 - `/create-epic`: create an Epic (requires 3 lists: external services / components / new tech)
 - `/create-issues`: create Issues (granularity rules)
+- `/estimation`: create a Full estimate (11 sections) and get approval
 - `/impl`: implement an Issue (Full estimate required)
 - `/tdd`: implement via TDD (Red -> Green -> Refactor)
 - `/review-cycle`: local review loop (codex exec -> review.json)

@@ -10,6 +10,7 @@ Required:
 
 - [ ] All AC are satisfied
 - [ ] Tests are added/updated (when applicable)
+- [ ] Quality checks are run and passing (tests required; lint/format/typecheck when applicable). If not run, record "not run: reason" and get explicit approval.
 - [ ] `/sync-docs` is "no diff" or the diff is explicitly approved
 - [ ] Code review is complete
 - [ ] CI passes (when applicable)
@@ -83,6 +84,14 @@ Full estimate (11 sections) is fully written:
 11. Out of scope (will not change)
 ```
 
+In addition:
+
+- The estimate is reviewed with the user and explicitly approved before implementation starts.
+
+Implementation note:
+
+- Use `/estimation` to create the Full estimate and run the approval gate.
+
 ---
 
 ## Related
@@ -90,4 +99,6 @@ Full estimate (11 sections) is fully written:
 - `.agent/rules/docs-sync.md` - documentation sync rules
 - `.agent/commands/sync-docs.md` - sync-docs command
 - `.agent/commands/review.md` - review command
+- `.agent/commands/estimation.md` - Full estimate + approval gate
 - `skills/estimation.md` - estimation skill
+- `.agent/rules/impl-gate.md` - implementation gate checklist

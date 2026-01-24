@@ -2,7 +2,8 @@
 
 Helper command to drive changes via TDD (Test-Driven Development).
 
-This focuses on the execution loop (Red -> Green -> Refactor), not detailed test design.
+This focuses on the execution loop (Red -> Green -> Refactor), but still requires a
+Full estimate + explicit user approval (via `/estimation`).
 User-facing output remains in Japanese.
 
 ## Usage
@@ -12,6 +13,25 @@ User-facing output remains in Japanese.
 ```
 
 ## Flow
+
+### Phase 0: Implementation gate (MANDATORY)
+
+Before starting any TDD cycle, pass the implementation gates.
+
+1. Ensure you are on the linked branch
+   - List linked branches (SoT): `gh issue develop --list <issue-number>`
+   - If any linked branch exists and you are not on it, report and stop
+   - If no linked branch exists, create one before starting:
+     - Recommended: `/worktree new --issue <issue-number> --desc "<ascii short desc>"`
+     - Alternative (no worktree): `gh issue develop <issue-number> --name "<branch>" --checkout`
+2. Run `/estimation` and get explicit approval
+   - `/estimation [issue-number]`
+   - When prompted for the implementation mode, choose `/tdd`.
+
+Notes:
+
+- If an approved Full estimate already exists in this session, reference it and do not rewrite.
+- Do not start Red/Green/Refactor without explicit approval.
 
 ### Phase 1: Fix the scope (SoT)
 
@@ -50,9 +70,18 @@ Summarize briefly:
 - Test command and results
 - Key design decisions (seam, Extract/Sprout, etc)
 
+Before committing:
+
+- Run `/review-cycle` (required) and fix findings until it passes.
+- Then run `/review` (final DoD + `/sync-docs` gate).
+
 ## Related
 
 - `skills/tdd-protocol.md` - TDD execution protocol
 - `skills/testing.md` - test design
 - `.agent/rules/dod.md` - Definition of Done
-- `.agent/commands/impl.md` - implementation flow (test plan)
+- `.agent/rules/impl-gate.md` - mandatory gates (estimate/test/quality)
+- `.agent/commands/estimation.md` - Full estimate + approval gate
+- `.agent/commands/impl.md` - normal implementation flow
+- `.agent/commands/review-cycle.md` - local review loop (required before commit)
+- `.agent/commands/review.md` - final review gate

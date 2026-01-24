@@ -215,8 +215,14 @@ sync_opencode() {
                 create-issues)
                     cmd_description="Create issues from an epic (granularity rules)"
                     ;;
+                estimation)
+                    cmd_description="Create a Full estimate (11 sections) and approval gate"
+                    ;;
                 impl)
-                    cmd_description="Implement an issue after full estimate"
+                    cmd_description="Implement an issue (normal mode) after estimation"
+                    ;;
+                tdd)
+                    cmd_description="Implement an issue via strict TDD (Red -> Green -> Refactor)"
                     ;;
                 review)
                     cmd_description="Review with DoD and sync-docs"
@@ -290,6 +296,7 @@ EOF
     # Agentic-SDD rules (loaded on-demand via the skill tool)
     generate_skill_from_file "sdd-rule-docs-sync" "Rules for keeping PRD, Epic, and code in sync" ".agent/rules/docs-sync.md"
     generate_skill_from_file "sdd-rule-dod" "Definition of Done checklist" ".agent/rules/dod.md"
+    generate_skill_from_file "sdd-rule-impl-gate" "Implementation gate rules (estimate/test/quality)" ".agent/rules/impl-gate.md"
     generate_skill_from_file "sdd-rule-epic" "Epic generation constraints and checklists" ".agent/rules/epic.md"
     generate_skill_from_file "sdd-rule-issue" "Issue granularity rules and exception labels" ".agent/rules/issue.md"
     generate_skill_from_file "sdd-rule-branch" "Git branch naming rules" ".agent/rules/branch.md"

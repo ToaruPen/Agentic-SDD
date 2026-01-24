@@ -19,11 +19,11 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues) remai
 ## Workflow
 
 ```
-/init* -> /create-prd -> /create-epic -> /create-issues -> /impl -> /review-cycle -> /review
-     |            |              |              |             |            |
-     v            v              v              v             v            v
-   7 questions   3-layer guard  LOC-based      Full estimate  Local loop   DoD gate
-   + checklist   + 3 required   50-300 LOC     + confidence   review.json  + sync-docs
+/init* -> /create-prd -> /create-epic -> /create-issues -> /estimation -> /impl|/tdd -> /review-cycle -> /review
+     |            |              |              |              |            |              |            |
+     v            v              v              v              v            v              v            v
+   7 questions   3-layer guard  LOC-based      Full estimate   Implement    Local loop      DoD gate
+   + checklist   + 3 required   50-300 LOC     + approval      + tests      review.json     + sync-docs
 ```
 
 \* One-time project initialization. On OpenCode, use `/sdd-init` instead of `/init`.
@@ -96,11 +96,25 @@ Create Issues following the granularity rules (50-300 LOC).
 
 ### 4) Implement
 
+Create an estimate (required before implementation):
+
+```
+/estimation [issue-number]
+```
+
 ```
 /impl [issue-number]
 ```
 
-Create a Full estimate (11 sections) before implementation.
+`/impl` is the normal implementation flow. `/tdd` is the strict TDD flow.
+
+To run strict TDD directly:
+
+```
+/tdd [issue-number]
+```
+
+Both `/impl` and `/tdd` require the same Full estimate + user approval gate (via `/estimation`).
 
 ### 5) Review (`/review` (`/review-cycle`))
 
@@ -133,7 +147,9 @@ to assemble SoT automatically.
 │   ├── create-prd.md
 │   ├── create-epic.md
 │   ├── create-issues.md
+│   ├── estimation.md
 │   ├── impl.md
+│   ├── tdd.md
 │   ├── review-cycle.md
 │   ├── review.md
 │   ├── sync-docs.md
@@ -141,9 +157,13 @@ to assemble SoT automatically.
 ├── schemas/            # JSON schema
 │   └── review.json
 ├── rules/              # rule definitions
+│   ├── branch.md
+│   ├── commit.md
+│   ├── datetime.md
 │   ├── docs-sync.md
 │   ├── dod.md
 │   ├── epic.md
+│   ├── impl-gate.md
 │   └── issue.md
 └── agents/
     └── reviewer.md
@@ -157,7 +177,13 @@ docs/
 └── glossary.md         # glossary
 
 skills/                 # design skills
+├── README.md
+├── api-endpoint.md
+├── crud-screen.md
+├── error-handling.md
 ├── estimation.md
+├── testing.md
+├── tdd-protocol.md
 └── worktree-parallel.md
 
 scripts/

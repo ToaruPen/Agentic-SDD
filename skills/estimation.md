@@ -5,7 +5,7 @@ Create a pre-implementation estimate for an Issue.
 This repository requires the Full estimate format (11 sections). Lite mode is not used.
 
 Note: User-facing artifacts remain in Japanese. When you post an estimate to the user,
-use the Japanese Full estimate template shown in `.agent/commands/impl.md`.
+use the Japanese Full estimate template shown in `.agent/commands/estimation.md`.
 
 ---
 
@@ -21,7 +21,7 @@ use the Japanese Full estimate template shown in `.agent/commands/impl.md`.
 
 ## Full estimate (11 sections)
 
-Use the 11-section template in `.agent/commands/impl.md`.
+Use the 11-section template in `.agent/commands/estimation.md`.
 
 Rules:
 
@@ -86,6 +86,7 @@ If the gap is large, record why and adjust future estimation heuristics.
 
 ## Related
 
-- `.agent/commands/impl.md` - implementation command (Full estimate template)
+- `.agent/commands/estimation.md` - estimation command (Full estimate template)
+- `.agent/commands/impl.md` - implementation command (uses `/estimation`)
 - `.agent/rules/dod.md` - Definition of Done
 - `.agent/rules/issue.md` - Issue granularity rules

@@ -62,7 +62,16 @@ Always include:
 
 ### Phase 6: Create Issues
 
-Create GitHub Issues via `gh issue create`, or output local markdown files.
+Confirm the output destination with the user (do not recommend).
+
+1. If GitHub Issues are an option, preflight the environment:
+   - Check git remotes: `git remote -v`
+   - Check GitHub auth: `gh auth status`
+2. Present choices (no "recommended" label):
+   - Create GitHub Issues via `gh issue create`
+   - Output local markdown files under `issues/`
+3. Follow the user's selection.
+4. If the user does not choose, run `--dry-run` and stop.
 
 ## Output format
 
@@ -95,4 +104,4 @@ issues/
 
 ## Next command
 
-After Issues are created, run `/impl`.
+After Issues are created, run `/estimation`, then `/impl` or `/tdd`.
