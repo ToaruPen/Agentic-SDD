@@ -28,6 +28,30 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues) remai
 
 ---
 
+## Parallel Implementation (git worktree)
+
+Agentic-SDD supports deterministic parallel implementation by running one Issue per branch/worktree.
+
+Guardrails:
+
+- Each Issue must declare `### 変更対象ファイル（推定）` (used as the conflict-check input)
+- Only mark Issues as `parallel-ok` when declared file sets are disjoint
+
+Helper script:
+
+```bash
+# Detect overlaps before starting
+./scripts/worktree.sh check --issue 123 --issue 124
+
+# Create a worktree per Issue
+./scripts/worktree.sh new --issue 123 --desc "add user profile" --tool opencode
+./scripts/worktree.sh new --issue 124 --desc "add settings page" --tool opencode
+```
+
+Note: worktrees share the same `.git` database. Merge incrementally (finish one, merge one) to reduce conflicts.
+
+---
+
 ## Quick Start
 
 ### 1) Create a PRD
@@ -95,7 +119,8 @@ Run the DoD check and `/sync-docs`.
 │   ├── impl.md
 │   ├── review-cycle.md
 │   ├── review.md
-│   └── sync-docs.md
+│   ├── sync-docs.md
+│   └── worktree.md
 ├── schemas/            # JSON schema
 │   └── review.json
 ├── rules/              # rule definitions
@@ -115,17 +140,21 @@ docs/
 └── glossary.md         # glossary
 
 skills/                 # design skills
-└── estimation.md
+├── estimation.md
+└── worktree-parallel.md
 
 scripts/
 ├── agentic-sdd
 ├── install-agentic-sdd.sh
 ├── assemble-sot.py
+├── extract-issue-files.py
 ├── review-cycle.sh
 ├── setup-global-agentic-sdd.sh
 ├── sync-agent-config.sh
 ├── test-review-cycle.sh
-└── validate-review-json.py
+├── test-worktree.sh
+├── validate-review-json.py
+└── worktree.sh
 
 AGENTS.md               # AI agent rules
 ```

@@ -228,6 +228,9 @@ sync_opencode() {
                 sync-docs)
                     cmd_description="Check PRD/Epic/code consistency (sync-docs)"
                     ;;
+                worktree)
+                    cmd_description="Manage git worktrees for parallel Issues"
+                    ;;
             esac
 
             local target_cmd_file="$target_dir/commands/$target_name.md"
@@ -277,6 +280,7 @@ EOF
 
     # Project design skills
     generate_skill_from_file "sdd-estimation" "Full estimation (11 sections) and confidence rules" "skills/estimation.md"
+    generate_skill_from_file "sdd-worktree-parallel" "Parallel implementation with git worktree (deterministic guardrails)" "skills/worktree-parallel.md"
     generate_skill_from_file "sdd-api-endpoint" "REST API endpoint design checklist" "skills/api-endpoint.md"
     generate_skill_from_file "sdd-crud-screen" "CRUD screen design checklist" "skills/crud-screen.md"
     generate_skill_from_file "sdd-error-handling" "Error classification, handling, and logging guidelines" "skills/error-handling.md"

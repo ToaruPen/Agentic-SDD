@@ -32,6 +32,8 @@ assignees: ''
 ### 変更対象ファイル（推定）
 
 <!-- 1〜5ファイルを目安 -->
+<!-- worktree並列（parallel-ok）で運用する場合、このリストが衝突判定の入力になります -->
+<!-- リポジトリ相対パスをバッククォートで囲んで記載してください -->
 
 - [ ] `path/to/file1.ts`
 - [ ] `path/to/file2.ts`
@@ -54,6 +56,9 @@ assignees: ''
 - なし
 <!-- または -->
 <!-- - #123（理由） -->
+
+<!-- parallel-ok を付けたい場合は、他Issueと変更対象ファイルが重ならないことを確認 -->
+<!-- 例: ./scripts/worktree.sh check --issue-body-file issues/123.md --issue-body-file issues/124.md -->
 
 ### 先に終わると何が可能になるか
 

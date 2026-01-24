@@ -12,6 +12,7 @@ Definitions of terms used in this repository and in the Agentic-SDD workflow.
 - DoD: Definition of Done. Criteria for considering an Issue/PR complete.
 - sync-docs: Command/process to verify consistency across PRD/Epic/implementation.
 - SoT: Source of Truth.
+- worktree: Git feature to create multiple working trees sharing one repo (.git).
 
 ---
 
@@ -43,6 +44,13 @@ Definitions of terms used in this repository and in the Agentic-SDD workflow.
 - Exception labels: labels used when violating granularity rules (required fields: reason / impact / risk).
 - blocked: label indicating the Issue is blocked by another Issue.
 - parallel-ok: label indicating work can proceed in parallel.
+
+---
+
+## Git Terms
+
+- git worktree: multiple working directories for one repository
+- conflict guard: deterministic check that parallel Issues do not overlap in declared change-target files
 
 ---
 

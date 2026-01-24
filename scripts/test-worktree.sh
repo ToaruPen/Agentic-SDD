@@ -1,0 +1,184 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+eprint() { printf '%s\n' "$*" >&2; }
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+
+worktree_sh_src="$repo_root/scripts/worktree.sh"
+extractor_src="$repo_root/scripts/extract-issue-files.py"
+
+if [[ ! -x "$worktree_sh_src" ]]; then
+  eprint "Missing script or not executable: $worktree_sh_src"
+  exit 1
+fi
+
+if [[ ! -f "$extractor_src" ]]; then
+  eprint "Missing extractor: $extractor_src"
+  exit 1
+fi
+
+tmpdir="$(mktemp -d 2>/dev/null || mktemp -d -t agentic-sdd-worktree-test)"
+cleanup() { rm -rf "$tmpdir"; }
+trap cleanup EXIT
+
+git -C "$tmpdir" init -q
+
+mkdir -p "$tmpdir/scripts"
+cp -p "$worktree_sh_src" "$tmpdir/scripts/worktree.sh"
+cp -p "$extractor_src" "$tmpdir/scripts/extract-issue-files.py"
+chmod +x "$tmpdir/scripts/worktree.sh"
+
+# Stub gh for deterministic tests (no network/auth)
+mkdir -p "$tmpdir/bin"
+cat > "$tmpdir/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Minimal stub for:
+#   gh issue view <n> --json body
+#   gh -R OWNER/REPO issue view <n> --json body
+
+repo=""
+if [[ ${1:-} == "-R" ]]; then
+  repo="${2:-}"
+  shift 2
+fi
+
+if [[ ${1:-} != "issue" || ${2:-} != "view" ]]; then
+  echo "unsupported" >&2
+  exit 2
+fi
+
+issue="${3:-}"
+
+body=""
+case "$issue" in
+  1)
+    body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/a.ts`\n- [ ] `src/shared.ts`\n'
+    ;;
+  2)
+    body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/b.ts`\n- [ ] `src/shared.ts`\n'
+    ;;
+  *)
+    body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/other.ts`\n'
+    ;;
+esac
+
+printf '{"body":%s}\n' "$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' <<<"$body")"
+EOF
+chmod +x "$tmpdir/bin/gh"
+
+# Minimal content
+cat > "$tmpdir/README.md" <<'EOF'
+# Temp Repo
+EOF
+
+git -C "$tmpdir" add README.md
+git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "init" -q
+
+# Issue body fixtures
+cat > "$tmpdir/issue-1.md" <<'EOF'
+## 概要
+
+test
+
+### 変更対象ファイル（推定）
+
+- [ ] `src/a.ts`
+- [ ] `src/shared.ts`
+EOF
+
+cat > "$tmpdir/issue-2.md" <<'EOF'
+## 概要
+
+test
+
+### 変更対象ファイル（推定）
+
+- [ ] `src/b.ts`
+- [ ] `src/shared.ts`
+EOF
+
+cat > "$tmpdir/issue-3.md" <<'EOF'
+## 概要
+
+test
+
+### 変更対象ファイル（推定）
+
+- [ ] `src/c.ts`
+EOF
+
+mkdir -p "$tmpdir/src"
+touch "$tmpdir/src/a.ts" "$tmpdir/src/b.ts" "$tmpdir/src/c.ts" "$tmpdir/src/shared.ts"
+
+git -C "$tmpdir" add issue-1.md issue-2.md issue-3.md src
+git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "add fixtures" -q
+
+# Extractor: local file
+out1="$(python3 "$tmpdir/scripts/extract-issue-files.py" --repo-root "$tmpdir" --issue-body-file "$tmpdir/issue-1.md" --mode section)"
+if ! printf '%s\n' "$out1" | grep -qx "src/a.ts"; then
+  eprint "Expected src/a.ts in extracted files"
+  exit 1
+fi
+
+# Extractor: gh issue view path (stub)
+out_gh="$(PATH="$tmpdir/bin:$PATH" python3 "$tmpdir/scripts/extract-issue-files.py" --repo-root "$tmpdir" --issue 1 --mode section)"
+if ! printf '%s\n' "$out_gh" | grep -qx "src/shared.ts"; then
+  eprint "Expected src/shared.ts in extracted files via gh"
+  exit 1
+fi
+
+# worktree.sh check: conflict
+set +e
+(cd "$tmpdir" && ./scripts/worktree.sh check --issue-body-file issue-1.md --issue-body-file issue-2.md) >/dev/null 2>"$tmpdir/stderr"
+code=$?
+set -e
+
+if [[ "$code" -ne 3 ]]; then
+  eprint "Expected exit code 3 for conflict, got: $code"
+  cat "$tmpdir/stderr" >&2
+  exit 1
+fi
+
+if ! grep -q "src/shared.ts" "$tmpdir/stderr"; then
+  eprint "Expected shared file in conflict output"
+  cat "$tmpdir/stderr" >&2
+  exit 1
+fi
+
+# worktree.sh check: conflict via gh (stub)
+set +e
+(cd "$tmpdir" && PATH="$tmpdir/bin:$PATH" ./scripts/worktree.sh check --issue 1 --issue 2) >/dev/null 2>"$tmpdir/stderr-gh"
+code_gh=$?
+set -e
+
+if [[ "$code_gh" -ne 3 ]]; then
+  eprint "Expected exit code 3 for gh conflict, got: $code_gh"
+  cat "$tmpdir/stderr-gh" >&2
+  exit 1
+fi
+
+if ! grep -q "src/shared.ts" "$tmpdir/stderr-gh"; then
+  eprint "Expected shared file in gh conflict output"
+  cat "$tmpdir/stderr-gh" >&2
+  exit 1
+fi
+
+# worktree.sh check: no conflict
+(cd "$tmpdir" && ./scripts/worktree.sh check --issue-body-file issue-1.md --issue-body-file issue-3.md) >/dev/null
+
+# worktree.sh new/remove
+worktrees_root="$tmpdir/wt"
+wt_dir="$(cd "$tmpdir" && ./scripts/worktree.sh new --issue 99 --desc "parallel test" --base HEAD --tool none --worktrees-root "$worktrees_root")"
+
+if [[ ! -d "$wt_dir" ]]; then
+  eprint "Expected worktree dir to exist: $wt_dir"
+  exit 1
+fi
+
+(cd "$tmpdir" && ./scripts/worktree.sh remove --dir "$wt_dir")
+
+eprint "OK: scripts/test-worktree.sh"

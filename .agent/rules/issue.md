@@ -133,6 +133,21 @@ Labels:
 - `blocked`
 - `parallel-ok`
 
+### `parallel-ok` (deterministic rules)
+
+Use `parallel-ok` only when it is safe to work in parallel.
+
+Required:
+
+- The Issue body includes `### 変更対象ファイル（推定）` with repo-relative paths.
+- The declared file set does NOT overlap with other parallel Issues.
+
+Validation:
+
+- Use `./scripts/worktree.sh check ...` to detect overlaps before starting.
+
+If file targets are unknown or overlaps exist, do NOT use `parallel-ok`; mark as `blocked` and serialize.
+
 ---
 
 ## Issue body template (Japanese output)
@@ -154,8 +169,19 @@ Labels:
 
 ## 技術メモ
 
-- 変更対象ファイル: [ファイル一覧]
-- 推定行数: [50-100行]
+### 変更対象ファイル（推定）
+
+<!-- 1〜5ファイルを目安 / parallel-ok の衝突判定入力 -->
+
+- [ ] `path/to/file1.ts`
+- [ ] `path/to/file2.ts`
+
+### 推定行数
+
+- [ ] 50行未満（小さい）
+- [x] 50〜150行（適正）
+- [ ] 150〜300行（大きめ）
+- [ ] 300行超（要分割検討）
 
 ## 依存関係
 

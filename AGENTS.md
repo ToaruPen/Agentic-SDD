@@ -34,6 +34,14 @@ Invariant (SoT)
 - Create a PR only after /review passes (do not change anything outside the Issue scope)
 ```
 
+### Parallel work (git worktree)
+
+When using `git worktree` to implement multiple Issues in parallel:
+
+- One Issue = one branch = one worktree (never mix changes)
+- Do not edit PRD/Epic across parallel branches; serialize SoT changes
+- Apply `parallel-ok` only when declared change-target file sets are disjoint (validate via `./scripts/worktree.sh check`)
+
 ---
 
 ## Project Overview
@@ -51,7 +59,6 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `docs/prd/_template.md`: PRD template (Japanese output)
 - `docs/epics/_template.md`: Epic template (Japanese output)
 - `docs/glossary.md`: glossary
-- `DESIGN.md`: design spec (source of truth for this template itself)
 
 ---
 
@@ -65,6 +72,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/review-cycle`: local review loop (codex exec -> review.json)
 - `/review`: review (DoD check)
 - `/sync-docs`: consistency check between PRD/Epic/code
+- `/worktree`: manage git worktrees for parallel Issues
 
 ---
 
@@ -155,6 +163,5 @@ If there is a contradiction, follow the higher-level document.
 
 ## References
 
-- Design spec: `DESIGN.md`
 - Glossary: `docs/glossary.md`
 - Decisions: `docs/decisions.md`

@@ -9,6 +9,7 @@ These docs are language/framework-agnostic and concept-based.
 ## Skill list
 
 - [estimation.md](./estimation.md): estimation (create a Full estimate before implementation)
+- [worktree-parallel.md](./worktree-parallel.md): parallel implementation with git worktree (deterministic guardrails)
 - [api-endpoint.md](./api-endpoint.md): REST API endpoint design
 - [crud-screen.md](./crud-screen.md): CRUD screen design
 - [error-handling.md](./error-handling.md): error handling (classification/processing/UX/logging)
