@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.12] - 2026-01-25
+
+- Clarify deterministic PRD/Epic and diff source resolution for `/sync-docs`.
+- Add a tested helper script `scripts/resolve-sync-docs-inputs.py` to enforce fail-fast input selection.
+
 ## [0.2.11] - 2026-01-25
 
 - Add an implementation gate checklist to prevent skipping estimate/test/quality steps.
