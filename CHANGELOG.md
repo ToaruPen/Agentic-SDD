@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [0.2.8] - 2026-01-25
+## [0.2.9] - 2026-01-25
 
 - Add an implementation gate checklist to prevent skipping estimate/test/quality steps.
 - Split estimation from `/impl` into a dedicated `/estimation` command.
