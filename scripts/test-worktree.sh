@@ -182,16 +182,30 @@ test
 - [ ] `src/c.ts`
 EOF
 
+# Issue JSON fixtures (same shape as `gh issue view --json body`)
+python3 -c 'import json,sys; print(json.dumps({"body": sys.stdin.read()}))' \
+  < "$tmpdir/issue-1.md" > "$tmpdir/issue-1.json"
+
+python3 -c 'import json,sys; print(json.dumps({"body": sys.stdin.read()}))' \
+  < "$tmpdir/issue-2.md" > "$tmpdir/issue-2.json"
+
 mkdir -p "$tmpdir/src"
 touch "$tmpdir/src/a.ts" "$tmpdir/src/b.ts" "$tmpdir/src/c.ts" "$tmpdir/src/shared.ts"
 
-git -C "$tmpdir" add issue-1.md issue-2.md issue-3.md src
+git -C "$tmpdir" add issue-1.md issue-2.md issue-3.md issue-1.json issue-2.json src
 git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "add fixtures" -q
 
 # Extractor: local file
 out1="$(python3 "$tmpdir/scripts/extract-issue-files.py" --repo-root "$tmpdir" --issue-body-file "$tmpdir/issue-1.md" --mode section)"
 if ! printf '%s\n' "$out1" | grep -qx "src/a.ts"; then
   eprint "Expected src/a.ts in extracted files"
+  exit 1
+fi
+
+# Extractor: JSON body file (compat: allow `gh issue view --json body` output passed as --issue-body-file)
+out1_json="$(python3 "$tmpdir/scripts/extract-issue-files.py" --repo-root "$tmpdir" --issue-body-file "$tmpdir/issue-1.json" --mode section)"
+if ! printf '%s\n' "$out1_json" | grep -qx "src/shared.ts"; then
+  eprint "Expected src/shared.ts in extracted files from JSON body file"
   exit 1
 fi
 
@@ -211,6 +225,24 @@ set -e
 if [[ "$code" -ne 3 ]]; then
   eprint "Expected exit code 3 for conflict, got: $code"
   cat "$tmpdir/stderr" >&2
+  exit 1
+fi
+
+# worktree.sh check: conflict (JSON fixtures)
+set +e
+(cd "$tmpdir" && ./scripts/worktree.sh check --issue-body-file issue-1.json --issue-body-file issue-2.json) >/dev/null 2>"$tmpdir/stderr-json"
+code_json=$?
+set -e
+
+if [[ "$code_json" -ne 3 ]]; then
+  eprint "Expected exit code 3 for conflict (JSON fixtures), got: $code_json"
+  cat "$tmpdir/stderr-json" >&2
+  exit 1
+fi
+
+if ! grep -q "src/shared.ts" "$tmpdir/stderr-json"; then
+  eprint "Expected shared file in conflict output (JSON fixtures)"
+  cat "$tmpdir/stderr-json" >&2
   exit 1
 fi
 

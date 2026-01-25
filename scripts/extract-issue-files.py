@@ -167,7 +167,9 @@ def main() -> int:
     src = parser.add_mutually_exclusive_group(required=True)
     src.add_argument("--issue", default="", help="GitHub Issue number or URL (uses gh)")
     src.add_argument(
-        "--issue-body-file", default="", help="Path to local file containing issue body"
+        "--issue-body-file",
+        default="",
+        help="Path to local file containing issue body (Markdown), or a JSON object with {body: ...}",
     )
     src.add_argument(
         "--issue-json-file", default="", help="Path to JSON containing {body: ...}"
@@ -204,7 +206,15 @@ def main() -> int:
         if args.issue:
             body = gh_issue_body(args.issue, args.gh_repo)
         elif args.issue_body_file:
-            body = read_text(args.issue_body_file)
+            raw = read_text(args.issue_body_file)
+            body = raw
+            # Convenience: allow passing `gh issue view --json body` output.
+            try:
+                data = json.loads(raw)
+                if isinstance(data, dict) and isinstance(data.get("body"), str):
+                    body = data["body"]
+            except Exception:
+                pass
         elif args.issue_json_file:
             data = json.loads(read_text(args.issue_json_file))
             if not isinstance(data, dict):

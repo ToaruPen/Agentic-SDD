@@ -241,7 +241,7 @@ def main() -> int:
     if args.format:
         tmp = f"{args.path}.tmp.{os.getpid()}"
         with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(data, fh, ensure_ascii=True, indent=2)
+            json.dump(data, fh, ensure_ascii=False, indent=2)
             fh.write("\n")
         os.replace(tmp, args.path)
 

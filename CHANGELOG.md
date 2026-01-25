@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.19] - 2026-01-25
+
+- Fix `worktree.sh check --issue-body-file <issue.json>` by allowing JSON `{body: ...}` as an input to `extract-issue-files.py`.
+- Keep UTF-8 (no `\\uXXXX` escapes) when `validate-review-json.py --format` rewrites `review.json`.
+- Add offline tests covering the above behaviors.
+
 ## [0.2.18] - 2026-01-25
 
 - Add `--ref latest` support to `agentic-sdd` (resolves to the highest semver tag).

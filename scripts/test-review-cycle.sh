@@ -288,6 +288,32 @@ EOF
 
 python3 "$validator_py" "$tmpdir/review.json" --scope-id issue-1 >/dev/null
 
+# Validator: --format should not escape non-ASCII (keep UTF-8)
+cat > "$tmpdir/review-ja.json" <<'EOF'
+{
+  "schema_version": 3,
+  "scope_id": "issue-1",
+  "status": "Approved",
+  "findings": [],
+  "questions": [],
+  "overall_explanation": "日本語テスト"
+}
+EOF
+
+python3 "$validator_py" "$tmpdir/review-ja.json" --scope-id issue-1 --format >/dev/null
+
+if grep -q "\\\\u" "$tmpdir/review-ja.json"; then
+  eprint "Did not expect Unicode escaping in formatted JSON"
+  cat "$tmpdir/review-ja.json" >&2
+  exit 1
+fi
+
+if ! grep -q "日本語テスト" "$tmpdir/review-ja.json"; then
+  eprint "Expected UTF-8 Japanese text to remain in formatted JSON"
+  cat "$tmpdir/review-ja.json" >&2
+  exit 1
+fi
+
 # Validator: Blocked requires at least one P0/P1
 cat > "$tmpdir/review-blocked.json" <<'EOF'
 {
