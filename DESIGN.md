@@ -350,6 +350,8 @@ Agentic-SDD/
 │   │   ├── create-prd.md
 │   │   ├── create-epic.md
 │   │   ├── create-issues.md
+│   │   ├── create-pr.md
+│   │   ├── estimation.md
 │   │   ├── impl.md
 │   │   ├── tdd.md
 │   │   ├── review-cycle.md
@@ -365,6 +367,7 @@ Agentic-SDD/
 │   │   ├── branch.md
 │   │   ├── dod.md
 │   │   ├── epic.md              # カウント定義 + 許可/禁止リスト
+│   │   ├── impl-gate.md          # 実装ゲート（見積もり/テスト/レビュー）
 │   │   └── docs-sync.md         # 出力形式 + 参照必須
 │   └── agents/
 │       └── reviewer.md
@@ -390,15 +393,27 @@ Agentic-SDD/
 │   │   ├── feature.md           # 例外ラベル必須記入欄含む
 │   │   └── bug.md
 │   └── PULL_REQUEST_TEMPLATE.md
+├── templates/
+│   ├── opencode/
+│   ├── codex/
+│   ├── claude/
+│   ├── clawdbot/
+│   └── ci/                       # opt-in CI templates (e.g. GitHub Actions)
 ├── scripts/
 │   ├── agentic-sdd
 │   ├── install-agentic-sdd.sh
 │   ├── assemble-sot.py
+│   ├── create-pr.sh
 │   ├── extract-issue-files.py
 │   ├── review-cycle.sh
+│   ├── resolve-sync-docs-inputs.py
 │   ├── setup-global-agentic-sdd.sh
+│   ├── sot_refs.py
 │   ├── sync-agent-config.sh
+│   ├── test-create-pr.sh
+│   ├── test-install-agentic-sdd.sh
 │   ├── test-review-cycle.sh
+│   ├── test-sync-docs-inputs.sh
 │   ├── test-worktree.sh
 │   ├── validate-review-json.py
 │   └── worktree.sh
@@ -475,6 +490,7 @@ AGENTS.md
 - [ ] 見積もりがFull（11セクション）で作成されている
 - [ ] /sync-docsで「差分なし」になる
 - [ ] /review-cycle で review.json が生成できる
+- [ ] CIが通る（適用される場合）
 - [ ] PRがマージされる
 
 ---

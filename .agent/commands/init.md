@@ -53,6 +53,14 @@ Then install/upgrade:
 /agentic-sdd [tool] [mode]
 ```
 
+Optional (opt-in): install a GitHub Actions CI template:
+
+```text
+/agentic-sdd --ci github-actions [tool] [mode]
+```
+
+Then edit `.github/workflows/agentic-sdd-ci.yml` and set the 3 env vars to your project's commands.
+
 Notes:
 
 - `mode=minimal`: install workflow files (no GitHub issue/PR templates).
@@ -94,6 +102,7 @@ Common `/agentic-sdd` options:
 
 - `--mode minimal|full`
 - `--tool none|opencode|codex|claude|all`
+- `--ci none|github-actions` (opt-in: install a GitHub Actions CI template)
 - `--dry-run`
 - `--force`
 - `--ref <tag>` (install a specific release tag)

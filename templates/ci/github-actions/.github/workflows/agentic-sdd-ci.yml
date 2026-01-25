@@ -1,0 +1,35 @@
+name: agentic-sdd-ci
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run CI commands (tests + lint + typecheck)
+        shell: bash
+        env:
+          # This template is language/framework-agnostic.
+          # Fill these with your project's commands, for example:
+          # - Node.js:
+          #   AGENTIC_SDD_CI_TEST_CMD: "npm test"
+          #   AGENTIC_SDD_CI_LINT_CMD: "npm run lint"
+          #   AGENTIC_SDD_CI_TYPECHECK_CMD: "npm run typecheck"
+          # - Python:
+          #   AGENTIC_SDD_CI_TEST_CMD: "pytest -q"
+          #   AGENTIC_SDD_CI_LINT_CMD: "ruff check ."
+          #   AGENTIC_SDD_CI_TYPECHECK_CMD: "mypy ."
+          AGENTIC_SDD_CI_TEST_CMD: ""
+          AGENTIC_SDD_CI_LINT_CMD: ""
+          AGENTIC_SDD_CI_TYPECHECK_CMD: ""
+        run: |
+          set -euo pipefail
+          bash ./scripts/agentic-sdd-ci.sh

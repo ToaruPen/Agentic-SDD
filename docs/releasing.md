@@ -28,3 +28,8 @@ Notes:
 - `agentic-sdd-<tag>-template.tar.gz`
 - `agentic-sdd-<tag>-template.zip`
 - `SHA256SUMS.txt`
+
+Notes:
+
+- The template bundle excludes this repo's `.github/workflows/*` (they are for Agentic-SDD itself).
+- CI templates live under `templates/ci/` and are installed into a target repo only when opt-in options (e.g. `--ci github-actions`) are used.

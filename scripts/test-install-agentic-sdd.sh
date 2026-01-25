@@ -143,4 +143,25 @@ if [[ -d "$proj3/.github/workflows" ]]; then
   exit 1
 fi
 
+# 4) Opt-in CI templates should install workflows + script (and not include Agentic-SDD internal workflows)
+proj4="$tmpdir/proj4"
+mkproj "$proj4"
+
+"$installer" --target "$proj4" --mode minimal --tool none --ci github-actions >/dev/null
+
+if [[ ! -f "$proj4/.github/workflows/agentic-sdd-ci.yml" ]]; then
+  eprint "Expected CI workflow to be installed: .github/workflows/agentic-sdd-ci.yml"
+  exit 1
+fi
+
+if [[ ! -f "$proj4/scripts/agentic-sdd-ci.sh" ]]; then
+  eprint "Expected CI script to be installed: scripts/agentic-sdd-ci.sh"
+  exit 1
+fi
+
+if [[ -f "$proj4/.github/workflows/release.yml" ]]; then
+  eprint "Did not expect Agentic-SDD internal workflow to be installed: .github/workflows/release.yml"
+  exit 1
+fi
+
 eprint "OK: scripts/test-install-agentic-sdd.sh"

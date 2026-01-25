@@ -27,6 +27,7 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues) remai
 ```
 
 \* One-time install of Agentic-SDD workflow files in the repo.
+Optional: enable GitHub-hosted CI (GitHub Actions) via `/agentic-sdd --ci github-actions` and enforce it with branch protection.
 
 ---
 
@@ -66,6 +67,15 @@ If Agentic-SDD is not installed in your repository yet, install it first:
 ```
 /agentic-sdd opencode minimal
 ```
+
+Optional (opt-in): install a GitHub Actions CI template (tests + lint + typecheck):
+
+```
+/agentic-sdd --ci github-actions opencode minimal
+```
+
+After install, edit `.github/workflows/agentic-sdd-ci.yml` and set the 3 env vars to your project's commands.
+To enforce in GitHub, require the check `agentic-sdd-ci / ci` via branch protection rules.
 
 If you do not have `/agentic-sdd` yet, set it up once by cloning this repo and running:
 
@@ -152,6 +162,8 @@ After `/review` is approved, push the branch and create a PR:
 ```
 /create-pr [issue-number]
 ```
+
+If you enable CI (optional), wait for CI checks and fix failures before merging.
 
 ---
 

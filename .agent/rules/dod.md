@@ -15,6 +15,10 @@ Required:
 - [ ] Code review is complete
 - [ ] CI passes (when applicable)
 
+CI note:
+- If you choose to enforce CI, require it via branch protection (required status checks).
+- Agentic-SDD can install a GitHub Actions CI template with `/agentic-sdd --ci github-actions` (opt-in).
+
 Optional:
 
 - [ ] Documentation updated

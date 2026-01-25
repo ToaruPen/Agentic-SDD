@@ -63,6 +63,10 @@ Report (Japanese):
 - Push result (remote tracking)
 - PR URL
 
+Notes:
+
+- If CI is enabled for the repo, wait for CI checks and fix failures before merging.
+
 ## Related
 
 - `.agent/commands/review.md` - final review gate

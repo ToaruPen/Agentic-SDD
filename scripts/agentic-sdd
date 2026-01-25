@@ -7,7 +7,7 @@ DEFAULT_REPO_URL="https://github.com/ToaruPen/Agentic-SDD.git"
 # Fallback is used when no config/env is set.
 # Keep this pinned to a known-good *release tag* for reproducibility.
 # (Assumption: release tags are immutable; do not move tags.)
-DEFAULT_REF_FALLBACK="0.2.14"
+DEFAULT_REF_FALLBACK="0.2.15"
 
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/agentic-sdd"
 DEFAULT_REF_FILE="$CONFIG_DIR/default-ref"
@@ -25,14 +25,15 @@ Positional arguments (optional):
   tool: opencode | codex | claude | all | none
   mode: minimal | full
 
-Options:
-  --target <dir>        Target directory (default: git root or pwd)
-  --tool <tool>         Tool selection (default: $AGENTIC_SDD_DEFAULT_TOOL or none)
-  --mode <mode>         Install mode (default: $AGENTIC_SDD_DEFAULT_MODE or minimal)
-  --ref <sha|ref>       Agentic-SDD ref to fetch (default: config or pinned fallback)
-  --repo <url>          Agentic-SDD git repo URL (default: config or GitHub)
-  --force               Overwrite conflicting files (backs up first)
-  --dry-run             Show what would change
+	Options:
+	  --target <dir>        Target directory (default: git root or pwd)
+	  --tool <tool>         Tool selection (default: $AGENTIC_SDD_DEFAULT_TOOL or none)
+	  --mode <mode>         Install mode (default: $AGENTIC_SDD_DEFAULT_MODE or minimal)
+	  --ci <ci>             Optional CI template (default: none)
+	  --ref <sha|ref>       Agentic-SDD ref to fetch (default: config or pinned fallback)
+	  --repo <url>          Agentic-SDD git repo URL (default: config or GitHub)
+	  --force               Overwrite conflicting files (backs up first)
+	  --dry-run             Show what would change
   --no-cache            Do not use on-disk repo cache
   --cache-dir <dir>     Override cache dir (default: $XDG_CACHE_HOME/.cache/agentic-sdd)
   -h, --help            Show help
@@ -136,12 +137,13 @@ fetch_repo_at_sha() {
     git -C "$dest" checkout -q --detach FETCH_HEAD
 }
 
-TOOL=""
-MODE=""
-TARGET_DIR=""
-REF=""
-REPO=""
-FORCE=false
+	TOOL=""
+	MODE=""
+	CI="none"
+	TARGET_DIR=""
+	REF=""
+	REPO=""
+	FORCE=false
 DRY_RUN=false
 NO_CACHE=false
 CACHE_DIR_OVERRIDE=""
@@ -158,14 +160,18 @@ while [[ $# -gt 0 ]]; do
             TOOL="$2"
             shift 2
             ;;
-        --mode)
-            MODE="$2"
-            shift 2
-            ;;
-        --ref)
-            REF="$2"
-            shift 2
-            ;;
+	        --mode)
+	            MODE="$2"
+	            shift 2
+	            ;;
+	        --ci)
+	            CI="$2"
+	            shift 2
+	            ;;
+	        --ref)
+	            REF="$2"
+	            shift 2
+	            ;;
         --repo)
             REPO="$2"
             shift 2
@@ -265,13 +271,21 @@ case "$TOOL" in
         ;;
 esac
 
-case "$MODE" in
-    minimal|full) ;;
-    *)
-        log_error "Invalid mode: $MODE (expected minimal|full)"
-        exit 1
-        ;;
-esac
+	case "$MODE" in
+	    minimal|full) ;;
+	    *)
+	        log_error "Invalid mode: $MODE (expected minimal|full)"
+	        exit 1
+	        ;;
+	esac
+
+	case "$CI" in
+	    none|github-actions) ;;
+	    *)
+	        log_error "Invalid ci: $CI (expected none|github-actions)"
+	        exit 1
+	        ;;
+	esac
 
 if [ -z "$TARGET_DIR" ]; then
     TARGET_DIR="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
@@ -340,6 +354,10 @@ install_args=(
     --tool "$TOOL"
 )
 
+if [ "$CI" != "none" ]; then
+    install_args+=(--ci "$CI")
+fi
+
 if [ "$FORCE" = true ]; then
     install_args+=(--force)
 fi
@@ -370,6 +388,6 @@ if [ "$FORCE" = false ] && [ "$DRY_RUN" = false ]; then
     fi
 fi
 
-log_info "Installing into: $TARGET_DIR (mode=$MODE tool=$TOOL force=$FORCE dry-run=$DRY_RUN)"
+	log_info "Installing into: $TARGET_DIR (mode=$MODE tool=$TOOL ci=$CI force=$FORCE dry-run=$DRY_RUN)"
 
 bash "$installer" "${install_args[@]}"

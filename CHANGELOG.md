@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.15] - 2026-01-25
+
+- Add opt-in GitHub Actions CI template installation via `--ci github-actions` (no workflows are installed by default).
+
 ## [0.2.14] - 2026-01-25
 
 - Add `/create-pr` to push the linked branch and create a PR via `gh`.

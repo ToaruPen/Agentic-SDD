@@ -12,14 +12,15 @@ usage() {
     cat << 'EOF'
 Usage: install-agentic-sdd.sh --target <dir> [options]
 
-Options:
-  --target <dir>            Target project directory (required)
-  --mode minimal|full       What to install (default: minimal)
-  --tool none|opencode|codex|claude|all
-                            Run sync for the selected tool (default: none)
-  --force                   Overwrite conflicting files (backs up first)
-  --dry-run                 Show what would change
-  -h, --help                Show help
+    Options:
+      --target <dir>            Target project directory (required)
+      --mode minimal|full       What to install (default: minimal)
+      --tool none|opencode|codex|claude|all
+                                Run sync for the selected tool (default: none)
+      --ci none|github-actions  Optional CI template to install (default: none)
+      --force                   Overwrite conflicting files (backs up first)
+      --dry-run                 Show what would change
+      -h, --help                Show help
 
 Exit codes:
   0  Success
@@ -33,6 +34,7 @@ log_error() { echo "[ERROR] $*" >&2; }
 
 MODE="minimal"
 TOOL="none"
+CI="none"
 FORCE=false
 DRY_RUN=false
 TARGET_DIR=""
@@ -49,6 +51,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --tool)
             TOOL="$2"
+            shift 2
+            ;;
+        --ci)
+            CI="$2"
             shift 2
             ;;
         --force)
@@ -94,6 +100,14 @@ case "$TOOL" in
     none|opencode|codex|claude|all) ;;
     *)
         log_error "Invalid --tool: $TOOL (expected none|opencode|codex|claude|all)"
+        exit 1
+        ;;
+esac
+
+case "$CI" in
+    none|github-actions) ;;
+    *)
+        log_error "Invalid --ci: $CI (expected none|github-actions)"
         exit 1
         ;;
 esac
@@ -237,7 +251,7 @@ ensure_gitignore_line() {
 }
 
 log_info "Installing Agentic-SDD into: $TARGET_DIR"
-log_info "Mode: $MODE, Tool: $TOOL, Force: $FORCE, Dry-run: $DRY_RUN"
+log_info "Mode: $MODE, Tool: $TOOL, CI: $CI, Force: $FORCE, Dry-run: $DRY_RUN"
 
 # Fail-fast conflict scan (avoid partial installs when not using --force)
 if [ "$DRY_RUN" = false ] && [ "$FORCE" = false ]; then
@@ -247,15 +261,20 @@ if [ "$DRY_RUN" = false ] && [ "$FORCE" = false ]; then
     scan_conflict_file "$SOURCE_ROOT/docs/decisions.md" "$TARGET_DIR/docs/decisions.md"
     scan_conflict_file "$SOURCE_ROOT/docs/glossary.md" "$TARGET_DIR/docs/glossary.md"
     scan_conflict_dir "$SOURCE_ROOT/skills" "$TARGET_DIR/skills"
-    scan_conflict_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts"
+	    scan_conflict_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts"
 
-    if [ "$MODE" = "full" ]; then
-        scan_conflict_dir "$SOURCE_ROOT/.github" "$TARGET_DIR/.github"
-    fi
+	    if [ "$MODE" = "full" ]; then
+	        scan_conflict_dir "$SOURCE_ROOT/.github" "$TARGET_DIR/.github"
+	    fi
 
-    # AGENTS.md (do not overwrite; use append file when target already has AGENTS.md)
-    if [ -f "$TARGET_DIR/AGENTS.md" ]; then
-        scan_conflict_file "$SOURCE_ROOT/AGENTS.md" "$TARGET_DIR/AGENTS.md.agentic-sdd.append.md"
+	    if [ "$CI" = "github-actions" ]; then
+	        scan_conflict_dir "$SOURCE_ROOT/templates/ci/github-actions/.github/workflows" "$TARGET_DIR/.github/workflows"
+	        scan_conflict_file "$SOURCE_ROOT/templates/ci/github-actions/scripts/agentic-sdd-ci.sh" "$TARGET_DIR/scripts/agentic-sdd-ci.sh"
+	    fi
+
+	    # AGENTS.md (do not overwrite; use append file when target already has AGENTS.md)
+	    if [ -f "$TARGET_DIR/AGENTS.md" ]; then
+	        scan_conflict_file "$SOURCE_ROOT/AGENTS.md" "$TARGET_DIR/AGENTS.md.agentic-sdd.append.md"
     else
         scan_conflict_file "$SOURCE_ROOT/AGENTS.md" "$TARGET_DIR/AGENTS.md"
     fi
@@ -294,6 +313,12 @@ if [ "$MODE" = "full" ]; then
     # Copy issue/PR templates only. Workflows in this repo are for Agentic-SDD itself.
     copy_file "$SOURCE_ROOT/.github/PULL_REQUEST_TEMPLATE.md" "$TARGET_DIR/.github/PULL_REQUEST_TEMPLATE.md"
     copy_dir "$SOURCE_ROOT/.github/ISSUE_TEMPLATE" "$TARGET_DIR/.github/ISSUE_TEMPLATE"
+fi
+
+# CI templates (optional)
+if [ "$CI" = "github-actions" ]; then
+    copy_dir "$SOURCE_ROOT/templates/ci/github-actions/.github/workflows" "$TARGET_DIR/.github/workflows"
+    copy_file "$SOURCE_ROOT/templates/ci/github-actions/scripts/agentic-sdd-ci.sh" "$TARGET_DIR/scripts/agentic-sdd-ci.sh"
 fi
 
 # AGENTS.md

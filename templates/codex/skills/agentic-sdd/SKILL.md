@@ -11,6 +11,7 @@ Arguments (optional): $ARGUMENTS
 
 - tool: opencode | codex | claude | all | none (default: opencode)
 - mode: minimal | full (default: minimal)
+- ci: none | github-actions (default: none; opt-in)
 
 ## Steps
 
