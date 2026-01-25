@@ -234,6 +234,9 @@ sync_opencode() {
                 sync-docs)
                     cmd_description="Check PRD/Epic/code consistency (sync-docs)"
                     ;;
+                create-pr)
+                    cmd_description="Push branch and create a Pull Request via gh"
+                    ;;
                 worktree)
                     cmd_description="Manage git worktrees for parallel Issues"
                     ;;

@@ -88,6 +88,11 @@ if [[ ! -f "$proj2/.opencode/commands/sdd-init.md" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$proj2/.opencode/commands/create-pr.md" ]]; then
+  eprint "Expected OpenCode command to exist: .opencode/commands/create-pr.md"
+  exit 1
+fi
+
 if [[ -f "$proj2/.opencode/commands/init.md" ]]; then
   eprint "Did not expect OpenCode init override: .opencode/commands/init.md"
   exit 1

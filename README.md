@@ -19,11 +19,11 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues) remai
 ## Workflow
 
 ```
-/agentic-sdd* -> /create-prd -> /create-epic -> /create-issues -> /estimation -> /impl|/tdd -> /review-cycle -> /review
+/agentic-sdd* -> /create-prd -> /create-epic -> /create-issues -> /estimation -> /impl|/tdd -> /review-cycle -> /review -> /create-pr
      |            |              |              |              |            |              |            |
      v            v              v              v              v            v              v            v
-    Install       7 questions    3-layer guard  LOC-based       Full estimate Implement      Local loop    DoD gate
-                  + checklist    + 3 required   50-300 LOC      + approval    + tests        review.json   + sync-docs
+     Install       7 questions    3-layer guard  LOC-based       Full estimate Implement      Local loop    DoD gate       Push + PR create
+                  + checklist    + 3 required   50-300 LOC      + approval    + tests        review.json   + sync-docs    (gh)
 ```
 
 \* One-time install of Agentic-SDD workflow files in the repo.
@@ -145,6 +145,14 @@ During development (and before committing, per `/impl`), iterate locally with:
 If you set `GH_ISSUE=123`, it reads the Issue body and `- PRD:` / `- Epic:` references
 to assemble SoT automatically.
 
+### 6) Create PR
+
+After `/review` is approved, push the branch and create a PR:
+
+```
+/create-pr [issue-number]
+```
+
 ---
 
 ## Directory Structure
@@ -155,6 +163,7 @@ to assemble SoT automatically.
 │   ├── create-prd.md
 │   ├── create-epic.md
 │   ├── create-issues.md
+│   ├── create-pr.md
 │   ├── estimation.md
 │   ├── impl.md
 │   ├── tdd.md
@@ -196,6 +205,7 @@ skills/                 # design skills
 
 scripts/
 ├── agentic-sdd
+├── create-pr.sh
 ├── install-agentic-sdd.sh
 ├── assemble-sot.py
 ├── extract-issue-files.py
@@ -205,6 +215,7 @@ scripts/
 ├── setup-global-agentic-sdd.sh
 ├── sync-agent-config.sh
 ├── test-install-agentic-sdd.sh
+├── test-create-pr.sh
 ├── test-review-cycle.sh
 ├── test-sync-docs-inputs.sh
 ├── test-worktree.sh

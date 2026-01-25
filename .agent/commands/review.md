@@ -207,7 +207,7 @@ Approve / Request changes / Comment
 
 ## Next steps
 
-- Approved: can merge
-- Approved with nits: can merge (optionally batch-fix P2/P3)
+- Approved: if no PR exists, run `/create-pr`; otherwise can merge
+- Approved with nits: if no PR exists, run `/create-pr`; otherwise can merge (optionally batch-fix P2/P3)
 - Blocked: fix P0/P1 -> run `/review-cycle` -> re-run `/review`
 - Question: answer questions (do not guess) -> run `/review-cycle` -> re-run `/review`

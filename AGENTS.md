@@ -38,6 +38,7 @@ Release hygiene (required)
 
 3) PR / merge
 - Create a PR only after /review passes (do not change anything outside the Issue scope)
+  - Then run: /create-pr
 ```
 
 ### Parallel work (git worktree)
@@ -78,6 +79,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/tdd`: implement via TDD (Red -> Green -> Refactor)
 - `/review-cycle`: local review loop (codex exec -> review.json)
 - `/review`: review (DoD check)
+- `/create-pr`: push branch and create a PR (gh)
 - `/sync-docs`: consistency check between PRD/Epic/code
 - `/worktree`: manage git worktrees for parallel Issues
 
