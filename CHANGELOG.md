@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.18] - 2026-01-25
+
+- Add `--ref latest` support to `agentic-sdd` (resolves to the highest semver tag).
+- Default Codex/Claude/Clawdbot/OpenCode `/agentic-sdd` templates to install `--ref latest`.
+- Bundle `CHANGELOG.md` into the installed Codex skill directory via `setup-global-agentic-sdd.sh`.
+- Add offline tests for the above behaviors.
+
 ## [0.2.17] - 2026-01-25
 
 - Add technical enforcement for the `/estimation` approval gate via local approval records + hooks:
