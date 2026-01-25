@@ -261,20 +261,25 @@ if [ "$DRY_RUN" = false ] && [ "$FORCE" = false ]; then
     scan_conflict_file "$SOURCE_ROOT/docs/decisions.md" "$TARGET_DIR/docs/decisions.md"
     scan_conflict_file "$SOURCE_ROOT/docs/glossary.md" "$TARGET_DIR/docs/glossary.md"
     scan_conflict_dir "$SOURCE_ROOT/skills" "$TARGET_DIR/skills"
-	    scan_conflict_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts"
+    scan_conflict_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts"
+    scan_conflict_dir "$SOURCE_ROOT/.githooks" "$TARGET_DIR/.githooks"
 
-	    if [ "$MODE" = "full" ]; then
-	        scan_conflict_dir "$SOURCE_ROOT/.github" "$TARGET_DIR/.github"
-	    fi
+    if [ "$TOOL" = "claude" ] || [ "$TOOL" = "all" ]; then
+        scan_conflict_file "$SOURCE_ROOT/.claude/settings.json" "$TARGET_DIR/.claude/settings.json"
+    fi
 
-	    if [ "$CI" = "github-actions" ]; then
-	        scan_conflict_dir "$SOURCE_ROOT/templates/ci/github-actions/.github/workflows" "$TARGET_DIR/.github/workflows"
-	        scan_conflict_file "$SOURCE_ROOT/templates/ci/github-actions/scripts/agentic-sdd-ci.sh" "$TARGET_DIR/scripts/agentic-sdd-ci.sh"
-	    fi
+    if [ "$MODE" = "full" ]; then
+        scan_conflict_dir "$SOURCE_ROOT/.github" "$TARGET_DIR/.github"
+    fi
 
-	    # AGENTS.md (do not overwrite; use append file when target already has AGENTS.md)
-	    if [ -f "$TARGET_DIR/AGENTS.md" ]; then
-	        scan_conflict_file "$SOURCE_ROOT/AGENTS.md" "$TARGET_DIR/AGENTS.md.agentic-sdd.append.md"
+    if [ "$CI" = "github-actions" ]; then
+        scan_conflict_dir "$SOURCE_ROOT/templates/ci/github-actions/.github/workflows" "$TARGET_DIR/.github/workflows"
+        scan_conflict_file "$SOURCE_ROOT/templates/ci/github-actions/scripts/agentic-sdd-ci.sh" "$TARGET_DIR/scripts/agentic-sdd-ci.sh"
+    fi
+
+    # AGENTS.md (do not overwrite; use append file when target already has AGENTS.md)
+    if [ -f "$TARGET_DIR/AGENTS.md" ]; then
+        scan_conflict_file "$SOURCE_ROOT/AGENTS.md" "$TARGET_DIR/AGENTS.md.agentic-sdd.append.md"
     else
         scan_conflict_file "$SOURCE_ROOT/AGENTS.md" "$TARGET_DIR/AGENTS.md"
     fi
@@ -308,6 +313,14 @@ copy_dir "$SOURCE_ROOT/skills" "$TARGET_DIR/skills"
 # Scripts
 copy_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts"
 
+# Git hooks (tool-agnostic final defense line)
+copy_dir "$SOURCE_ROOT/.githooks" "$TARGET_DIR/.githooks"
+
+# Claude Code hooks (optional)
+if [ "$TOOL" = "claude" ] || [ "$TOOL" = "all" ]; then
+    copy_file "$SOURCE_ROOT/.claude/settings.json" "$TARGET_DIR/.claude/settings.json"
+fi
+
 # GitHub templates (optional)
 if [ "$MODE" = "full" ]; then
     # Copy issue/PR templates only. Workflows in this repo are for Agentic-SDD itself.
@@ -332,9 +345,28 @@ fi
 # .gitignore updates
 ensure_gitignore_line "$TARGET_DIR/.gitignore" "# Agentic-SDD"
 ensure_gitignore_line "$TARGET_DIR/.gitignore" ".agent/agents/*.local.md"
+ensure_gitignore_line "$TARGET_DIR/.gitignore" ".claude/settings.local.json"
 ensure_gitignore_line "$TARGET_DIR/.gitignore" ".agentic-sdd/"
 ensure_gitignore_line "$TARGET_DIR/.gitignore" ".opencode/"
 ensure_gitignore_line "$TARGET_DIR/.gitignore" ".codex/"
+
+# Git hooks activation (local config)
+if [ "$DRY_RUN" = false ]; then
+    if command -v git >/dev/null 2>&1 && git -C "$TARGET_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        if [ -x "$TARGET_DIR/scripts/setup-githooks.sh" ]; then
+            log_info "Configuring git hooks (core.hooksPath=.githooks)"
+            if [ "$FORCE" = true ]; then
+                (cd "$TARGET_DIR" && ./scripts/setup-githooks.sh --force --quiet)
+            else
+                (cd "$TARGET_DIR" && ./scripts/setup-githooks.sh --quiet)
+            fi
+        else
+            log_warn "Missing executable: $TARGET_DIR/scripts/setup-githooks.sh (skipping hooks setup)"
+        fi
+    else
+        log_warn "Target is not a git repo; skipping hooks setup"
+    fi
+fi
 
 if [ "$DRY_RUN" = true ]; then
     log_info "[DRY-RUN] done"

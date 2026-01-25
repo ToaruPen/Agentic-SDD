@@ -157,21 +157,22 @@ sync_opencode() {
         fi
     fi
     
-    # OpenCode は `.opencode/commands`, `.opencode/agents`, `.opencode/skills` を読み込む。
+    # OpenCode は `.opencode/commands`, `.opencode/agents`, `.opencode/skills`, `.opencode/plugins` を読み込む。
     # `.opencode/rules` は探索対象ではないため生成しない。
     # Ref:
     # - Commands: https://opencode.ai/docs/commands/
     # - Agents: https://opencode.ai/docs/agents/
     # - Skills: https://opencode.ai/docs/skills/
     if [ "$DRY_RUN" = true ]; then
-        log_info "[DRY-RUN] mkdir -p $target_dir/commands $target_dir/agents $target_dir/skills"
+        log_info "[DRY-RUN] mkdir -p $target_dir/commands $target_dir/agents $target_dir/skills $target_dir/plugins"
         log_info "[DRY-RUN] generate commands from .agent/commands -> $target_dir/commands (init.md -> sdd-init.md)"
         log_info "[DRY-RUN] generate agent(s) from .agent/agents -> $target_dir/agents (frontmatter added)"
         log_info "[DRY-RUN] generate skills from skills/*.md and .agent/rules/*.md -> $target_dir/skills/*/SKILL.md"
+        log_info "[DRY-RUN] generate plugins -> $target_dir/plugins"
         return
     fi
 
-    mkdir -p "$target_dir/commands" "$target_dir/agents" "$target_dir/skills"
+    mkdir -p "$target_dir/commands" "$target_dir/agents" "$target_dir/skills" "$target_dir/plugins"
 
     # Legacy cleanup (older versions of this repo generated these paths)
     # Avoid running rm unless the path actually exists (helps reduce unnecessary prompts).
@@ -335,6 +336,59 @@ When needed, load these skills:
 EOF
         } > "$target_dir/agents/sdd-reviewer.md"
     fi
+
+    # -----------------
+    # Plugins
+    # -----------------
+    # Gate enforcement to prevent accidental implementation before estimation approval.
+    # Loaded automatically by OpenCode at startup when placed under `.opencode/plugins/`.
+    cat > "$target_dir/plugins/agentic-sdd-gate.js" <<'EOF'
+export const AgenticSddGatePlugin = async ({ $, worktree }) => {
+  const isAllowedPath = (path) => {
+    if (typeof path !== "string" || path.length === 0) return false
+    const p = path.replace(/\\/g, "/")
+    return p === ".agentic-sdd" || p.startsWith(".agentic-sdd/") || p.includes("/.agentic-sdd/")
+  }
+
+  const getPathFromArgs = (args) => {
+    if (!args || typeof args !== "object") return undefined
+    const keys = ["path", "file", "file_path", "filePath", "filepath", "filename", "target"]
+    for (const k of keys) {
+      const v = args[k]
+      if (typeof v === "string" && v.length > 0) return v
+    }
+    return undefined
+  }
+
+  const isGitCommitOrPush = (cmd) => {
+    if (typeof cmd !== "string") return false
+    const s = cmd.trim()
+    return s.startsWith("git commit") || s.startsWith("git push")
+  }
+
+  const validate = async () => {
+    // Run from the worktree root to keep paths stable.
+    await $`cd ${worktree} && python3 scripts/validate-approval.py`
+  }
+
+  return {
+    "tool.execute.before": async (input, output) => {
+      if (input.tool === "edit" || input.tool === "write") {
+        const p = getPathFromArgs(output.args)
+        if (isAllowedPath(p)) return
+        await validate()
+        return
+      }
+
+      if (input.tool === "bash") {
+        const cmd = output.args?.command ?? output.args?.cmd ?? output.args?.script
+        if (!isGitCommitOrPush(cmd)) return
+        await validate()
+      }
+    },
+  }
+}
+EOF
 
     log_info "OpenCode への同期が完了しました"
 }

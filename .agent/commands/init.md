@@ -79,6 +79,19 @@ If you installed with `--tool none` or you edited `.agent/` after installation, 
 
 OpenCode note: restart OpenCode after sync.
 
+### Phase 3.5: Verify/enable git hooks (required)
+
+Enable the tool-agnostic final gate (pre-commit / pre-push).
+
+Notes:
+
+- The installer attempts to configure this automatically.
+- If you are upgrading from an older version, re-run it manually.
+
+```bash
+./scripts/setup-githooks.sh
+```
+
 ### Phase 4: Finish
 
 Output a short completion message and next steps (in Japanese), for example:

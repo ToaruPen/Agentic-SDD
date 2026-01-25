@@ -9,6 +9,7 @@
 
 # Agentic-SDD local files
 .agent/agents/*.local.md
+.claude/settings.local.json
 
 # Local review-cycle outputs
 .agentic-sdd/

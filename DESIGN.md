@@ -383,10 +383,14 @@ Agentic-SDD/
 │   ├── agentic-sdd
 │   ├── install-agentic-sdd.sh
 │   ├── assemble-sot.py
+│   ├── create-approval.py
 │   ├── create-pr.sh
+│   ├── check-commit-gate.py
+│   ├── check-impl-gate.py
 │   ├── extract-issue-files.py
 │   ├── review-cycle.sh
 │   ├── resolve-sync-docs-inputs.py
+│   ├── setup-githooks.sh
 │   ├── setup-global-agentic-sdd.sh
 │   ├── sot_refs.py
 │   ├── sync-agent-config.sh
@@ -395,8 +399,14 @@ Agentic-SDD/
 │   ├── test-review-cycle.sh
 │   ├── test-sync-docs-inputs.sh
 │   ├── test-worktree.sh
+│   ├── validate-approval.py
 │   ├── validate-review-json.py
 │   └── worktree.sh
+├── .githooks/
+│   ├── pre-commit
+│   └── pre-push
+├── .claude/
+│   └── settings.json            # Claude Code hooks (gate enforcement)
 ├── AGENTS.md
 └── README.md
 ```

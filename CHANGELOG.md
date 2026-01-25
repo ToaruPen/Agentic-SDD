@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.17] - 2026-01-25
+
+- Add technical enforcement for the `/estimation` approval gate via local approval records + hooks:
+  - OpenCode plugin (`.opencode/plugins/agentic-sdd-gate.js`) blocks edit/write and git commit/push.
+  - Git hooks (`.githooks/`) provide a tool-agnostic final defense line (pre-commit + pre-push).
+  - Claude Code hooks (`.claude/settings.json`) block edit/write and git commit/push.
+
 ## [0.2.16] - 2026-01-25
 
 - Reduce prompt/context bloat by de-duplicating doc templates and pointing commands/agents to canonical rule sources.
