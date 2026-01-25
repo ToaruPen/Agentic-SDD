@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.14] - 2026-01-25
+
+- Add `/create-pr` to push the linked branch and create a PR via `gh`.
+- Add `scripts/create-pr.sh` and a deterministic offline test for it.
+
 ## [0.2.13] - 2026-01-25
 
 - Make `/agentic-sdd` the documented one-time installation entrypoint (README).
