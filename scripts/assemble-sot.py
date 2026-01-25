@@ -19,6 +19,51 @@ def read_text(path: str) -> str:
         return fh.read()
 
 
+def truncate_keep_tail(text: str, max_chars: int, tail_chars: int = 2048) -> str:
+    if max_chars <= 0 or len(text) <= max_chars:
+        return text
+
+    marker = "\n\n[TRUNCATED]\n\n"
+    if max_chars <= len(marker):
+        out = marker[:max_chars]
+        if not out.endswith("\n"):
+            out = out[:-1] + "\n" if max_chars > 0 else ""
+        return out
+
+    budget = max_chars - len(marker)
+    tail_len = min(tail_chars, budget)
+    head_len = budget - tail_len
+
+    head = text[:head_len]
+    tail = text[-tail_len:] if tail_len > 0 else ""
+
+    # Prefer cutting on line boundaries to reduce partial lines.
+    head_nl = head.rfind("\n")
+    if head_nl > 0:
+        head = head[: head_nl + 1]
+
+    if tail:
+        tail_start = len(text) - tail_len
+        tail_nl = text.find("\n", tail_start)
+        if tail_nl != -1 and tail_nl + 1 < len(text):
+            tail = text[tail_nl + 1 :]
+
+    out = head + marker + tail
+
+    if not out.endswith("\n"):
+        if len(out) < max_chars:
+            out += "\n"
+        elif max_chars > 0:
+            out = out[:-1] + "\n"
+
+    if len(out) > max_chars:
+        out = out[:max_chars]
+        if max_chars > 0 and not out.endswith("\n"):
+            out = out[:-1] + "\n"
+
+    return out
+
+
 def split_level2_sections(text: str) -> Tuple[str, List[Tuple[str, str]]]:
     lines = text.splitlines(keepends=True)
     pre: List[str] = []
@@ -154,9 +199,7 @@ def build_sot(
         blocks.append(manual_sot.rstrip() + "\n")
 
     out = "".join(blocks).rstrip() + "\n"
-    if max_chars > 0 and len(out) > max_chars:
-        out = out[:max_chars].rstrip() + "\n\n[TRUNCATED]\n"
-    return out
+    return truncate_keep_tail(out, max_chars=max_chars, tail_chars=2048)
 
 
 def main() -> int:
