@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.16] - 2026-01-25
+
+- Reduce prompt/context bloat by de-duplicating doc templates and pointing commands/agents to canonical rule sources.
+- Improve `assemble-sot.py` truncation to preserve the last ~2KB of content, with a regression test.
+
 ## [0.2.15] - 2026-01-25
 
 - Add opt-in GitHub Actions CI template installation via `--ci github-actions` (no workflows are installed by default).

@@ -85,88 +85,15 @@ A workflow template to help non-engineers run AI-driven development while preven
 
 ---
 
-## Mandatory Rules
+## Rules (read on-demand)
 
-### 1) When creating a PRD
+To keep this bootstrap file small, detailed rules live in these files:
 
-- Use the 7-question format
-- Q6 (technical constraints) is choice-based
-- Check banned vague words (see PRD template)
-- Include at least one negative/abnormal AC
-- If there are 2+ Unknown items, the PRD is not considered complete
-
-### 2) When creating an Epic
-
-- Always include the 3 required lists (external services / components / new tech)
-- Apply the constraints per technical policy
-- Always present simpler alternatives when available
-- Do not add complexity "for future extensibility" only
-
-### 3) When creating Issues
-
-- Granularity: 50-300 LOC, 1-5 files, 2-5 AC
-- If using an exception label, fill in all required fields
-- Explicitly state dependencies
-
-### 4) When estimating
-
-- Full estimate (11 sections) is mandatory
-- For non-applicable sections, write `N/A` with a reason
-- Include confidence (High/Med/Low)
-
-### 5) When reviewing
-
-- Run `/sync-docs`
-- If there is a diff, provide references (PRD/Epic/code)
-- Check the DoD checklist
-
----
-
-## Prohibited
-
-- Using banned vague words in PRDs (e.g. "適切に", "なるべく", "高速"; see `docs/prd/_template.md`)
-- Creating an Epic without the required lists
-- Creating Issues that ignore the granularity rules
-- Lite estimates (Full is required)
-- Reporting diffs without references
-- Changing higher-level docs (PRD) without explicit confirmation
-
----
-
-## Counting Definitions
-
-- External services: count each SaaS / managed DB / identity provider / external API as 1
-- Components: count each deployable unit (process/job/worker/batch) as 1
-- New tech: count each major category (DB/queue/auth/observability/framework/cloud service) as 1
-
----
-
-## Constraints by Technical Policy
-
-### Simple-first
-
-- External services: max 1
-- New libraries: max 3
-- New components: max 3
-- Async infrastructure: forbidden
-- Microservices: forbidden
-- Kubernetes (and similar): forbidden
-
-### Balanced
-
-- External services: max 3
-- New libraries: max 5
-- New components: max 5
-- Async infrastructure: allowed with an explicit reason
-- Microservices: allowed with an explicit reason
-
----
-
-## Source-of-Truth Hierarchy
-
-Priority: PRD (requirements) > Epic (implementation plan) > Implementation (code)
-
-If there is a contradiction, follow the higher-level document.
+- PRD: `.agent/commands/create-prd.md`, `docs/prd/_template.md`
+- Epic: `.agent/commands/create-epic.md`, `.agent/rules/epic.md`
+- Issues: `.agent/commands/create-issues.md`, `.agent/rules/issue.md`
+- Estimation: `.agent/commands/estimation.md`, `.agent/rules/impl-gate.md`
+- Review: `.agent/commands/review.md`, `.agent/rules/dod.md`, `.agent/rules/docs-sync.md`
 
 ---
 

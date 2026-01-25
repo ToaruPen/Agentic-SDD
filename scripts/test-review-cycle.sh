@@ -217,6 +217,37 @@ if grep -q "Change log" "$tmpdir/.agentic-sdd/reviews/issue-1/run1/sot.txt"; the
   exit 1
 fi
 
+# Truncation should keep tail (manual SoT tends to be appended at the end)
+long_sot="$(python3 - <<'PY'
+print("A" * 6000 + "\nTAIL_SENTINEL\n")
+PY
+)"
+
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" SOT_MAX_CHARS=3000 SOT="$long_sot" \
+  TESTS="not run: reason" DIFF_MODE=staged CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run3) >/dev/null
+
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run3/sot.txt" ]]; then
+  eprint "Expected sot.txt to be created for truncation test"
+  exit 1
+fi
+
+if ! grep -q "\\[TRUNCATED\\]" "$tmpdir/.agentic-sdd/reviews/issue-1/run3/sot.txt"; then
+  eprint "Expected [TRUNCATED] marker in sot.txt"
+  exit 1
+fi
+
+if ! grep -q "TAIL_SENTINEL" "$tmpdir/.agentic-sdd/reviews/issue-1/run3/sot.txt"; then
+  eprint "Expected tail sentinel to be preserved in sot.txt"
+  exit 1
+fi
+
+size=$(wc -c < "$tmpdir/.agentic-sdd/reviews/issue-1/run3/sot.txt" | tr -d ' ')
+if [[ "$size" -gt 3000 ]]; then
+  eprint "Expected sot.txt size <= 3000, got: $size"
+  exit 1
+fi
+
 # Fail-fast when referenced PRD is missing
 cat > "$tmpdir/issue-missing.md" <<'EOF'
 ## Background

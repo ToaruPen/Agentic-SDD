@@ -57,7 +57,7 @@ Review taxonomy (status/priority) and output rules are defined in:
 
 - `GH_REPO`: `OWNER/REPO` (when `GH_ISSUE` is not a URL)
 - `GH_INCLUDE_COMMENTS`: `1` to include Issue comments in fetched JSON (default: `0`)
-- `SOT_MAX_CHARS`: max chars for the assembled SoT bundle (0 = no limit). If exceeded, cut and append `[TRUNCATED]`.
+- `SOT_MAX_CHARS`: max chars for the assembled SoT bundle (0 = no limit). If exceeded, keep the head and the last ~2KB and insert `[TRUNCATED]`.
 
 - `DIFF_MODE`: `auto` | `staged` | `worktree` (default: `auto`)
   - If both staged and worktree diffs exist in `auto`, fail-fast and ask you to choose.
