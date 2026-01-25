@@ -29,25 +29,7 @@ If omitted, review the PR associated with the current branch.
 
 Run `/sync-docs` before reviewing.
 
-```markdown
-## 同期結果
-
-### 差分の種類
-- [ ] 仕様変更
-- [ ] 解釈変更
-- [ ] 実装都合
-
-### 推奨アクション
-- [ ] PRD更新が必要
-- [ ] Epic更新が必要
-- [ ] 実装修正が必要
-- [ ] 差分なし（同期済み）
-
-### 参照（必須）
-- PRD: [ファイル名] セクション [番号/名前]
-- Epic: [ファイル名] セクション [番号/名前]
-- 該当コード: [ファイル:行]
-```
+Output format: see `.agent/rules/docs-sync.md` (single source of truth).
 
 ### Phase 3: Review taxonomy (required)
 
@@ -91,40 +73,13 @@ Recommended status selection precedence:
 
 ### Phase 4: DoD check
 
-Issue completion (required):
-
-```
-[] All AC are satisfied
-[] Tests are added/updated (when applicable)
-[] /sync-docs is "no diff" or diff is approved
-[] Code review is complete
-[] CI passes (when applicable)
-```
-
-PR completion (required):
-
-- AC: all Issue AC satisfied
-- sync-docs: no diff or diff is approved
-- Tests: new/changed code is covered
-- Review: at least one approval exists
+Follow `.agent/rules/dod.md`.
 
 ### Phase 5: Verify AC
 
 Verify each AC one-by-one.
 
-```markdown
-## AC検証結果
-
-### AC1: [AC内容]
-- 状態: 達成 / 未達成 / 部分的
-- 確認方法: [どう確認したか]
-- 証跡: [スクリーンショット / ログ / テスト結果]
-
-### AC2: [AC内容]
-- 状態: 達成 / 未達成 / 部分的
-- 確認方法: [どう確認したか]
-- 証跡: [スクリーンショット / ログ / テスト結果]
-```
+Keep it concise; include "how verified" and evidence.
 
 ### Phase 6: Review focus areas
 
@@ -138,54 +93,20 @@ Verify each AC one-by-one.
 
 Compare actuals vs estimate.
 
-```markdown
-## 見積もり比較
-
-- 行数: 見積もり=[50-100行] / 実績=[75行] / 差異=範囲内
-- ファイル数: 見積もり=[3] / 実績=[3] / 差異=一致
-- 工数: 見積もり=[2-4h] / 実績=[3h] / 差異=範囲内
-
-### 差異の理由（大きい場合）
-[差異が大きい場合は理由を記載]
-```
+Record LOC/files/effort vs estimate; if the gap is large, explain why.
 
 ### Phase 8: Output the review result
 
-```markdown
-## レビュー結果
+Write a short Japanese review with:
 
-### 総合判定（Status）
-Approved / Approved with nits / Blocked / Question
-
-### GitHub推奨アクション
-Approve / Request changes / Comment
-
-### sync-docs結果
-差分なし / 差分あり（承認済み） / 差分あり（要対応）
-
-### DoD達成状況
-- [x] すべてのACが満たされている
-- [x] テストが追加/更新されている
-- [x] /sync-docs で差分なし
-- [ ] コードレビューが完了している
-- [x] CIが通っている
-
-### AC検証結果
-- AC1: 達成
-- AC2: 達成
-- AC3: 達成
-
-### 指摘事項（P0-P3）
-1. [P0] [指摘タイトル]（該当: [file:line]）
-2. [P2] [指摘タイトル]（該当: [file:line]）
-
-### 質問（Question の場合は必須）
-- [質問1]
-- [質問2]
-
-### 総評
-[総評（日本語）]
-```
+- Status (Approved / Approved with nits / Blocked / Question)
+- GitHub recommended action (Approve / Request changes / Comment)
+- sync-docs summary (no diff / diff approved / diff needs action)
+- DoD status (see `.agent/rules/dod.md`)
+- AC verification summary (how verified + evidence)
+- Findings (P0-P3) with `file:line` evidence
+- Questions (if any)
+- Overall explanation
 
 ## How to handle sync-docs results
 

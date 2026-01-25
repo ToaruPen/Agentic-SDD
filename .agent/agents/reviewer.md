@@ -53,89 +53,12 @@ Note: Review outputs are user-facing; write them in Japanese.
 
 ---
 
-## Review taxonomy (SoT)
+## Review taxonomy and outputs (SoT)
 
-Follow `.agent/commands/review.md` for the canonical review taxonomy.
-
-### Priorities (P0-P3)
-
-- P0: must-fix (correctness/security/data-loss)
-- P1: should-fix (likely bug / broken tests / risky behavior)
-- P2: improvement (maintainability/perf minor)
-- P3: nit (small clarity)
-
-### Status
-
-- `Approved`: no findings, no questions
-- `Approved with nits`: findings are only `P2`/`P3`, no questions
-- `Blocked`: at least one `P0`/`P1` finding exists
-- `Question`: at least one question exists
-
-Recommended status selection precedence:
-
-1. If any `P0`/`P1` finding exists -> `Blocked`
-2. Else if any question exists -> `Question`
-3. Else if any finding exists -> `Approved with nits`
-4. Else -> `Approved`
-
-GitHub action mapping (secondary):
-
-- `Approved` -> Approve
-- `Approved with nits` -> Approve (optionally with a comment)
-- `Blocked` -> Request changes
-- `Question` -> Comment
-
----
-
-## Writing review comments (Japanese output)
-
-Format:
-
-```
-[P0] Category: コメント内容（該当: file:line）
-[P2] Category: コメント内容（該当: file:line）
-
-質問:
-- 質問内容
-```
-
-Notes:
-
-- Use `P0-P3` for findings. Put questions under a separate "質問" section.
+- Follow `.agent/commands/review.md` for canonical P0-P3 and status rules.
 - Always include evidence (`file:line`) for findings.
-
----
-
-## sync-docs integration
-
-Always run `/sync-docs` during review:
-
-1. No diff -> continue
-2. Diff (minor) -> record the diff and continue
-3. Diff (major) -> request PRD/Epic update first
-
----
-
-## Review checklist
-
-```markdown
-## レビューチェックリスト
-
-### 必須
-- [ ] すべてのACが達成されている
-- [ ] /sync-docs で差分を確認した
-- [ ] テストが追加/更新されている
-- [ ] CIが通っている
-
-### 推奨
-- [ ] コードが理解しやすい
-- [ ] エラーハンドリングが適切
-- [ ] セキュリティ考慮がされている
-- [ ] パフォーマンスに問題がない
-
-### 判定
-- [ ] Approved / [ ] Approved with nits / [ ] Blocked / [ ] Question
-```
+- Always run `/sync-docs` during review (rules: `.agent/rules/docs-sync.md`).
+- For DoD expectations, follow `.agent/rules/dod.md`.
 
 ---
 
