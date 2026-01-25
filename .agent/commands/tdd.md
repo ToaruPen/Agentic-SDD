@@ -75,6 +75,10 @@ Before committing:
 - Run `/review-cycle` (required) and fix findings until it passes.
 - Then run `/review` (final DoD + `/sync-docs` gate).
 
+After `/review` is approved:
+
+- Run `/create-pr` to push and create the PR.
+
 ## Related
 
 - `skills/tdd-protocol.md` - TDD execution protocol

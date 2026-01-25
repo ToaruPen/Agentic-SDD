@@ -72,7 +72,7 @@ Example (Japanese):
 
 次のステップ:
 1. /review を実行して最終セルフレビュー
-2. PRを作成
+2. /create-pr を実行して push + PR作成
 ```
 
 ## Related
