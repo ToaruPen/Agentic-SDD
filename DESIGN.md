@@ -350,6 +350,7 @@ Agentic-SDD/
 │   │   ├── impl-gate.md          # 実装ゲート（見積もり/テスト/レビュー）
 │   │   └── docs-sync.md         # 出力形式 + 参照必須
 │   └── agents/
+│       ├── docs.md
 │       └── reviewer.md
 ├── skills/
 │   ├── README.md
@@ -381,6 +382,7 @@ Agentic-SDD/
 │   └── ci/                       # opt-in CI templates (e.g. GitHub Actions)
 ├── scripts/
 │   ├── agentic-sdd
+│   ├── bench-sdd-docs.py
 │   ├── install-agentic-sdd.sh
 │   ├── assemble-sot.py
 │   ├── create-approval.py

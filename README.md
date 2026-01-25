@@ -195,6 +195,7 @@ If you enable CI (optional), wait for CI checks and fix failures before merging.
 │   ├── impl-gate.md
 │   └── issue.md
 └── agents/
+    ├── docs.md
     └── reviewer.md
 
 docs/
@@ -217,6 +218,7 @@ skills/                 # design skills
 
 scripts/
 ├── agentic-sdd
+├── bench-sdd-docs.py
 ├── create-pr.sh
 ├── install-agentic-sdd.sh
 ├── assemble-sot.py
@@ -317,7 +319,7 @@ opencode
 Generated under `.opencode/` (gitignored):
 
 - `commands/` - custom commands like `/create-prd`
-- `agents/` - subagents like `@sdd-reviewer`
+- `agents/` - subagents like `@sdd-reviewer`, `@sdd-docs`
 - `skills/` - `sdd-*` / `tdd-*` skills (load via the `skill` tool)
 
 ##### Global `/agentic-sdd` command

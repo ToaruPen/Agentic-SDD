@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+
+## [0.2.20] - 2026-01-25
+
+- Add an OpenCode documentation explorer agent (`sdd-docs`) to generate minimal Context Packs for the Agentic-SDD workflow.
+- Add a benchmark helper to validate `sdd-docs` output size and speed (`scripts/bench-sdd-docs.py`).
+- Pin OpenCode reviewer agent (`sdd-reviewer`) to `openai/gpt-5.2-codex` with `reasoningEffort: high`.
+
 ## [0.2.19] - 2026-01-25
 
 - Fix `worktree.sh check --issue-body-file <issue.json>` by allowing JSON `{body: ...}` as an input to `extract-issue-files.py`.

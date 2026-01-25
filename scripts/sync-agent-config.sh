@@ -316,6 +316,8 @@ EOF
 ---
 description: Reviews PRs/issues with Agentic-SDD DoD and sync-docs
 mode: subagent
+model: openai/gpt-5.2-codex
+reasoningEffort: high
 temperature: 0.1
 tools:
   write: false
@@ -335,6 +337,29 @@ When needed, load these skills:
 - sdd-rule-docs-sync
 EOF
         } > "$target_dir/agents/sdd-reviewer.md"
+    fi
+
+    if [ -f ".agent/agents/docs.md" ]; then
+        {
+            cat << 'EOF'
+---
+description: Generate minimal Agentic-SDD context packs
+mode: primary
+model: anthropic/claude-sonnet-4-5
+temperature: 0.0
+maxSteps: 4
+tools:
+  write: false
+  edit: false
+  bash: false
+  webfetch: false
+---
+EOF
+            cat ".agent/agents/docs.md"
+        } > "$target_dir/agents/sdd-docs.md"
+
+        # Backward-compat cleanup (previously generated).
+        rm -f "$target_dir/agents/sdd-docs-primary.md"
     fi
 
     # -----------------
