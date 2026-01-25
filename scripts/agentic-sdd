@@ -4,7 +4,7 @@ set -euo pipefail
 
 DEFAULT_REPO_URL="https://github.com/ToaruPen/Agentic-SDD.git"
 
-# Fallback is used when no config/env is set.
+# Fallback is used when `latest` can't be resolved (e.g. no semver tags).
 # Keep this pinned to a known-good *release tag* for reproducibility.
 # (Assumption: release tags are immutable; do not move tags.)
 DEFAULT_REF_FALLBACK="0.2.17"
@@ -30,7 +30,7 @@ Positional arguments (optional):
 	  --tool <tool>         Tool selection (default: $AGENTIC_SDD_DEFAULT_TOOL or none)
 	  --mode <mode>         Install mode (default: $AGENTIC_SDD_DEFAULT_MODE or minimal)
 	  --ci <ci>             Optional CI template (default: none)
-	  --ref <sha|ref>       Agentic-SDD ref to fetch (default: config or pinned fallback)
+	  --ref <sha|ref>       Agentic-SDD ref to fetch (default: config or latest)
 	  --repo <url>          Agentic-SDD git repo URL (default: config or GitHub)
 	  --force               Overwrite conflicting files (backs up first)
 	  --dry-run             Show what would change
@@ -53,6 +53,7 @@ Examples:
   agentic-sdd
   agentic-sdd opencode
   agentic-sdd codex full
+  agentic-sdd --ref latest
   agentic-sdd --ref <sha> --tool all
 EOF
 }
@@ -124,6 +125,37 @@ resolve_ref_to_sha() {
     printf '%s\n' "$sha"
 }
 
+resolve_latest_release_tag() {
+    local repo="$1"
+
+    local out
+    out="$(git ls-remote --tags --refs "$repo" 2>/dev/null || true)"
+    [ -n "$out" ] || return 1
+
+    local tags
+    tags="$(printf '%s\n' "$out" | sed -n 's|^[0-9a-f]*\trefs/tags/||p' \
+        | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' || true)"
+    [ -n "$tags" ] || return 1
+
+    # Pick the highest semver tag (supports vX.Y.Z and X.Y.Z).
+    local best
+    best="$(printf '%s\n' "$tags" \
+        | awk '{
+            orig=$0;
+            v=$0;
+            sub(/^v/, "", v);
+            split(v, a, ".");
+            if (a[1] == "" || a[2] == "" || a[3] == "") next;
+            printf "%d\t%d\t%d\t%s\n", a[1], a[2], a[3], orig;
+        }' \
+        | sort -t $'\t' -k1,1n -k2,2n -k3,3n \
+        | tail -n 1 \
+        | cut -f4)"
+    [ -n "$best" ] || return 1
+
+    printf '%s\n' "$best"
+}
+
 fetch_repo_at_sha() {
     local dest="$1"
     local repo="$2"
@@ -142,6 +174,7 @@ fetch_repo_at_sha() {
 	CI="none"
 	TARGET_DIR=""
 	REF=""
+REF_EXPLICIT=false
 	REPO=""
 	FORCE=false
 DRY_RUN=false
@@ -170,6 +203,7 @@ while [[ $# -gt 0 ]]; do
 	            ;;
 	        --ref)
 	            REF="$2"
+                REF_EXPLICIT=true
 	            shift 2
 	            ;;
         --repo)
@@ -248,12 +282,18 @@ fi
 
 if [ -z "$REF" ]; then
     REF="${AGENTIC_SDD_REF:-}"
+    if [ -n "$REF" ]; then
+        REF_EXPLICIT=true
+    fi
 fi
 if [ -z "$REF" ]; then
     REF="$(read_config_value "$DEFAULT_REF_FILE")"
+    if [ -n "$REF" ]; then
+        REF_EXPLICIT=true
+    fi
 fi
 if [ -z "$REF" ]; then
-    REF="$DEFAULT_REF_FALLBACK"
+    REF="latest"
 fi
 
 if [ -z "$TOOL" ]; then
@@ -300,6 +340,23 @@ TARGET_DIR="$(cd -- "$TARGET_DIR" && pwd)"
 
 log_info "Agentic-SDD repo: $REPO"
 log_info "Requested ref: $REF"
+
+if [ "$REF" = "latest" ]; then
+    latest_tag="$(resolve_latest_release_tag "$REPO" || true)"
+    if [ -z "$latest_tag" ]; then
+        if [ "$REF_EXPLICIT" = true ]; then
+            log_error "Failed to resolve latest release tag from: $REPO"
+            log_error "Expected a semver tag like X.Y.Z or vX.Y.Z"
+            exit 1
+        fi
+
+        log_warn "Failed to resolve latest release tag; falling back to pinned: $DEFAULT_REF_FALLBACK"
+        REF="$DEFAULT_REF_FALLBACK"
+    else
+        log_info "Resolved latest tag: $latest_tag"
+        REF="$latest_tag"
+    fi
+fi
 
 sha="$(resolve_ref_to_sha "$REPO" "$REF" || true)"
 if [ -z "$sha" ]; then

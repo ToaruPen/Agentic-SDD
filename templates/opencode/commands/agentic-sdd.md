@@ -22,7 +22,7 @@ Steps:
 2) Run the installer via the helper:
 
 ```bash
-AGENTIC_SDD_DEFAULT_TOOL=opencode agentic-sdd $ARGUMENTS
+AGENTIC_SDD_DEFAULT_TOOL=opencode agentic-sdd --ref latest $ARGUMENTS
 ```
 
 3) If the command exits with code 2, summarize conflicts and ask whether to re-run with `--force`.

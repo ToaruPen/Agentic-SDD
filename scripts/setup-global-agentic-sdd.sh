@@ -15,6 +15,7 @@ Installs:
   - OpenCode command: ~/.config/opencode/commands/agentic-sdd.md
   - OpenCode skill: ~/.config/opencode/skills/agentic-sdd (symlink to ~/.codex/skills/agentic-sdd)
   - Codex skill: ~/.codex/skills/agentic-sdd/SKILL.md
+  - Codex skill changelog: ~/.codex/skills/agentic-sdd/CHANGELOG.md
   - Claude skill: ~/.claude/skills/agentic-sdd/SKILL.md
   - Clawdbot shared skill: ~/.clawdbot/skills/agentic-sdd/SKILL.md
     - If a workspace skill is detected, it is replaced by a symlink to the shared skill.
@@ -269,6 +270,12 @@ copy_with_backup \
 copy_with_backup \
     "$SOURCE_ROOT/templates/codex/skills/agentic-sdd/SKILL.md" \
     "$home/.codex/skills/agentic-sdd/SKILL.md" \
+    "$DRY_RUN"
+
+# 4.0) Codex skill changelog
+copy_with_backup \
+    "$SOURCE_ROOT/CHANGELOG.md" \
+    "$home/.codex/skills/agentic-sdd/CHANGELOG.md" \
     "$DRY_RUN"
 
 # 4.1) OpenCode skill (symlink to the Codex skill)

@@ -1,7 +1,7 @@
 ---
 name: agentic-sdd
 description: Download and install Agentic-SDD into the current project directory
-argument-hint: "[opencode|codex|claude|all|none] [minimal|full] [--ref <sha>] [--force]"
+argument-hint: "[opencode|codex|claude|all|none] [minimal|full] [--ref <sha|tag|latest>] [--force]"
 disable-model-invocation: true
 ---
 
@@ -24,7 +24,7 @@ Arguments (optional): $ARGUMENTS
 2) Run the installer via the helper:
 
 ```bash
-AGENTIC_SDD_DEFAULT_TOOL=claude agentic-sdd $ARGUMENTS
+AGENTIC_SDD_DEFAULT_TOOL=claude agentic-sdd --ref latest $ARGUMENTS
 ```
 
 3) If the command exits with code 2, conflicts were found. Summarize conflicts and ask whether to re-run with `--force`.
