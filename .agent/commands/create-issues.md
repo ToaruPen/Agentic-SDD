@@ -59,6 +59,7 @@ Always include:
 - AC (observable)
 - Estimated change size
 - Dependencies ("Blocked by" + "what becomes possible")
+- If bug fix / urgent response: select P0-P4 in the body and add `priority:P[0-4]` label
 
 ### Phase 6: Create Issues
 

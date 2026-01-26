@@ -12,6 +12,26 @@ Rules defining the appropriate size and structure of a single Issue.
 
 ---
 
+## Priority (Triage)
+
+For bug fix / urgent response Issues, assign Priority:
+
+- P0 (Crash / Data loss): Immediate
+- P1 (Major feature broken): Within 24 hours
+- P2 (Feature malfunction): Current sprint
+- P3 (Performance): When available
+- P4 (Visual improvement): Backlog
+
+Scope:
+
+- Planned new feature: N/A (determined by Epic dependencies)
+- Bug fix: Assign P0-P4
+- Urgent response: Assign P0-P4
+
+Note: If P0-P1 Issues exist, prioritize them over planned new features.
+
+---
+
 ## Signs an Issue is too large (split needed)
 
 Consider splitting if any applies:
@@ -157,6 +177,15 @@ If file targets are unknown or overlaps exist, do NOT use `parallel-ok`; mark as
 
 [何をするかを1-2文で]
 
+## 優先度（バグ修正/緊急対応の場合）
+
+<!-- 新機能の場合は空欄可 -->
+- [ ] P0: クラッシュ/データ損失
+- [ ] P1: 主要機能停止
+- [ ] P2: 機能不全
+- [ ] P3: パフォーマンス
+- [ ] P4: 見た目改善
+
 ## 背景
 
 - Epic: [Epicファイルへのリンク]
@@ -190,6 +219,7 @@ If file targets are unknown or overlaps exist, do NOT use `parallel-ok`; mark as
 
 ## ラベル
 
+- `priority:P[0-4]`（バグ修正の場合）
 - `parallel-ok` / `blocked`
 ```
 

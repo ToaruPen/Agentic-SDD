@@ -38,6 +38,29 @@ Definitions of terms used in this repository and in the Agentic-SDD workflow.
 
 ---
 
+## Progress Counting Criteria
+
+### Changes that count (direct contribution to main goal)
+
+- New feature (with regression test)
+- Bug fix (with regression test)
+- Stability improvement (crash elimination + test)
+- Meaningful test coverage addition
+
+### Changes that do not count (drift prevention)
+
+- Tool improvement only (if not immediately used)
+- Performance optimization only (if not a bottleneck)
+- Documentation cleanup only (if not a blocker)
+- Refactoring only (if no test added)
+
+### Drift warning
+
+If non-counting changes continue consecutively, stop and ask:
+"Is this contributing to the main goal? Which PRD/Epic requirement does this address?"
+
+---
+
 ## Issue Terms
 
 - Granularity rules: target size for a single Issue (50-300 LOC, 1-5 files, 2-5 AC).

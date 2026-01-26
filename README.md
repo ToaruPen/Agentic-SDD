@@ -208,10 +208,13 @@ docs/
 
 skills/                 # design skills
 ├── README.md
+├── anti-patterns.md
 ├── api-endpoint.md
 ├── crud-screen.md
+├── data-driven.md
 ├── error-handling.md
 ├── estimation.md
+├── resource-limits.md
 ├── testing.md
 ├── tdd-protocol.md
 └── worktree-parallel.md

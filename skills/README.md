@@ -13,6 +13,9 @@ These docs are language/framework-agnostic and concept-based.
 - [api-endpoint.md](./api-endpoint.md): REST API endpoint design
 - [crud-screen.md](./crud-screen.md): CRUD screen design
 - [error-handling.md](./error-handling.md): error handling (classification/processing/UX/logging)
+- [anti-patterns.md](./anti-patterns.md): AI anti-patterns and safer alternatives
+- [data-driven.md](./data-driven.md): data-driven development (metrics and evidence)
+- [resource-limits.md](./resource-limits.md): resource limits to prevent runaway processes
 - [testing.md](./testing.md): testing strategy/types/coverage
 - [tdd-protocol.md](./tdd-protocol.md): TDD execution protocol (Red/Green/Refactor)
 

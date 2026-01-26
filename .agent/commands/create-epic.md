@@ -52,6 +52,11 @@ Always include these three lists in the Epic (write "なし" if not applicable):
 - Components
 - New tech
 
+### Phase 4.5: Project-specific metrics (optional)
+
+If the project has measurable success criteria (performance/accuracy/etc), fill
+section 3.5 in `docs/epics/_template.md`.
+
 ### Phase 5: Apply counting definitions
 
 - External services: each SaaS / managed DB / identity provider / external API counts as 1

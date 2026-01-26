@@ -24,11 +24,21 @@ Release hygiene (required)
 - Read `.agent/commands/`, `.agent/rules/`, and `skills/` on-demand for the next command only.
 
 1) Entry decision (where to start)
+
+For new development:
 - No PRD: /create-prd
 - PRD exists but no Epic: /create-epic
 - Epic exists but no Issues / not split: /create-issues
 - Issues exist: ask the user to choose /impl vs /tdd (do not choose on your own)
   - Then run: /impl <issue-id> or /tdd <issue-id>
+
+For bug fix / refactoring:
+- Small (1-2 Issues): Create Issue directly -> /impl or /tdd
+- Medium (3-5 Issues): /create-epic (reference existing PRD) -> /create-issues
+- Large (6+ Issues): /create-prd -> /create-epic -> /create-issues
+
+Note: Even for direct Issue creation, include PRD/Epic links for traceability.
+Bug fix Issues require Priority (P0-P4). See `.agent/rules/issue.md` for details.
 
 2) Complete one Issue (iterate)
 - /impl or /tdd: pass the implementation gates (.agent/rules/impl-gate.md)
@@ -48,6 +58,35 @@ When using `git worktree` to implement multiple Issues in parallel:
 - One Issue = one branch = one worktree (never mix changes)
 - Do not edit PRD/Epic across parallel branches; serialize SoT changes
 - Apply `parallel-ok` only when declared change-target file sets are disjoint (validate via `./scripts/worktree.sh check`)
+
+---
+
+## Non-negotiables
+
+<non_negotiables>
+Absolute prohibitions with no exceptions:
+
+1. **No case-specific hacks**
+   - Do not write conditional branches like `if (hostname == "xxx")`
+   - Do not use magic numbers for adjustments
+
+2. **No speculative requirements**
+   - Do not implement features not documented in PRD/Epic
+   - When uncertain, ask human (follow SoT priority order)
+
+3. **No evidence-free completion reports**
+   - Reporting only "Fixed" or "Improved" is not acceptable
+   - Required: Before/After diff, test results, or logs as evidence
+
+4. **No batch changes**
+   - Do not mix unrelated changes in one commit
+   - Follow single-step loop: one fix -> verify -> next
+
+5. **No invalid tests**
+   - Failure reproducibility: Test must fail before the change
+   - Correction assurance: Test must pass after the change
+   - Without both conditions, the test is not valid evidence
+</non_negotiables>
 
 ---
 

@@ -62,6 +62,23 @@ Implementation note:
 
 ---
 
+## Development loop (single-step)
+
+Changes must follow this loop, one at a time:
+
+1. Run (confirm current state)
+2. Compare with expected result
+3. Identify discrepancy (one only)
+4. Implement fix (one only)
+5. Verify immediately -> if fail, return to step 3
+6. Success -> move to next issue
+
+Prohibited: "Verify 5 fixes together" -> makes it unclear which one broke things
+
+This loop applies to each change. Batching multiple fixes leads to exponential debugging time.
+
+---
+
 ## Violation policy
 
 If a gate is skipped:

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 
+## [0.2.21] - 2026-01-26
+
+- Align bugfix priority range to P0-P4 and document priority labels in `/create-issues`.
+- Add guidance to fill project-specific metrics in `/create-epic`.
+- Register new skills (anti-patterns, data-driven, resource limits) and list them in docs.
+
 ## [0.2.20] - 2026-01-25
 
 - Add an OpenCode documentation explorer agent (`sdd-docs`) to generate minimal Context Packs for the Agentic-SDD workflow.

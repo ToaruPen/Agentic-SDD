@@ -22,6 +22,35 @@ For test design (types, AAA, coverage), see `skills/testing.md`.
 
 ---
 
+## Test Philosophy
+
+### Valid test conditions
+
+For a test to be considered "valid evidence", both conditions are required:
+
+1. **Failure reproducibility**: Test must fail before the change
+   - Proves the test can correctly detect the problem
+   - A test that always passes has no verification capability
+
+2. **Correction assurance**: Test must pass after the change
+   - Proves the implemented change solved the problem
+   - Before/After state change must be observable
+
+### Invalid tests
+
+- Passing before the change -> Verifies nothing
+- Failing after the change -> Fix is incomplete
+- Non-deterministic pass/fail -> Lacks reproducibility (add seams)
+
+### Required sequence
+
+1. Write failing test
+2. Confirm test fails (Before record)
+3. Implement fix
+4. Confirm test passes (After record)
+
+---
+
 ## Goals
 
 1) Detect regressions
