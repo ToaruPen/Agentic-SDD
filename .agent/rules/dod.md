@@ -98,6 +98,28 @@ Implementation note:
 
 ---
 
+## Evidence requirements
+
+Claims require corresponding evidence:
+
+- Bug fixed: Test that transitions from fail to pass
+- Performance improved: Before/After numbers with measurement method
+- Feature added: Tests satisfying AC + behavior confirmation
+- Refactored: All existing tests pass + explanation of changes
+
+Not acceptable: AI report of "Fixed" or "Improved" alone (unverifiable)
+
+### Before/After recording
+
+For each change, record:
+- Before: State before change (test results, logs, numbers)
+- After: State after change
+- Diff: Concrete observable change
+
+This ensures changes are verifiable and not based on hope.
+
+---
+
 ## Related
 
 - `.agent/rules/docs-sync.md` - documentation sync rules

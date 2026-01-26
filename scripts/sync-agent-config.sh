@@ -291,9 +291,12 @@ EOF
     # Project design skills
     generate_skill_from_file "sdd-estimation" "Full estimation (11 sections) and confidence rules" "skills/estimation.md"
     generate_skill_from_file "sdd-worktree-parallel" "Parallel implementation with git worktree (deterministic guardrails)" "skills/worktree-parallel.md"
+    generate_skill_from_file "sdd-anti-patterns" "AI failure patterns and safer alternatives" "skills/anti-patterns.md"
     generate_skill_from_file "sdd-api-endpoint" "REST API endpoint design checklist" "skills/api-endpoint.md"
     generate_skill_from_file "sdd-crud-screen" "CRUD screen design checklist" "skills/crud-screen.md"
+    generate_skill_from_file "sdd-data-driven" "Data-driven development (metrics and evidence)" "skills/data-driven.md"
     generate_skill_from_file "sdd-error-handling" "Error classification, handling, and logging guidelines" "skills/error-handling.md"
+    generate_skill_from_file "sdd-resource-limits" "Resource limits to prevent runaway processes" "skills/resource-limits.md"
     generate_skill_from_file "tdd-testing" "Test strategy, pyramid, and coverage guidance" "skills/testing.md"
     generate_skill_from_file "tdd-protocol" "TDD execution protocol, legacy refactor tactics, and determinism seams" "skills/tdd-protocol.md"
 
