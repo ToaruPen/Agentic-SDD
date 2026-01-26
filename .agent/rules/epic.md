@@ -116,8 +116,38 @@ Every Epic must include these lists (write "なし" if not applicable):
 
 ---
 
+## Q6 → Epic section mapping
+
+PRD Q6の回答に応じて、Epicに必須セクションが追加される。
+
+<!-- grepキーワード: EPIC_Q6_MAPPING -->
+
+| PRD Q6項目 | 回答 | Epic必須セクション | ルールファイル |
+|-----------|------|-------------------|---------------|
+| Q6-5: 個人情報/機密データ | Yes | 5.2 セキュリティ設計 | `.agent/rules/security.md` |
+| Q6-6: 監査ログ要件 | Yes | 5.3 観測性設計 | `.agent/rules/observability.md` |
+| Q6-7: パフォーマンス要件 | Yes | 5.1 パフォーマンス設計 | `.agent/rules/performance.md` |
+| Q6-8: 可用性要件 | Yes | 5.4 可用性設計 | `.agent/rules/availability.md` |
+
+適用ルール:
+
+- Q6が「Yes」の場合: 該当セクションを必須で記載
+- Q6が「No」の場合: 該当セクションに「N/A（理由）」と記載
+- Q6が「Unknown」の場合: Unknownを解消してからセクションを記載
+
+DoD連動:
+
+- Q6が「Yes」の場合、対応するDoD項目がOptional→Requiredに昇格
+- 詳細は `.agent/rules/dod.md` を参照
+
+---
+
 ## Related
 
 - `.agent/commands/create-epic.md` - create-epic command
 - `docs/epics/_template.md` - Epic template
 - `.agent/rules/issue.md` - Issue granularity rules
+- `.agent/rules/performance.md` - Performance rules
+- `.agent/rules/security.md` - Security rules
+- `.agent/rules/observability.md` - Observability rules
+- `.agent/rules/availability.md` - Availability rules
