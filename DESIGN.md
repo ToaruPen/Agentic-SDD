@@ -32,8 +32,10 @@ Q7: 成功指標（測り方）は？
 | デプロイ先固定 | Yes / No / Unknown | Yesなら環境名を記載 |
 | 期限 | [日付] / Unknown | Unknownなら優先度判断が不確実 |
 | 予算上限 | ある / ない / Unknown | Unknownなら外部サービスは原則禁止 |
-| 個人情報/機密データ | Yes / No / Unknown | Yesならセキュリティ要件必須 |
-| 監査ログ要件 | Yes / No / Unknown | Yesなら監査要件必須 |
+| 個人情報/機密データ | Yes / No / Unknown | Yesならセキュリティ要件必須（→ `.agent/rules/security.md`） |
+| 監査ログ要件 | Yes / No / Unknown | Yesなら観測性要件必須（→ `.agent/rules/observability.md`） |
+| パフォーマンス要件 | Yes / No / Unknown | Yesならパフォーマンス設計必須（→ `.agent/rules/performance.md`） |
+| 可用性要件 | Yes / No / Unknown | Yesなら可用性設計必須（→ `.agent/rules/availability.md`） |
 
 **Unknown運用ルール:**
 - Unknownを選んだ項目は、次のフェーズ（Epic生成）で確認質問が必須

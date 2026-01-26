@@ -57,6 +57,22 @@ Always include these three lists in the Epic (write "なし" if not applicable):
 If the project has measurable success criteria (performance/accuracy/etc), fill
 section 3.5 in `docs/epics/_template.md`.
 
+### Phase 4.6: Production quality sections (conditional)
+
+Based on PRD Q6 answers, include the required production quality sections in section 5:
+
+| PRD Q6 | Answer | Required Epic section | Rule file |
+|--------|--------|----------------------|-----------|
+| Q6-5: PII/confidential data | Yes | 5.2 Security design | `.agent/rules/security.md` |
+| Q6-6: Audit log requirement | Yes | 5.3 Observability design | `.agent/rules/observability.md` |
+| Q6-7: Performance requirement | Yes | 5.1 Performance design | `.agent/rules/performance.md` |
+| Q6-8: Availability requirement | Yes | 5.4 Availability design | `.agent/rules/availability.md` |
+
+Rules:
+- If Q6 is "Yes": fill the section with specific details
+- If Q6 is "No": write "N/A（理由）" in the section
+- If Q6 is "Unknown": resolve Unknown first (Phase 2)
+
 ### Phase 5: Apply counting definitions
 
 - External services: each SaaS / managed DB / identity provider / external API counts as 1

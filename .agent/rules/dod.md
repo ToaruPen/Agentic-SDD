@@ -19,11 +19,13 @@ CI note:
 - If you choose to enforce CI, require it via branch protection (required status checks).
 - Agentic-SDD can install a GitHub Actions CI template with `/agentic-sdd --ci github-actions` (opt-in).
 
-Optional:
+Optional (promote to Required based on PRD Q6):
 
 - [ ] Documentation updated
-- [ ] Performance is acceptable
-- [ ] Security considerations reviewed
+- [ ] Performance is acceptable (→ Required if Q6-7: Yes, see `.agent/rules/performance.md`)
+- [ ] Security considerations reviewed (→ Required if Q6-5: Yes, see `.agent/rules/security.md`)
+- [ ] Observability implemented (→ Required if Q6-6: Yes, see `.agent/rules/observability.md`)
+- [ ] Availability requirements met (→ Required if Q6-8: Yes, see `.agent/rules/availability.md`)
 
 ---
 
@@ -128,3 +130,10 @@ This ensures changes are verifiable and not based on hope.
 - `.agent/commands/estimation.md` - Full estimate + approval gate
 - `skills/estimation.md` - estimation skill
 - `.agent/rules/impl-gate.md` - implementation gate checklist
+
+Production quality rules (Optional → Required based on PRD Q6):
+
+- `.agent/rules/performance.md` - Performance rules (Q6-7)
+- `.agent/rules/security.md` - Security rules (Q6-5)
+- `.agent/rules/observability.md` - Observability rules (Q6-6)
+- `.agent/rules/availability.md` - Availability rules (Q6-8)

@@ -47,6 +47,16 @@ Collect answers using the following choices:
 - Audit log requirement
   - Choices: Yes / No / Unknown
   - If Yes: add audit requirements
+- Performance requirement
+  - Choices: Yes / No / Unknown
+  - If Yes: confirm target operations and rough goals
+  - Note: Specific targets and measurement methods are defined in Epic
+  - See: `.agent/rules/performance.md` for when this applies
+- Availability requirement
+  - Choices: Yes / No / Unknown
+  - If Yes: confirm uptime requirements and SLA/SLO
+  - Note: Specific design and recovery plans are defined in Epic
+  - See: `.agent/rules/availability.md` for when this applies
 
 Unknown policy:
 - If there are 2+ Unknown items, the PRD is not considered complete
