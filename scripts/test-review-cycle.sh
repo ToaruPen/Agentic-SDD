@@ -370,7 +370,7 @@ if [[ "$code3" -eq 0 ]]; then
   exit 1
 fi
 
-# Claude engine test (use stub)
+# Claude engine test (use stub with wrapped format like real Claude CLI)
 cat > "$tmpdir/claude" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -396,15 +396,24 @@ done
 # Read stdin and discard
 cat >/dev/null || true
 
-# Output valid review JSON to stdout
+# Output wrapped JSON format (like real Claude CLI with --output-format json)
 cat <<'JSON'
 {
-  "schema_version": 3,
-  "scope_id": "issue-claude",
-  "status": "Approved",
-  "findings": [],
-  "questions": [],
-  "overall_explanation": "claude stub"
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 1234,
+  "num_turns": 1,
+  "session_id": "test-session",
+  "total_cost_usd": 0.001,
+  "structured_output": {
+    "schema_version": 3,
+    "scope_id": "issue-claude",
+    "status": "Approved",
+    "findings": [],
+    "questions": [],
+    "overall_explanation": "claude stub wrapped"
+  }
 }
 JSON
 EOF
@@ -424,8 +433,8 @@ if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-claude/run1/review.json" ]]; then
   exit 1
 fi
 
-if ! grep -q "claude stub" "$tmpdir/.agentic-sdd/reviews/issue-claude/run1/review.json"; then
-  eprint "Expected Claude stub output in review.json"
+if ! grep -q "claude stub wrapped" "$tmpdir/.agentic-sdd/reviews/issue-claude/run1/review.json"; then
+  eprint "Expected Claude stub wrapped output in review.json"
   exit 1
 fi
 
@@ -450,6 +459,39 @@ fi
 if ! grep -q "Invalid REVIEW_ENGINE" "$tmpdir/stderr4"; then
   eprint "Expected invalid engine error, got:"
   cat "$tmpdir/stderr4" >&2
+  exit 1
+fi
+
+# Claude error response should fail gracefully
+cat > "$tmpdir/claude-error" <<'EOF'
+#!/usr/bin/env bash
+cat >/dev/null || true
+cat <<'JSON'
+{
+  "type": "result",
+  "subtype": "error_max_turns",
+  "is_error": false,
+  "errors": ["Max turns exceeded"]
+}
+JSON
+EOF
+chmod +x "$tmpdir/claude-error"
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  REVIEW_ENGINE=claude CLAUDE_BIN="$tmpdir/claude-error" CLAUDE_MODEL=stub \
+  "$review_cycle_sh" issue-claude-err run1) >/dev/null 2>"$tmpdir/stderr5"
+code5=$?
+set -e
+
+if [[ "$code5" -eq 0 ]]; then
+  eprint "Expected failure for Claude error response"
+  exit 1
+fi
+
+if ! grep -q "error_max_turns" "$tmpdir/stderr5"; then
+  eprint "Expected error_max_turns in stderr, got:"
+  cat "$tmpdir/stderr5" >&2
   exit 1
 fi
 

@@ -603,7 +603,67 @@ case "$review_engine" in
       cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
     fi
 
-    "${cmd[@]}" < "$tmp_prompt" > "$tmp_json"
+    # Claude CLI outputs wrapped JSON with structured_output field.
+    # Extract the structured_output and check for errors.
+    tmp_claude_out="${tmp_json}.claude.$$"
+    "${cmd[@]}" < "$tmp_prompt" > "$tmp_claude_out"
+
+    # Extract structured_output from Claude's wrapped response.
+    # Claude CLI with --output-format json wraps the schema output in:
+    # {"type":"result", "structured_output": {...}, ...}
+    # If structured_output is missing, assume the output is already unwrapped.
+    python3 -c "
+import json
+import sys
+
+try:
+    with open('$tmp_claude_out', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+except Exception as e:
+    print(f'Failed to parse Claude output: {e}', file=sys.stderr)
+    sys.exit(1)
+
+if not isinstance(data, dict):
+    print('Claude output is not a JSON object', file=sys.stderr)
+    sys.exit(1)
+
+# Check for Claude CLI wrapper format (has 'type' and 'subtype' fields)
+is_wrapped = 'type' in data and data.get('type') == 'result'
+
+if is_wrapped:
+    # Check for errors
+    subtype = data.get('subtype', '')
+    if subtype and subtype != 'success':
+        errors = data.get('errors', [])
+        print(f'Claude returned error: {subtype}', file=sys.stderr)
+        if errors:
+            for err in errors:
+                print(f'  {err}', file=sys.stderr)
+        sys.exit(1)
+
+    # Extract structured_output
+    structured = data.get('structured_output')
+    if structured is None:
+        print('Claude output missing structured_output field', file=sys.stderr)
+        print('Full response:', file=sys.stderr)
+        print(json.dumps(data, indent=2), file=sys.stderr)
+        sys.exit(1)
+    output = structured
+else:
+    # Not wrapped - use as-is (e.g., test stub output)
+    output = data
+
+# Write extracted JSON
+with open('$tmp_json', 'w', encoding='utf-8') as f:
+    json.dump(output, f, ensure_ascii=False)
+"
+    extract_exit=$?
+    rm -f "$tmp_claude_out"
+
+    if [[ $extract_exit -ne 0 ]]; then
+      eprint "Failed to extract structured_output from Claude response"
+      exit 1
+    fi
     ;;
 esac
 
