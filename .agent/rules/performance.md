@@ -1,80 +1,80 @@
 # Performance Rules
 
-パフォーマンス要件があるプロジェクト向けのルール。
+Rules for projects with performance requirements.
 
-適用条件: PRD Q6-7（パフォーマンス要件）で「Yes」と回答した場合
+Applies when: PRD Q6-7 (Performance requirement) is "Yes"
 
 ---
 
 ## Required when
 
-<!-- grepキーワード: PERFORMANCE_REQUIRED_WHEN -->
+<!-- grep keyword: PERFORMANCE_REQUIRED_WHEN -->
 
-以下のいずれかに該当する場合、このルールを適用：
+Apply this rule if any of the following conditions are met:
 
-- [ ] ユーザーがインタラクティブに待つ操作がある（検索、一覧表示、フォーム送信等）
-- [ ] 同時利用者が10人以上想定される
-- [ ] 処理データ量が1000件以上/日
-- [ ] SLA/契約で応答時間が定められている
-- [ ] リソース制約がある（モバイル、組み込み、エッジデバイス）
-- [ ] 競合と比較される（遅いと選ばれない）
+- [ ] Users wait interactively for operations (search, list display, form submission)
+- [ ] 10+ concurrent users are expected
+- [ ] Processing volume exceeds 1000 items/day
+- [ ] SLA/contract specifies response time requirements
+- [ ] Resource constraints exist (mobile, embedded, edge devices)
+- [ ] Competing with alternatives where slowness leads to rejection
 
 ---
 
 ## Not required when
 
-<!-- grepキーワード: PERFORMANCE_NOT_REQUIRED_WHEN -->
+<!-- grep keyword: PERFORMANCE_NOT_REQUIRED_WHEN -->
 
-以下の場合は適用不要：
+Not applicable in these cases:
 
-- 内部ツール（少人数利用、待てる）
-- 低頻度操作（年に数回）
-- プロトタイプ/PoC（動作確認が目的）
-- バッチ処理（時間制約が緩い、夜間に終われば良い）
+- Internal tools (few users, can wait)
+- Low-frequency operations (a few times per year)
+- Prototype/PoC (purpose is to validate functionality)
+- Batch processing (loose time constraints, overnight completion is acceptable)
 
 ---
 
 ## PRD requirements
 
-<!-- grepキーワード: PERFORMANCE_PRD_REQ -->
+<!-- grep keyword: PERFORMANCE_PRD_REQ -->
 
-PRD Q6-7で「Yes」の場合、以下を記載：
+When PRD Q6-7 is "Yes", include:
 
-1. 対象操作の概要（例: 検索、一覧表示）
-2. 大まかな目標（例: 「検索は数秒以内」）
+1. Target operations overview (e.g., search, list display)
+2. Rough goals (e.g., "search within a few seconds")
 
-詳細な目標値・測定方法はEpicで定義する。
+Specific targets and measurement methods are defined in Epic.
 
 ---
 
 ## Epic requirements
 
-<!-- grepキーワード: PERFORMANCE_EPIC_REQ -->
+<!-- grep keyword: PERFORMANCE_EPIC_REQ -->
 
-Epicに以下のセクションを必須で含める：
+Include the following section in Epic:
 
-<epic_section name="パフォーマンス設計">
+<epic_section name="Performance Design">
 
-### パフォーマンス設計（PRD Q6-7: Yesの場合必須）
+### Performance Design (Required if PRD Q6-7: Yes)
 
-対象操作:
-- [操作名]: [目標値]
-- 例: 検索: 応答3秒以内
-- 例: 一覧表示: 初回表示2秒以内
+Target operations:
+- [Operation]: [Target]
+- Example: Search: response within 3 seconds
+- Example: List display: initial render within 2 seconds
 
-測定方法:
-- ツール: [例: k6, Artillery, Lighthouse, ブラウザDevTools]
-- 環境: [例: ステージング環境、本番相当データ量]
-- 条件: [例: 同時100ユーザー、1000件データ]
+Measurement method:
+- Tool: [e.g., k6, Artillery, Lighthouse, browser DevTools]
+- Environment: [e.g., staging, production-equivalent data volume]
+- Conditions: [e.g., 100 concurrent users, 1000 records]
 
-ボトルネック候補:
-- [候補]: [理由]
-- 例: DBクエリ: N+1の可能性
-- 例: 外部API: レスポンス時間が不明
+Bottleneck candidates:
+- [Candidate]: [Reason]
+- Example: DB query: potential N+1
+- Example: External API: unknown response time
 
-対策方針:
-- [対策]: [概要]
-- 例: インデックス追加、キャッシュ導入、非同期化
+Mitigation strategy:
+- [Strategy]: [Overview]
+- Example: Add index, introduce caching, async processing
 
 </epic_section>
 
@@ -82,64 +82,64 @@ Epicに以下のセクションを必須で含める：
 
 ## DoD requirements
 
-<!-- grepキーワード: PERFORMANCE_DOD_REQ -->
+<!-- grep keyword: PERFORMANCE_DOD_REQ -->
 
-DoDで以下が必須化（Q6-7: Yesの場合）：
+The following become required in DoD (when Q6-7: Yes):
 
-- [ ] パフォーマンス目標値を満たしている
-- [ ] Before/After計測が記録されている
-- [ ] 測定方法が明記されている
+- [ ] Performance targets are met
+- [ ] Before/After measurements are recorded
+- [ ] Measurement method is documented
 
 ---
 
 ## Evidence format
 
-<!-- grepキーワード: PERFORMANCE_EVIDENCE -->
+<!-- grep keyword: PERFORMANCE_EVIDENCE -->
 
-パフォーマンス改善の報告には以下を含める：
+Performance improvement reports must include:
 
 ```
-Before: [数値] ([測定方法])
-After: [数値] ([測定方法])
-Target: [目標値]
-Result: 達成 / 未達成（理由）
+Before: [value] ([measurement method])
+After: [value] ([measurement method])
+Target: [target value]
+Result: Achieved / Not achieved (reason)
 ```
 
 <example type="good">
-Before: 検索応答 8.2秒（k6, 100同時ユーザー, ステージング）
-After: 検索応答 1.8秒（同条件）
-Target: 3秒以内
-Result: 達成
+Before: Search response 8.2s (k6, 100 concurrent users, staging)
+After: Search response 1.8s (same conditions)
+Target: Within 3 seconds
+Result: Achieved
 </example>
 
 <example type="bad">
-パフォーマンスが改善されました。
-（数値なし、測定方法なし、比較なし）
+Performance was improved.
+(No numbers, no measurement method, no comparison)
 </example>
 
 ---
 
 ## Checklist
 
-<!-- grepキーワード: PERFORMANCE_CHECKLIST -->
+<!-- grep keyword: PERFORMANCE_CHECKLIST -->
 
-### 設計時
+### Design phase
 
-- [ ] 目標値がEpicに数値で定義されている
-- [ ] 測定方法が決まっている
-- [ ] 測定環境が明確（ステージング/本番相当）
-- [ ] ボトルネック候補が特定されている
+- [ ] Target values are defined numerically in Epic
+- [ ] Measurement method is decided
+- [ ] Measurement environment is clear (staging/production-equivalent)
+- [ ] Bottleneck candidates are identified
 
-### 実装時
+### Implementation phase
 
-- [ ] Before計測が記録されている
-- [ ] After計測が記録されている
-- [ ] 目標値を満たしている（または理由が説明されている）
+- [ ] Before measurement is recorded
+- [ ] After measurement is recorded
+- [ ] Target is met (or reason is explained)
 
-### レビュー時
+### Review phase
 
-- [ ] Before/After数値がエビデンスとして提示されている
-- [ ] 測定条件が再現可能
+- [ ] Before/After numbers are presented as evidence
+- [ ] Measurement conditions are reproducible
 
 ---
 

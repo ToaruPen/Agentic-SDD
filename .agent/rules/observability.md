@@ -1,82 +1,82 @@
 # Observability Rules
 
-観測性要件があるプロジェクト向けのルール。
+Rules for projects with observability requirements.
 
-適用条件: PRD Q6-6（監査ログ要件）で「Yes」と回答した場合
+Applies when: PRD Q6-6 (Audit log requirement) is "Yes"
 
 ---
 
 ## Required when
 
-<!-- grepキーワード: OBSERVABILITY_REQUIRED_WHEN -->
+<!-- grep keyword: OBSERVABILITY_REQUIRED_WHEN -->
 
-以下のいずれかに該当する場合、このルールを適用：
+Apply this rule if any of the following conditions are met:
 
-- [ ] 本番環境にデプロイされる
-- [ ] 障害時の原因特定が必要
-- [ ] 監査要件がある（金融、医療、政府系）
-- [ ] 分散システム（マイクロサービス、非同期処理）
-- [ ] SLO/SLAがある
-- [ ] 複数人で運用する
+- [ ] Deployed to production environment
+- [ ] Root cause analysis is needed for incidents
+- [ ] Audit requirements exist (finance, healthcare, government)
+- [ ] Distributed system (microservices, async processing)
+- [ ] SLO/SLA exists
+- [ ] Operated by multiple people
 
 ---
 
 ## Not required when
 
-<!-- grepキーワード: OBSERVABILITY_NOT_REQUIRED_WHEN -->
+<!-- grep keyword: OBSERVABILITY_NOT_REQUIRED_WHEN -->
 
-以下の場合は適用不要：
+Not applicable in these cases:
 
-- 使い捨てスクリプト（一度きりの実行）
-- ローカル専用ツール（個人利用）
-- プロトタイプ/PoC（動作確認が目的）
-- 運用しないコード（ライブラリ、SDK）
+- Throwaway scripts (one-time execution)
+- Local-only tools (personal use)
+- Prototype/PoC (purpose is to validate functionality)
+- Non-operational code (libraries, SDKs)
 
 ---
 
 ## PRD requirements
 
-<!-- grepキーワード: OBSERVABILITY_PRD_REQ -->
+<!-- grep keyword: OBSERVABILITY_PRD_REQ -->
 
-PRD Q6-6で「Yes」の場合、以下を記載：
+When PRD Q6-6 is "Yes", include:
 
-1. 監査要件の有無（誰が何をしたかの記録が必要か）
-2. ログ保持期間の要件（規制等）
+1. Audit requirements (need to record who did what)
+2. Log retention period requirements (regulations, etc.)
 
-詳細な設計はEpicで定義する。
+Specific design is defined in Epic.
 
 ---
 
 ## Epic requirements
 
-<!-- grepキーワード: OBSERVABILITY_EPIC_REQ -->
+<!-- grep keyword: OBSERVABILITY_EPIC_REQ -->
 
-Epicに以下のセクションを必須で含める：
+Include the following section in Epic:
 
-<epic_section name="観測性設計">
+<epic_section name="Observability Design">
 
-### 観測性設計（PRD Q6-6: Yesの場合必須）
+### Observability Design (Required if PRD Q6-6: Yes)
 
-ログ:
-- 出力先: [例: stdout, ファイル, CloudWatch, Datadog]
-- フォーマット: [例: JSON, 構造化ログ]
-- レベル: [例: ERROR, WARN, INFO, DEBUG]
-- 保持期間: [例: 30日、1年（監査要件）]
+Logging:
+- Output destination: [e.g., stdout, file, CloudWatch, Datadog]
+- Format: [e.g., JSON, structured logs]
+- Levels: [e.g., ERROR, WARN, INFO, DEBUG]
+- Retention period: [e.g., 30 days, 1 year (audit requirement)]
 
-メトリクス:
-- [メトリクス名]: [説明]
-- 例: request_duration_seconds: リクエスト処理時間
-- 例: request_count: リクエスト数
-- 例: error_count: エラー発生数
+Metrics:
+- [Metric name]: [Description]
+- Example: request_duration_seconds: Request processing time
+- Example: request_count: Request count
+- Example: error_count: Error count
 
-トレース（分散システムの場合）:
-- 方式: [例: OpenTelemetry, Jaeger, X-Ray]
-- 伝播: [例: W3C Trace Context, B3]
+Tracing (for distributed systems):
+- Method: [e.g., OpenTelemetry, Jaeger, X-Ray]
+- Propagation: [e.g., W3C Trace Context, B3]
 
-アラート:
-- [条件]: [通知先]
-- 例: エラー率5%超過: Slack #alerts
-- 例: レスポンス時間p99 > 5秒: PagerDuty
+Alerting:
+- [Condition]: [Notification target]
+- Example: Error rate > 5%: Slack #alerts
+- Example: p99 response time > 5s: PagerDuty
 
 </epic_section>
 
@@ -84,73 +84,73 @@ Epicに以下のセクションを必須で含める：
 
 ## DoD requirements
 
-<!-- grepキーワード: OBSERVABILITY_DOD_REQ -->
+<!-- grep keyword: OBSERVABILITY_DOD_REQ -->
 
-DoDで以下が必須化（Q6-6: Yesの場合）：
+The following become required in DoD (when Q6-6: Yes):
 
-- [ ] ログ出力が実装されている
-- [ ] エラー時に十分なコンテキストがログに含まれる
-- [ ] 機密情報がログに含まれていない
+- [ ] Logging is implemented
+- [ ] Errors include sufficient context in logs
+- [ ] No sensitive information in logs
 
 ---
 
 ## Log level guidelines
 
-<!-- grepキーワード: OBSERVABILITY_LOG_LEVELS -->
+<!-- grep keyword: OBSERVABILITY_LOG_LEVELS -->
 
-| レベル | 用途 | 例 |
-|-------|------|-----|
-| ERROR | 即時対応が必要 | DB接続失敗、データ不整合 |
-| WARN | 注意が必要 | リトライ発生、閾値接近 |
-| INFO | 重要な正常イベント | リクエスト開始/終了、状態変更 |
-| DEBUG | 開発時のみ | 詳細なデータ内容、中間状態 |
+| Level | Purpose | Example |
+|-------|---------|---------|
+| ERROR | Immediate action needed | DB connection failure, data inconsistency |
+| WARN | Attention needed | Retry occurred, threshold approaching |
+| INFO | Important normal events | Request start/end, state changes |
+| DEBUG | Development only | Detailed data contents, intermediate states |
 
 ---
 
 ## Log content guidelines
 
-<!-- grepキーワード: OBSERVABILITY_LOG_CONTENT -->
+<!-- grep keyword: OBSERVABILITY_LOG_CONTENT -->
 
-含めるべき情報:
-- タイムスタンプ（ISO 8601）
-- ログレベル
-- リクエストID / トレースID
-- ユーザーID（該当する場合）
-- 操作内容
-- 結果（成功/失敗）
-- エラー時: スタックトレース
+Information to include:
+- Timestamp (ISO 8601)
+- Log level
+- Request ID / Trace ID
+- User ID (if applicable)
+- Operation performed
+- Result (success/failure)
+- On error: stack trace
 
-含めてはいけない情報:
-- パスワード
-- アクセストークン
-- クレジットカード番号
-- PII（マスクが必要）
+Information to exclude:
+- Passwords
+- Access tokens
+- Credit card numbers
+- PII (must be masked)
 
 ---
 
 ## Checklist
 
-<!-- grepキーワード: OBSERVABILITY_CHECKLIST -->
+<!-- grep keyword: OBSERVABILITY_CHECKLIST -->
 
-### 設計時
+### Design phase
 
-- [ ] ログ出力先が決定している
-- [ ] ログフォーマットが決定している
-- [ ] メトリクス項目が定義されている
-- [ ] アラート条件が定義されている
+- [ ] Log output destination is decided
+- [ ] Log format is decided
+- [ ] Metrics items are defined
+- [ ] Alert conditions are defined
 
-### 実装時
+### Implementation phase
 
-- [ ] エラー時にスタックトレースが記録される
-- [ ] リクエストIDなどのコンテキストが含まれる
-- [ ] 機密情報がマスクされている
-- [ ] ログレベルが適切に使い分けられている
+- [ ] Stack traces are recorded on errors
+- [ ] Context (request ID, etc.) is included
+- [ ] Sensitive information is masked
+- [ ] Log levels are used appropriately
 
-### 運用時
+### Operations phase
 
-- [ ] アラート条件が設定されている
-- [ ] ログ検索が可能（クエリ可能な形式）
-- [ ] ダッシュボードが用意されている
+- [ ] Alert conditions are configured
+- [ ] Logs are searchable (queryable format)
+- [ ] Dashboard is prepared
 
 ---
 
@@ -173,7 +173,7 @@ DoDで以下が必須化（Q6-6: Yesの場合）：
 <example type="bad">
 ```
 User logged in successfully
-（タイムスタンプなし、コンテキストなし、構造化されていない）
+(No timestamp, no context, not structured)
 ```
 </example>
 

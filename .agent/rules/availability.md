@@ -1,81 +1,81 @@
 # Availability Rules
 
-可用性要件があるプロジェクト向けのルール。
+Rules for projects with availability requirements.
 
-適用条件: PRD Q6-8（可用性要件）で「Yes」と回答した場合
+Applies when: PRD Q6-8 (Availability requirement) is "Yes"
 
 ---
 
 ## Required when
 
-<!-- grepキーワード: AVAILABILITY_REQUIRED_WHEN -->
+<!-- grep keyword: AVAILABILITY_REQUIRED_WHEN -->
 
-以下のいずれかに該当する場合、このルールを適用：
+Apply this rule if any of the following conditions are met:
 
-- [ ] 24/7稼働が求められる
-- [ ] ダウンがビジネス損失に直結する
-- [ ] SLA/SLOがある（例: 99.9%稼働）
-- [ ] 障害復旧計画が必要
-- [ ] 外部顧客にサービス提供する
-- [ ] 決済/予約など中断不可の処理がある
+- [ ] 24/7 operation is required
+- [ ] Downtime directly impacts business revenue
+- [ ] SLA/SLO exists (e.g., 99.9% uptime)
+- [ ] Disaster recovery plan is required
+- [ ] Serves external customers
+- [ ] Handles non-interruptible processes (payments, reservations)
 
 ---
 
 ## Not required when
 
-<!-- grepキーワード: AVAILABILITY_NOT_REQUIRED_WHEN -->
+<!-- grep keyword: AVAILABILITY_NOT_REQUIRED_WHEN -->
 
-以下の場合は適用不要：
+Not applicable in these cases:
 
-- 内部ツール（業務時間のみ利用）
-- プロトタイプ/PoC（動作確認が目的）
-- 個人利用のみ
-- ダウンしても影響が軽微
+- Internal tools (business hours only)
+- Prototype/PoC (purpose is to validate functionality)
+- Personal use only
+- Downtime has minimal impact
 
 ---
 
 ## PRD requirements
 
-<!-- grepキーワード: AVAILABILITY_PRD_REQ -->
+<!-- grep keyword: AVAILABILITY_PRD_REQ -->
 
-PRD Q6-8で「Yes」の場合、以下を記載：
+When PRD Q6-8 is "Yes", include:
 
-1. 稼働要件の概要（例: 24/7、業務時間のみ）
-2. SLA/SLOの有無
+1. Uptime requirements overview (e.g., 24/7, business hours only)
+2. SLA/SLO existence
 
-詳細な設計・復旧計画はEpicで定義する。
+Specific design and recovery plans are defined in Epic.
 
 ---
 
 ## Epic requirements
 
-<!-- grepキーワード: AVAILABILITY_EPIC_REQ -->
+<!-- grep keyword: AVAILABILITY_EPIC_REQ -->
 
-Epicに以下のセクションを必須で含める：
+Include the following section in Epic:
 
-<epic_section name="可用性設計">
+<epic_section name="Availability Design">
 
-### 可用性設計（PRD Q6-8: Yesの場合必須）
+### Availability Design (Required if PRD Q6-8: Yes)
 
 SLO:
-- 稼働率: [例: 99.9%（月間ダウンタイム43分以内）]
-- 許容ダウンタイム: [例: 月間43分]
-- 応答時間: [例: p99 < 3秒]
+- Uptime: [e.g., 99.9% (max 43 minutes downtime per month)]
+- Allowed downtime: [e.g., 43 minutes per month]
+- Response time: [e.g., p99 < 3 seconds]
 
-冗長化:
-- 方式: [例: マルチAZ、レプリカ、ロードバランサー]
-- フェイルオーバー: [自動/手動]
+Redundancy:
+- Method: [e.g., multi-AZ, replicas, load balancer]
+- Failover: [automatic/manual]
 
-障害復旧:
-- RTO（復旧目標時間）: [例: 1時間]
-- RPO（復旧目標地点）: [例: 直前バックアップ、最大1時間のデータ損失許容]
-- バックアップ頻度: [例: 日次、1時間ごと]
-- バックアップ保持期間: [例: 30日]
+Disaster recovery:
+- RTO (Recovery Time Objective): [e.g., 1 hour]
+- RPO (Recovery Point Objective): [e.g., 1 hour (max data loss)]
+- Backup frequency: [e.g., daily, hourly]
+- Backup retention: [e.g., 30 days]
 
-ロールバック:
-- 方式: [例: Blue-Green, Canary, 手動切り戻し]
-- 手順: [概要]
-- 所要時間: [例: 5分以内]
+Rollback:
+- Method: [e.g., Blue-Green, Canary, manual rollback]
+- Procedure: [overview]
+- Duration: [e.g., within 5 minutes]
 
 </epic_section>
 
@@ -83,54 +83,54 @@ SLO:
 
 ## DoD requirements
 
-<!-- grepキーワード: AVAILABILITY_DOD_REQ -->
+<!-- grep keyword: AVAILABILITY_DOD_REQ -->
 
-DoDで以下が必須化（Q6-8: Yesの場合）：
+The following become required in DoD (when Q6-8: Yes):
 
-- [ ] ロールバック手順が文書化されている
-- [ ] バックアップが設定されている
-- [ ] 障害時の連絡先/手順が明確
+- [ ] Rollback procedure is documented
+- [ ] Backup is configured
+- [ ] Incident response contacts/procedures are clear
 
 ---
 
 ## SLO guidelines
 
-<!-- grepキーワード: AVAILABILITY_SLO -->
+<!-- grep keyword: AVAILABILITY_SLO -->
 
-| 稼働率 | 月間ダウンタイム | 用途例 |
-|-------|----------------|--------|
-| 99% | 7時間18分 | 内部ツール、非クリティカル |
-| 99.9% | 43分 | 一般的なWebサービス |
-| 99.95% | 22分 | ECサイト、SaaS |
-| 99.99% | 4分 | 金融、決済、インフラ |
+| Uptime | Monthly downtime | Use case |
+|--------|------------------|----------|
+| 99% | 7h 18m | Internal tools, non-critical |
+| 99.9% | 43m | General web services |
+| 99.95% | 22m | E-commerce, SaaS |
+| 99.99% | 4m | Finance, payments, infrastructure |
 
 ---
 
 ## Checklist
 
-<!-- grepキーワード: AVAILABILITY_CHECKLIST -->
+<!-- grep keyword: AVAILABILITY_CHECKLIST -->
 
-### 設計時
+### Design phase
 
-- [ ] SLOが数値で定義されている
-- [ ] 冗長化方式が決定している
-- [ ] RTO/RPOが定義されている
-- [ ] バックアップ方式が決定している
+- [ ] SLO is defined numerically
+- [ ] Redundancy method is decided
+- [ ] RTO/RPO is defined
+- [ ] Backup method is decided
 
-### 実装時
+### Implementation phase
 
-- [ ] ヘルスチェックエンドポイントがある
-- [ ] Graceful shutdownが実装されている
-- [ ] タイムアウト/リトライが適切に設定されている
-- [ ] 外部依存の障害時にもサービスが安定する
+- [ ] Health check endpoint exists
+- [ ] Graceful shutdown is implemented
+- [ ] Timeouts/retries are configured appropriately
+- [ ] Service remains stable when external dependencies fail
 
-### 運用時
+### Operations phase
 
-- [ ] バックアップが定期実行されている
-- [ ] バックアップのリストアがテストされている
-- [ ] ロールバック手順がテストされている
-- [ ] インシデント対応手順がある
-- [ ] オンコール体制がある（24/7の場合）
+- [ ] Backup is running on schedule
+- [ ] Backup restore has been tested
+- [ ] Rollback procedure has been tested
+- [ ] Incident response procedure exists
+- [ ] On-call rotation exists (for 24/7)
 
 ---
 
@@ -138,23 +138,23 @@ DoDで以下が必須化（Q6-8: Yesの場合）：
 
 <example type="good">
 SLO:
-- 稼働率: 99.9%（月間ダウンタイム43分以内）
-- p99レスポンス: 3秒以内
+- Uptime: 99.9% (max 43 minutes downtime per month)
+- p99 response: within 3 seconds
 
-障害復旧:
-- RTO: 1時間
-- RPO: 1時間（1時間ごとのバックアップ）
-- バックアップ: RDS自動バックアップ + S3クロスリージョンレプリケーション
+Disaster recovery:
+- RTO: 1 hour
+- RPO: 1 hour (hourly backups)
+- Backup: RDS automated backup + S3 cross-region replication
 
-ロールバック:
-- 方式: Blue-Greenデプロイ
-- 手順: AWS CodeDeployでトラフィック切り替え
-- 所要時間: 5分以内
+Rollback:
+- Method: Blue-Green deployment
+- Procedure: Traffic switch via AWS CodeDeploy
+- Duration: within 5 minutes
 </example>
 
 <example type="bad">
-可用性: 高くする
-（数値なし、具体的な方式なし、復旧計画なし）
+Availability: Make it high
+(No numbers, no specific method, no recovery plan)
 </example>
 
 ---
