@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.22] - 2026-01-27
+
+- Add production quality rules (performance/security/observability/availability) and update PRD/Epic templates accordingly.
+- Translate LLM-facing rule/command docs to English to reduce prompt bloat.
+- Fix `setup-global-agentic-sdd.sh` to skip rewriting unchanged config files (avoids unnecessary `.bak.*` backups).
 
 ## [0.2.21] - 2026-01-26
 
