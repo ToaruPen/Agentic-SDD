@@ -591,10 +591,22 @@ case "$review_engine" in
     ;;
 
   claude)
+    # Claude CLI --json-schema expects JSON string, not file path.
+    # Read the schema file content and remove $schema meta field if present
+    # (Claude CLI doesn't handle JSON Schema meta fields correctly).
+    schema_content="$(python3 -c "
+import json
+import sys
+with open('$schema_path', 'r', encoding='utf-8') as f:
+    schema = json.load(f)
+schema.pop('\$schema', None)
+print(json.dumps(schema, ensure_ascii=False))
+")"
+
     cmd=(
       "$claude_bin" -p
       --model "$claude_model"
-      --json-schema "$schema_path"
+      --json-schema "$schema_content"
       --output-format json
       --betas interleaved-thinking
     )
