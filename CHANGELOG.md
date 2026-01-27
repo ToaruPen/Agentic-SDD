@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.23] - 2026-01-28
+
+- Add Claude Code as a fallback review engine for `/review-cycle` via `REVIEW_ENGINE=claude`.
+- Support Extended Thinking (`--betas interleaved-thinking`) by default for Claude engine.
+- Fix Claude CLI integration: extract `structured_output` from wrapped response, pass schema content instead of file path, and remove `$schema` meta field.
+
 ## [0.2.22] - 2026-01-27
 
 - Add production quality rules (performance/security/observability/availability) and update PRD/Epic templates accordingly.
