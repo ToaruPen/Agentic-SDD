@@ -66,7 +66,7 @@ write_file() {
     local dst_dir
     dst_dir="$(dirname "$dst")"
 
-    if [ -f "$dst" ] && [ "$(cat "$dst" 2>/dev/null || true)" = "${content}"$'\n' ]; then
+    if [ -f "$dst" ] && [ "$(cat "$dst" 2>/dev/null || true)" = "$content" ]; then
         if [ "$dry_run" = true ]; then
             log_info "[DRY-RUN] identical: $dst"
         fi

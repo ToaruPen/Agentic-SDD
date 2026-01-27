@@ -46,5 +46,19 @@ if [[ ! -L "$home/.config/opencode/skills/agentic-sdd" ]]; then
   exit 1
 fi
 
-eprint "OK: scripts/test-setup-global-agentic-sdd.sh"
+# Ensure setup is idempotent: running twice should not create backups for unchanged config files.
+HOME="$home" bash "$setup" >/dev/null
 
+if compgen -G "$home/.config/agentic-sdd/default-ref.bak.*" >/dev/null; then
+  eprint "Did not expect a backup for default-ref on a second identical run"
+  ls -1 "$home/.config/agentic-sdd/default-ref.bak."* >&2
+  exit 1
+fi
+
+if compgen -G "$home/.config/agentic-sdd/repo.bak.*" >/dev/null; then
+  eprint "Did not expect a backup for repo on a second identical run"
+  ls -1 "$home/.config/agentic-sdd/repo.bak."* >&2
+  exit 1
+fi
+
+eprint "OK: scripts/test-setup-global-agentic-sdd.sh"
