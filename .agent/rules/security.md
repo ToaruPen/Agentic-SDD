@@ -1,79 +1,79 @@
 # Security Rules
 
-セキュリティ要件があるプロジェクト向けのルール。
+Rules for projects with security requirements.
 
-適用条件: PRD Q6-5（個人情報/機密データ）で「Yes」と回答した場合
+Applies when: PRD Q6-5 (PII/confidential data) is "Yes"
 
 ---
 
 ## Required when
 
-<!-- grepキーワード: SECURITY_REQUIRED_WHEN -->
+<!-- grep keyword: SECURITY_REQUIRED_WHEN -->
 
-以下のいずれかに該当する場合、このルールを適用：
+Apply this rule if any of the following conditions are met:
 
-- [ ] 個人情報を扱う（氏名、メール、住所、電話番号、生年月日等）
-- [ ] 認証/認可がある（ログイン、権限管理、セッション）
-- [ ] 外部公開される（公開API、Webサイト、モバイルアプリ）
-- [ ] 機密データを扱う（社内情報、医療データ、金融データ）
-- [ ] 決済/課金がある（クレジットカード、銀行口座）
-- [ ] 規制対象（GDPR、HIPAA、PCI-DSS、個人情報保護法等）
+- [ ] Handles PII (name, email, address, phone number, date of birth, etc.)
+- [ ] Has authentication/authorization (login, permission management, sessions)
+- [ ] Publicly accessible (public API, website, mobile app)
+- [ ] Handles confidential data (internal information, medical data, financial data)
+- [ ] Has payment/billing (credit cards, bank accounts)
+- [ ] Subject to regulations (GDPR, HIPAA, PCI-DSS, data protection laws, etc.)
 
 ---
 
 ## Not required when
 
-<!-- grepキーワード: SECURITY_NOT_REQUIRED_WHEN -->
+<!-- grep keyword: SECURITY_NOT_REQUIRED_WHEN -->
 
-以下の場合は適用不要：
+Not applicable in these cases:
 
-- ローカル専用ツール（ネットワーク非公開）
-- 公開データのみ扱う（機密性なし）
-- 認証なしの静的サイト
-- 内部ネットワーク限定（VPN内のみ）
+- Local-only tools (not network accessible)
+- Handles only public data (no confidentiality)
+- Static site without authentication
+- Internal network only (VPN access only)
 
 ---
 
 ## PRD requirements
 
-<!-- grepキーワード: SECURITY_PRD_REQ -->
+<!-- grep keyword: SECURITY_PRD_REQ -->
 
-PRD Q6-5で「Yes」の場合、以下を記載：
+When PRD Q6-5 is "Yes", include:
 
-1. 扱うデータの種類（個人情報、機密情報等）
-2. 規制要件の有無（GDPR、PCI-DSS等）
+1. Types of data handled (PII, confidential information, etc.)
+2. Regulatory requirements (GDPR, PCI-DSS, etc.)
 
-詳細な対策はEpicで定義する。
+Specific countermeasures are defined in Epic.
 
 ---
 
 ## Epic requirements
 
-<!-- grepキーワード: SECURITY_EPIC_REQ -->
+<!-- grep keyword: SECURITY_EPIC_REQ -->
 
-Epicに以下のセクションを必須で含める：
+Include the following section in Epic:
 
-<epic_section name="セキュリティ設計">
+<epic_section name="Security Design">
 
-### セキュリティ設計（PRD Q6-5: Yesの場合必須）
+### Security Design (Required if PRD Q6-5: Yes)
 
-扱うデータ:
-- [データ種別]: [保護レベル]
-- 例: ユーザーメールアドレス: 暗号化保存
-- 例: パスワード: ハッシュ化（bcrypt, cost=12）
-- 例: クレジットカード: PCI-DSS準拠、トークン化
+Data handled:
+- [Data type]: [Protection level]
+- Example: User email address: encrypted at rest
+- Example: Password: hashed (bcrypt, cost=12)
+- Example: Credit card: PCI-DSS compliant, tokenized
 
-認証/認可:
-- 認証方式: [例: JWT, セッション, OAuth 2.0]
-- 認可モデル: [例: RBAC, ABAC]
-- セッション管理: [例: 有効期限、リフレッシュトークン]
+Authentication/Authorization:
+- Authentication method: [e.g., JWT, session, OAuth 2.0]
+- Authorization model: [e.g., RBAC, ABAC]
+- Session management: [e.g., expiration, refresh tokens]
 
-対策チェックリスト:
-- [ ] 入力検証/サニタイズ
-- [ ] SQLインジェクション対策（パラメータ化クエリ）
-- [ ] XSS対策（エスケープ、CSP）
-- [ ] CSRF対策（トークン）
-- [ ] シークレット管理（環境変数、vault）
+Countermeasures checklist:
+- [ ] Input validation/sanitization
+- [ ] SQL injection prevention (parameterized queries)
+- [ ] XSS prevention (escaping, CSP)
+- [ ] CSRF prevention (tokens)
+- [ ] Secret management (environment variables, vault)
 
 </epic_section>
 
@@ -81,70 +81,70 @@ Epicに以下のセクションを必須で含める：
 
 ## DoD requirements
 
-<!-- grepキーワード: SECURITY_DOD_REQ -->
+<!-- grep keyword: SECURITY_DOD_REQ -->
 
-DoDで以下が必須化（Q6-5: Yesの場合）：
+The following become required in DoD (when Q6-5: Yes):
 
-- [ ] セキュリティ対策がレビューされている
-- [ ] シークレットがハードコードされていない
-- [ ] 入力検証が実装されている
-- [ ] 認証/認可が要件通り実装されている
+- [ ] Security countermeasures are reviewed
+- [ ] No hardcoded secrets
+- [ ] Input validation is implemented
+- [ ] Authentication/authorization is implemented as required
 
 ---
 
 ## Prohibited
 
-<!-- grepキーワード: SECURITY_PROHIBITED -->
+<!-- grep keyword: SECURITY_PROHIBITED -->
 
-以下は禁止：
+The following are prohibited:
 
-- ハードコードされたシークレット/パスワード/APIキー
-- 平文でのパスワード保存
-- 検証なしの外部入力使用
-- 過剰な権限付与（最小権限の原則違反）
-- 機密情報のログ出力（パスワード、トークン、カード番号等）
-- HTTPでの機密データ送信（HTTPS必須）
+- Hardcoded secrets/passwords/API keys
+- Plaintext password storage
+- Using external input without validation
+- Excessive privilege grants (violating principle of least privilege)
+- Logging sensitive information (passwords, tokens, card numbers, etc.)
+- Transmitting sensitive data over HTTP (HTTPS required)
 
 ---
 
 ## Checklist
 
-<!-- grepキーワード: SECURITY_CHECKLIST -->
+<!-- grep keyword: SECURITY_CHECKLIST -->
 
-### 設計時
+### Design phase
 
-- [ ] 扱うデータの分類が完了している
-- [ ] 認証/認可方式が決定している
-- [ ] 対策リストが作成されている
-- [ ] 規制要件が確認されている
+- [ ] Data classification is complete
+- [ ] Authentication/authorization method is decided
+- [ ] Countermeasures list is created
+- [ ] Regulatory requirements are confirmed
 
-### 実装時
+### Implementation phase
 
-- [ ] シークレットは環境変数/vault経由
-- [ ] 入力検証が境界で実施されている
-- [ ] エラーメッセージに機密情報が含まれていない
-- [ ] HTTPS使用（本番環境）
+- [ ] Secrets are accessed via environment variables/vault
+- [ ] Input validation is performed at boundaries
+- [ ] Error messages do not contain sensitive information
+- [ ] HTTPS is used (production environment)
 
-### レビュー時
+### Review phase
 
-- [ ] OWASP Top 10に対する対策を確認
-- [ ] 依存関係の脆弱性を確認（npm audit, pip-audit等）
-- [ ] シークレットのコミット履歴を確認
+- [ ] OWASP Top 10 countermeasures are confirmed
+- [ ] Dependency vulnerabilities are checked (npm audit, pip-audit, etc.)
+- [ ] Commit history is checked for secrets
 
 ---
 
 ## Examples
 
 <example type="good">
-- パスワードはbcrypt（cost=12）でハッシュ化
-- APIキーは環境変数 `API_KEY` から読み込み
-- ユーザー入力はサニタイズ後にDBクエリに使用
+- Passwords are hashed with bcrypt (cost=12)
+- API key is read from environment variable `API_KEY`
+- User input is sanitized before use in DB queries
 </example>
 
 <example type="bad">
-- `const password = "admin123";`（ハードコード）
-- `db.query("SELECT * FROM users WHERE id = " + userId);`（SQLインジェクション）
-- `console.log("Token: " + userToken);`（機密情報のログ出力）
+- `const password = "admin123";` (hardcoded)
+- `db.query("SELECT * FROM users WHERE id = " + userId);` (SQL injection)
+- `console.log("Token: " + userToken);` (logging sensitive info)
 </example>
 
 ---
