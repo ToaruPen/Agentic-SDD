@@ -370,4 +370,87 @@ if [[ "$code3" -eq 0 ]]; then
   exit 1
 fi
 
+# Claude engine test (use stub)
+cat > "$tmpdir/claude" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Parse arguments to find --json-schema
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -p)
+      shift
+      ;;
+    --model|--output-format|--betas)
+      shift 2 2>/dev/null || shift
+      ;;
+    --json-schema)
+      shift 2 2>/dev/null || shift
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+# Read stdin and discard
+cat >/dev/null || true
+
+# Output valid review JSON to stdout
+cat <<'JSON'
+{
+  "schema_version": 3,
+  "scope_id": "issue-claude",
+  "status": "Approved",
+  "findings": [],
+  "questions": [],
+  "overall_explanation": "claude stub"
+}
+JSON
+EOF
+chmod +x "$tmpdir/claude"
+
+# Reset diff state for Claude test
+git -C "$tmpdir" reset HEAD~1 --soft 2>/dev/null || true
+echo "claude-change" >> "$tmpdir/hello.txt"
+git -C "$tmpdir" add hello.txt
+
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  REVIEW_ENGINE=claude CLAUDE_BIN="$tmpdir/claude" CLAUDE_MODEL=stub \
+  "$review_cycle_sh" issue-claude run1) >/dev/null
+
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-claude/run1/review.json" ]]; then
+  eprint "Expected review.json to be created for Claude engine"
+  exit 1
+fi
+
+if ! grep -q "claude stub" "$tmpdir/.agentic-sdd/reviews/issue-claude/run1/review.json"; then
+  eprint "Expected Claude stub output in review.json"
+  exit 1
+fi
+
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-claude/run1/prompt.txt" ]]; then
+  eprint "Expected prompt.txt to be created for Claude engine"
+  exit 1
+fi
+
+# Invalid REVIEW_ENGINE should fail
+set +e
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" DIFF_MODE=staged \
+  REVIEW_ENGINE=invalid \
+  "$review_cycle_sh" issue-1 --dry-run) >/dev/null 2>"$tmpdir/stderr4"
+code4=$?
+set -e
+
+if [[ "$code4" -eq 0 ]]; then
+  eprint "Expected failure for invalid REVIEW_ENGINE"
+  exit 1
+fi
+
+if ! grep -q "Invalid REVIEW_ENGINE" "$tmpdir/stderr4"; then
+  eprint "Expected invalid engine error, got:"
+  cat "$tmpdir/stderr4" >&2
+  exit 1
+fi
+
 eprint "OK: scripts/test-review-cycle.sh"

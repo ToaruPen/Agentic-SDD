@@ -4,7 +4,7 @@ Iterate locally during development using:
 
 "review (JSON) -> fix -> re-review (JSON)".
 
-This command uses `codex exec` to generate `review.json` (review result JSON).
+This command uses `codex exec` (default) or `claude -p` to generate `review.json` (review result JSON).
 The final gate remains `/review` (DoD + `/sync-docs`).
 
 Review taxonomy (status/priority) and output rules are defined in:
@@ -24,7 +24,7 @@ Review taxonomy (status/priority) and output rules are defined in:
 
 1. Collect the diff (default: `DIFF_MODE=auto`)
 2. Run tests (optional) and record results
-3. Generate `review.json` via `codex exec --output-schema`
+3. Generate `review.json` via selected engine (`codex exec` or `claude -p`)
 4. Validate JSON and save under `.agentic-sdd/`
 
 ## Iteration protocol (how far/how to loop)
@@ -61,9 +61,22 @@ Review taxonomy (status/priority) and output rules are defined in:
 
 - `DIFF_MODE`: `auto` | `staged` | `worktree` (default: `auto`)
   - If both staged and worktree diffs exist in `auto`, fail-fast and ask you to choose.
+- `CONSTRAINTS`: additional constraints (default: `none`)
+
+### Engine selection
+
+- `REVIEW_ENGINE`: `codex` | `claude` (default: `codex`)
+
+### Codex options (when `REVIEW_ENGINE=codex`)
+
+- `CODEX_BIN`: codex binary (default: `codex`)
 - `MODEL`: Codex model (default: `gpt-5.2-codex`)
 - `REASONING_EFFORT`: `high` | `medium` | `low` (default: `high`)
-- `CONSTRAINTS`: additional constraints (default: `none`)
+
+### Claude options (when `REVIEW_ENGINE=claude`)
+
+- `CLAUDE_BIN`: claude binary (default: `claude`)
+- `CLAUDE_MODEL`: Claude model (default: `claude-opus-4-5-20250929`)
 
 ## Outputs
 
@@ -71,6 +84,7 @@ Review taxonomy (status/priority) and output rules are defined in:
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/diff.patch`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.txt`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/sot.txt`
+- `.agentic-sdd/reviews/<scope-id>/<run-id>/prompt.txt`
 
 ## SoT auto-ingest behavior
 
@@ -80,6 +94,8 @@ Review taxonomy (status/priority) and output rules are defined in:
   - If `- Epic:` / `- PRD:` exists but cannot be resolved, fail-fast
 
 ## Examples
+
+Using Codex (default):
 
 ```bash
 SOT="docs/prd/example.md docs/epics/example.md" \
@@ -98,6 +114,23 @@ TESTS="not run: reason" \
 DIFF_MODE=staged \
 ./scripts/review-cycle.sh issue-123
 ```
+
+Using Claude as fallback:
+
+```bash
+GH_ISSUE=123 \
+TESTS="not run: reason" \
+DIFF_MODE=staged \
+REVIEW_ENGINE=claude \
+./scripts/review-cycle.sh issue-123
+```
+
+## Notes on Claude engine
+
+- Claude Opus 4.5 has a 200K token context window (half of Codex's 400K).
+- Extended Thinking is enabled by default (`--betas interleaved-thinking`) to enhance reasoning.
+- For large PRD + Epic + diff combinations, consider setting `SOT_MAX_CHARS` (e.g., 80000-120000).
+- Use Claude when Codex is unavailable or as a secondary opinion.
 
 ## Related
 

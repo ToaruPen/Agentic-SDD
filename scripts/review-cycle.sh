@@ -40,9 +40,22 @@ Optional environment:
   OUTPUT_ROOT      Output root (default: <repo_root>/.agentic-sdd/reviews)
   SCHEMA_PATH      JSON schema path (default: <repo_root>/.agent/schemas/review.json)
   CONSTRAINTS      Additional constraints string (default: none)
+
+  Engine selection:
+  REVIEW_ENGINE    codex|claude (default: codex)
+
+  Codex options (when REVIEW_ENGINE=codex):
   CODEX_BIN        codex binary (default: codex)
   MODEL            codex model (default: gpt-5.2-codex)
   REASONING_EFFORT high|medium|low (default: high)
+
+  Claude options (when REVIEW_ENGINE=claude):
+  CLAUDE_BIN       claude binary (default: claude)
+  CLAUDE_MODEL     claude model (default: claude-opus-4-5-20250929)
+                   Note: Claude Opus 4.5 has 200K token context window (half of Codex's 400K).
+                   For large PRD+Epic+diff combinations, consider setting SOT_MAX_CHARS.
+
+  Common options:
   EXEC_TIMEOUT_SEC Optional timeout (uses timeout/gtimeout if available)
   FORMAT_JSON      1 to pretty-format output JSON (default: 1)
 
@@ -101,9 +114,28 @@ diff_file="${DIFF_FILE:-}"
 output_root="${OUTPUT_ROOT:-${repo_root}/.agentic-sdd/reviews}"
 schema_path="${SCHEMA_PATH:-${repo_root}/.agent/schemas/review.json}"
 
+# Engine selection
+review_engine="${REVIEW_ENGINE:-codex}"
+
+# Validate engine selection early (before dry-run)
+case "$review_engine" in
+  codex|claude) ;;
+  *)
+    eprint "Invalid REVIEW_ENGINE: $review_engine (use codex|claude)"
+    exit 2
+    ;;
+esac
+
+# Codex options
 codex_bin="${CODEX_BIN:-codex}"
 model="${MODEL:-gpt-5.2-codex}"
 effort="${REASONING_EFFORT:-high}"
+
+# Claude options
+claude_bin="${CLAUDE_BIN:-claude}"
+claude_model="${CLAUDE_MODEL:-claude-opus-4-5-20250929}"
+
+# Common options
 exec_timeout_sec="${EXEC_TIMEOUT_SEC:-}"
 format_json="${FORMAT_JSON:-1}"
 
@@ -341,9 +373,18 @@ print_plan() {
   if [[ -n "$diff_file" ]]; then
     eprint "- diff_file: $diff_file"
   fi
-  eprint "- codex_bin: $codex_bin"
-  eprint "- model: $model"
-  eprint "- reasoning_effort: $effort"
+  eprint "- review_engine: $review_engine"
+  case "$review_engine" in
+    codex)
+      eprint "- codex_bin: $codex_bin"
+      eprint "- model: $model"
+      eprint "- reasoning_effort: $effort"
+      ;;
+    claude)
+      eprint "- claude_bin: $claude_bin"
+      eprint "- claude_model: $claude_model"
+      ;;
+  esac
   if [[ -n "$exec_timeout_sec" ]]; then
     eprint "- exec_timeout_sec: $exec_timeout_sec"
   fi
@@ -446,10 +487,25 @@ if [[ ! -f "$schema_path" ]]; then
   exit 1
 fi
 
-if ! command -v "$codex_bin" >/dev/null 2>&1; then
-  eprint "codex not found: $codex_bin"
-  exit 1
-fi
+# Validate engine selection and check binary availability
+case "$review_engine" in
+  codex)
+    if ! command -v "$codex_bin" >/dev/null 2>&1; then
+      eprint "codex not found: $codex_bin"
+      exit 1
+    fi
+    ;;
+  claude)
+    if ! command -v "$claude_bin" >/dev/null 2>&1; then
+      eprint "claude not found: $claude_bin"
+      exit 1
+    fi
+    ;;
+  *)
+    eprint "Invalid REVIEW_ENGINE: $review_engine (use codex|claude)"
+    exit 2
+    ;;
+esac
 
 if ! command -v python3 >/dev/null 2>&1; then
   eprint "python3 not found (required for validation)."
@@ -457,7 +513,9 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 tmp_json="${out_json}.tmp.$$"
+tmp_prompt="${run_dir}/prompt.txt"
 
+# Build prompt
 {
   cat <<'PROMPT'
 You are a code reviewer.
@@ -510,26 +568,47 @@ PROMPT
   printf 'Constraints: %s\n' "$constraints"
   printf 'Diff:\n'
   cat "$out_diff"
-} | {
-  cmd=(
-    "$codex_bin" exec
-    --sandbox read-only
-    -m "$model"
-    -c "reasoning.effort=\"${effort}\""
-    --output-last-message "$tmp_json"
-    --output-schema "$schema_path"
-    -
-  )
+} > "$tmp_prompt"
 
-  if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
-    cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
-  fi
+# Execute review engine
+case "$review_engine" in
+  codex)
+    cmd=(
+      "$codex_bin" exec
+      --sandbox read-only
+      -m "$model"
+      -c "reasoning.effort=\"${effort}\""
+      --output-last-message "$tmp_json"
+      --output-schema "$schema_path"
+      -
+    )
 
-  "${cmd[@]}"
-}
+    if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
+      cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
+    fi
+
+    "${cmd[@]}" < "$tmp_prompt"
+    ;;
+
+  claude)
+    cmd=(
+      "$claude_bin" -p
+      --model "$claude_model"
+      --json-schema "$schema_path"
+      --output-format json
+      --betas interleaved-thinking
+    )
+
+    if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
+      cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
+    fi
+
+    "${cmd[@]}" < "$tmp_prompt" > "$tmp_json"
+    ;;
+esac
 
 if [[ ! -f "$tmp_json" || ! -s "$tmp_json" ]]; then
-  eprint "codex did not produce output: $tmp_json"
+  eprint "$review_engine did not produce output: $tmp_json"
   exit 1
 fi
 
