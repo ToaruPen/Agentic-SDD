@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.26] - 2026-01-29
+
+- Add `/cleanup` command to safely remove worktrees and local branches after PR merge.
+  - `scripts/cleanup.sh`: Main cleanup script with safety checks (merge status, uncommitted changes).
+  - Support for single Issue cleanup (`/cleanup 123`) and batch cleanup (`/cleanup --all`).
+  - Options: `--dry-run`, `--force`, `--skip-merge-check`, `--keep-local-branch`.
+- Update workflow documentation to include cleanup as the final step after merge.
+
 ## [0.2.24] - 2026-01-28
 
 - Add `/generate-project-config` command to generate project-specific skills/rules from Epic information.

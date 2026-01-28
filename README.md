@@ -19,11 +19,11 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues) remai
 ## Workflow
 
 ```
-/agentic-sdd* -> /create-prd -> /create-epic -> /generate-project-config** -> /create-issues -> /estimation -> /impl|/tdd -> /review-cycle -> /review -> /create-pr
-     |            |              |              |                            |              |            |              |            |
-     v            v              v              v                            v              v            v              v            v
-     Install       7 questions    3-layer guard  Generate project            LOC-based       Full estimate Implement      Local loop    DoD gate       Push + PR create
-                  + checklist    + 3 required   skills/rules                50-300 LOC      + approval    + tests        review.json   + sync-docs    (gh)
+/agentic-sdd* -> /create-prd -> /create-epic -> /generate-project-config** -> /create-issues -> /estimation -> /impl|/tdd -> /review-cycle -> /review -> /create-pr -> [Merge] -> /cleanup
+     |            |              |              |                            |              |            |              |            |            |                         |
+     v            v              v              v                            v              v            v              v            v            v                         v
+     Install       7 questions    3-layer guard  Generate project            LOC-based       Full estimate Implement      Local loop    DoD gate       Push + PR create       Remove worktree
+                  + checklist    + 3 required   skills/rules                50-300 LOC      + approval    + tests        review.json   + sync-docs    (gh)                   + local branch
 ```
 
 \*\* Optional: generates project-specific skills/rules based on Epic tech stack and Q6 requirements.
@@ -174,6 +174,7 @@ If you enable CI (optional), wait for CI checks and fix failures before merging.
 ```
 .agent/
 ├── commands/           # command definitions
+│   ├── cleanup.md
 │   ├── create-prd.md
 │   ├── create-epic.md
 │   ├── generate-project-config.md
@@ -235,6 +236,7 @@ scripts/
 ├── bench-sdd-docs.py
 ├── check-commit-gate.py
 ├── check-impl-gate.py
+├── cleanup.sh
 ├── create-approval.py
 ├── create-pr.sh
 ├── extract-epic-config.py

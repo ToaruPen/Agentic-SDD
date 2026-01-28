@@ -81,6 +81,7 @@ Treat the Issue's declared file list as a contract.
 - [ ] One worktree per Issue created (`./scripts/worktree.sh new ...`)
 - [ ] Tool configs generated per worktree (OpenCode/Codex) if needed
 - [ ] Each Issue passes `/review` (DoD + `/sync-docs`) before merge
+- [ ] After merge: run `/cleanup` to remove worktree + local branch
 
 ---
 

@@ -83,6 +83,23 @@ Note: create an Issue whenever possible.
 
 ## Delete after merge
 
+Use `/cleanup` to safely remove the worktree and local branch after PR merge:
+
+```bash
+# Clean up Issue #123 worktree and local branch
+./scripts/cleanup.sh 123
+
+# Preview what would be deleted
+./scripts/cleanup.sh 123 --dry-run
+
+# Clean up all merged worktrees
+./scripts/cleanup.sh --all
+```
+
+Note: Remote branches are automatically deleted by GitHub when PR is merged (if configured).
+
+Manual deletion (if needed):
+
 ```bash
 # Delete local branch
 git branch -d feature/issue-123-user-registration

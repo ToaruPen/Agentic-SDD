@@ -123,6 +123,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/create-pr`: push branch and create a PR (gh)
 - `/sync-docs`: consistency check between PRD/Epic/code
 - `/worktree`: manage git worktrees for parallel Issues
+- `/cleanup`: clean up worktree and local branch after merge
 
 ---
 
