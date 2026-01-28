@@ -52,7 +52,7 @@ Always include these three lists in the Epic (write "なし" if not applicable):
 - Components
 - New tech
 
-### Phase 4.5: Project-specific metrics (optional)
+### Phase 4.5: Project-specific metrics (recommended)
 
 If the project has measurable success criteria (performance/accuracy/etc), fill
 section 3.5 in `docs/epics/_template.md`.
@@ -61,12 +61,10 @@ section 3.5 in `docs/epics/_template.md`.
 
 Based on PRD Q6 answers, include the required production quality sections in section 5:
 
-| PRD Q6 | Answer | Required Epic section | Rule file |
-|--------|--------|----------------------|-----------|
-| Q6-5: PII/confidential data | Yes | 5.2 Security design | `.agent/rules/security.md` |
-| Q6-6: Audit log requirement | Yes | 5.3 Observability design | `.agent/rules/observability.md` |
-| Q6-7: Performance requirement | Yes | 5.1 Performance design | `.agent/rules/performance.md` |
-| Q6-8: Availability requirement | Yes | 5.4 Availability design | `.agent/rules/availability.md` |
+- **Q6-5: PII/confidential data = Yes** → 5.2 Security design (see `.agent/rules/security.md`)
+- **Q6-6: Audit log requirement = Yes** → 5.3 Observability design (see `.agent/rules/observability.md`)
+- **Q6-7: Performance requirement = Yes** → 5.1 Performance design (see `.agent/rules/performance.md`)
+- **Q6-8: Availability requirement = Yes** → 5.4 Availability design (see `.agent/rules/availability.md`)
 
 Rules:
 - If Q6 is "Yes": fill the section with specific details
