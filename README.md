@@ -19,12 +19,14 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues) remai
 ## Workflow
 
 ```
-/agentic-sdd* -> /create-prd -> /create-epic -> /create-issues -> /estimation -> /impl|/tdd -> /review-cycle -> /review -> /create-pr
-     |            |              |              |              |            |              |            |
-     v            v              v              v              v            v              v            v
-     Install       7 questions    3-layer guard  LOC-based       Full estimate Implement      Local loop    DoD gate       Push + PR create
-                  + checklist    + 3 required   50-300 LOC      + approval    + tests        review.json   + sync-docs    (gh)
+/agentic-sdd* -> /create-prd -> /create-epic -> /generate-project-config** -> /create-issues -> /estimation -> /impl|/tdd -> /review-cycle -> /review -> /create-pr
+     |            |              |              |                            |              |            |              |            |
+     v            v              v              v                            v              v            v              v            v
+     Install       7 questions    3-layer guard  Generate project            LOC-based       Full estimate Implement      Local loop    DoD gate       Push + PR create
+                  + checklist    + 3 required   skills/rules                50-300 LOC      + approval    + tests        review.json   + sync-docs    (gh)
 ```
+
+\*\* Optional: generates project-specific skills/rules based on Epic tech stack and Q6 requirements.
 
 \* One-time install of Agentic-SDD workflow files in the repo.
 Optional: enable GitHub-hosted CI (GitHub Actions) via `/agentic-sdd --ci github-actions` and enforce it with branch protection.
@@ -174,6 +176,7 @@ If you enable CI (optional), wait for CI checks and fix failures before merging.
 ├── commands/           # command definitions
 │   ├── create-prd.md
 │   ├── create-epic.md
+│   ├── generate-project-config.md
 │   ├── create-issues.md
 │   ├── create-pr.md
 │   ├── estimation.md
@@ -186,6 +189,7 @@ If you enable CI (optional), wait for CI checks and fix failures before merging.
 ├── schemas/            # JSON schema
 │   └── review.json
 ├── rules/              # rule definitions
+│   ├── availability.md
 │   ├── branch.md
 │   ├── commit.md
 │   ├── datetime.md
@@ -193,7 +197,10 @@ If you enable CI (optional), wait for CI checks and fix failures before merging.
 │   ├── dod.md
 │   ├── epic.md
 │   ├── impl-gate.md
-│   └── issue.md
+│   ├── issue.md
+│   ├── observability.md
+│   ├── performance.md
+│   └── security.md
 └── agents/
     ├── docs.md
     └── reviewer.md
@@ -210,34 +217,44 @@ skills/                 # design skills
 ├── README.md
 ├── anti-patterns.md
 ├── api-endpoint.md
+├── class-design.md
 ├── crud-screen.md
 ├── data-driven.md
+├── debugging.md
 ├── error-handling.md
 ├── estimation.md
 ├── resource-limits.md
+├── security.md
 ├── testing.md
 ├── tdd-protocol.md
 └── worktree-parallel.md
 
 scripts/
 ├── agentic-sdd
+├── assemble-sot.py
 ├── bench-sdd-docs.py
 ├── create-pr.sh
-├── install-agentic-sdd.sh
-├── assemble-sot.py
+├── extract-epic-config.py
 ├── extract-issue-files.py
+├── generate-project-config.py
+├── install-agentic-sdd.sh
 ├── resolve-sync-docs-inputs.py
-├── sot_refs.py
 ├── review-cycle.sh
 ├── setup-global-agentic-sdd.sh
+├── sot_refs.py
 ├── sync-agent-config.sh
-├── test-install-agentic-sdd.sh
-├── test-create-pr.sh
-├── test-review-cycle.sh
-├── test-sync-docs-inputs.sh
-├── test-worktree.sh
 ├── validate-review-json.py
 └── worktree.sh
+
+templates/
+└── project-config/     # templates for /generate-project-config
+    ├── config.json.j2
+    ├── rules/
+    │   ├── api-conventions.md.j2
+    │   ├── performance.md.j2
+    │   └── security.md.j2
+    └── skills/
+        └── tech-stack.md.j2
 
 AGENTS.md               # AI agent rules
 ```
