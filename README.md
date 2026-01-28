@@ -230,9 +230,12 @@ skills/                 # design skills
 └── worktree-parallel.md
 
 scripts/
-├── agentic-sdd
+├── agentic-sdd              # main CLI
 ├── assemble-sot.py
 ├── bench-sdd-docs.py
+├── check-commit-gate.py
+├── check-impl-gate.py
+├── create-approval.py
 ├── create-pr.sh
 ├── extract-epic-config.py
 ├── extract-issue-files.py
@@ -240,11 +243,22 @@ scripts/
 ├── install-agentic-sdd.sh
 ├── resolve-sync-docs-inputs.py
 ├── review-cycle.sh
+├── setup-githooks.sh
 ├── setup-global-agentic-sdd.sh
 ├── sot_refs.py
 ├── sync-agent-config.sh
+├── validate-approval.py
 ├── validate-review-json.py
-└── worktree.sh
+├── worktree.sh
+└── tests/                   # test scripts
+    ├── test-agentic-sdd-latest.sh
+    ├── test-approval-gate.sh
+    ├── test-create-pr.sh
+    ├── test-install-agentic-sdd.sh
+    ├── test-review-cycle.sh
+    ├── test-setup-global-agentic-sdd.sh
+    ├── test-sync-docs-inputs.sh
+    └── test-worktree.sh
 
 templates/
 └── project-config/     # templates for /generate-project-config
