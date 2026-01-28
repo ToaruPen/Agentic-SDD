@@ -184,4 +184,4 @@ if ! grep -q "PRD reference is required" "$tmpdir/stderr-placeholder"; then
   exit 1
 fi
 
-eprint "OK: scripts/test-sync-docs-inputs.sh"
+eprint "OK: scripts/tests/test-sync-docs-inputs.sh"

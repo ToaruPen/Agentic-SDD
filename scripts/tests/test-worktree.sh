@@ -313,4 +313,4 @@ fi
 
 (cd "$tmpdir" && ./scripts/worktree.sh remove --dir "$wt_dir2")
 
-eprint "OK: scripts/test-worktree.sh"
+eprint "OK: scripts/tests/test-worktree.sh"

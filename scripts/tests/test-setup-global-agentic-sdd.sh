@@ -61,4 +61,4 @@ if compgen -G "$home/.config/agentic-sdd/repo.bak.*" >/dev/null; then
   exit 1
 fi
 
-eprint "OK: scripts/test-setup-global-agentic-sdd.sh"
+eprint "OK: scripts/tests/test-setup-global-agentic-sdd.sh"

@@ -164,4 +164,4 @@ if [[ -f "$proj4/.github/workflows/release.yml" ]]; then
   exit 1
 fi
 
-eprint "OK: scripts/test-install-agentic-sdd.sh"
+eprint "OK: scripts/tests/test-install-agentic-sdd.sh"

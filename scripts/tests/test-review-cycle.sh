@@ -495,4 +495,4 @@ if ! grep -q "error_max_turns" "$tmpdir/stderr5"; then
   exit 1
 fi
 
-eprint "OK: scripts/test-review-cycle.sh"
+eprint "OK: scripts/tests/test-review-cycle.sh"

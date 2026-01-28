@@ -80,5 +80,5 @@ if ! grep -Fqx "[INFO] Resolved sha: $expected_sha" "$out"; then
   exit 1
 fi
 
-eprint "OK: scripts/test-agentic-sdd-latest.sh"
+eprint "OK: scripts/tests/test-agentic-sdd-latest.sh"
 

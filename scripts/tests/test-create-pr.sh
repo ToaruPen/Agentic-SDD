@@ -123,4 +123,4 @@ if [[ "$out2" != "https://example.invalid/pull/1" ]]; then
   exit 1
 fi
 
-eprint "OK: scripts/test-create-pr.sh"
+eprint "OK: scripts/tests/test-create-pr.sh"
