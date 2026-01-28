@@ -3,11 +3,21 @@
     "PreToolUse": [
       {
         "matcher": "Edit|Write",
-        "hooks": ["scripts/check-impl-gate.py"]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/check-impl-gate.py"
+          }
+        ]
       },
       {
-        "matcher": "Bash(git commit*)|Bash(git push*)",
-        "hooks": ["scripts/check-commit-gate.py"]
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python scripts/check-commit-gate.py"
+          }
+        ]
       }
     ]
   }
