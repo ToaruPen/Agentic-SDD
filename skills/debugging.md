@@ -6,51 +6,55 @@ Debugging principles and systematic approaches. Language/framework-agnostic.
 
 ## Principles
 
-1. **Reproduce first**
-   - A bug that cannot be reproduced cannot be fixed
-   - Minimize reproduction steps
+### Reproduce first
 
-2. **Isolate the problem**
-   - Fix one variable at a time
-   - Create minimal reproduction case
+- A bug that cannot be reproduced cannot be fixed
+- Minimize reproduction steps
 
-3. **Binary search approach**
-   - Divide the problem space in half
-   - Identify "works up to here"
+### Isolate the problem
 
-4. **Understand before fixing**
-   - Understand the cause before fixing
-   - Do not fix by guessing
+- Fix one variable at a time
+- Create minimal reproduction case
+
+### Binary search approach
+
+- Divide the problem space in half
+- Identify "works up to here"
+
+### Understand before fixing
+
+- Understand the cause before fixing
+- Do not fix by guessing
 
 ---
 
 ## Systematic Approach
 
-### OBSERVE
+### Step 1: OBSERVE
 
 - Record symptoms accurately
-- Collect error messages, stack traces
-- Document "what happened" vs "what was expected"
+- Collect error messages and stack traces
+- Document what happened vs what was expected
 
-### HYPOTHESIZE
+### Step 2: HYPOTHESIZE
 
 - Form hypotheses about the cause
 - List multiple hypotheses
 - Prioritize by ease of verification
 
-### TEST
+### Step 3: TEST
 
 - Verify hypotheses one at a time
 - Record verification results
 - Move to next hypothesis if disproven
 
-### FIX
+### Step 4: FIX
 
 - Fix once cause is identified
 - Make minimal changes
 - Consider side effects
 
-### VERIFY
+### Step 5: VERIFY
 
 - Confirm fix is effective
 - Add regression test
@@ -62,48 +66,52 @@ Debugging principles and systematic approaches. Language/framework-agnostic.
 
 ### Print/Log Debugging
 
-Use case: Tracing data flow
-Method:
-  - Add logs at input/output boundaries
-  - Add logs at state change points
-Caution: Do not leave in production code
+- Use case: Tracing data flow
+- Method: Add logs at input/output boundaries and state change points
+- Caution: Do not leave in production code
 
 ### Binary Search Debugging
 
-Use case: Bug somewhere in a wide range
-Method:
-  - Place checkpoint at midpoint
-  - Determine normal/abnormal
-  - Narrow to problematic half
+- Use case: Bug somewhere in a wide range
+- Method: Place checkpoint at midpoint, determine normal/abnormal, narrow to problematic half
 
 ### Rubber Duck Debugging
 
-Use case: Logic errors, assumptions
-Method:
-  - Explain code out loud
-  - Explain purpose of each line
-  - Notice contradictions
+- Use case: Logic errors, assumptions
+- Method: Explain code out loud, explain purpose of each line, notice contradictions
 
 ### Differential Debugging
 
-Use case: Code that used to work
-Method:
-  - Compare with working version
-  - Identify differences
-  - Verify changes one by one
+- Use case: Code that used to work
+- Method: Compare with working version, identify differences, verify changes one by one
 
 ---
 
 ## Common Bug Patterns
 
-| Pattern | Symptom | Investigation point |
-|---------|---------|---------------------|
-| Off-by-one | Fails at boundary | Loop conditions, array indices |
-| Null/Undefined | Unexpected crash | Initialization, return value checks |
-| Race condition | Intermittent failure | Concurrent access, timing |
-| State mutation | Unexpected values | Shared state, side effects |
-| Type coercion | Invalid comparison | Implicit type conversion |
-| Resource leak | Memory/connection exhaustion | Missing close, reference retention |
+**Off-by-one**
+- Symptom: Fails at boundary
+- Investigation: Loop conditions, array indices
+
+**Null/Undefined**
+- Symptom: Unexpected crash
+- Investigation: Initialization, return value checks
+
+**Race condition**
+- Symptom: Intermittent failure
+- Investigation: Concurrent access, timing
+
+**State mutation**
+- Symptom: Unexpected values
+- Investigation: Shared state, side effects
+
+**Type coercion**
+- Symptom: Invalid comparison
+- Investigation: Implicit type conversion
+
+**Resource leak**
+- Symptom: Memory/connection exhaustion
+- Investigation: Missing close, reference retention
 
 ---
 
@@ -111,24 +119,33 @@ Method:
 
 ### Log Levels
 
-| Level | Use case | Example |
-|-------|----------|---------|
-| ERROR | Unrecoverable error | Exception, failure |
-| WARN | Recoverable but notable | Retry, fallback |
-| INFO | Important event | Start/end, state change |
-| DEBUG | Detailed diagnostic | Variable values, flow trace |
+**ERROR**
+- Use case: Unrecoverable error
+- Example: Exception, failure
+
+**WARN**
+- Use case: Recoverable but notable
+- Example: Retry, fallback
+
+**INFO**
+- Use case: Important event
+- Example: Start/end, state change
+
+**DEBUG**
+- Use case: Detailed diagnostic
+- Example: Variable values, flow trace
 
 ### Structured Logging
 
 Required fields:
-  - timestamp
-  - level
-  - message
-  - context (request_id, user_id, etc.)
+- timestamp
+- level
+- message
+- context (request_id, user_id, etc.)
 
 Prohibited fields:
-  - Passwords, tokens
-  - PII (mask if needed)
+- Passwords, tokens
+- PII (mask if needed)
 
 ---
 
@@ -159,13 +176,25 @@ Prohibited fields:
 
 ## Anti-patterns
 
-| Pattern | Problem | Alternative |
-|---------|---------|-------------|
-| Shotgun debugging | Multiple guessing fixes | Verify one at a time |
-| Print-and-pray | Random log additions | Place logs based on hypothesis |
-| Fixing symptoms | Root cause unresolved | Dig until cause found |
-| Ignoring warnings | Missing problem signs | Investigate warnings seriously |
-| Debugging in production | High risk | Prioritize local reproduction |
+**Shotgun debugging**
+- Problem: Multiple guessing fixes
+- Alternative: Verify one at a time
+
+**Print-and-pray**
+- Problem: Random log additions
+- Alternative: Place logs based on hypothesis
+
+**Fixing symptoms**
+- Problem: Root cause unresolved
+- Alternative: Dig until cause found
+
+**Ignoring warnings**
+- Problem: Missing problem signs
+- Alternative: Investigate warnings seriously
+
+**Debugging in production**
+- Problem: High risk
+- Alternative: Prioritize local reproduction
 
 ---
 
