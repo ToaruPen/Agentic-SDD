@@ -112,6 +112,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 
 - `/create-prd`: create a PRD (7 questions)
 - `/create-epic`: create an Epic (requires 3 lists: external services / components / new tech)
+- `/generate-project-config`: generate project-specific skills/rules from Epic
 - `/create-issues`: create Issues (granularity rules)
 - `/estimation`: create a Full estimate (11 sections) and get approval
 - `/impl`: implement an Issue (Full estimate required)

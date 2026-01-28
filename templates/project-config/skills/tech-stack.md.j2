@@ -1,0 +1,116 @@
+# Tech Stack Guide (Generated)
+
+> このファイルは `/generate-project-config` によって自動生成されました。
+> プロジェクトの技術スタックに関するガイドを定義しています。
+
+## 参照元
+
+- PRD: `{{ prd_path }}`
+- Epic: `{{ epic_path }}`
+
+---
+
+## 技術スタック概要
+
+| カテゴリ | 選択 | 理由 |
+|---------|------|------|
+{% if tech_stack.language %}| 言語 | {{ tech_stack.language.name }} | {{ tech_stack.language.reason }} |{% endif %}
+
+{% if tech_stack.framework %}| フレームワーク | {{ tech_stack.framework.name }} | {{ tech_stack.framework.reason }} |{% endif %}
+
+{% if tech_stack.database %}| データベース | {{ tech_stack.database.name }} | {{ tech_stack.database.reason }} |{% endif %}
+
+{% if tech_stack.infrastructure %}| インフラ | {{ tech_stack.infrastructure.name }} | {{ tech_stack.infrastructure.reason }} |{% endif %}
+
+
+---
+
+{% if tech_stack.language %}
+## {{ tech_stack.language.name }} ガイドライン
+
+### コーディング規約
+
+{% if "TypeScript" in tech_stack.language.name or "typescript" in tech_stack.language.name %}
+- 厳密な型定義を使用（`any`の使用は最小限に）
+- インターフェースでデータ構造を定義
+- 非同期処理は`async/await`を使用
+- ESLint/Prettierでコード整形
+{% elif "Python" in tech_stack.language.name or "python" in tech_stack.language.name %}
+- PEP 8に準拠
+- 型ヒントを積極的に使用
+- Black/isortでコード整形
+- docstringでドキュメント化
+{% elif "Go" in tech_stack.language.name or "golang" in tech_stack.language.name %}
+- `gofmt`でコード整形
+- エラーハンドリングは明示的に
+- インターフェースは小さく保つ
+- パッケージ設計を意識
+{% else %}
+- プロジェクトのコーディング規約に従う
+- 一貫性のあるスタイルを維持
+{% endif %}
+
+{% endif %}
+{% if tech_stack.framework %}
+## {{ tech_stack.framework.name }} ガイドライン
+
+### プロジェクト構成
+
+{% if "Next.js" in tech_stack.framework.name or "next" in tech_stack.framework.name.lower() %}
+- App Routerを使用（推奨）
+- Server Componentsを優先
+- クライアントコンポーネントは`"use client"`を明示
+- API RoutesよりServer Actionsを検討
+{% elif "Express" in tech_stack.framework.name or "express" in tech_stack.framework.name.lower() %}
+- ルーティングは`/routes`に集約
+- ミドルウェアは`/middleware`に配置
+- エラーハンドリングミドルウェアを実装
+- 入力バリデーションを必ず実装
+{% elif "FastAPI" in tech_stack.framework.name or "fastapi" in tech_stack.framework.name.lower() %}
+- Pydanticモデルでリクエスト/レスポンス定義
+- 依存性注入を活用
+- 自動ドキュメント生成を活用
+- バックグラウンドタスクは慎重に使用
+{% else %}
+- フレームワークのベストプラクティスに従う
+- ドキュメントを参照して最新の推奨事項を確認
+{% endif %}
+
+{% endif %}
+{% if tech_stack.database %}
+## {{ tech_stack.database.name }} ガイドライン
+
+### データベース設計
+
+{% if "PostgreSQL" in tech_stack.database.name or "postgres" in tech_stack.database.name.lower() %}
+- マイグレーションツールを使用（例: Prisma, Drizzle, Alembic）
+- インデックスは必要に応じて追加
+- JOINは適切に使用（N+1に注意）
+- トランザクションを適切に使用
+{% elif "MySQL" in tech_stack.database.name or "mysql" in tech_stack.database.name.lower() %}
+- InnoDB エンジンを使用
+- 文字コードはutf8mb4
+- インデックス設計に注意
+- トランザクション分離レベルを意識
+{% elif "MongoDB" in tech_stack.database.name or "mongo" in tech_stack.database.name.lower() %}
+- スキーマ設計を事前に行う
+- インデックスを適切に設定
+- 埋め込みドキュメント vs 参照を慎重に選択
+- Aggregationパイプラインを活用
+{% elif "SQLite" in tech_stack.database.name or "sqlite" in tech_stack.database.name.lower() %}
+- 開発/テスト環境での使用を推奨
+- 同時書き込みの制限に注意
+- WALモードの検討
+{% else %}
+- データベースのベストプラクティスに従う
+{% endif %}
+
+{% endif %}
+---
+
+## 関連ドキュメント
+
+- Epic: `{{ epic_path }}`
+{% if prd_path %}- PRD: `{{ prd_path }}`{% endif %}
+
+- `.agent/rules/` - プロジェクトルール

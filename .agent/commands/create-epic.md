@@ -130,4 +130,9 @@ docs/epics/[prd-name]-epic.md
 
 ## Next command
 
-After the Epic is complete, run `/create-issues`.
+After the Epic is complete:
+
+1. (Optional) Run `/generate-project-config` to generate project-specific skills/rules
+   - Generates files based on tech stack and Q6 requirements
+   - Output: `.agentic-sdd/project/` directory
+2. Run `/create-issues` to split the Epic into Issues

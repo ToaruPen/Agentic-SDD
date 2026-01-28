@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "generatedFrom": "{{ epic_path }}",
+  "generatedAt": "{{ generated_at }}",
+  "prdPath": {{ prd_path | tojson if prd_path else "null" }},
+  "techStack": {
+    "language": {{ tech_stack.language.name | tojson if tech_stack.language else "null" }},
+    "framework": {{ tech_stack.framework.name | tojson if tech_stack.framework else "null" }},
+    "database": {{ tech_stack.database.name | tojson if tech_stack.database else "null" }},
+    "infrastructure": {{ tech_stack.infrastructure.name | tojson if tech_stack.infrastructure else "null" }}
+  },
+  "requirements": {
+    "security": {{ requirements.security | tojson }},
+    "performance": {{ requirements.performance | tojson }},
+    "observability": {{ requirements.observability | tojson }},
+    "availability": {{ requirements.availability | tojson }}
+  },
+  "generatedFiles": {
+    "skills": {{ generated_skills | tojson }},
+    "rules": {{ generated_rules | tojson }}
+  }
+}
