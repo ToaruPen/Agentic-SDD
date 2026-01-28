@@ -1,0 +1,85 @@
+# Performance Rules (Generated)
+
+> このファイルは `/generate-project-config` によって自動生成されました。
+> プロジェクト固有のパフォーマンスルールを定義しています。
+
+## 参照元
+
+- PRD: `{{ prd_path }}`
+- Epic: `{{ epic_path }}`
+
+---
+
+## このプロジェクトの目標値
+
+{% if performance_details.targets %}
+### 対象操作と目標
+
+| 操作 | 目標値 |
+|-----|-------|
+{% for target in performance_details.targets %}
+| {{ target.operation }} | {{ target.target }} |
+{% endfor %}
+
+{% endif %}
+{% if performance_details.measurement %}
+### 測定方法
+
+{% if performance_details.measurement.tool %}- ツール: {{ performance_details.measurement.tool }}{% endif %}
+
+{% if performance_details.measurement.environment %}- 環境: {{ performance_details.measurement.environment }}{% endif %}
+
+{% endif %}
+---
+
+## 禁止事項（PROHIBITED）
+
+以下の実装は禁止されています：
+
+- [ ] N+1クエリの放置
+- [ ] 無制限のページネーション
+- [ ] 同期的な重い処理のAPIハンドラ内実行
+- [ ] インデックスなしでの大量データ検索
+- [ ] キャッシュなしでの同一リクエスト繰り返し
+
+## 必須事項（REQUIRED）
+
+以下の実装は必須です：
+
+- [ ] クエリの実行計画確認（EXPLAIN）
+- [ ] 適切なインデックスの設計
+- [ ] ページネーションの実装
+{% if performance_details.targets %}
+{% for target in performance_details.targets %}
+- [ ] {{ target.operation }}: {{ target.target }} の達成
+{% endfor %}
+{% endif %}
+
+---
+
+## 計測・検証
+
+### Before/After の記録
+
+パフォーマンスに影響する変更時は、以下を記録すること：
+
+```
+## パフォーマンス計測結果
+
+### Before
+- 測定日時: YYYY-MM-DD HH:MM
+- 条件: [テスト条件]
+- 結果: [数値]
+
+### After
+- 測定日時: YYYY-MM-DD HH:MM
+- 条件: [テスト条件]
+- 結果: [数値]
+- 改善率: [%]
+```
+
+---
+
+## 関連ルール
+
+- `.agent/rules/performance.md` - 汎用パフォーマンスルール

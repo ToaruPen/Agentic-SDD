@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.24] - 2026-01-28
+
+- Add `/generate-project-config` command to generate project-specific skills/rules from Epic information.
+  - `scripts/extract-epic-config.py`: Extract tech stack, Q6 requirements, and API design from Epic files.
+  - `scripts/generate-project-config.py`: Generate files using Jinja2 templates.
+  - `templates/project-config/`: Template files for config.json, security.md, performance.md, api-conventions.md, and tech-stack.md.
+- Update install script to include `templates/project-config/` and `requirements-agentic-sdd.txt`.
+
 ## [0.2.23] - 2026-01-28
 
 - Add Claude Code as a fallback review engine for `/review-cycle` via `REVIEW_ENGINE=claude`.

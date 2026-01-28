@@ -1,0 +1,89 @@
+# Security Rules (Generated)
+
+> このファイルは `/generate-project-config` によって自動生成されました。
+> プロジェクト固有のセキュリティルールを定義しています。
+
+## 参照元
+
+- PRD: `{{ prd_path }}`
+- Epic: `{{ epic_path }}`
+
+---
+
+## このプロジェクトの設定
+
+{% if security_details.auth_method %}
+### 認証方式
+
+- 方式: {{ security_details.auth_method }}
+{% if security_details.authz_model %}- 認可モデル: {{ security_details.authz_model }}{% endif %}
+
+{% endif %}
+{% if security_details.password_hash %}
+### パスワードハッシュ
+
+- アルゴリズム: {{ security_details.password_hash.algorithm }}
+{% if security_details.password_hash.cost %}- cost: {{ security_details.password_hash.cost }}{% endif %}
+
+{% endif %}
+{% if security_details.pii_list %}
+### 扱うPII（個人情報）
+
+| データ種別 | 保護方法 |
+|-----------|---------|
+{% for pii in security_details.pii_list %}
+| {{ pii.name }} | {{ pii.protection }} |
+{% endfor %}
+
+{% endif %}
+{% if security_details.data_protection %}
+### データ保護
+
+| データ種別 | 保護レベル |
+|-----------|-----------|
+{% for item in security_details.data_protection %}
+| {{ item.type }} | {{ item.protection }} |
+{% endfor %}
+
+{% endif %}
+---
+
+## 禁止事項（PROHIBITED）
+
+以下の実装は禁止されています：
+
+- [ ] 平文でのパスワード保存
+- [ ] SQLクエリの文字列連結（パラメータ化クエリを使用すること）
+- [ ] ユーザー入力の未検証での使用
+- [ ] 機密情報のログ出力
+- [ ] ハードコードされた認証情報
+- [ ] HTTPでの機密データ送信（HTTPS必須）
+{% if security_details.auth_method == "JWT" %}
+- [ ] JWTシークレットのソースコードへの埋め込み
+- [ ] JWTの有効期限なしでの発行
+{% endif %}
+
+## 必須事項（REQUIRED）
+
+以下の実装は必須です：
+
+- [ ] 入力検証/サニタイズの実装
+- [ ] SQLインジェクション対策（ORM/パラメータ化クエリ）
+- [ ] XSS対策（出力エスケープ）
+- [ ] CSRF対策（トークン検証）
+- [ ] シークレット管理（環境変数/シークレットマネージャ）
+{% if security_details.auth_method %}
+- [ ] 認証の実装（{{ security_details.auth_method }}）
+{% endif %}
+{% if security_details.authz_model %}
+- [ ] 認可の実装（{{ security_details.authz_model }}）
+{% endif %}
+{% if security_details.password_hash %}
+- [ ] パスワードハッシュ化（{{ security_details.password_hash.algorithm }}）
+{% endif %}
+
+---
+
+## 関連ルール
+
+- `.agent/rules/security.md` - 汎用セキュリティルール

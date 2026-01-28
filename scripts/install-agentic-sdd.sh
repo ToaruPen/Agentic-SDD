@@ -262,6 +262,8 @@ if [ "$DRY_RUN" = false ] && [ "$FORCE" = false ]; then
     scan_conflict_file "$SOURCE_ROOT/docs/glossary.md" "$TARGET_DIR/docs/glossary.md"
     scan_conflict_dir "$SOURCE_ROOT/skills" "$TARGET_DIR/skills"
     scan_conflict_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts"
+    scan_conflict_dir "$SOURCE_ROOT/templates/project-config" "$TARGET_DIR/templates/project-config"
+    scan_conflict_file "$SOURCE_ROOT/requirements-agentic-sdd.txt" "$TARGET_DIR/requirements-agentic-sdd.txt"
     scan_conflict_dir "$SOURCE_ROOT/.githooks" "$TARGET_DIR/.githooks"
 
     if [ "$TOOL" = "claude" ] || [ "$TOOL" = "all" ]; then
@@ -312,6 +314,12 @@ copy_dir "$SOURCE_ROOT/skills" "$TARGET_DIR/skills"
 
 # Scripts
 copy_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts"
+
+# Templates (for /generate-project-config command)
+copy_dir "$SOURCE_ROOT/templates/project-config" "$TARGET_DIR/templates/project-config"
+
+# Python dependencies (for scripts like generate-project-config.py)
+copy_file "$SOURCE_ROOT/requirements-agentic-sdd.txt" "$TARGET_DIR/requirements-agentic-sdd.txt"
 
 # Git hooks (tool-agnostic final defense line)
 copy_dir "$SOURCE_ROOT/.githooks" "$TARGET_DIR/.githooks"
