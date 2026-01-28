@@ -8,16 +8,27 @@ These docs are language/framework-agnostic and concept-based.
 
 ## Skill list
 
-- [estimation.md](./estimation.md): estimation (create a Full estimate before implementation)
-- [worktree-parallel.md](./worktree-parallel.md): parallel implementation with git worktree (deterministic guardrails)
+### Core Skills
+
+- [security.md](./security.md): security design (threat modeling/secure coding/OWASP)
+- [debugging.md](./debugging.md): debugging strategies (systematic approach/common patterns)
+- [class-design.md](./class-design.md): class/module design (SOLID/patterns/cohesion)
+- [testing.md](./testing.md): testing strategy/types/coverage
+- [tdd-protocol.md](./tdd-protocol.md): TDD execution protocol (Red/Green/Refactor)
+- [error-handling.md](./error-handling.md): error handling (classification/processing/UX/logging)
+
+### Implementation Skills
+
 - [api-endpoint.md](./api-endpoint.md): REST API endpoint design
 - [crud-screen.md](./crud-screen.md): CRUD screen design
-- [error-handling.md](./error-handling.md): error handling (classification/processing/UX/logging)
+- [estimation.md](./estimation.md): estimation (create a Full estimate before implementation)
+
+### Process Skills
+
+- [worktree-parallel.md](./worktree-parallel.md): parallel implementation with git worktree (deterministic guardrails)
 - [anti-patterns.md](./anti-patterns.md): AI anti-patterns and safer alternatives
 - [data-driven.md](./data-driven.md): data-driven development (metrics and evidence)
 - [resource-limits.md](./resource-limits.md): resource limits to prevent runaway processes
-- [testing.md](./testing.md): testing strategy/types/coverage
-- [tdd-protocol.md](./tdd-protocol.md): TDD execution protocol (Red/Green/Refactor)
 
 ---
 
@@ -28,9 +39,12 @@ These docs are language/framework-agnostic and concept-based.
 ```
 Before running /impl #123, check relevant skills:
 
+- Designing classes/modules -> class-design.md
+- Security requirements -> security.md
 - Implementing an API -> api-endpoint.md
 - Implementing a screen -> crud-screen.md
 - Designing error handling -> error-handling.md
+- Debugging issues -> debugging.md
 ```
 
 ### 2) Use as a checklist

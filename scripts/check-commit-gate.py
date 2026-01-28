@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import json
 import os
 import sys
 from typing import List, Optional
@@ -37,7 +38,26 @@ def repo_root() -> Optional[str]:
     return os.path.realpath(root)
 
 
+def should_check_command(command: str) -> bool:
+    """Check if the command is a git commit or git push command."""
+    keywords = ["git commit", "git push"]
+    return any(keyword in command for keyword in keywords)
+
+
 def main() -> int:
+    # Read hook input from stdin
+    try:
+        input_data = json.load(sys.stdin)
+    except json.JSONDecodeError:
+        # If no valid JSON input, skip the check
+        return 0
+
+    tool_input = input_data.get("tool_input", {})
+    command = tool_input.get("command", "")
+
+    # Only check git commit/push commands
+    if not should_check_command(command):
+        return 0
     root = repo_root()
     if not root:
         return 0
