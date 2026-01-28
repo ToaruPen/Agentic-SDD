@@ -115,40 +115,6 @@ Debugging principles and systematic approaches. Language/framework-agnostic.
 
 ---
 
-## Logging Guidelines
-
-### Log Levels
-
-**ERROR**
-- Use case: Unrecoverable error
-- Example: Exception, failure
-
-**WARN**
-- Use case: Recoverable but notable
-- Example: Retry, fallback
-
-**INFO**
-- Use case: Important event
-- Example: Start/end, state change
-
-**DEBUG**
-- Use case: Detailed diagnostic
-- Example: Variable values, flow trace
-
-### Structured Logging
-
-Required fields:
-- timestamp
-- level
-- message
-- context (request_id, user_id, etc.)
-
-Prohibited fields:
-- Passwords, tokens
-- PII (mask if needed)
-
----
-
 ## Checklist
 
 ### Before debugging
@@ -176,10 +142,6 @@ Prohibited fields:
 
 ## Anti-patterns
 
-**Shotgun debugging**
-- Problem: Multiple guessing fixes
-- Alternative: Verify one at a time
-
 **Print-and-pray**
 - Problem: Random log additions
 - Alternative: Place logs based on hypothesis
@@ -196,10 +158,13 @@ Prohibited fields:
 - Problem: High risk
 - Alternative: Prioritize local reproduction
 
+See also `skills/anti-patterns.md` for more patterns including "Batch fixes without verification".
+
 ---
 
 ## Related
 
+- `skills/error-handling.md` - error classification and logging guidelines
 - `skills/data-driven.md` - metrics-driven debugging
-- `skills/error-handling.md` - error classification
 - `skills/testing.md` - regression testing
+- `skills/anti-patterns.md` - common anti-patterns

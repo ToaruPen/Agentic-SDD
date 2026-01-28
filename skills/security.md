@@ -140,7 +140,7 @@ Encode according to output context:
 
 - [ ] OWASP Top 10 countermeasures confirmed
 - [ ] Dependency vulnerabilities checked
-- [ ] No sensitive information in logs
+- [ ] No sensitive information in logs (see `skills/error-handling.md`)
 
 ---
 
@@ -166,10 +166,12 @@ Encode according to output context:
 - Problem: Injection vulnerabilities
 - Alternative: Validate at boundary
 
+See also `skills/api-endpoint.md` for API-specific security checklist.
+
 ---
 
 ## Related
 
 - `.agent/rules/security.md` - project-specific security requirements
-- `skills/api-endpoint.md` - API security
-- `skills/error-handling.md` - preventing error information leakage
+- `skills/api-endpoint.md` - API security checklist
+- `skills/error-handling.md` - logging guidelines and error information leakage prevention
