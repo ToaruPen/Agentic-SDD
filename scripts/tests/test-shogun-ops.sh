@@ -171,6 +171,32 @@ assert obj["summary"] == "third"
 assert obj["progress_percent"] == 42
 PY
 
+# progress_percent=0 must be reflected in state (do not treat 0 as falsy)
+ts4="20260129T121503Z"
+checkin4_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 0 \
+  --worker "$worker" \
+  --timestamp "$ts4" \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  -- \
+  zero \
+)"
+test -f "$checkin4_path"
+
+collect_out3="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_out3" | rg -q '^processed=1$'
+
+python3 - "$state_path" <<'PY'
+import sys
+import yaml
+
+state = yaml.safe_load(open(sys.argv[1], "r", encoding="utf-8"))
+issues = state.get("issues") or {}
+entry = issues["18"]
+assert entry["progress_percent"] == 0
+assert entry["last_checkin"]["summary"] == "zero"
+PY
+
 # Phase 3: supervise --once (stub gh + worktree check)
 mkdir -p scripts
 cp -p "$REPO_ROOT/scripts/worktree.sh" scripts/worktree.sh

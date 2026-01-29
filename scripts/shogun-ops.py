@@ -333,7 +333,12 @@ def cmd_collect(_args: argparse.Namespace) -> int:
             entry = ensure_issue_entry(state, issue)
             entry["assigned_to"] = checkin.get("worker") or entry.get("assigned_to")
             entry["phase"] = checkin.get("phase") or entry.get("phase") or "backlog"
-            entry["progress_percent"] = checkin.get("progress_percent") or entry.get("progress_percent") or 0
+            progress = checkin.get("progress_percent")
+            if progress is None:
+                progress = entry.get("progress_percent")
+            if progress is None:
+                progress = 0
+            entry["progress_percent"] = progress
             entry["last_checkin"] = {
                 "at": checkin.get("timestamp") or "",
                 "id": checkin.get("checkin_id") or "",
