@@ -531,8 +531,11 @@ def cmd_supervise(args: argparse.Namespace) -> int:
         sys.stdout.write("no_targets\n")
         return 0
 
-    policy = (config.get("policy") or {}).get("parallel") or {}
-    max_workers = int(policy.get("max_workers") or 1)
+    parallel_policy = (config.get("policy") or {}).get("parallel") or {}
+    enabled = bool(parallel_policy.get("enabled", True))
+    max_workers = int(parallel_policy.get("max_workers") or 1)
+    if not enabled:
+        max_workers = 1
     if max_workers < 1:
         max_workers = 1
 
@@ -685,7 +688,14 @@ def cmd_supervise(args: argparse.Namespace) -> int:
             "impl_mode": entry["impl_mode"],
             "worktree": {"path": worktree_path},
             "contract": {"allowed_files": allowed_files, "forbidden_files": forbidden},
-            "required_steps": ["/estimation (if not approved)", "/impl", "/review-cycle (loop until ready)", "/review"],
+            "required_steps": [
+                "/estimation (if not approved)",
+                "/impl",
+                "/review-cycle (loop until ready)",
+                "/review",
+                "/create-pr",
+                "/cleanup",
+            ],
         }
         worker_dir = os.path.join(orders_dir, worker)
         ensure_dir(worker_dir)

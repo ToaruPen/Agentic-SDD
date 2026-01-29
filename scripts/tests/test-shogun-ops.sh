@@ -340,6 +340,9 @@ import yaml
 order = yaml.safe_load(open(sys.argv[1], "r", encoding="utf-8"))
 assert order["issue"] == 1
 assert order["worker"] == "ashigaru1"
+steps = order.get("required_steps") or []
+assert "/create-pr" in steps
+assert "/cleanup" in steps
 PY
 
 # Prevent per-worker order file overwrites (same worker, multiple targets)
@@ -418,6 +421,46 @@ sup_out3="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.
 printf '%s\n' "$sup_out3" | rg -q '^orders=3$'
 after_orders="$(ls -1 "$orders_dir" | wc -l | tr -d ' ')"
 test "$((after_orders - before_orders))" = "3"
+
+# parallel.enabled=false must limit supervise to a single issued order.
+cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'
+version: 1
+policy:
+  parallel:
+    enabled: false
+    max_workers: 99
+    require_parallel_ok_label: false
+  impl_mode:
+    default: impl
+    force_tdd_labels: ["tdd", "bug", "high-risk"]
+  checkin:
+    required_on_phase_change: true
+workers:
+  - id: "ashigaru1"
+YAML
+
+before_orders2="$(ls -1 "$orders_dir" | wc -l | tr -d ' ')"
+sup_out_disabled="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" supervise --once --gh-repo OWNER/REPO --targets 1 --targets 3 --targets 4)"
+printf '%s\n' "$sup_out_disabled" | rg -q '^orders=1$'
+after_orders2="$(ls -1 "$orders_dir" | wc -l | tr -d ' ')"
+test "$((after_orders2 - before_orders2))" = "1"
+
+# Restore parallel settings for subsequent tests.
+cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'
+version: 1
+policy:
+  parallel:
+    enabled: true
+    max_workers: 3
+    require_parallel_ok_label: false
+  impl_mode:
+    default: impl
+    force_tdd_labels: ["tdd", "bug", "high-risk"]
+  checkin:
+    required_on_phase_change: true
+workers:
+  - id: "ashigaru1"
+YAML
 
 # Ensure decision IDs are unique per decision (multiple decisions in one run)
 decisions_dir="$common/agentic-sdd-ops/queue/decisions"
