@@ -18,6 +18,7 @@ require_cmd() {
 require_cmd git
 require_cmd python3
 require_cmd rg
+require_cmd shasum
 
 tmpdir="$(mktemp -d 2>/dev/null || mktemp -d -t agentic-sdd-shogun-ops)"
 cleanup() { rm -rf "$tmpdir"; }
@@ -34,6 +35,7 @@ echo "ok" > README.md
 git add README.md
 git commit -q -m "init"
 
+# Phase 1: status (init ops root + dashboard output)
 out="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" status)"
 printf '%s\n' "$out" | rg -q "^# Agentic-SDD Ops Dashboard$"
 printf '%s\n' "$out" | rg -q "^## Summary$"
@@ -42,6 +44,7 @@ printf '%s\n' "$out" | rg -q "^## Recent Check-ins$"
 
 common="$(git rev-parse --path-format=absolute --git-common-dir)"
 test -d "$common/agentic-sdd-ops"
+test -f "$common/agentic-sdd-ops/config.yaml"
 test -f "$common/agentic-sdd-ops/state.yaml"
 test -f "$common/agentic-sdd-ops/dashboard.md"
 
@@ -67,8 +70,10 @@ cat "$checkin_path" | rg -q '^issue: 18$'
 cat "$checkin_path" | rg -q '^phase: implementing$'
 cat "$checkin_path" | rg -q '^progress_percent: 40$'
 cat "$checkin_path" | rg -q '^summary: progress$'
+cat "$checkin_path" | rg -q '^changes:$'
 cat "$checkin_path" | rg -q '^  files_changed:$'
 cat "$checkin_path" | rg -q '^  - README.md$'
+cat "$checkin_path" | rg -q '^tests:$'
 cat "$checkin_path" | rg -q '^  command: echo ok$'
 cat "$checkin_path" | rg -q '^  result: pass$'
 
@@ -168,20 +173,15 @@ JSON
     ;;
   view)
     issue="${3:-}"
+    shift 3
+
     body=""
     case "$issue" in
-      1)
-        body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/a.ts`\n- [ ] `src/shared.ts`\n'
-        ;;
-      2)
-        body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/b.ts`\n- [ ] `src/shared.ts`\n'
-        ;;
-      *)
-        body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/other.ts`\n'
-        ;;
+      1) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/a.ts`\n- [ ] `src/shared.ts`\n' ;;
+      2) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/b.ts`\n- [ ] `src/shared.ts`\n' ;;
+      *) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/other.ts`\n' ;;
     esac
 
-    # If --json is present, return the requested fields.
     if [[ "$*" == *"--json"* ]]; then
       if [[ "$*" == *"number,title,labels"* ]]; then
         if [[ "$issue" == "1" ]]; then
@@ -225,6 +225,101 @@ printf '%s\n' "$sup_out" | rg -q '^decision='
 # Non-overlap case: target only issue 1 => orders emitted.
 sup_out2="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" supervise --once --gh-repo OWNER/REPO --targets 1)"
 printf '%s\n' "$sup_out2" | rg -q '^orders=1$'
-test -f "$common/agentic-sdd-ops/queue/orders/ashigaru1.yaml"
+test -d "$common/agentic-sdd-ops/queue/orders/$worker"
+test "$(ls -1 "$common/agentic-sdd-ops/queue/orders/$worker" | wc -l | tr -d ' ')" = "1"
+order_file="$(ls -1 "$common/agentic-sdd-ops/queue/orders/$worker" | head -n 1)"
+python3 - "$common/agentic-sdd-ops/queue/orders/$worker/$order_file" <<'PY'
+import sys
+import yaml
+
+order = yaml.safe_load(open(sys.argv[1], "r", encoding="utf-8"))
+assert order["issue"] == 1
+assert order["worker"] == "ashigaru1"
+PY
+
+# Prevent per-worker order file overwrites (same worker, multiple targets)
+cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'
+version: 1
+policy:
+  parallel:
+    enabled: true
+    max_workers: 3
+    require_parallel_ok_label: false
+  impl_mode:
+    default: impl
+    force_tdd_labels: ["tdd", "bug", "high-risk"]
+  checkin:
+    required_on_phase_change: true
+workers:
+  - id: "ashigaru1"
+YAML
+
+cat > "$tmpdir/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo=""
+if [[ ${1:-} == "-R" ]]; then
+  repo="${2:-}"
+  shift 2
+fi
+
+if [[ ${1:-} != "issue" ]]; then
+  echo "unsupported" >&2
+  exit 2
+fi
+
+sub="${2:-}"
+case "$sub" in
+  view)
+    issue="${3:-}"
+    shift 3
+
+    body=""
+    case "$issue" in
+      1) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/a.ts`\n' ;;
+      3) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/b.ts`\n' ;;
+      4) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/c.ts`\n' ;;
+      10) body=$'## 概要\n\nfrom gh\n\n' ;;
+      11) body=$'## 概要\n\nfrom gh\n\n' ;;
+      *) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/other.ts`\n' ;;
+    esac
+
+    if [[ "$*" == *"--json"* ]]; then
+      if [[ "$*" == *"number,title,labels"* ]]; then
+        printf '{"number":%s,"title":"T","labels":[]}\n' "$issue"
+      elif [[ "$*" == *"body"* ]]; then
+        printf '{"body":%s}\n' "$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' <<<"$body")"
+      else
+        echo "unsupported json fields" >&2
+        exit 2
+      fi
+    else
+      echo "unsupported view format" >&2
+      exit 2
+    fi
+    ;;
+  *)
+    echo "unsupported subcommand: $sub" >&2
+    exit 2
+    ;;
+esac
+EOF
+chmod +x "$tmpdir/bin/gh"
+
+orders_dir="$common/agentic-sdd-ops/queue/orders/$worker"
+before_orders="$(ls -1 "$orders_dir" | wc -l | tr -d ' ')"
+sup_out3="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" supervise --once --gh-repo OWNER/REPO --targets 1 --targets 3 --targets 4)"
+printf '%s\n' "$sup_out3" | rg -q '^orders=3$'
+after_orders="$(ls -1 "$orders_dir" | wc -l | tr -d ' ')"
+test "$((after_orders - before_orders))" = "3"
+
+# Ensure decision IDs are unique per decision (multiple decisions in one run)
+decisions_dir="$common/agentic-sdd-ops/queue/decisions"
+before_decisions="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+sup_out4="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" supervise --once --gh-repo OWNER/REPO --targets 10 --targets 11)"
+test "$(printf '%s\n' "$sup_out4" | rg -c '^decision=')" = "2"
+after_decisions="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+test "$((after_decisions - before_decisions))" = "2"
 
 eprint "OK: scripts/tests/test-shogun-ops.sh"

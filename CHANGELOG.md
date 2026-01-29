@@ -17,6 +17,9 @@ All notable changes to this project will be documented in this file.
 - Add Shogun Ops (core Phase 3) `/supervise --once` to select targets from GitHub Issues, detect overlaps via `worktree.sh check`, and emit orders/decisions.
   - `.agent/commands/supervise.md`: `/supervise` command documentation.
 - Expand deterministic tests for Shogun Ops core (Phase 1–3) including `gh` stubs and overlap detection.
+- Prevent queue corruption under fast/multi-target supervise runs:
+  - Avoid per-worker order overwrites by writing orders under `queue/orders/<worker>/` with per-order filenames.
+  - Ensure decision IDs are unique even when multiple decisions are emitted in quick succession.
 
 ## [0.2.26] - 2026-01-29
 

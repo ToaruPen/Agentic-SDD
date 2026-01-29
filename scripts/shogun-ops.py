@@ -476,14 +476,23 @@ def extract_allowed_files(toplevel: str, gh_repo: str, issue: int) -> List[str]:
 
 
 def write_decision(ops_root: str, decision: Dict[str, Any]) -> str:
+    global _DECISION_SEQ
     decisions_dir = os.path.join(ops_root, "queue", "decisions")
     ensure_dir(decisions_dir)
     ts = utc_now_compact().replace("Z", "")
-    decision_id = decision.get("decision_id") or f"DEC-{ts}"
-    decision["decision_id"] = decision_id
-    path = os.path.join(decisions_dir, f"{decision_id}.yaml")
-    atomic_write_yaml(path, decision)
-    return path
+    issue_part = str(decision.get("issue") or "global")
+    base_id = decision.get("decision_id") or f"DEC-{ts}-{issue_part}"
+    while True:
+        _DECISION_SEQ += 1
+        decision_id = base_id if decision.get("decision_id") else f"{base_id}-{_DECISION_SEQ:03d}"
+        path = os.path.join(decisions_dir, f"{decision_id}.yaml")
+        if not os.path.exists(path):
+            decision["decision_id"] = decision_id
+            atomic_write_yaml(path, decision)
+            return path
+
+
+_DECISION_SEQ = 0
 
 
 def cmd_supervise(args: argparse.Namespace) -> int:
@@ -536,34 +545,6 @@ def cmd_supervise(args: argparse.Namespace) -> int:
         return 0
 
     targets = candidates[: max_workers]
-    issue_numbers = [int(t.get("number")) for t in targets if str(t.get("number") or "").isdigit()]
-
-    rc, check_out = run_worktree_check(toplevel, gh_repo, issue_numbers)
-    if rc == 3:
-        decision_path = write_decision(
-            ops_root,
-            {
-                "version": 1,
-                "created_at": utc_now_iso(),
-                "type": "overlap_detected",
-                "request": {"issues": issue_numbers, "details": check_out.strip()},
-            },
-        )
-        state = read_yaml_file(state_path)
-        blocked = state.get("blocked")
-        if not isinstance(blocked, list):
-            blocked = []
-            state["blocked"] = blocked
-        for n in issue_numbers:
-            blocked.append({"issue": str(n), "reason": "overlap_detected"})
-        state["updated_at"] = utc_now_iso()
-        atomic_write_yaml(state_path, state)
-        atomic_write_text(dashboard_path, render_dashboard_md(state))
-        sys.stdout.write(f"decision={decision_path}\n")
-        return 0
-    if rc != 0:
-        raise RuntimeError(f"worktree.sh check failed (rc={rc}):\n{check_out.strip()}")
-
     state = read_yaml_file(state_path)
     forbidden = [".agent/**", "docs/prd/**", "docs/epics/**"]
     issued = 0
@@ -571,12 +552,32 @@ def cmd_supervise(args: argparse.Namespace) -> int:
     orders_dir = os.path.join(ops_root, "queue", "orders")
     ensure_dir(orders_dir)
 
-    for idx, item in enumerate(targets):
+    # Pre-extract change targets to:
+    # - Emit per-issue decisions for missing/invalid targets
+    # - Avoid `worktree.sh check` failing early with rc=2 for missing targets
+    assignable: List[Tuple[Dict[str, Any], List[str]]] = []
+    for item in targets:
         n = int(item.get("number"))
-        title = str(item.get("title") or "")
-        worker = worker_ids[idx % len(worker_ids)]
-
-        allowed_files = extract_allowed_files(toplevel, gh_repo, n)
+        try:
+            allowed_files = extract_allowed_files(toplevel, gh_repo, n)
+        except RuntimeError as exc:
+            decision_path = write_decision(
+                ops_root,
+                {
+                    "version": 1,
+                    "created_at": utc_now_iso(),
+                    "issue": n,
+                    "type": "missing_change_targets",
+                    "request": {"reason": "Issue本文から変更対象ファイル（推定）を抽出できない", "details": str(exc)},
+                },
+            )
+            blocked = state.get("blocked")
+            if not isinstance(blocked, list):
+                blocked = []
+                state["blocked"] = blocked
+            blocked.append({"issue": str(n), "reason": "missing_change_targets"})
+            sys.stdout.write(f"decision={decision_path}\n")
+            continue
         if not allowed_files:
             decision_path = write_decision(
                 ops_root,
@@ -595,6 +596,48 @@ def cmd_supervise(args: argparse.Namespace) -> int:
             blocked.append({"issue": str(n), "reason": "missing_change_targets"})
             sys.stdout.write(f"decision={decision_path}\n")
             continue
+        assignable.append((item, allowed_files))
+
+    # Overlap check only for issues that have deterministic change targets.
+    issue_numbers = [int(item.get("number")) for (item, _files) in assignable]
+    if len(issue_numbers) >= 2:
+        rc, check_out = run_worktree_check(toplevel, gh_repo, issue_numbers)
+        if rc == 3:
+            decision_path = write_decision(
+                ops_root,
+                {
+                    "version": 1,
+                    "created_at": utc_now_iso(),
+                    "type": "overlap_detected",
+                    "request": {"issues": issue_numbers, "details": check_out.strip()},
+                },
+            )
+            blocked = state.get("blocked")
+            if not isinstance(blocked, list):
+                blocked = []
+                state["blocked"] = blocked
+            for n in issue_numbers:
+                blocked.append({"issue": str(n), "reason": "overlap_detected"})
+            state["updated_at"] = utc_now_iso()
+            atomic_write_yaml(state_path, state)
+            atomic_write_text(dashboard_path, render_dashboard_md(state))
+            sys.stdout.write(f"decision={decision_path}\n")
+            return 0
+        if rc != 0:
+            raise RuntimeError(f"worktree.sh check failed (rc={rc}):\n{check_out.strip()}")
+
+    for idx, item in enumerate(targets):
+        n = int(item.get("number"))
+        title = str(item.get("title") or "")
+        worker = worker_ids[idx % len(worker_ids)]
+        found = None
+        for (it, files) in assignable:
+            if int(it.get("number")) == n:
+                found = files
+                break
+        if found is None:
+            continue
+        allowed_files = found
 
         entry = ensure_issue_entry(state, n)
         entry["title"] = title
@@ -622,7 +665,13 @@ def cmd_supervise(args: argparse.Namespace) -> int:
             "contract": {"allowed_files": allowed_files, "forbidden_files": forbidden},
             "required_steps": ["/estimation (if not approved)", "/impl", "/review-cycle (loop until ready)", "/review"],
         }
-        order_path = os.path.join(orders_dir, f"{worker}.yaml")
+        worker_dir = os.path.join(orders_dir, worker)
+        ensure_dir(worker_dir)
+        order_path = os.path.join(worker_dir, f"{order_id}.yaml")
+        suffix = 1
+        while os.path.exists(order_path):
+            order_path = os.path.join(worker_dir, f"{order_id}-{suffix:03d}.yaml")
+            suffix += 1
         atomic_write_yaml(order_path, order)
         issued += 1
 
