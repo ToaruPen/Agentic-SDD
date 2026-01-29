@@ -4,7 +4,7 @@ set -euo pipefail
 
 eprint() { printf '%s\n' "$*" >&2; }
 
-repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 schema_src="${repo_root}/.agent/schemas/review.json"
 review_cycle_sh="${repo_root}/scripts/review-cycle.sh"
 assemble_sot_py="${repo_root}/scripts/assemble-sot.py"

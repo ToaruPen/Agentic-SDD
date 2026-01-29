@@ -4,7 +4,7 @@ set -euo pipefail
 
 eprint() { printf '%s\n' "$*" >&2; }
 
-repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 setup="$repo_root/scripts/setup-global-agentic-sdd.sh"
 
 if [[ ! -x "$setup" ]]; then

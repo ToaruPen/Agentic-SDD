@@ -4,7 +4,7 @@ set -euo pipefail
 
 eprint() { printf '%s\n' "$*" >&2; }
 
-repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 cli="$repo_root/scripts/agentic-sdd"
 
 if [[ ! -x "$cli" ]]; then
@@ -81,4 +81,3 @@ if ! grep -Fqx "[INFO] Resolved sha: $expected_sha" "$out"; then
 fi
 
 eprint "OK: scripts/tests/test-agentic-sdd-latest.sh"
-
