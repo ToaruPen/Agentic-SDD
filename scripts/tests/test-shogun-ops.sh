@@ -111,6 +111,10 @@ cat "$dashboard_path" | rg -q 'progress'
 test -f "$common/agentic-sdd-ops/archive/checkins/$worker/$ts.yaml"
 test ! -f "$checkin_path"
 
+# Prevent archive overwrites when the same timestamp is re-used after collect.
+archive_first="$common/agentic-sdd-ops/archive/checkins/$worker/$ts.yaml"
+archive_hash_before="$(shasum -a 256 "$archive_first" | awk '{print $1}')"
+
 # Phase 2: collect lock (must not update state/dashboard)
 ts2="20260129T121502Z"
 checkin2_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 41 \
@@ -137,6 +141,35 @@ after_hash="$(shasum -a 256 "$state_path" | awk '{print $1}')"
 test "$before_hash" = "$after_hash"
 test -f "$checkin2_path"
 rm -f "$lock_path"
+
+# Archive collision case: create another checkin with the same timestamp as the first one.
+checkin3_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 42 \
+  --worker "$worker" \
+  --timestamp "$ts" \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  -- \
+  third \
+)"
+test -f "$checkin3_path"
+
+collect_out2="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_out2" | rg -q '^processed=2$'
+
+archive_hash_after="$(shasum -a 256 "$archive_first" | awk '{print $1}')"
+test "$archive_hash_before" = "$archive_hash_after"
+
+test -f "$common/agentic-sdd-ops/archive/checkins/$worker/$ts2.yaml"
+test -f "$common/agentic-sdd-ops/archive/checkins/$worker/$ts-001.yaml"
+
+python3 - "$common/agentic-sdd-ops/archive/checkins/$worker/$ts-001.yaml" <<'PY'
+import sys
+import yaml
+
+obj = yaml.safe_load(open(sys.argv[1], "r", encoding="utf-8"))
+assert obj["summary"] == "third"
+assert obj["progress_percent"] == 42
+PY
 
 # Phase 3: supervise --once (stub gh + worktree check)
 mkdir -p scripts

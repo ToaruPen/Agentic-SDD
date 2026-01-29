@@ -296,6 +296,17 @@ def record_recent_checkin(state: Dict[str, Any], checkin: Dict[str, Any]) -> Non
     # trim
     del recent[20:]
 
+def unique_path_with_suffix(path: str) -> str:
+    if not os.path.exists(path):
+        return path
+    base, ext = os.path.splitext(path)
+    suffix = 1
+    while True:
+        candidate = f"{base}-{suffix:03d}{ext}"
+        if not os.path.exists(candidate):
+            return candidate
+        suffix += 1
+
 
 def cmd_collect(_args: argparse.Namespace) -> int:
     _abs_git_dir, common_abs, _toplevel = resolve_git_dirs()
@@ -336,6 +347,7 @@ def cmd_collect(_args: argparse.Namespace) -> int:
             archive_dir = os.path.join(ops_root, "archive", "checkins", worker)
             ensure_dir(archive_dir)
             archive_path = os.path.join(archive_dir, os.path.basename(path))
+            archive_path = unique_path_with_suffix(archive_path)
             os.replace(path, archive_path)
             processed += 1
 
