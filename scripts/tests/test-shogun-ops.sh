@@ -94,6 +94,16 @@ if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 40 "dup" -
   exit 1
 fi
 
+if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 1 \
+  --worker "../pwn" \
+  --timestamp "20260129T121504Z" \
+  -- \
+  badworker \
+  >/dev/null 2>&1; then
+  eprint "expected invalid worker id failure but succeeded"
+  exit 1
+fi
+
 # collect must not lose already-processed checkins if a later checkin is invalid.
 bad_path="$common/agentic-sdd-ops/queue/checkins/$worker/bad.yaml"
 cat > "$bad_path" <<'YAML'

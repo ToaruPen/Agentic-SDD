@@ -3,6 +3,7 @@
 import argparse
 import datetime
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -541,12 +542,42 @@ def cmd_supervise(args: argparse.Namespace) -> int:
 
     workers = config.get("workers") or []
     worker_ids: List[str] = []
+    invalid_worker_ids: List[str] = []
     if isinstance(workers, list):
         for w in workers:
+            raw: Optional[str] = None
             if isinstance(w, dict) and w.get("id"):
-                worker_ids.append(str(w["id"]))
+                raw = str(w["id"])
             elif isinstance(w, str):
-                worker_ids.append(w)
+                raw = w
+            if raw is None:
+                continue
+            try:
+                worker_ids.append(validate_worker_id(raw))
+            except RuntimeError:
+                invalid_worker_ids.append(raw)
+
+    if invalid_worker_ids:
+        decision_path = write_decision(
+            ops_root,
+            {
+                "version": 1,
+                "created_at": utc_now_iso(),
+                "type": "config_invalid_workers",
+                "request": {"reason": "config.yaml の workers が不正（許可: A-Z a-z 0-9 _ -）", "workers": invalid_worker_ids},
+            },
+        )
+        state = read_yaml_file(state_path)
+        blocked = state.get("blocked")
+        if not isinstance(blocked, list):
+            blocked = []
+            state["blocked"] = blocked
+        blocked.append({"issue": None, "reason": "config_invalid_workers"})
+        state["updated_at"] = utc_now_iso()
+        atomic_write_yaml(state_path, state)
+        atomic_write_text(dashboard_path, render_dashboard_md(state))
+        sys.stdout.write(f"decision={decision_path}\n")
+        return 0
     if not worker_ids:
         decision_path = write_decision(
             ops_root,
@@ -729,15 +760,23 @@ def parse_timestamp_for_id(value: str) -> str:
 def utc_now_compact() -> str:
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
+_WORKER_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
+def validate_worker_id(value: str) -> str:
+    v = (value or "").strip()
+    if not v:
+        raise RuntimeError("worker id is required (set --worker or AGENTIC_SDD_WORKER)")
+    if not _WORKER_ID_RE.match(v):
+        raise RuntimeError(f"invalid worker id: {v} (allowed: A-Z a-z 0-9 _ -)")
+    return v
+
 
 def detect_worker_id(explicit: Optional[str]) -> str:
-    if explicit:
-        return explicit.strip()
+    if explicit is not None:
+        return validate_worker_id(explicit)
     env = os.environ.get("AGENTIC_SDD_WORKER") or os.environ.get("USER") or ""
-    env = env.strip()
-    if not env:
-        raise RuntimeError("worker id is required (set --worker or AGENTIC_SDD_WORKER)")
-    return env
+    return validate_worker_id(env)
 
 
 def git_changed_files(include_staged: bool) -> List[str]:
