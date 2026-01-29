@@ -320,7 +320,7 @@ def cmd_collect(_args: argparse.Namespace) -> int:
             return 0
 
         state = read_yaml_file(state_path)
-        processed = 0
+        items: List[Tuple[str, str, Dict[str, Any], int]] = []
 
         for path in checkin_paths:
             checkin = read_yaml_file(path)
@@ -330,6 +330,12 @@ def cmd_collect(_args: argparse.Namespace) -> int:
             except Exception:
                 raise RuntimeError(f"invalid checkin issue: {path}")
 
+            worker = str(checkin.get("worker") or "unknown")
+            archive_dir = os.path.join(ops_root, "archive", "checkins", worker)
+            archive_base = os.path.join(archive_dir, os.path.basename(path))
+            items.append((path, archive_base, checkin, issue))
+
+        for path, _archive_base, checkin, issue in items:
             entry = ensure_issue_entry(state, issue)
             entry["assigned_to"] = checkin.get("worker") or entry.get("assigned_to")
             entry["phase"] = checkin.get("phase") or entry.get("phase") or "backlog"
@@ -347,20 +353,19 @@ def cmd_collect(_args: argparse.Namespace) -> int:
 
             record_recent_checkin(state, checkin)
 
-            # archive (append-only queue semantics; remove from queue after processing)
-            worker = str(checkin.get("worker") or "unknown")
-            archive_dir = os.path.join(ops_root, "archive", "checkins", worker)
-            ensure_dir(archive_dir)
-            archive_path = os.path.join(archive_dir, os.path.basename(path))
-            archive_path = unique_path_with_suffix(archive_path)
-            os.replace(path, archive_path)
-            processed += 1
-
         state["updated_at"] = utc_now_iso()
         atomic_write_yaml(state_path, state)
 
         dash = render_dashboard_md(state)
         atomic_write_text(dashboard_path, dash)
+
+        processed = 0
+        for path, archive_base, _checkin, _issue in items:
+            # archive (append-only queue semantics; remove from queue after processing)
+            ensure_dir(os.path.dirname(archive_base))
+            archive_path = unique_path_with_suffix(archive_base)
+            os.replace(path, archive_path)
+            processed += 1
 
         sys.stdout.write(f"processed={processed}\n")
         return 0

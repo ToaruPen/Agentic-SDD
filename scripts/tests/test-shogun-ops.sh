@@ -94,6 +94,40 @@ if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 40 "dup" -
   exit 1
 fi
 
+# collect must not lose already-processed checkins if a later checkin is invalid.
+bad_path="$common/agentic-sdd-ops/queue/checkins/$worker/bad.yaml"
+cat > "$bad_path" <<'YAML'
+version: 1
+checkin_id: "bad"
+timestamp: "2026-01-29T12:15:02Z"
+worker: "ashigaru1"
+issue: "NaN"
+phase: "implementing"
+progress_percent: 1
+summary: "bad"
+repo:
+  worktree_root: "."
+  toplevel: "/tmp"
+changes:
+  files_changed: []
+tests:
+  command: ""
+  result: ""
+needs:
+  approval: false
+  contract_expansion:
+    requested_files: []
+next: []
+YAML
+
+if python3 "$REPO_ROOT/scripts/shogun-ops.py" collect >/dev/null 2>&1; then
+  eprint "expected invalid checkin failure but succeeded"
+  exit 1
+fi
+test -f "$checkin_path"
+test ! -f "$common/agentic-sdd-ops/archive/checkins/$worker/$ts.yaml"
+rm -f "$bad_path"
+
 # Phase 2: collect
 collect_out="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
 printf '%s\n' "$collect_out" | rg -q '^processed=1$'
