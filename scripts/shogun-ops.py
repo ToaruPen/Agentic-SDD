@@ -748,6 +748,8 @@ def git_changed_files(include_staged: bool) -> List[str]:
 def cmd_checkin(args: argparse.Namespace) -> int:
     _abs_git_dir, common_abs, toplevel = resolve_git_dirs()
     root, _state_path, _dashboard_path = ensure_ops_layout(common_abs)
+    repo_root = os.path.dirname(common_abs)
+    worktree_root = os.path.relpath(toplevel, repo_root)
 
     worker = detect_worker_id(args.worker)
     issue = int(args.issue)
@@ -792,6 +794,7 @@ def cmd_checkin(args: argparse.Namespace) -> int:
         "progress_percent": progress_percent,
         "summary": summary,
         "repo": {
+            "worktree_root": worktree_root,
             "toplevel": toplevel,
         },
         "changes": {"files_changed": files_changed},

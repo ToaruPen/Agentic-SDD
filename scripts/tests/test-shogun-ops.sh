@@ -65,6 +65,18 @@ checkin_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementi
 )"
 
 test -f "$checkin_path"
+python3 - "$checkin_path" "$(pwd)" <<'PY'
+import os
+import sys
+import yaml
+
+path = sys.argv[1]
+expected_toplevel = os.path.realpath(sys.argv[2])
+obj = yaml.safe_load(open(path, "r", encoding="utf-8"))
+repo = obj.get("repo") or {}
+assert repo.get("toplevel") == expected_toplevel, repo
+assert repo.get("worktree_root") == ".", repo
+PY
 cat "$checkin_path" | rg -q '^checkin_id: ashigaru1-18-20260129T121501Z$'
 cat "$checkin_path" | rg -q '^issue: 18$'
 cat "$checkin_path" | rg -q '^phase: implementing$'
