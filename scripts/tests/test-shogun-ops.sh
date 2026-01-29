@@ -405,7 +405,11 @@ case "$sub" in
 
     if [[ "$*" == *"--json"* ]]; then
       if [[ "$*" == *"number,title,labels"* ]]; then
-        printf '{"number":%s,"title":"T","labels":[]}\n' "$issue"
+        if [[ "$issue" == "4" ]]; then
+          printf '{"number":%s,"title":"T","labels":[{"name":"bug"}]}\n' "$issue"
+        else
+          printf '{"number":%s,"title":"T","labels":[]}\n' "$issue"
+        fi
       elif [[ "$*" == *"body"* ]]; then
         printf '{"body":%s}\n' "$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' <<<"$body")"
       else
@@ -431,6 +435,26 @@ sup_out3="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.
 printf '%s\n' "$sup_out3" | rg -q '^orders=3$'
 after_orders="$(ls -1 "$orders_dir" | wc -l | tr -d ' ')"
 test "$((after_orders - before_orders))" = "3"
+
+python3 - "$orders_dir" <<'PY'
+import glob
+import os
+import sys
+import yaml
+
+orders_dir = sys.argv[1]
+paths = glob.glob(os.path.join(orders_dir, "*.yaml"))
+found = False
+for p in paths:
+    order = yaml.safe_load(open(p, "r", encoding="utf-8"))
+    if int(order.get("issue") or 0) == 4:
+        found = True
+        assert order.get("impl_mode") == "tdd", order
+        steps = order.get("required_steps") or []
+        assert "/tdd" in steps and "/impl" not in steps, steps
+        break
+assert found, paths
+PY
 
 # parallel.enabled=false must limit supervise to a single issued order.
 cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'

@@ -697,10 +697,15 @@ def cmd_supervise(args: argparse.Namespace) -> int:
 
         entry = ensure_issue_entry(state, n)
         entry["title"] = title
-        entry["labels"] = [l.get("name") for l in (item.get("labels") or []) if isinstance(l, dict) and l.get("name")]
+        labels = [l.get("name") for l in (item.get("labels") or []) if isinstance(l, dict) and l.get("name")]
+        entry["labels"] = labels
         entry["assigned_to"] = worker
         entry["phase"] = "estimating"
-        entry["impl_mode"] = ((config.get("policy") or {}).get("impl_mode") or {}).get("default") or "impl"
+        impl_policy = (config.get("policy") or {}).get("impl_mode") or {}
+        default_mode = str(impl_policy.get("default") or "impl")
+        force_labels = set([str(x) for x in (impl_policy.get("force_tdd_labels") or [])])
+        impl_mode = "tdd" if any(lbl in force_labels for lbl in labels) else default_mode
+        entry["impl_mode"] = impl_mode
         entry["progress_percent"] = entry.get("progress_percent") or 0
         entry["contract"] = {"allowed_files": allowed_files, "forbidden_files": forbidden}
 
@@ -709,6 +714,7 @@ def cmd_supervise(args: argparse.Namespace) -> int:
         entry["worktree"] = {"path": worktree_path}
 
         order_id = f"ORD-{utc_now_compact().replace('Z','')}-{worker}-{n}"
+        impl_step = "/tdd" if impl_mode == "tdd" else "/impl"
         order = {
             "version": 1,
             "order_id": order_id,
@@ -716,12 +722,12 @@ def cmd_supervise(args: argparse.Namespace) -> int:
             "worker": worker,
             "issue": n,
             "intent": f"Issue #{n} を完了（/review通過まで）",
-            "impl_mode": entry["impl_mode"],
+            "impl_mode": impl_mode,
             "worktree": {"path": worktree_path},
             "contract": {"allowed_files": allowed_files, "forbidden_files": forbidden},
             "required_steps": [
                 "/estimation (if not approved)",
-                "/impl",
+                impl_step,
                 "/review-cycle (loop until ready)",
                 "/review",
                 "/create-pr",
