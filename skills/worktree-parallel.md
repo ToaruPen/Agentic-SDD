@@ -54,6 +54,20 @@ When a shared "hotspot" file must change (routing, shared config, core types, DI
 2. Merge it first
 3. Block dependent Issues until it is merged
 
+### Pattern: Parent Issue as implementation unit (keep children for status)
+
+When you have multiple related Issues that overlap heavily, but you want to keep the child Issues as "status observation points" (e.g., lower updates progress; middle checks/approves):
+
+1. Create a single parent Issue that becomes the implementation unit (one branch/worktree/PR).
+2. In each child Issue, link the parent and make it explicit that the child is tracking-only (no branch/worktree).
+3. Implement in the parent worktree; update children via checklists/comments as work proceeds.
+4. Close child Issues when their specific acceptance criteria are satisfied; close the parent Issue when all children are done + final integration checks pass.
+
+Practical guidance:
+
+- Use `Fixes #<parent>` on the PR to close the parent on merge.
+- Use `Refs #<child>` while a child is still tracking; switch to `Fixes #<child>` when it's fully satisfied by the PR.
+
 ### Pattern: Append-only shared file
 
 When multiple Issues must touch a shared file, enforce "append-only":
