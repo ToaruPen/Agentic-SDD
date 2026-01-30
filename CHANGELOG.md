@@ -12,6 +12,9 @@ All notable changes to this project will be documented in this file.
   - `scripts/shogun-github-sync.sh`: Add a status comment and update labels (`ops-phase:*`, `ops-blocked`).
   - `scripts/tests/test-shogun-github-sync.sh`: Offline deterministic test with `gh` stub (success + auth failure).
   - README: Add "Shogun Ops: GitHub sync" section with usage examples.
+- Improve `/cleanup` to delete local branches even when no worktree exists (branch match `issue-<n>`).
+  - `scripts/cleanup.sh`: Parse `git worktree list --porcelain` for branch detection (supports stale worktrees).
+  - `scripts/tests/test-cleanup.sh`: Regression tests for branch-only cleanup and stale worktree cleanup.
 
 ## [0.2.27] - 2026-01-29
 

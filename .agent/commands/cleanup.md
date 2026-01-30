@@ -44,6 +44,7 @@ For single Issue:
 
 1. Find the worktree associated with the Issue number (by path or branch name pattern `issue-<n>`).
 2. Determine the branch name from the worktree.
+3. If no worktree is found, fall back to the local branch match (`issue-<n>`) and delete the branch (after safety checks).
 
 For `--all`:
 
