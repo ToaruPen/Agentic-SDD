@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
   - `scripts/shogun-ops.py`: Extend `/checkin` to capture `needs.*` (approval/contract-expansion/blockers), emit `queue/decisions/*.yaml` (SoT) during `/collect`, and derive `state.yaml.action_required` + dashboard section.
   - `scripts/tests/test-shogun-ops.sh`: Deterministic integration tests for decision generation and de-duplication.
   - `.agent/commands/checkin.md`: Document new `/checkin` flags.
+- Add Shogun Ops skill candidates (checkin → collect → decisions).
+  - `scripts/shogun-ops.py`: Allow `/checkin` to include `candidates.skills[]` and emit `type=skill_candidate` decisions during `/collect` with de-duplication.
+  - `scripts/tests/test-shogun-ops.sh`: Deterministic integration tests for `skill_candidate` decision generation and de-duplication.
+  - `.agent/commands/checkin.md`: Document `/checkin` flags for skill candidates.
 - Make `/review-cycle` require running tests via `TEST_COMMAND` (allow `TESTS="not run: <reason>"` only).
 - Add Shogun Ops (skill candidates) dashboard section to list pending `decision(type=skill_candidate)` items (name/summary).
   - `scripts/shogun-ops.py`: Derive `state.yaml.skill_candidates_pending` from decisions and render it in `dashboard.md`.
