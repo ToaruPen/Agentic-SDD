@@ -345,6 +345,11 @@ def decision_dedupe_key(kind: str, issue: int, worker: str, payload: str) -> str
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
+def skill_candidate_dedupe_key(issue: int, name: str, summary: str) -> str:
+    raw = f"skill_candidate|issue={issue}|name={name}|summary={summary}".encode("utf-8", errors="strict")
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
 def existing_decision_dedupe_keys(ops_root: str) -> set:
     keys: set = set()
     for path in list_decision_paths(ops_root):
@@ -482,6 +487,43 @@ def emit_decisions_from_checkin(
         write_decision(ops_root, decision)
         existing_keys.add(k)
         created += 1
+
+    candidates = checkin.get("candidates") or {}
+    if candidates:
+        if not isinstance(candidates, dict):
+            raise RuntimeError("invalid checkin candidates (expected a mapping)")
+        skills_raw = candidates.get("skills") or []
+        if not isinstance(skills_raw, list):
+            raise RuntimeError("invalid checkin candidates.skills (expected an array)")
+        for it in skills_raw:
+            if not isinstance(it, dict):
+                raise RuntimeError("invalid checkin candidates.skills[] (expected objects)")
+            name = str(it.get("name") or "").strip()
+            summary = str(it.get("summary") or "").strip()
+            if not name:
+                raise RuntimeError("invalid checkin candidates.skills[].name (required)")
+            if not summary:
+                raise RuntimeError("invalid checkin candidates.skills[].summary (required)")
+            k = skill_candidate_dedupe_key(issue=issue, name=name, summary=summary)
+            if k in existing_keys:
+                continue
+            decision = {
+                "version": 1,
+                "created_at": utc_now_iso(),
+                "issue": issue,
+                "type": "skill_candidate",
+                "dedupe_key": k,
+                "request": {
+                    "worker": worker,
+                    "reason": f"{name}: {summary}",
+                    "name": name,
+                    "summary": summary,
+                    "checkin_id": checkin.get("checkin_id") or "",
+                },
+            }
+            write_decision(ops_root, decision)
+            existing_keys.add(k)
+            created += 1
 
     return created
 
@@ -1063,6 +1105,32 @@ def cmd_checkin(args: argparse.Namespace) -> int:
             if s:
                 blockers.append(s)
 
+    skills: List[Dict[str, str]] = []
+    skill_names: List[str] = []
+    skill_summaries: List[str] = []
+    if getattr(args, "skill_candidate", None):
+        skill_names = [str(x) for x in (args.skill_candidate or [])]
+    if getattr(args, "skill_summary", None):
+        skill_summaries = [str(x) for x in (args.skill_summary or [])]
+
+    if skill_names or skill_summaries:
+        if not skill_names:
+            raise RuntimeError("--skill-candidate is required when --skill-summary is used")
+        if not skill_summaries:
+            raise RuntimeError("--skill-summary is required when --skill-candidate is used")
+        if len(skill_names) != len(skill_summaries):
+            raise RuntimeError(
+                f"--skill-candidate and --skill-summary counts must match: {len(skill_names)} != {len(skill_summaries)}"
+            )
+        for name_raw, summary_raw in zip(skill_names, skill_summaries):
+            name = str(name_raw).strip()
+            summary2 = str(summary_raw).strip()
+            if not name:
+                raise RuntimeError("skill candidate name must be non-empty")
+            if not summary2:
+                raise RuntimeError("skill candidate summary must be non-empty")
+            skills.append({"name": name, "summary": summary2})
+
     obj: Dict[str, Any] = {
         "version": 1,
         "checkin_id": checkin_id,
@@ -1085,6 +1153,8 @@ def cmd_checkin(args: argparse.Namespace) -> int:
         },
         "next": [],
     }
+    if skills:
+        obj["candidates"] = {"skills": skills}
 
     ensure_dir(out_dir)
     atomic_write_yaml(out_path, obj)
@@ -1123,6 +1193,8 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--needs-approval", action="store_true", help="Set needs.approval=true (approval required)")
     c.add_argument("--request-file", action="append", help="Append to needs.contract_expansion.requested_files (repeatable)")
     c.add_argument("--blocker", action="append", help="Append blocker reason to needs.blockers (repeatable)")
+    c.add_argument("--skill-candidate", action="append", help="Skill candidate name (repeatable; requires --skill-summary)")
+    c.add_argument("--skill-summary", action="append", help="Skill candidate summary (repeatable; must match --skill-candidate count)")
     c.set_defaults(func=cmd_checkin)
 
     col = sub.add_parser("collect", help="Collect checkins and update state/dashboard (single-writer)")

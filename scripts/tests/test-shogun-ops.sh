@@ -109,14 +109,19 @@ cat "$checkin_path" | rg -q '^summary: progress$'
 cat "$checkin_path" | rg -q '^changes:$'
 cat "$checkin_path" | rg -q '^  files_changed:$'
 cat "$checkin_path" | rg -q '^  - README.md$'
-cat "$checkin_path" | rg -q '^tests:$'
-cat "$checkin_path" | rg -q '^  command: echo ok$'
-cat "$checkin_path" | rg -q '^  result: pass$'
+	cat "$checkin_path" | rg -q '^tests:$'
+	cat "$checkin_path" | rg -q '^  command: echo ok$'
+	cat "$checkin_path" | rg -q '^  result: pass$'
+	# compatibility: no candidates section unless explicitly provided
+	if rg -q '^candidates:$' "$checkin_path"; then
+	  eprint "expected no candidates section but found it"
+	  exit 1
+	fi
 
-if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 40 "dup" --worker "$worker" --timestamp "$ts" >/dev/null 2>&1; then
-  eprint "expected append-only failure but succeeded"
-  exit 1
-fi
+	if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 40 "dup" --worker "$worker" --timestamp "$ts" >/dev/null 2>&1; then
+	  eprint "expected append-only failure but succeeded"
+	  exit 1
+	fi
 
 # phase must be validated (typos should fail-fast)
 if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implmenting 40 \
@@ -219,6 +224,8 @@ test ! -f "$checkin_path"
 ts_ar1="20260129T121510Z"
 ts_ar2="20260129T121511Z"
 ts_ar3="20260129T121512Z"
+ts_sc1="20260129T121520Z"
+ts_sc2="20260129T121521Z"
 
 checkin_ar1_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 50 \
   --worker "$worker" \
@@ -257,8 +264,40 @@ checkin_ar3_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 blocke
 )"
 test -f "$checkin_ar3_path"
 
+# Phase 2: skill candidate (checkin -> collect -> decision)
+checkin_sc1_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 56 \
+  --worker "$worker" \
+  --timestamp "$ts_sc1" \
+  --no-auto-files-changed \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  --skill-candidate "contract-expansion-triage" \
+  --skill-summary "allowed_files 逸脱時の切り分け手順" \
+  -- \
+  skill_candidate_1 \
+)"
+test -f "$checkin_sc1_path"
+cat "$checkin_sc1_path" | rg -q '^candidates:$'
+cat "$checkin_sc1_path" | rg -q '^  skills:$'
+cat "$checkin_sc1_path" | rg -q '^  - name: contract-expansion-triage$'
+cat "$checkin_sc1_path" | rg -q '^    summary: allowed_files 逸脱時の切り分け手順$'
+
+# identical candidate should be de-duped (no multiplication)
+checkin_sc2_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 57 \
+  --worker "$worker" \
+  --timestamp "$ts_sc2" \
+  --no-auto-files-changed \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  --skill-candidate "contract-expansion-triage" \
+  --skill-summary "allowed_files 逸脱時の切り分け手順" \
+  -- \
+  skill_candidate_2 \
+)"
+test -f "$checkin_sc2_path"
+
 collect_out_ar="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
-printf '%s\n' "$collect_out_ar" | rg -q '^processed=3$'
+printf '%s\n' "$collect_out_ar" | rg -q '^processed=5$'
 
 decisions_dir="$common/agentic-sdd-ops/queue/decisions"
 test -d "$decisions_dir"
@@ -286,6 +325,7 @@ for p in paths:
 assert "approval_required" in types, types
 assert "contract_expansion" in types, types
 assert "blocker" in types, types
+assert "skill_candidate" in types, types
 
 action_required = state.get("action_required") or []
 assert isinstance(action_required, list), type(action_required)
@@ -293,7 +333,26 @@ kinds = set([it.get("kind") for it in action_required if isinstance(it, dict)])
 assert "approval_required" in kinds, kinds
 assert "contract_expansion" in kinds, kinds
 assert "blocker" in kinds, kinds
+assert "skill_candidate" in kinds, kinds
 PY
+
+skill_before="$(python3 - "$decisions_dir" <<'PY'
+import glob
+import os
+import sys
+import yaml
+
+decisions_dir = sys.argv[1]
+paths = sorted(glob.glob(os.path.join(decisions_dir, "*.yaml")))
+count = 0
+for p in paths:
+    obj = yaml.safe_load(open(p, "r", encoding="utf-8")) or {}
+    if obj.get("type") == "skill_candidate":
+        count += 1
+print(count)
+PY
+)"
+test "$skill_before" = "1"
 
 # de-dup: identical approval_required should not multiply
 ts_ar4="20260129T121513Z"

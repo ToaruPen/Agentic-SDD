@@ -19,6 +19,8 @@ python3 scripts/shogun-ops.py checkin 123 implementing 40 \
   --tests-command "npm test" \
   --tests-result fail \
   --include-staged \
+  --skill-candidate "contract-expansion-triage" \
+  --skill-summary "allowed_files 逸脱時の切り分け手順" \
   --needs-approval \
   --request-file app/routes.ts \
   --blocker "upstream approval is required" \
