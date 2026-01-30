@@ -564,14 +564,6 @@ def cmd_collect(_args: argparse.Namespace) -> int:
             items.append((path, archive_base, checkin, issue))
 
         for path, _archive_base, checkin, issue in items:
-            emit_decisions_from_checkin(
-                ops_root=ops_root,
-                issue=issue,
-                worker=str(checkin.get("worker") or ""),
-                checkin=checkin,
-                existing_keys=dedupe_keys,
-            )
-
             entry = ensure_issue_entry(state, issue)
             entry["assigned_to"] = checkin.get("worker") or entry.get("assigned_to")
             phase_from_checkin = checkin.get("phase") or entry.get("phase") or "backlog"
@@ -624,8 +616,8 @@ def cmd_collect(_args: argparse.Namespace) -> int:
                 requested_files = sorted(set(requested_files + forbidden_hits))
 
             if forbidden_hits or (requested_files and allowed_files):
-                payload = "requested_files=" + ",".join(requested_files) + "|forbidden=" + ",".join(forbidden_hits)
-                k = decision_dedupe_key("contract_drift", issue, str(checkin.get("worker") or ""), payload)
+                payload = "requested_files=" + ",".join(requested_files)
+                k = decision_dedupe_key("contract_expansion", issue, str(checkin.get("worker") or ""), payload)
                 if k not in dedupe_keys:
                     decision = {
                         "version": 1,
@@ -650,6 +642,14 @@ def cmd_collect(_args: argparse.Namespace) -> int:
                 ensure_blocked_reason(state, issue, "contract_violation")
                 if forbidden_hits:
                     ensure_blocked_reason(state, issue, "contract_forbidden_violation")
+
+            emit_decisions_from_checkin(
+                ops_root=ops_root,
+                issue=issue,
+                worker=str(checkin.get("worker") or ""),
+                checkin=checkin,
+                existing_keys=dedupe_keys,
+            )
 
             record_recent_checkin(state, checkin)
 
@@ -921,12 +921,6 @@ def cmd_supervise(args: argparse.Namespace) -> int:
 
     idle_workers = [w for w in worker_ids if w not in busy_workers]
     effective_max_workers = min(max_workers, len(idle_workers))
-    if effective_max_workers <= 0:
-        state["updated_at"] = utc_now_iso()
-        atomic_write_yaml(state_path, state)
-        atomic_write_text(dashboard_path, render_dashboard_md(state))
-        sys.stdout.write("orders=0\n")
-        return 0
 
     # Pre-extract change targets to:
     # - Emit per-issue decisions for missing/invalid targets
@@ -934,7 +928,7 @@ def cmd_supervise(args: argparse.Namespace) -> int:
     # - Fill up to max_workers by skipping invalid candidates and pulling additional ones
     assignable: List[Tuple[Dict[str, Any], List[str]]] = []
     for item in candidates:
-        if len(assignable) >= effective_max_workers:
+        if len(assignable) >= max_workers:
             break
         n = int(item.get("number"))
         try:
@@ -1005,7 +999,14 @@ def cmd_supervise(args: argparse.Namespace) -> int:
         if rc != 0:
             raise RuntimeError(f"worktree.sh check failed (rc={rc}):\n{check_out.strip()}")
 
-    for idx, (item, allowed_files) in enumerate(assignable):
+    if effective_max_workers <= 0:
+        state["updated_at"] = utc_now_iso()
+        atomic_write_yaml(state_path, state)
+        atomic_write_text(dashboard_path, render_dashboard_md(state))
+        sys.stdout.write("orders=0\n")
+        return 0
+
+    for idx, (item, allowed_files) in enumerate(assignable[:effective_max_workers]):
         n = int(item.get("number"))
         title = str(item.get("title") or "")
         worker = idle_workers[idx]

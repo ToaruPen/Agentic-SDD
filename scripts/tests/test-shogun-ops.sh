@@ -592,6 +592,56 @@ assert "/create-pr" in steps
 assert "/cleanup" in steps
 PY
 
+# No-idle case: even when all workers are busy, supervise must still emit decisions
+# (e.g., overlap_detected / missing_change_targets) based on deterministic change targets.
+cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'
+version: 1
+policy:
+  parallel:
+    enabled: true
+    max_workers: 2
+    require_parallel_ok_label: false
+  impl_mode:
+    default: impl
+    force_tdd_labels: ["tdd", "bug", "high-risk"]
+  checkin:
+    required_on_phase_change: true
+workers:
+  - id: "ashigaru1"
+  - id: "ashigaru2"
+YAML
+
+python3 - "$state_path" <<'PY'
+import sys
+import yaml
+
+path = sys.argv[1]
+state = yaml.safe_load(open(path, "r", encoding="utf-8")) or {}
+issues = state.get("issues") or {}
+
+e18 = issues.get("18") or {}
+e18["assigned_to"] = "ashigaru1"
+e18["phase"] = "implementing"
+issues["18"] = e18
+
+issues["19"] = {
+    "title": "busy",
+    "assigned_to": "ashigaru2",
+    "phase": "implementing",
+    "progress_percent": 0,
+}
+
+state["issues"] = issues
+yaml.safe_dump(state, open(path, "w", encoding="utf-8"), sort_keys=False, allow_unicode=True)
+PY
+
+decisions_dir="$common/agentic-sdd-ops/queue/decisions"
+before_no_idle="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+sup_out_no_idle="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" supervise --once --gh-repo OWNER/REPO)"
+printf '%s\n' "$sup_out_no_idle" | rg -q '^decision='
+after_no_idle="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+test "$((after_no_idle - before_no_idle))" = "1"
+
 # Fill: if some early candidates are invalid, supervise should pick additional valid candidates.
 cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'
 version: 1
