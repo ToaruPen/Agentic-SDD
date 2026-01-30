@@ -400,6 +400,101 @@ assert "/create-pr" in steps
 assert "/cleanup" in steps
 PY
 
+# Fill: if some early candidates are invalid, supervise should pick additional valid candidates.
+cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'
+version: 1
+policy:
+  parallel:
+    enabled: true
+    max_workers: 2
+    require_parallel_ok_label: false
+  impl_mode:
+    default: impl
+    force_tdd_labels: ["tdd", "bug", "high-risk"]
+  checkin:
+    required_on_phase_change: true
+workers:
+  - id: "ashigaru1"
+  - id: "ashigaru2"
+YAML
+
+cat > "$tmpdir/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo=""
+if [[ ${1:-} == "-R" ]]; then
+  repo="${2:-}"
+  shift 2
+fi
+
+if [[ ${1:-} != "issue" ]]; then
+  echo "unsupported" >&2
+  exit 2
+fi
+
+sub="${2:-}"
+case "$sub" in
+  list)
+    # Return an invalid issue first (missing change targets), then two valid ones.
+    cat <<'JSON'
+[
+  {"number":10,"title":"Missing targets","labels":[]},
+  {"number":1,"title":"Alpha task","labels":[]},
+  {"number":3,"title":"Gamma task","labels":[]}
+]
+JSON
+    ;;
+  view)
+    issue="${3:-}"
+    shift 3
+
+    body=""
+    case "$issue" in
+      10) body=$'## 概要\n\nfrom gh\n\n' ;;
+      1) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/a.ts`\n' ;;
+      3) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/b.ts`\n' ;;
+      *) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/other.ts`\n' ;;
+    esac
+
+    if [[ "$*" == *"--json"* ]]; then
+      if [[ "$*" == *"number,title,labels"* ]]; then
+        printf '{"number":%s,"title":"T","labels":[]}' "$issue"
+        printf '\n'
+      elif [[ "$*" == *"body"* ]]; then
+        printf '{"body":%s}\n' "$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' <<<"$body")"
+      else
+        echo "unsupported json fields" >&2
+        exit 2
+      fi
+    else
+      echo "unsupported view format" >&2
+      exit 2
+    fi
+    ;;
+  *)
+    echo "unsupported subcommand: $sub" >&2
+    exit 2
+    ;;
+esac
+EOF
+chmod +x "$tmpdir/bin/gh"
+
+orders_root="$common/agentic-sdd-ops/queue/orders"
+before_orders_fill="$(find "$orders_root" -type f -name '*.yaml' | wc -l | tr -d ' ')"
+decisions_dir="$common/agentic-sdd-ops/queue/decisions"
+before_decisions_fill="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+
+sup_out_fill="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" supervise --once --gh-repo OWNER/REPO)"
+printf '%s\n' "$sup_out_fill" | rg -q '^decision='
+printf '%s\n' "$sup_out_fill" | rg -q '^orders=2$'
+
+after_orders_fill="$(find "$orders_root" -type f -name '*.yaml' | wc -l | tr -d ' ')"
+test "$((after_orders_fill - before_orders_fill))" = "2"
+
+after_decisions_fill="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+test "$((after_decisions_fill - before_decisions_fill))" = "1"
+
 # Prevent per-worker order file overwrites (same worker, multiple targets)
 cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'
 version: 1

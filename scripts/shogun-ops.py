@@ -600,7 +600,6 @@ def cmd_supervise(args: argparse.Namespace) -> int:
         sys.stdout.write(f"decision={decision_path}\n")
         return 0
 
-    targets = candidates[: max_workers]
     state = read_yaml_file(state_path)
     forbidden = [".agent/**", "docs/prd/**", "docs/epics/**"]
     issued = 0
@@ -611,8 +610,11 @@ def cmd_supervise(args: argparse.Namespace) -> int:
     # Pre-extract change targets to:
     # - Emit per-issue decisions for missing/invalid targets
     # - Avoid `worktree.sh check` failing early with rc=2 for missing targets
+    # - Fill up to max_workers by skipping invalid candidates and pulling additional ones
     assignable: List[Tuple[Dict[str, Any], List[str]]] = []
-    for item in targets:
+    for item in candidates:
+        if len(assignable) >= max_workers:
+            break
         n = int(item.get("number"))
         try:
             allowed_files = extract_allowed_files(toplevel, gh_repo, n)
@@ -682,18 +684,10 @@ def cmd_supervise(args: argparse.Namespace) -> int:
         if rc != 0:
             raise RuntimeError(f"worktree.sh check failed (rc={rc}):\n{check_out.strip()}")
 
-    for idx, item in enumerate(targets):
+    for idx, (item, allowed_files) in enumerate(assignable):
         n = int(item.get("number"))
         title = str(item.get("title") or "")
         worker = worker_ids[idx % len(worker_ids)]
-        found = None
-        for (it, files) in assignable:
-            if int(it.get("number")) == n:
-                found = files
-                break
-        if found is None:
-            continue
-        allowed_files = found
 
         entry = ensure_issue_entry(state, n)
         entry["title"] = title
