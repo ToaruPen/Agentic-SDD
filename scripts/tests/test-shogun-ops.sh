@@ -298,6 +298,43 @@ assert entry["progress_percent"] == 0
 assert entry["last_checkin"]["summary"] == "zero"
 PY
 
+# collect must not trust YAML worker (path traversal guard)
+# (A tampered checkin must not write/move files outside ops_root)
+evil_dir="$tmpdir/evil-archive"
+evil_checkin="$common/agentic-sdd-ops/queue/checkins/$worker/evil.yaml"
+cat > "$evil_checkin" <<YAML
+version: 1
+checkin_id: "evil"
+timestamp: "2026-01-29T12:15:04Z"
+worker: "$evil_dir"
+issue: 18
+phase: "implementing"
+progress_percent: 1
+summary: "evil"
+repo:
+  worktree_root: "."
+  toplevel: "$(pwd)"
+changes:
+  files_changed: []
+tests:
+  command: ""
+  result: ""
+needs:
+  approval: false
+  contract_expansion:
+    requested_files: []
+next: []
+YAML
+
+test -f "$evil_checkin"
+collect_out_evil="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_out_evil" | rg -q '^processed=1$'
+# Vulnerable version would have created evil_dir and moved files there.
+test ! -e "$evil_dir"
+
+test -f "$common/agentic-sdd-ops/archive/checkins/$worker/evil.yaml"
+test ! -f "$evil_checkin"
+
 # Phase 3: supervise --once (stub gh + worktree check)
 mkdir -p scripts
 cp -p "$REPO_ROOT/scripts/worktree.sh" scripts/worktree.sh

@@ -331,7 +331,11 @@ def cmd_collect(_args: argparse.Namespace) -> int:
             except Exception:
                 raise RuntimeError(f"invalid checkin issue: {path}")
 
-            worker = str(checkin.get("worker") or "unknown")
+            # Do not trust worker id inside YAML (may be tampered). Use the queue directory name as SoT.
+            worker_from_dir = os.path.basename(os.path.dirname(path))
+            worker = validate_worker_id(worker_from_dir)
+            checkin["worker"] = worker
+
             archive_dir = os.path.join(ops_root, "archive", "checkins", worker)
             archive_base = os.path.join(archive_dir, os.path.basename(path))
             items.append((path, archive_base, checkin, issue))
