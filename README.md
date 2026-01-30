@@ -101,6 +101,25 @@ Notes:
 ./scripts/shogun-github-sync.sh --issue 25 --repo OWNER/REPO
 ```
 
+## Shogun Ops: watcher (experimental)
+
+Watch the local checkin queue and run `/collect` automatically (useful for the auto/multi-agent loop).
+
+Notes:
+- Requires a file watch tool: `fswatch` | `watchexec` | `inotifywait`.
+- Ops data lives under `<git-common-dir>/agentic-sdd-ops/`.
+
+```bash
+# Show selected watch tool + commands (no watcher required)
+./scripts/shogun-watcher.sh --dry-run
+
+# Run continuously: collect on checkin events
+./scripts/shogun-watcher.sh
+
+# Test-friendly mode: exit after first event triggers collect
+./scripts/shogun-watcher.sh --once
+```
+
 ## Quick Start
 
 ### 0) Install (one-time per repo)

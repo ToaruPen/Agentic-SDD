@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.28] - 2026-01-30
+
 - Add Shogun Ops `/refactor-draft` (Lower-only) to write refactor candidate drafts under `queue/refactor-drafts/` for Middle to turn into Issues.
   - `scripts/shogun-ops.py`: Add `refactor-draft` subcommand and ops layout directory.
   - `scripts/tests/test-shogun-ops.sh`: Deterministic integration test for draft creation and append-only behavior.
@@ -12,6 +14,9 @@ All notable changes to this project will be documented in this file.
   - `scripts/shogun-ops.py`: Add `refactor-issue` subcommand (label bootstrap + issue create + archive).
   - `scripts/tests/test-shogun-refactor-issue.sh`: Offline deterministic test with `gh` stub.
   - `.agent/commands/refactor-issue.md`: Command documentation.
+- Add Shogun Ops (auto) watcher to run `collect` automatically on checkin events.
+  - `scripts/shogun-watcher.sh`: Watch `queue/checkins/` and run `shogun-ops.py collect` with retry and `--once` support.
+  - `scripts/tests/test-shogun-watcher.sh`: Deterministic tests for retries and watchexec `--once` capability checks.
 - Clarify that TDD work still requires running `/review-cycle` after implementation (same as `/impl`).
 - Document a practical parent/child Issue pattern for `git worktree`: implement via a single parent Issue while keeping child Issues as tracking-only status observation points.
 - Add Shogun Ops `/skill --approve <decision-id>` to generate `skills/<name>.md`, update `skills/README.md`, and archive the approved `skill_candidate` decision.
