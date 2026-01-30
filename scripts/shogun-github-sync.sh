@@ -160,10 +160,12 @@ progress = ""
 assigned_to = ""
 last_at = ""
 last_summary = ""
+impl_mode = ""
 if isinstance(entry, dict):
     phase = entry.get("phase") or ""
     progress = entry.get("progress_percent")
     assigned_to = entry.get("assigned_to") or ""
+    impl_mode = entry.get("impl_mode") or ""
     last = entry.get("last_checkin") or {}
     if isinstance(last, dict):
         last_at = last.get("at") or ""
@@ -172,6 +174,7 @@ if isinstance(entry, dict):
 out("phase", phase)
 out("progress_percent", progress if progress is not None else "")
 out("assigned_to", assigned_to)
+out("impl_mode", impl_mode)
 out("last_checkin_at", last_at)
 out("last_checkin_summary", last_summary)
 
@@ -206,6 +209,7 @@ phase="$(get_kv phase)"
 progress_percent="$(get_kv progress_percent)"
 assigned_to="$(get_kv assigned_to)"
 updated_at="$(get_kv updated_at)"
+impl_mode_raw="$(get_kv impl_mode)"
 last_checkin_at="$(get_kv last_checkin_at)"
 last_checkin_summary="$(get_kv last_checkin_summary)"
 blocked_reasons="$(get_kv blocked_reasons)"
@@ -226,6 +230,19 @@ if [[ -n "$blocked_reasons" || "$phase" == "blocked" ]]; then
   is_blocked="1"
 fi
 
+impl_mode="impl"
+impl_mode_note=""
+if [[ "$impl_mode_raw" == "tdd" ]]; then
+  impl_mode="tdd"
+elif [[ "$impl_mode_raw" == "impl" ]]; then
+  impl_mode="impl"
+elif [[ -z "$impl_mode_raw" ]]; then
+  # Default to /impl for existing state.yaml entries that predate `impl_mode`.
+  # This matches the default policy in `scripts/shogun-ops.py` (impl_mode.default=impl).
+  impl_mode="impl"
+  impl_mode_note="(default)"
+fi
+
 next_action="(none)"
 case "$phase" in
   backlog|"")
@@ -235,7 +252,11 @@ case "$phase" in
     next_action="/estimation $ISSUE"
     ;;
   implementing)
-    next_action="/tdd $ISSUE"
+    if [[ "$impl_mode" == "tdd" ]]; then
+      next_action="/tdd $ISSUE"
+    else
+      next_action="/impl $ISSUE"
+    fi
     ;;
   reviewing)
     next_action="/review-cycle"
@@ -254,6 +275,7 @@ comment_body="$(cat <<EOF
 
 - Issue: #$ISSUE
 - Phase: ${phase:-backlog}
+- Impl mode: ${impl_mode} ${impl_mode_note}
 - Progress: ${progress_percent:-0}%
 - Assigned: ${assigned_to:-}
 - Updated: ${updated_at:-}
@@ -330,6 +352,8 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   printf 'issue=%s\n' "$ISSUE"
   printf 'repo=%s\n' "$GH_REPO"
   printf 'state=%s\n' "$state_path"
+  printf 'impl_mode=%s\n' "$impl_mode"
+  printf 'next_action=%s\n' "$next_action"
   printf 'phase_label=%s\n' "$phase_label"
   printf 'blocked_label=%s\n' "$blocked_label"
   printf 'comment_preview=%s\n' "$(printf '%s' "$comment_body" | shasum -a 256 | awk '{print $1}')"

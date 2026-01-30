@@ -154,6 +154,7 @@ PATH="$stub_bin:$PATH" GH_STUB_LOG="$log_path" GH_STUB_AUTH_OK=1 \
 
 cat "$tmpdir/dry.out" | rg -q '^issue=25$'
 cat "$tmpdir/dry.out" | rg -q '^repo=ToaruPen/Agentic-SDD$'
+cat "$tmpdir/dry.out" | rg -q '^next_action=/impl 25$'
 
 PATH="$stub_bin:$PATH" GH_STUB_LOG="$log_path" GH_STUB_AUTH_OK=1 \
   "$BASH_BIN" "$sync_sh" --issue 25 --repo ToaruPen/Agentic-SDD >/dev/null
@@ -162,6 +163,23 @@ cat "$log_path" | rg -q 'gh auth status'
 cat "$log_path" | rg -q 'gh issue view 25'
 cat "$log_path" | rg -q 'gh issue edit 25'
 cat "$log_path" | rg -q 'gh issue comment 25'
+
+# impl_mode=tdd should suggest /tdd.
+python3 - "$state_path" <<'PY'
+import sys
+import yaml
+
+path = sys.argv[1]
+state = yaml.safe_load(open(path, "r", encoding="utf-8")) or {}
+issues = state.get("issues") or {}
+issues["25"]["impl_mode"] = "tdd"
+yaml.safe_dump(state, open(path, "w", encoding="utf-8"), allow_unicode=True, sort_keys=True, width=120)
+PY
+
+PATH="$stub_bin:$PATH" GH_STUB_LOG="$log_path" GH_STUB_AUTH_OK=1 \
+  "$BASH_BIN" "$sync_sh" --issue 25 --repo ToaruPen/Agentic-SDD --dry-run >"$tmpdir/dry2.out"
+
+cat "$tmpdir/dry2.out" | rg -q '^next_action=/tdd 25$'
 
 # AC2: auth failure => non-zero and no edits/comments.
 : >"$log_path"
