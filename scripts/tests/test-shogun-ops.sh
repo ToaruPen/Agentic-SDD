@@ -42,7 +42,30 @@ printf '%s\n' "$out" | rg -q "^## Summary$"
 printf '%s\n' "$out" | rg -q "^## Blocked / Needs Decision$"
 printf '%s\n' "$out" | rg -q "^## Recent Check-ins$"
 
-common="$(git rev-parse --path-format=absolute --git-common-dir)"
+# git compatibility: --path-format=absolute may not exist on older git
+common="$(python3 - <<'PY'
+import os
+import subprocess
+
+def git(*args):
+    return subprocess.check_output(["git", *args], stderr=subprocess.STDOUT).decode("utf-8", errors="replace").strip()
+
+abs_git_dir = git("rev-parse", "--absolute-git-dir")
+try:
+    common_abs = git("rev-parse", "--path-format=absolute", "--git-common-dir")
+except subprocess.CalledProcessError:
+    common_dir = git("rev-parse", "--git-common-dir")
+    if common_dir in (".git", "./.git"):
+        common_abs = abs_git_dir
+    elif os.path.isabs(common_dir):
+        common_abs = os.path.realpath(common_dir)
+    else:
+        common_abs = os.path.realpath(os.path.join(abs_git_dir, common_dir))
+else:
+    common_abs = os.path.realpath(common_abs)
+print(common_abs)
+PY
+)"
 test -d "$common/agentic-sdd-ops"
 test -f "$common/agentic-sdd-ops/config.yaml"
 test -f "$common/agentic-sdd-ops/state.yaml"
@@ -94,9 +117,31 @@ if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 40 "dup" -
   exit 1
 fi
 
+# phase must be validated (typos should fail-fast)
+if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implmenting 40 \
+  --worker "$worker" \
+  --timestamp "20260129T121504Z" \
+  -- \
+  badphase \
+  >/dev/null 2>&1; then
+  eprint "expected invalid phase failure but succeeded"
+  exit 1
+fi
+
+# percent must be validated (out-of-range should fail-fast)
+if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 101 \
+  --worker "$worker" \
+  --timestamp "20260129T121505Z" \
+  -- \
+  badpercent \
+  >/dev/null 2>&1; then
+  eprint "expected invalid percent failure but succeeded"
+  exit 1
+fi
+
 if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 1 \
   --worker "../pwn" \
-  --timestamp "20260129T121504Z" \
+  --timestamp "20260129T121506Z" \
   -- \
   badworker \
   >/dev/null 2>&1; then

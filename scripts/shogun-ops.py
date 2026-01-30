@@ -815,6 +815,9 @@ def cmd_checkin(args: argparse.Namespace) -> int:
     issue = int(args.issue)
     phase = str(args.phase)
     progress_percent = int(args.percent)
+    if progress_percent < 0 or progress_percent > 100:
+        raise RuntimeError(f"percent out of range (expected 0-100): {progress_percent}")
+
     summary = " ".join(args.summary).strip()
     if not summary:
         raise RuntimeError("summary must be non-empty")
@@ -884,7 +887,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     c = sub.add_parser("checkin", help="Create an append-only checkin YAML")
     c.add_argument("issue", type=int, help="Issue number")
-    c.add_argument("phase", help="backlog|estimating|implementing|reviewing|blocked|done")
+    phases = ["backlog", "estimating", "implementing", "reviewing", "blocked", "done"]
+    c.add_argument("phase", choices=phases, help="backlog|estimating|implementing|reviewing|blocked|done")
     c.add_argument("percent", type=int, help="Progress percent (0-100)")
     c.add_argument("summary", nargs="+", help="Summary text (use `--` before summary if passing flags)")
     c.add_argument("--worker", help="Worker id (default: $AGENTIC_SDD_WORKER or $USER)")
