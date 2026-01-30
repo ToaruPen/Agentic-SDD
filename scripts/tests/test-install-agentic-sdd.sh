@@ -4,7 +4,7 @@ set -euo pipefail
 
 eprint() { printf '%s\n' "$*" >&2; }
 
-repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 installer="$repo_root/scripts/install-agentic-sdd.sh"
 
 if [[ ! -x "$installer" ]]; then

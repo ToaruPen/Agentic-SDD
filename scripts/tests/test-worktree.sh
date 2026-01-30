@@ -4,7 +4,7 @@ set -euo pipefail
 
 eprint() { printf '%s\n' "$*" >&2; }
 
-repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 worktree_sh_src="$repo_root/scripts/worktree.sh"
 extractor_src="$repo_root/scripts/extract-issue-files.py"

@@ -4,7 +4,7 @@ set -euo pipefail
 
 eprint() { printf '%s\n' "$*" >&2; }
 
-repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 resolver_py_src="$repo_root/scripts/resolve-sync-docs-inputs.py"
 sot_refs_src="$repo_root/scripts/sot_refs.py"
 

@@ -1,2 +1,3 @@
 # Dependencies for Agentic-SDD scripts
 jinja2>=3.0.0
+PyYAML>=6.0.0
