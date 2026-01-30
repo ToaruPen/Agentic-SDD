@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 - Clarify that TDD work still requires running `/review-cycle` after implementation (same as `/impl`).
+- Add Shogun Ops (core) action-required queue derived from decisions generated at collect time.
+  - `scripts/shogun-ops.py`: Extend `/checkin` to capture `needs.*` (approval/contract-expansion/blockers), emit `queue/decisions/*.yaml` (SoT) during `/collect`, and derive `state.yaml.action_required` + dashboard section.
+  - `scripts/tests/test-shogun-ops.sh`: Deterministic integration tests for decision generation and de-duplication.
+  - `.agent/commands/checkin.md`: Document new `/checkin` flags.
 - Add Shogun Ops (auto) tmux launcher for deterministic session/pane layout and order injection.
   - `scripts/shogun-tmux.sh`: Create tmux session with fixed pane titles (`upper`, `middle`, `ashigaru1`, `ashigaru2`, `ashigaru3`), send-order via pane title lookup (independent of `pane-base-index`), and dry-run support.
   - `scripts/tests/test-shogun-tmux.sh`: Deterministic tests for dry-run output and missing-tmux fail-fast behavior.
