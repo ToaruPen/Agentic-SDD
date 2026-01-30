@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
   - `scripts/shogun-tmux.sh`: Create tmux session with fixed pane titles (`upper`, `middle`, `ashigaru1`, `ashigaru2`, `ashigaru3`), send-order via pane title lookup (independent of `pane-base-index`), and dry-run support.
   - `scripts/tests/test-shogun-tmux.sh`: Deterministic tests for dry-run output and missing-tmux fail-fast behavior.
   - README: Add "Shogun Ops: tmux launcher" section with usage examples.
+- Add Shogun Ops (auto) GitHub sync to reflect local ops state to an Issue (Middle-only).
+  - `scripts/shogun-github-sync.sh`: Add a status comment and update labels (`ops-phase:*`, `ops-blocked`).
+  - `scripts/tests/test-shogun-github-sync.sh`: Offline deterministic test with `gh` stub (success + auth failure).
+  - README: Add "Shogun Ops: GitHub sync" section with usage examples.
 
 ## [0.2.27] - 2026-01-29
 
