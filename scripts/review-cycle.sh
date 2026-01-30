@@ -251,7 +251,13 @@ write_tests() {
     fi
   else
     if [[ -z "$tests_summary" ]]; then
-      eprint "TESTS is required when TEST_COMMAND is not set (use 'not run: reason' if needed)."
+      eprint "TEST_COMMAND is required for /review-cycle test verification."
+      eprint "If you truly cannot run tests, set TESTS='not run: <reason>' explicitly."
+      exit 2
+    fi
+    if [[ ! "$tests_summary" =~ ^[Nn][Oo][Tt][[:space:]]+[Rr][Uu][Nn]:[[:space:]]+.+$ ]]; then
+      eprint "Invalid TESTS summary without TEST_COMMAND: '$tests_summary'"
+      eprint "Set TEST_COMMAND to actually run tests, or use TESTS='not run: <reason>'."
       exit 2
     fi
 

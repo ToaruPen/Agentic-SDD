@@ -108,6 +108,22 @@ git -C "$tmpdir" add hello.txt
 (cd "$tmpdir" && SOT="test" TESTS="not run: reason" DIFF_MODE=auto \
   "$review_cycle_sh" issue-1 --dry-run) >/dev/null 2>/dev/null
 
+# TESTS without TEST_COMMAND must be explicit "not run: <reason>" (should fail)
+set +e
+(cd "$tmpdir" && SOT="test" TESTS="ran: fake" DIFF_MODE=staged \
+  "$review_cycle_sh" issue-1 --dry-run) >/dev/null 2>"$tmpdir/stderr_notrun"
+code=$?
+set -e
+if [[ "$code" -eq 0 ]]; then
+  eprint "Expected failure when TEST_COMMAND is missing and TESTS is not 'not run: ...'"
+  exit 1
+fi
+if ! grep -q "Set TEST_COMMAND to actually run tests" "$tmpdir/stderr_notrun"; then
+  eprint "Expected TEST_COMMAND enforcement error, got:"
+  cat "$tmpdir/stderr_notrun" >&2
+  exit 1
+fi
+
 # Both staged and worktree diffs non-empty (should fail)
 echo "change2" >> "$tmpdir/hello.txt"
 

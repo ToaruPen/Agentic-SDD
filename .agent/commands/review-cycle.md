@@ -49,9 +49,11 @@ Review taxonomy (status/priority) and output rules are defined in:
 
 ### Tests (one required)
 
-- `TESTS` or `TEST_COMMAND`
-  - `TESTS`: short test summary (can be `not run: reason`)
-  - `TEST_COMMAND`: command to run tests (e.g. `npm test`)
+- `TEST_COMMAND`（推奨: 実行して検証する）
+  - `TEST_COMMAND`: command to run tests (e.g. `npm test`). `/review-cycle` が実行して `tests.txt` に全ログを保存する。
+- 例外: `TESTS="not run: <reason>"` のみ許可
+  - `TESTS`: **実際にテストを実行できない場合のみ**、理由つきで明示する（例: `not run: CI only`）。
+  - `TEST_COMMAND` 未指定で `TESTS` が `not run: ...` 以外の場合は fail-fast（レビューの根拠にならないため）。
 
 ## Optional inputs (env vars)
 
