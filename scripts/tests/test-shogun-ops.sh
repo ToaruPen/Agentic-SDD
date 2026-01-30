@@ -687,22 +687,220 @@ printf '%s\n' "$sup_out" | rg -q '^decision='
 # Non-overlap case: target only issue 1 => orders emitted.
 sup_out2="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" supervise --once --gh-repo OWNER/REPO --targets 1)"
 printf '%s\n' "$sup_out2" | rg -q '^orders=1$'
-test -d "$common/agentic-sdd-ops/queue/orders/$worker"
-test "$(ls -1 "$common/agentic-sdd-ops/queue/orders/$worker" | wc -l | tr -d ' ')" = "1"
-order_file="$(ls -1 "$common/agentic-sdd-ops/queue/orders/$worker" | head -n 1)"
-python3 - "$common/agentic-sdd-ops/queue/orders/$worker/$order_file" <<'PY'
+# ashigaru1 is busy due to Issue #18 in state (phase=implementing). supervise should assign to an idle worker.
+idle_worker="ashigaru2"
+test -d "$common/agentic-sdd-ops/queue/orders/$idle_worker"
+test "$(ls -1 "$common/agentic-sdd-ops/queue/orders/$idle_worker" | wc -l | tr -d ' ')" = "1"
+order_file="$(ls -1 "$common/agentic-sdd-ops/queue/orders/$idle_worker" | head -n 1)"
+python3 - "$common/agentic-sdd-ops/queue/orders/$idle_worker/$order_file" <<'PY'
 import sys
 import yaml
 
 order = yaml.safe_load(open(sys.argv[1], "r", encoding="utf-8"))
 assert order["issue"] == 1
-assert order["worker"] == "ashigaru1"
+assert order["worker"] == "ashigaru2"
 steps = order.get("required_steps") or []
 assert "/create-pr" in steps
 assert "/cleanup" in steps
 PY
 
-# Fill: if some early candidates are invalid, supervise should pick additional valid candidates.
+# Partial-idle case: if there is at least one idle worker, overlap among non-assigned candidates
+# must not block assignment (e.g., max_workers=3 but idle_workers=1).
+cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'
+version: 1
+policy:
+  parallel:
+    enabled: true
+    max_workers: 3
+    require_parallel_ok_label: false
+  impl_mode:
+    default: impl
+    force_tdd_labels: ["tdd", "bug", "high-risk"]
+  checkin:
+    required_on_phase_change: true
+workers:
+  - id: "ashigaru1"
+  - id: "ashigaru2"
+  - id: "ashigaru7"
+YAML
+
+python3 - "$state_path" <<'PY'
+import sys
+import yaml
+
+path = sys.argv[1]
+state = yaml.safe_load(open(path, "r", encoding="utf-8")) or {}
+issues = state.get("issues") or {}
+
+e18 = issues.get("18") or {}
+e18["assigned_to"] = "ashigaru1"
+e18["phase"] = "implementing"
+issues["18"] = e18
+
+issues["19"] = {
+    "title": "busy",
+    "assigned_to": "ashigaru2",
+    "phase": "implementing",
+    "progress_percent": 0,
+}
+
+state["issues"] = issues
+yaml.safe_dump(state, open(path, "w", encoding="utf-8"), sort_keys=False, allow_unicode=True)
+PY
+
+cat > "$tmpdir/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo=""
+if [[ ${1:-} == "-R" ]]; then
+  repo="${2:-}"
+  shift 2
+fi
+
+if [[ ${1:-} != "issue" ]]; then
+  echo "unsupported" >&2
+  exit 2
+fi
+
+sub="${2:-}"
+case "$sub" in
+  list)
+    # Return three issues; 2 and 3 overlap but 1 does not.
+    cat <<'JSON'
+[
+  {"number":1,"title":"Alpha task","labels":[]},
+  {"number":2,"title":"Beta task","labels":[]},
+  {"number":3,"title":"Gamma task","labels":[]}
+]
+JSON
+    ;;
+  view)
+    issue="${3:-}"
+    shift 3
+
+    body=""
+    case "$issue" in
+      1) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/a.ts`\n' ;;
+      2) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/shared.ts`\n' ;;
+      3) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/shared.ts`\n' ;;
+      *) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/other.ts`\n' ;;
+    esac
+
+    if [[ "$*" == *"--json"* ]]; then
+      if [[ "$*" == *"number,title,labels"* ]]; then
+        printf '{"number":%s,"title":"T","labels":[]}\n' "$issue"
+      elif [[ "$*" == *"body"* ]]; then
+        printf '{"body":%s}\n' "$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' <<<"$body")"
+      else
+        echo "unsupported json fields" >&2
+        exit 2
+      fi
+    else
+      echo "unsupported view format" >&2
+      exit 2
+    fi
+    ;;
+  *)
+    echo "unsupported subcommand: $sub" >&2
+    exit 2
+    ;;
+esac
+EOF
+chmod +x "$tmpdir/bin/gh"
+
+orders_root="$common/agentic-sdd-ops/queue/orders"
+before_partial="$(find "$orders_root" -type f -name '*.yaml' | wc -l | tr -d ' ')"
+sup_out_partial="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" supervise --once --gh-repo OWNER/REPO)"
+printf '%s\n' "$sup_out_partial" | rg -q '^orders=1$'
+after_partial="$(find "$orders_root" -type f -name '*.yaml' | wc -l | tr -d ' ')"
+test "$((after_partial - before_partial))" = "1"
+
+idle_worker7="ashigaru7"
+test "$(find "$orders_root/$idle_worker7" -type f -name '*.yaml' | wc -l | tr -d ' ')" -ge "1"
+order_file7="$(ls -1 "$orders_root/$idle_worker7" | head -n 1)"
+python3 - "$orders_root/$idle_worker7/$order_file7" <<'PY'
+import sys
+import yaml
+
+order = yaml.safe_load(open(sys.argv[1], "r", encoding="utf-8"))
+assert order["issue"] == 1
+assert order["worker"] == "ashigaru7"
+PY
+
+# Restore gh stub for subsequent overlap/no-idle tests (issues 1 and 2 overlap on src/shared.ts).
+cat > "$tmpdir/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo=""
+if [[ ${1:-} == "-R" ]]; then
+  repo="${2:-}"
+  shift 2
+fi
+
+if [[ ${1:-} != "issue" ]]; then
+  echo "unsupported" >&2
+  exit 2
+fi
+
+sub="${2:-}"
+case "$sub" in
+  list)
+    cat <<'JSON'
+[
+  {"number":1,"title":"Alpha task","labels":[{"name":"parallel-ok"}]},
+  {"number":2,"title":"Beta task","labels":[{"name":"parallel-ok"}]}
+]
+JSON
+    ;;
+  view)
+    issue="${3:-}"
+    shift 3
+
+    body=""
+    case "$issue" in
+      1) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/a.ts`\n- [ ] `src/shared.ts`\n' ;;
+      2) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/b.ts`\n- [ ] `src/shared.ts`\n' ;;
+      *) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/other.ts`\n' ;;
+    esac
+
+    if [[ "$*" == *"--json"* ]]; then
+      if [[ "$*" == *"number,title,labels"* ]]; then
+        if [[ "$issue" == "1" ]]; then
+          cat <<'JSON'
+{"number":1,"title":"Alpha task","labels":[{"name":"parallel-ok"}]}
+JSON
+        elif [[ "$issue" == "2" ]]; then
+          cat <<'JSON'
+{"number":2,"title":"Beta task","labels":[{"name":"parallel-ok"}]}
+JSON
+        else
+          cat <<'JSON'
+{"number":999,"title":"Other","labels":[{"name":"parallel-ok"}]}
+JSON
+        fi
+      elif [[ "$*" == *"body"* ]]; then
+        printf '{"body":%s}\n' "$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' <<<"$body")"
+      else
+        echo "unsupported json fields" >&2
+        exit 2
+      fi
+    else
+      echo "unsupported view format" >&2
+      exit 2
+    fi
+    ;;
+  *)
+    echo "unsupported subcommand: $sub" >&2
+    exit 2
+    ;;
+esac
+EOF
+chmod +x "$tmpdir/bin/gh"
+
+# No-idle case: even when all workers are busy, supervise must still emit decisions
+# (e.g., overlap_detected / missing_change_targets) based on deterministic change targets.
 cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'
 version: 1
 policy:
@@ -718,6 +916,55 @@ policy:
 workers:
   - id: "ashigaru1"
   - id: "ashigaru2"
+YAML
+
+python3 - "$state_path" <<'PY'
+import sys
+import yaml
+
+path = sys.argv[1]
+state = yaml.safe_load(open(path, "r", encoding="utf-8")) or {}
+issues = state.get("issues") or {}
+
+e18 = issues.get("18") or {}
+e18["assigned_to"] = "ashigaru1"
+e18["phase"] = "implementing"
+issues["18"] = e18
+
+issues["19"] = {
+    "title": "busy",
+    "assigned_to": "ashigaru2",
+    "phase": "implementing",
+    "progress_percent": 0,
+}
+
+state["issues"] = issues
+yaml.safe_dump(state, open(path, "w", encoding="utf-8"), sort_keys=False, allow_unicode=True)
+PY
+
+decisions_dir="$common/agentic-sdd-ops/queue/decisions"
+before_no_idle="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+sup_out_no_idle="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" supervise --once --gh-repo OWNER/REPO)"
+printf '%s\n' "$sup_out_no_idle" | rg -q '^decision='
+after_no_idle="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+test "$((after_no_idle - before_no_idle))" = "1"
+
+# Fill: if some early candidates are invalid, supervise should pick additional valid candidates.
+cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'
+version: 1
+policy:
+  parallel:
+    enabled: true
+    max_workers: 2
+    require_parallel_ok_label: false
+  impl_mode:
+    default: impl
+    force_tdd_labels: ["tdd", "bug", "high-risk"]
+  checkin:
+    required_on_phase_change: true
+workers:
+  - id: "ashigaru3"
+  - id: "ashigaru4"
 YAML
 
 cat > "$tmpdir/bin/gh" <<'EOF'
@@ -797,7 +1044,7 @@ test "$((after_orders_fill - before_orders_fill))" = "2"
 after_decisions_fill="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
 test "$((after_decisions_fill - before_decisions_fill))" = "1"
 
-# Prevent per-worker order file overwrites (same worker, multiple targets)
+# Multi-target: with 3 idle workers, supervise should issue 3 orders and keep impl_mode=tdd for label-matched issues.
 cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'
 version: 1
 policy:
@@ -811,7 +1058,9 @@ policy:
   checkin:
     required_on_phase_change: true
 workers:
-  - id: "ashigaru1"
+  - id: "ashigaru5"
+  - id: "ashigaru6"
+  - id: "ashigaru7"
 YAML
 
 cat > "$tmpdir/bin/gh" <<'EOF'
@@ -871,21 +1120,21 @@ esac
 EOF
 chmod +x "$tmpdir/bin/gh"
 
-orders_dir="$common/agentic-sdd-ops/queue/orders/$worker"
-before_orders="$(ls -1 "$orders_dir" | wc -l | tr -d ' ')"
+orders_root="$common/agentic-sdd-ops/queue/orders"
+before_orders="$(find "$orders_root" -type f -name '*.yaml' | wc -l | tr -d ' ')"
 sup_out3="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" supervise --once --gh-repo OWNER/REPO --targets 1 --targets 3 --targets 4)"
 printf '%s\n' "$sup_out3" | rg -q '^orders=3$'
-after_orders="$(ls -1 "$orders_dir" | wc -l | tr -d ' ')"
+after_orders="$(find "$orders_root" -type f -name '*.yaml' | wc -l | tr -d ' ')"
 test "$((after_orders - before_orders))" = "3"
 
-python3 - "$orders_dir" <<'PY'
+python3 - "$orders_root" <<'PY'
 import glob
 import os
 import sys
 import yaml
 
-orders_dir = sys.argv[1]
-paths = glob.glob(os.path.join(orders_dir, "*.yaml"))
+orders_root = sys.argv[1]
+paths = glob.glob(os.path.join(orders_root, "*", "*.yaml"))
 found = False
 for p in paths:
     order = yaml.safe_load(open(p, "r", encoding="utf-8"))
@@ -912,13 +1161,14 @@ policy:
   checkin:
     required_on_phase_change: true
 workers:
-  - id: "ashigaru1"
+  - id: "ashigaru8"
+  - id: "ashigaru9"
 YAML
 
-before_orders2="$(ls -1 "$orders_dir" | wc -l | tr -d ' ')"
+before_orders2="$(find "$orders_root" -type f -name '*.yaml' | wc -l | tr -d ' ')"
 sup_out_disabled="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" supervise --once --gh-repo OWNER/REPO --targets 1 --targets 3 --targets 4)"
 printf '%s\n' "$sup_out_disabled" | rg -q '^orders=1$'
-after_orders2="$(ls -1 "$orders_dir" | wc -l | tr -d ' ')"
+after_orders2="$(find "$orders_root" -type f -name '*.yaml' | wc -l | tr -d ' ')"
 test "$((after_orders2 - before_orders2))" = "1"
 
 # Restore parallel settings for subsequent tests.
@@ -935,7 +1185,8 @@ policy:
   checkin:
     required_on_phase_change: true
 workers:
-  - id: "ashigaru1"
+  - id: "ashigaru8"
+  - id: "ashigaru9"
 YAML
 
 # Ensure decision IDs are unique per decision (multiple decisions in one run)
@@ -946,6 +1197,246 @@ test "$(printf '%s\n' "$sup_out4" | rg -c '^decision=')" = "2"
 after_decisions="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
 test "$((after_decisions - before_decisions))" = "2"
 
+# Phase 2/collect: contract drift detection against state.issue.contract
+state_path="$common/agentic-sdd-ops/state.yaml"
+
+# No drift: files_changed stays within allowed_files => no new decision and issue phase remains as reported.
+decisions_dir="$common/agentic-sdd-ops/queue/decisions"
+before_no_drift="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+ts_contract_ok="20260129T121520Z"
+checkin_contract_ok_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 1 implementing 10 \
+  --worker "$worker" \
+  --timestamp "$ts_contract_ok" \
+  --no-auto-files-changed \
+  --files-changed "src/a.ts" \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  -- \
+  contract_ok \
+)"
+test -f "$checkin_contract_ok_path"
+collect_contract_ok_out="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_contract_ok_out" | rg -q '^processed=1$'
+after_no_drift="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+test "$after_no_drift" = "$before_no_drift"
+
+python3 - "$state_path" <<'PY'
+import sys
+import yaml
+
+state = yaml.safe_load(open(sys.argv[1], "r", encoding="utf-8"))
+issue = (state.get("issues") or {}).get("1") or {}
+assert issue.get("phase") == "implementing", issue
+PY
+
+# No drift: allowed_files should support simple glob patterns (e.g. `src/*.ts`).
+python3 - "$state_path" <<'PY'
+import sys
+import yaml
+
+path = sys.argv[1]
+state = yaml.safe_load(open(path, "r", encoding="utf-8")) or {}
+issues = state.get("issues") or {}
+issue = issues.get("1") or {}
+contract = issue.get("contract") or {}
+if not isinstance(contract, dict):
+    contract = {}
+contract["allowed_files"] = ["src/*.ts"]
+issue["contract"] = contract
+issues["1"] = issue
+state["issues"] = issues
+yaml.safe_dump(state, open(path, "w", encoding="utf-8"), sort_keys=False, allow_unicode=True)
+PY
+
+before_no_drift_glob="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+ts_contract_ok_glob="20260129T121523Z"
+checkin_contract_ok_glob_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 1 implementing 11 \
+  --worker "$worker" \
+  --timestamp "$ts_contract_ok_glob" \
+  --no-auto-files-changed \
+  --files-changed "src/a.ts" \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  -- \
+  contract_ok_glob \
+)"
+test -f "$checkin_contract_ok_glob_path"
+collect_contract_ok_glob_out="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_contract_ok_glob_out" | rg -q '^processed=1$'
+after_no_drift_glob="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+test "$after_no_drift_glob" = "$before_no_drift_glob"
+
+# Drift: glob should NOT match across path separators (src/*.ts must not allow src/nested/evil.ts)
+before_glob_nested="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+ls -1 "$decisions_dir"/*.yaml > "$tmpdir/decisions.before.contract.globnested" 2>/dev/null || true
+ts_contract_glob_nested="20260129T121524Z"
+checkin_contract_glob_nested_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 1 implementing 12 \
+  --worker "$worker" \
+  --timestamp "$ts_contract_glob_nested" \
+  --no-auto-files-changed \
+  --files-changed "src/nested/evil.ts" \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  -- \
+  contract_glob_nested \
+)"
+test -f "$checkin_contract_glob_nested_path"
+collect_contract_glob_nested_out="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_contract_glob_nested_out" | rg -q '^processed=1$'
+after_glob_nested="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+test "$((after_glob_nested - before_glob_nested))" = "1"
+
+new_glob_nested_decision_path="$(python3 - "$tmpdir/decisions.before.contract.globnested" "$decisions_dir" <<'PY'
+import glob
+import os
+import sys
+
+before_path = sys.argv[1]
+decisions_dir = sys.argv[2]
+try:
+    before = set([ln.strip() for ln in open(before_path, "r", encoding="utf-8").read().splitlines() if ln.strip()])
+except FileNotFoundError:
+    before = set()
+after = set(glob.glob(os.path.join(decisions_dir, "*.yaml")))
+added = sorted(after - before)
+assert len(added) == 1, added
+print(added[0])
+PY
+)"
+
+python3 - "$new_glob_nested_decision_path" <<'PY'
+import sys
+import yaml
+
+dec = yaml.safe_load(open(sys.argv[1], "r", encoding="utf-8"))
+assert dec.get("type") == "contract_expansion", dec
+req = dec.get("request") or {}
+assert "src/nested/evil.ts" in (req.get("requested_files") or []), req
+PY
+
+# Restore deterministic allowed_files for subsequent drift tests.
+python3 - "$state_path" <<'PY'
+import sys
+import yaml
+
+path = sys.argv[1]
+state = yaml.safe_load(open(path, "r", encoding="utf-8")) or {}
+issues = state.get("issues") or {}
+issue = issues.get("1") or {}
+contract = issue.get("contract") or {}
+if not isinstance(contract, dict):
+    contract = {}
+contract["allowed_files"] = ["src/a.ts"]
+issue["contract"] = contract
+issues["1"] = issue
+state["issues"] = issues
+yaml.safe_dump(state, open(path, "w", encoding="utf-8"), sort_keys=False, allow_unicode=True)
+PY
+
+# Drift: allowed_files 外の files_changed => blocked + decision(contract_expansion with requested_files + options)
+before_drift="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+ls -1 "$decisions_dir"/*.yaml > "$tmpdir/decisions.before.contract" 2>/dev/null || true
+ts_contract_drift="20260129T121521Z"
+checkin_contract_drift_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 1 implementing 20 \
+  --worker "$worker" \
+  --timestamp "$ts_contract_drift" \
+  --no-auto-files-changed \
+  --files-changed "src/evil.ts" \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  -- \
+  contract_drift \
+)"
+test -f "$checkin_contract_drift_path"
+collect_contract_drift_out="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_contract_drift_out" | rg -q '^processed=1$'
+after_drift="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+test "$((after_drift - before_drift))" = "1"
+
+new_decision_path="$(python3 - "$tmpdir/decisions.before.contract" "$decisions_dir" <<'PY'
+import glob
+import os
+import sys
+
+before_path = sys.argv[1]
+decisions_dir = sys.argv[2]
+try:
+    before = set([ln.strip() for ln in open(before_path, "r", encoding="utf-8").read().splitlines() if ln.strip()])
+except FileNotFoundError:
+    before = set()
+after = set(glob.glob(os.path.join(decisions_dir, "*.yaml")))
+added = sorted(after - before)
+assert len(added) == 1, added
+print(added[0])
+PY
+)"
+
+python3 - "$state_path" "$new_decision_path" <<'PY'
+import sys
+import yaml
+
+state_path, decision_path = sys.argv[1], sys.argv[2]
+state = yaml.safe_load(open(state_path, "r", encoding="utf-8"))
+issues = state.get("issues") or {}
+issue = issues.get("1") or {}
+assert issue.get("phase") == "blocked", issue
+
+dec = yaml.safe_load(open(decision_path, "r", encoding="utf-8"))
+assert dec.get("type") == "contract_expansion", dec
+req = dec.get("request") or {}
+assert "src/evil.ts" in (req.get("requested_files") or []), req
+opts = req.get("options") or []
+assert "拡張" in opts and "差し戻し" in opts and "Issue分割" in opts and "別Issueへ移動" in opts, opts
+PY
+
+# Forbidden drift: forbidden_files に一致する変更 => major として decision/blocked に反映
+before_forbidden="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+ls -1 "$decisions_dir"/*.yaml > "$tmpdir/decisions.before.forbidden" 2>/dev/null || true
+ts_contract_forbidden="20260129T121522Z"
+checkin_contract_forbidden_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 1 implementing 30 \
+  --worker "$worker" \
+  --timestamp "$ts_contract_forbidden" \
+  --no-auto-files-changed \
+  --files-changed ".agent/rules/issue.md" \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  -- \
+  contract_forbidden \
+)"
+test -f "$checkin_contract_forbidden_path"
+collect_contract_forbidden_out="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_contract_forbidden_out" | rg -q '^processed=1$'
+after_forbidden="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+test "$((after_forbidden - before_forbidden))" = "1"
+
+new_forbidden_decision_path="$(python3 - "$tmpdir/decisions.before.forbidden" "$decisions_dir" <<'PY'
+import glob
+import os
+import sys
+
+before_path = sys.argv[1]
+decisions_dir = sys.argv[2]
+try:
+    before = set([ln.strip() for ln in open(before_path, "r", encoding="utf-8").read().splitlines() if ln.strip()])
+except FileNotFoundError:
+    before = set()
+after = set(glob.glob(os.path.join(decisions_dir, "*.yaml")))
+added = sorted(after - before)
+assert len(added) == 1, added
+print(added[0])
+PY
+)"
+
+python3 - "$new_forbidden_decision_path" <<'PY'
+import sys
+import yaml
+
+dec = yaml.safe_load(open(sys.argv[1], "r", encoding="utf-8"))
+assert dec.get("type") == "contract_expansion", dec
+req = dec.get("request") or {}
+assert req.get("severity") == "major", req
+assert ".agent/rules/issue.md" in (req.get("forbidden_files") or []), req
+PY
 # Phase 3: skill candidates approve -> generate skills/*.md + update skills/README.md + archive decision
 skills_dir="$(pwd)/skills"
 mkdir -p "$skills_dir"
