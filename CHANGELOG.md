@@ -15,6 +15,10 @@ All notable changes to this project will be documented in this file.
   - `scripts/shogun-ops.py`: During `/collect`, compare `changes.files_changed` vs `contract.allowed_files/forbidden_files` and emit a decision + block on drift.
   - `scripts/shogun-ops.py`: During `/supervise --once`, assign orders only to idle workers based on `state.yaml` (busy phases: estimating/implementing/reviewing); treat `max_workers` as an upper bound.
   - `scripts/tests/test-shogun-ops.sh`: Deterministic integration tests for the above behaviors.
+- Add Shogun Ops skill candidates (checkin → collect → decisions).
+  - `scripts/shogun-ops.py`: Allow `/checkin` to include `candidates.skills[]` and emit `type=skill_candidate` decisions during `/collect` with de-duplication.
+  - `scripts/tests/test-shogun-ops.sh`: Deterministic integration tests for `skill_candidate` decision generation and de-duplication.
+  - `.agent/commands/checkin.md`: Document `/checkin` flags for skill candidates.
 - Make `/review-cycle` require running tests via `TEST_COMMAND` (allow `TESTS="not run: <reason>"` only).
 - Add Shogun Ops (skill candidates) dashboard section to list pending `decision(type=skill_candidate)` items (name/summary).
   - `scripts/shogun-ops.py`: Derive `state.yaml.skill_candidates_pending` from decisions and render it in `dashboard.md`.

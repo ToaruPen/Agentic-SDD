@@ -368,6 +368,11 @@ def decision_dedupe_key(kind: str, issue: int, worker: str, payload: str) -> str
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
+def skill_candidate_dedupe_key(issue: int, name: str, summary: str) -> str:
+    raw = f"skill_candidate|issue={issue}|name={name}|summary={summary}".encode("utf-8", errors="strict")
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
 def existing_decision_dedupe_keys(ops_root: str) -> set:
     keys: set = set()
     for path in list_decision_paths(ops_root):
@@ -376,6 +381,21 @@ def existing_decision_dedupe_keys(ops_root: str) -> set:
         if isinstance(k, str) and k:
             keys.add(k)
     return keys
+
+
+def existing_decision_dedupe_key_to_path(ops_root: str) -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    for path in list_decision_paths(ops_root):
+        obj = read_yaml_file(path)
+        if not isinstance(obj, dict):
+            continue
+        k = obj.get("dedupe_key")
+        if not isinstance(k, str) or not k:
+            continue
+        # Keep the first occurrence (deterministic by list_decision_paths sorting).
+        if k not in out:
+            out[k] = path
+    return out
 
 
 def build_action_required_index_from_decisions(ops_root: str) -> List[Dict[str, Any]]:
@@ -394,7 +414,26 @@ def build_action_required_index_from_decisions(ops_root: str) -> List[Dict[str, 
         worker = ""
         summary = ""
         if isinstance(request, dict):
-            worker = str(request.get("worker") or "")
+            if kind == "skill_candidate":
+                workers_raw = request.get("workers") or []
+                worker_ids: List[str] = []
+                if isinstance(workers_raw, list):
+                    for w in workers_raw:
+                        s = str(w).strip()
+                        if s:
+                            worker_ids.append(s)
+                if not worker_ids:
+                    submitters_raw = request.get("submitters") or []
+                    if isinstance(submitters_raw, list):
+                        for sub in submitters_raw:
+                            if not isinstance(sub, dict):
+                                continue
+                            s = str(sub.get("worker") or "").strip()
+                            if s and s not in worker_ids:
+                                worker_ids.append(s)
+                worker = ", ".join(worker_ids) if worker_ids else str(request.get("worker") or "")
+            else:
+                worker = str(request.get("worker") or "")
             summary = str(request.get("reason") or request.get("summary") or "")
         items.append(
             {
@@ -482,6 +521,7 @@ def emit_decisions_from_checkin(
     worker: str,
     checkin: Dict[str, Any],
     existing_keys: set,
+    existing_paths: Dict[str, str],
 ) -> int:
     needs = checkin.get("needs") or {}
     if not isinstance(needs, dict):
@@ -568,6 +608,105 @@ def emit_decisions_from_checkin(
         existing_keys.add(k)
         created += 1
 
+    candidates = checkin.get("candidates") or {}
+    if candidates:
+        if not isinstance(candidates, dict):
+            raise RuntimeError("invalid checkin candidates (expected a mapping)")
+        skills_raw = candidates.get("skills") or []
+        if not isinstance(skills_raw, list):
+            raise RuntimeError("invalid checkin candidates.skills (expected an array)")
+        for it in skills_raw:
+            if not isinstance(it, dict):
+                raise RuntimeError("invalid checkin candidates.skills[] (expected objects)")
+            name = str(it.get("name") or "").strip()
+            summary = str(it.get("summary") or "").strip()
+            if not name:
+                raise RuntimeError("invalid checkin candidates.skills[].name (required)")
+            if not summary:
+                raise RuntimeError("invalid checkin candidates.skills[].summary (required)")
+            k = skill_candidate_dedupe_key(issue=issue, name=name, summary=summary)
+            checkin_id = str(checkin.get("checkin_id") or "").strip()
+            submitter = {
+                "worker": worker,
+                "checkin_id": checkin_id,
+                "timestamp": str(checkin.get("timestamp") or ""),
+            }
+
+            if k in existing_keys:
+                path = existing_paths.get(k)
+                if not path:
+                    # Should not happen; fall back to skipping to avoid multiplying decisions.
+                    continue
+                obj = read_yaml_file(path)
+                if not isinstance(obj, dict):
+                    raise RuntimeError(f"invalid decision object (expected a mapping): {path}")
+                if str(obj.get("type") or "") != "skill_candidate":
+                    raise RuntimeError(f"dedupe_key collision across decision types: {path}")
+                req = obj.get("request") or {}
+                if not isinstance(req, dict):
+                    req = {}
+                workers_raw = req.get("workers")
+                workers: List[str] = []
+                if isinstance(workers_raw, list):
+                    for w in workers_raw:
+                        s = str(w).strip()
+                        if s:
+                            workers.append(s)
+                if not workers:
+                    w0 = str(req.get("worker") or "").strip()
+                    if w0:
+                        workers.append(w0)
+                if worker not in workers:
+                    workers.append(worker)
+                req["workers"] = workers
+
+                submitters_raw = req.get("submitters")
+                submitters: List[Dict[str, str]] = []
+                if isinstance(submitters_raw, list):
+                    for sub in submitters_raw:
+                        if not isinstance(sub, dict):
+                            continue
+                        w = str(sub.get("worker") or "").strip()
+                        cid = str(sub.get("checkin_id") or "").strip()
+                        ts = str(sub.get("timestamp") or "")
+                        if not w:
+                            continue
+                        submitters.append({"worker": w, "checkin_id": cid, "timestamp": ts})
+                if not submitters:
+                    w0 = str(req.get("worker") or "").strip()
+                    cid0 = str(req.get("checkin_id") or "").strip()
+                    if w0:
+                        submitters.append({"worker": w0, "checkin_id": cid0, "timestamp": ""})
+
+                key = f"{worker}|{checkin_id}"
+                seen = set(f"{s.get('worker','')}|{s.get('checkin_id','')}" for s in submitters)
+                if key not in seen:
+                    submitters.append(submitter)
+                    req["submitters"] = submitters
+                    obj["request"] = req
+                    atomic_write_yaml(path, obj)
+                continue
+            decision = {
+                "version": 1,
+                "created_at": utc_now_iso(),
+                "issue": issue,
+                "type": "skill_candidate",
+                "dedupe_key": k,
+                "request": {
+                    "worker": worker,
+                    "workers": [worker],
+                    "submitters": [submitter],
+                    "reason": f"{name}: {summary}",
+                    "name": name,
+                    "summary": summary,
+                    "checkin_id": checkin_id,
+                },
+            }
+            write_decision(ops_root, decision)
+            existing_keys.add(k)
+            existing_paths[k] = os.path.join(ops_root, "queue", "decisions", f"{decision.get('decision_id')}.yaml")
+            created += 1
+
     return created
 
 
@@ -604,7 +743,8 @@ def cmd_collect(_args: argparse.Namespace) -> int:
             atomic_write_text(dashboard_path, render_dashboard_md(state))
             return 0
         items: List[Tuple[str, str, Dict[str, Any], int]] = []
-        dedupe_keys = existing_decision_dedupe_keys(ops_root)
+        dedupe_paths = existing_decision_dedupe_key_to_path(ops_root)
+        dedupe_keys = set(dedupe_paths.keys())
 
         for path in checkin_paths:
             checkin = read_yaml_file(path)
@@ -709,6 +849,7 @@ def cmd_collect(_args: argparse.Namespace) -> int:
                 worker=str(checkin.get("worker") or ""),
                 checkin=checkin,
                 existing_keys=dedupe_keys,
+                existing_paths=dedupe_paths,
             )
 
             record_recent_checkin(state, checkin)
@@ -1238,6 +1379,32 @@ def cmd_checkin(args: argparse.Namespace) -> int:
             if s:
                 blockers.append(s)
 
+    skills: List[Dict[str, str]] = []
+    skill_names: List[str] = []
+    skill_summaries: List[str] = []
+    if getattr(args, "skill_candidate", None):
+        skill_names = [str(x) for x in (args.skill_candidate or [])]
+    if getattr(args, "skill_summary", None):
+        skill_summaries = [str(x) for x in (args.skill_summary or [])]
+
+    if skill_names or skill_summaries:
+        if not skill_names:
+            raise RuntimeError("--skill-candidate is required when --skill-summary is used")
+        if not skill_summaries:
+            raise RuntimeError("--skill-summary is required when --skill-candidate is used")
+        if len(skill_names) != len(skill_summaries):
+            raise RuntimeError(
+                f"--skill-candidate and --skill-summary counts must match: {len(skill_names)} != {len(skill_summaries)}"
+            )
+        for name_raw, summary_raw in zip(skill_names, skill_summaries):
+            name = str(name_raw).strip()
+            summary2 = str(summary_raw).strip()
+            if not name:
+                raise RuntimeError("skill candidate name must be non-empty")
+            if not summary2:
+                raise RuntimeError("skill candidate summary must be non-empty")
+            skills.append({"name": name, "summary": summary2})
+
     obj: Dict[str, Any] = {
         "version": 1,
         "checkin_id": checkin_id,
@@ -1260,6 +1427,8 @@ def cmd_checkin(args: argparse.Namespace) -> int:
         },
         "next": [],
     }
+    if skills:
+        obj["candidates"] = {"skills": skills}
 
     ensure_dir(out_dir)
     atomic_write_yaml(out_path, obj)
@@ -1468,6 +1637,8 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--needs-approval", action="store_true", help="Set needs.approval=true (approval required)")
     c.add_argument("--request-file", action="append", help="Append to needs.contract_expansion.requested_files (repeatable)")
     c.add_argument("--blocker", action="append", help="Append blocker reason to needs.blockers (repeatable)")
+    c.add_argument("--skill-candidate", action="append", help="Skill candidate name (repeatable; requires --skill-summary)")
+    c.add_argument("--skill-summary", action="append", help="Skill candidate summary (repeatable; must match --skill-candidate count)")
     c.set_defaults(func=cmd_checkin)
 
     col = sub.add_parser("collect", help="Collect checkins and update state/dashboard (single-writer)")
