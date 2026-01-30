@@ -60,6 +60,28 @@ Note: worktrees share the same `.git` database. Merge incrementally (finish one,
 
 ---
 
+## Shogun Ops: tmux launcher (experimental)
+
+Shogun Ops(auto) can be operated with a deterministic tmux layout.
+
+- Session: `shogun-ops`
+- Window: `ops`
+- Pane titles: `upper`, `middle`, `ashigaru1`, `ashigaru2`, `ashigaru3`
+
+```bash
+# Show the tmux command sequence (no tmux required)
+./scripts/shogun-tmux.sh --dry-run init
+
+# Create the session (requires tmux)
+./scripts/shogun-tmux.sh init
+
+# Send order-injection command to the middle pane
+./scripts/shogun-tmux.sh send-order
+
+# Attach
+./scripts/shogun-tmux.sh attach
+```
+
 ## Quick Start
 
 ### 0) Install (one-time per repo)
