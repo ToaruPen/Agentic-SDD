@@ -226,6 +226,7 @@ ts_ar2="20260129T121511Z"
 ts_ar3="20260129T121512Z"
 ts_sc1="20260129T121520Z"
 ts_sc2="20260129T121521Z"
+ts_sc3="20260129T121522Z"
 
 checkin_ar1_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 50 \
   --worker "$worker" \
@@ -296,8 +297,22 @@ checkin_sc2_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implem
 )"
 test -f "$checkin_sc2_path"
 
+worker2="ashigaru2"
+checkin_sc3_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 58 \
+  --worker "$worker2" \
+  --timestamp "$ts_sc3" \
+  --no-auto-files-changed \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  --skill-candidate "contract-expansion-triage" \
+  --skill-summary "allowed_files 逸脱時の切り分け手順" \
+  -- \
+  skill_candidate_3 \
+)"
+test -f "$checkin_sc3_path"
+
 collect_out_ar="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
-printf '%s\n' "$collect_out_ar" | rg -q '^processed=5$'
+printf '%s\n' "$collect_out_ar" | rg -q '^processed=6$'
 
 decisions_dir="$common/agentic-sdd-ops/queue/decisions"
 test -d "$decisions_dir"
@@ -345,11 +360,31 @@ import yaml
 decisions_dir = sys.argv[1]
 paths = sorted(glob.glob(os.path.join(decisions_dir, "*.yaml")))
 count = 0
+workers = set()
+submitters = set()
 for p in paths:
     obj = yaml.safe_load(open(p, "r", encoding="utf-8")) or {}
     if obj.get("type") == "skill_candidate":
         count += 1
+        req = obj.get("request") or {}
+        if isinstance(req, dict):
+            ws = req.get("workers") or []
+            if isinstance(ws, list):
+                for w in ws:
+                    if w:
+                        workers.add(str(w))
+            subs = req.get("submitters") or []
+            if isinstance(subs, list):
+                for s in subs:
+                    if isinstance(s, dict):
+                        w = str(s.get("worker") or "")
+                        cid = str(s.get("checkin_id") or "")
+                        if w:
+                            submitters.add(f"{w}|{cid}")
 print(count)
+assert workers.issuperset({"ashigaru1", "ashigaru2"}), workers
+assert any(s.startswith("ashigaru1|") for s in submitters), submitters
+assert any(s.startswith("ashigaru2|") for s in submitters), submitters
 PY
 )"
 test "$skill_before" = "1"

@@ -360,6 +360,21 @@ def existing_decision_dedupe_keys(ops_root: str) -> set:
     return keys
 
 
+def existing_decision_dedupe_key_to_path(ops_root: str) -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    for path in list_decision_paths(ops_root):
+        obj = read_yaml_file(path)
+        if not isinstance(obj, dict):
+            continue
+        k = obj.get("dedupe_key")
+        if not isinstance(k, str) or not k:
+            continue
+        # Keep the first occurrence (deterministic by list_decision_paths sorting).
+        if k not in out:
+            out[k] = path
+    return out
+
+
 def build_action_required_index_from_decisions(ops_root: str) -> List[Dict[str, Any]]:
     items: List[Dict[str, Any]] = []
     for path in list_decision_paths(ops_root):
@@ -376,7 +391,26 @@ def build_action_required_index_from_decisions(ops_root: str) -> List[Dict[str, 
         worker = ""
         summary = ""
         if isinstance(request, dict):
-            worker = str(request.get("worker") or "")
+            if kind == "skill_candidate":
+                workers_raw = request.get("workers") or []
+                worker_ids: List[str] = []
+                if isinstance(workers_raw, list):
+                    for w in workers_raw:
+                        s = str(w).strip()
+                        if s:
+                            worker_ids.append(s)
+                if not worker_ids:
+                    submitters_raw = request.get("submitters") or []
+                    if isinstance(submitters_raw, list):
+                        for sub in submitters_raw:
+                            if not isinstance(sub, dict):
+                                continue
+                            s = str(sub.get("worker") or "").strip()
+                            if s and s not in worker_ids:
+                                worker_ids.append(s)
+                worker = ", ".join(worker_ids) if worker_ids else str(request.get("worker") or "")
+            else:
+                worker = str(request.get("worker") or "")
             summary = str(request.get("reason") or request.get("summary") or "")
         items.append(
             {
@@ -402,6 +436,7 @@ def emit_decisions_from_checkin(
     worker: str,
     checkin: Dict[str, Any],
     existing_keys: set,
+    existing_paths: Dict[str, str],
 ) -> int:
     needs = checkin.get("needs") or {}
     if not isinstance(needs, dict):
@@ -505,7 +540,66 @@ def emit_decisions_from_checkin(
             if not summary:
                 raise RuntimeError("invalid checkin candidates.skills[].summary (required)")
             k = skill_candidate_dedupe_key(issue=issue, name=name, summary=summary)
+            checkin_id = str(checkin.get("checkin_id") or "").strip()
+            submitter = {
+                "worker": worker,
+                "checkin_id": checkin_id,
+                "timestamp": str(checkin.get("timestamp") or ""),
+            }
+
             if k in existing_keys:
+                path = existing_paths.get(k)
+                if not path:
+                    # Should not happen; fall back to skipping to avoid multiplying decisions.
+                    continue
+                obj = read_yaml_file(path)
+                if not isinstance(obj, dict):
+                    raise RuntimeError(f"invalid decision object (expected a mapping): {path}")
+                if str(obj.get("type") or "") != "skill_candidate":
+                    raise RuntimeError(f"dedupe_key collision across decision types: {path}")
+                req = obj.get("request") or {}
+                if not isinstance(req, dict):
+                    req = {}
+                workers_raw = req.get("workers")
+                workers: List[str] = []
+                if isinstance(workers_raw, list):
+                    for w in workers_raw:
+                        s = str(w).strip()
+                        if s:
+                            workers.append(s)
+                if not workers:
+                    w0 = str(req.get("worker") or "").strip()
+                    if w0:
+                        workers.append(w0)
+                if worker not in workers:
+                    workers.append(worker)
+                req["workers"] = workers
+
+                submitters_raw = req.get("submitters")
+                submitters: List[Dict[str, str]] = []
+                if isinstance(submitters_raw, list):
+                    for sub in submitters_raw:
+                        if not isinstance(sub, dict):
+                            continue
+                        w = str(sub.get("worker") or "").strip()
+                        cid = str(sub.get("checkin_id") or "").strip()
+                        ts = str(sub.get("timestamp") or "")
+                        if not w:
+                            continue
+                        submitters.append({"worker": w, "checkin_id": cid, "timestamp": ts})
+                if not submitters:
+                    w0 = str(req.get("worker") or "").strip()
+                    cid0 = str(req.get("checkin_id") or "").strip()
+                    if w0:
+                        submitters.append({"worker": w0, "checkin_id": cid0, "timestamp": ""})
+
+                key = f"{worker}|{checkin_id}"
+                seen = set(f"{s.get('worker','')}|{s.get('checkin_id','')}" for s in submitters)
+                if key not in seen:
+                    submitters.append(submitter)
+                    req["submitters"] = submitters
+                    obj["request"] = req
+                    atomic_write_yaml(path, obj)
                 continue
             decision = {
                 "version": 1,
@@ -515,14 +609,17 @@ def emit_decisions_from_checkin(
                 "dedupe_key": k,
                 "request": {
                     "worker": worker,
+                    "workers": [worker],
+                    "submitters": [submitter],
                     "reason": f"{name}: {summary}",
                     "name": name,
                     "summary": summary,
-                    "checkin_id": checkin.get("checkin_id") or "",
+                    "checkin_id": checkin_id,
                 },
             }
             write_decision(ops_root, decision)
             existing_keys.add(k)
+            existing_paths[k] = os.path.join(ops_root, "queue", "decisions", f"{decision.get('decision_id')}.yaml")
             created += 1
 
     return created
@@ -558,7 +655,8 @@ def cmd_collect(_args: argparse.Namespace) -> int:
             atomic_write_text(dashboard_path, render_dashboard_md(state))
             return 0
         items: List[Tuple[str, str, Dict[str, Any], int]] = []
-        dedupe_keys = existing_decision_dedupe_keys(ops_root)
+        dedupe_paths = existing_decision_dedupe_key_to_path(ops_root)
+        dedupe_keys = set(dedupe_paths.keys())
 
         for path in checkin_paths:
             checkin = read_yaml_file(path)
@@ -584,6 +682,7 @@ def cmd_collect(_args: argparse.Namespace) -> int:
                 worker=str(checkin.get("worker") or ""),
                 checkin=checkin,
                 existing_keys=dedupe_keys,
+                existing_paths=dedupe_paths,
             )
 
             entry = ensure_issue_entry(state, issue)
