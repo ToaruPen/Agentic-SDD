@@ -506,12 +506,15 @@ def cmd_collect(_args: argparse.Namespace) -> int:
     lock = acquire_lock(lock_path)
     try:
         checkin_paths = list_checkin_paths(ops_root)
-        if not checkin_paths:
-            return 0
-
         state = read_yaml_file(state_path)
         if "action_required" not in state:
             state["action_required"] = []
+        if not checkin_paths:
+            state["action_required"] = build_action_required_index_from_decisions(ops_root)
+            state["updated_at"] = utc_now_iso()
+            atomic_write_yaml(state_path, state)
+            atomic_write_text(dashboard_path, render_dashboard_md(state))
+            return 0
         items: List[Tuple[str, str, Dict[str, Any], int]] = []
         dedupe_keys = existing_decision_dedupe_keys(ops_root)
 

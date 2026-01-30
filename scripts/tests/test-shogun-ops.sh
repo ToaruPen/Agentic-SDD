@@ -348,6 +348,23 @@ PY
 
 test "$approval_before" = "$approval_after"
 
+# collect must refresh Action Required even when no checkins exist (decisions-only update)
+rm -f "$decisions_dir"/*.yaml
+python3 "$REPO_ROOT/scripts/shogun-ops.py" collect >/dev/null
+python3 - "$state_path" "$dashboard_path" <<'PY'
+import sys
+import yaml
+
+state_path, dashboard_path = sys.argv[1], sys.argv[2]
+state = yaml.safe_load(open(state_path, "r", encoding="utf-8"))
+dash = open(dashboard_path, "r", encoding="utf-8").read()
+
+action_required = state.get("action_required") or []
+assert action_required == [], action_required
+assert "## Action Required" in dash, dash
+assert "- (none)" in dash, dash
+PY
+
 # Prevent archive overwrites when the same timestamp is re-used after collect.
 archive_first="$common/agentic-sdd-ops/archive/checkins/$worker/$ts.yaml"
 archive_hash_before="$(shasum -a 256 "$archive_first" | awk '{print $1}')"
