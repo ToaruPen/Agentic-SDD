@@ -74,6 +74,8 @@ Consider merging if any applies:
 - [ ] Only 1 AC
 - [ ] Always done together with another Issue
 
+If you need to keep multiple small Issues as separate "status observation points" (e.g., lower updates; middle approves), prefer creating a single parent Issue as the implementation unit and keep the small Issues as tracking-only children (no branches/worktrees for children).
+
 Example:
 
 Before (too small):

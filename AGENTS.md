@@ -56,6 +56,7 @@ Bug fix Issues require Priority (P0-P4). See `.agent/rules/issue.md` for details
 When using `git worktree` to implement multiple Issues in parallel:
 
 - One Issue = one branch = one worktree (never mix changes)
+- If multiple related Issues overlap heavily, create a single "parent" Issue as the implementation unit and keep the related Issues as tracking-only children (no branches/worktrees for children).
 - Do not edit PRD/Epic across parallel branches; serialize SoT changes
 - Apply `parallel-ok` only when declared change-target file sets are disjoint (validate via `./scripts/worktree.sh check`)
 

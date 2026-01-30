@@ -66,6 +66,7 @@ If overlaps exist, fail-fast and:
 
 - Split Issues to avoid overlap, OR
 - Convert to explicit dependencies (`blocked`) and serialize.
+- Create a single "parent" Issue as the implementation unit, and keep the overlapping Issues as tracking-only children (do not create branches/worktrees for child Issues).
 
 ### Phase 3: Create worktrees (one Issue = one branch = one worktree)
 
@@ -74,6 +75,8 @@ Create a separate branch/worktree per Issue.
 `./scripts/worktree.sh new` will also create a linked branch on the GitHub Issue via
 `gh issue develop` (SoT for "in progress"). It fails fast if the Issue already has
 linked branches.
+
+If you are using a parent/child structure, run `./scripts/worktree.sh new` only for the parent Issue (implementation unit). Child Issues remain branch-less and are updated via comments/checklists.
 
 ```bash
 ./scripts/worktree.sh new --issue 123 --desc "add user profile" --tool opencode
