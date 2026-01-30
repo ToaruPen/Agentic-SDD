@@ -1229,6 +1229,62 @@ issue = (state.get("issues") or {}).get("1") or {}
 assert issue.get("phase") == "implementing", issue
 PY
 
+# No drift: allowed_files should support simple glob patterns (e.g. `src/*.ts`).
+python3 - "$state_path" <<'PY'
+import sys
+import yaml
+
+path = sys.argv[1]
+state = yaml.safe_load(open(path, "r", encoding="utf-8")) or {}
+issues = state.get("issues") or {}
+issue = issues.get("1") or {}
+contract = issue.get("contract") or {}
+if not isinstance(contract, dict):
+    contract = {}
+contract["allowed_files"] = ["src/*.ts"]
+issue["contract"] = contract
+issues["1"] = issue
+state["issues"] = issues
+yaml.safe_dump(state, open(path, "w", encoding="utf-8"), sort_keys=False, allow_unicode=True)
+PY
+
+before_no_drift_glob="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+ts_contract_ok_glob="20260129T121523Z"
+checkin_contract_ok_glob_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 1 implementing 11 \
+  --worker "$worker" \
+  --timestamp "$ts_contract_ok_glob" \
+  --no-auto-files-changed \
+  --files-changed "src/a.ts" \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  -- \
+  contract_ok_glob \
+)"
+test -f "$checkin_contract_ok_glob_path"
+collect_contract_ok_glob_out="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_contract_ok_glob_out" | rg -q '^processed=1$'
+after_no_drift_glob="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+test "$after_no_drift_glob" = "$before_no_drift_glob"
+
+# Restore deterministic allowed_files for subsequent drift tests.
+python3 - "$state_path" <<'PY'
+import sys
+import yaml
+
+path = sys.argv[1]
+state = yaml.safe_load(open(path, "r", encoding="utf-8")) or {}
+issues = state.get("issues") or {}
+issue = issues.get("1") or {}
+contract = issue.get("contract") or {}
+if not isinstance(contract, dict):
+    contract = {}
+contract["allowed_files"] = ["src/a.ts"]
+issue["contract"] = contract
+issues["1"] = issue
+state["issues"] = issues
+yaml.safe_dump(state, open(path, "w", encoding="utf-8"), sort_keys=False, allow_unicode=True)
+PY
+
 # Drift: allowed_files 外の files_changed => blocked + decision(contract_expansion with requested_files + options)
 before_drift="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
 ls -1 "$decisions_dir"/*.yaml > "$tmpdir/decisions.before.contract" 2>/dev/null || true

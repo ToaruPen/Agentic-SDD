@@ -809,7 +809,7 @@ def cmd_collect(_args: argparse.Namespace) -> int:
 
             requested_files: List[str] = []
             if allowed_files:
-                requested_files = [f for f in files_changed if f and f not in allowed_files]
+                requested_files = [f for f in files_changed if f and not match_any_glob(f, allowed_files)]
             requested_files = sorted(set(requested_files))
             forbidden_hits = sorted(set([f for f in files_changed if match_any_glob(f, forbidden_files)]))
             if forbidden_hits:
