@@ -47,26 +47,68 @@ printf '%s\n' "$out_init" | rg -F -q '#{pane_id}'
 
 # --- dry-run: send-order ---
 # The new implementation uses list-panes to find pane by title.
-out_send="$(bash "$sh" --dry-run send-order)"
-printf '%s\n' "$out_send" | rg -F -q "tmux list-panes"
+out_send_default="$(bash "$sh" --dry-run send-order)"
+printf '%s\n' "$out_send_default" | rg -F -q "tmux list-panes"
 
-list_panes_count="$(printf '%s\n' "$out_send" | rg -F -c "tmux list-panes")"
+list_panes_count="$(printf '%s\n' "$out_send_default" | rg -F -c "tmux list-panes")"
 if [[ "$list_panes_count" -ne 1 ]]; then
   eprint "Expected exactly 1 'tmux list-panes' in dry-run output, got: $list_panes_count"
-  printf '%s\n' "$out_send" >&2
+  printf '%s\n' "$out_send_default" >&2
   exit 1
 fi
 
-if printf '%s\n' "$out_send" | rg -F -q "tmux new-session"; then
+if printf '%s\n' "$out_send_default" | rg -F -q "tmux new-session"; then
   eprint "send-order dry-run output must not contain init commands"
-  printf '%s\n' "$out_send" >&2
+  printf '%s\n' "$out_send_default" >&2
   exit 1
 fi
 
-printf '%s\n' "$out_send" | rg -F -q "%middle"
-printf '%s\n' "$out_send" | rg -F -q "tmux send-keys"
-printf '%s\n' "$out_send" | rg -F -q "python3 scripts/shogun-ops.py supervise --once"
-printf '%s\n' "$out_send" | rg -F -q "Enter"
+send_keys_count="$(printf '%s\n' "$out_send_default" | rg -F -c "tmux send-keys")"
+if [[ "$send_keys_count" -ne 1 ]]; then
+  eprint "Expected exactly 1 'tmux send-keys' in default dry-run output, got: $send_keys_count"
+  printf '%s\n' "$out_send_default" >&2
+  exit 1
+fi
+
+printf '%s\n' "$out_send_default" | rg -F -q "%middle"
+printf '%s\n' "$out_send_default" | rg -F -q "python3 scripts/shogun-ops.py supervise --once"
+printf '%s\n' "$out_send_default" | rg -F -q "Enter"
+
+out_send_single="$(bash "$sh" --dry-run send-order --send-keys-mode single)"
+send_keys_count="$(printf '%s\n' "$out_send_single" | rg -F -c "tmux send-keys")"
+if [[ "$send_keys_count" -ne 1 ]]; then
+  eprint "Expected exactly 1 'tmux send-keys' in single dry-run output, got: $send_keys_count"
+  printf '%s\n' "$out_send_single" >&2
+  exit 1
+fi
+printf '%s\n' "$out_send_single" | rg -F -q "Enter"
+
+out_send_two_step="$(bash "$sh" --dry-run send-order --send-keys-mode two-step)"
+send_keys_count="$(printf '%s\n' "$out_send_two_step" | rg -F -c "tmux send-keys")"
+if [[ "$send_keys_count" -ne 2 ]]; then
+  eprint "Expected exactly 2 'tmux send-keys' in two-step dry-run output, got: $send_keys_count"
+  printf '%s\n' "$out_send_two_step" >&2
+  exit 1
+fi
+
+send_keys_line_1="$(printf '%s\n' "$out_send_two_step" | rg -F "tmux send-keys" | sed -n '1p')"
+send_keys_line_2="$(printf '%s\n' "$out_send_two_step" | rg -F "tmux send-keys" | sed -n '2p')"
+
+printf '%s\n' "$send_keys_line_1" | rg -F -q "%middle"
+printf '%s\n' "$send_keys_line_1" | rg -F -q "python3 scripts/shogun-ops.py supervise --once"
+if printf '%s\n' "$send_keys_line_1" | rg -F -q "Enter"; then
+  eprint "two-step: first send-keys line must not include Enter"
+  printf '%s\n' "$out_send_two_step" >&2
+  exit 1
+fi
+
+printf '%s\n' "$send_keys_line_2" | rg -F -q "%middle"
+printf '%s\n' "$send_keys_line_2" | rg -F -q "Enter"
+if printf '%s\n' "$send_keys_line_2" | rg -F -q "python3 scripts/shogun-ops.py supervise --once"; then
+  eprint "two-step: second send-keys line must not include the command string"
+  printf '%s\n' "$out_send_two_step" >&2
+  exit 1
+fi
 
 # --- missing tmux should fail-fast (non-dry-run) ---
 # Build PATH without tmux dir (if tmux exists).

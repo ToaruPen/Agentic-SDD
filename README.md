@@ -78,6 +78,9 @@ Shogun Ops(auto) can be operated with a deterministic tmux layout.
 # Send order-injection command to the middle pane
 ./scripts/shogun-tmux.sh send-order
 
+# More robust injection (send command and Enter separately)
+./scripts/shogun-tmux.sh send-order --send-keys-mode two-step
+
 # Attach
 ./scripts/shogun-tmux.sh attach
 ```
