@@ -28,6 +28,10 @@ EOF
 git -C "$tmpdir" add README.md
 git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "init" -q
 
+# Ensure the base branch is always named 'main' to avoid environment-dependent
+# init.defaultBranch (e.g. master) breaking 'git switch main' below.
+git -C "$tmpdir" branch -M main
+
 # Case 1: worktree無しでも issue-<n> ブランチを削除できる
 branch1="feature/issue-123-test"
 git -C "$tmpdir" switch -c "$branch1" -q
