@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - Clarify that TDD work still requires running `/review-cycle` after implementation (same as `/impl`).
 - Document a practical parent/child Issue pattern for `git worktree`: implement via a single parent Issue while keeping child Issues as tracking-only status observation points.
+- Add Shogun Ops `/skill --approve <decision-id>` to generate `skills/<name>.md`, update `skills/README.md`, and archive the approved `skill_candidate` decision.
 - Add Shogun Ops (core) action-required queue derived from decisions generated at collect time.
   - `scripts/shogun-ops.py`: Extend `/checkin` to capture `needs.*` (approval/contract-expansion/blockers), emit `queue/decisions/*.yaml` (SoT) during `/collect`, and derive `state.yaml.action_required` + dashboard section.
   - `scripts/tests/test-shogun-ops.sh`: Deterministic integration tests for decision generation and de-duplication.

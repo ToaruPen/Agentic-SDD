@@ -851,4 +851,90 @@ test "$(printf '%s\n' "$sup_out4" | rg -c '^decision=')" = "2"
 after_decisions="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
 test "$((after_decisions - before_decisions))" = "2"
 
+# Phase 3: skill candidates approve -> generate skills/*.md + update skills/README.md + archive decision
+skills_dir="$(pwd)/skills"
+mkdir -p "$skills_dir"
+cat > "$skills_dir/README.md" <<'MD'
+# Skills
+
+## Skill list
+
+### Process Skills
+
+- [worktree-parallel.md](./worktree-parallel.md): worktree patterns
+MD
+echo "dummy" > "$skills_dir/worktree-parallel.md"
+
+decision_sc1="DEC-SC-1"
+cat > "$decisions_dir/$decision_sc1.yaml" <<'YAML'
+version: 1
+created_at: "2026-01-30T00:00:00Z"
+issue: 38
+type: "skill_candidate"
+request:
+  worker: "ashigaru1"
+  name: "contract-expansion-triage"
+  summary: "allowed_files 逸脱時の切り分け手順"
+YAML
+
+approve_out="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" skill --approve "$decision_sc1")"
+printf '%s\n' "$approve_out" | rg -q '^skill='
+test -f "$skills_dir/contract-expansion-triage.md"
+cat "$skills_dir/contract-expansion-triage.md" | rg -q '^# contract-expansion-triage$'
+cat "$skills_dir/contract-expansion-triage.md" | rg -q '^## Overview$'
+cat "$skills_dir/contract-expansion-triage.md" | rg -q '^## Principles$'
+cat "$skills_dir/contract-expansion-triage.md" | rg -q '^## Patterns$'
+cat "$skills_dir/contract-expansion-triage.md" | rg -q '^## Checklist$'
+cat "$skills_dir/contract-expansion-triage.md" | rg -q '^## Anti-patterns$'
+cat "$skills_dir/contract-expansion-triage.md" | rg -q '^## Related$'
+cat "$skills_dir/README.md" | rg -q '\[contract-expansion-triage\.md\]\(\./contract-expansion-triage\.md\): allowed_files 逸脱時の切り分け手順'
+
+test ! -f "$decisions_dir/$decision_sc1.yaml"
+test -d "$common/agentic-sdd-ops/archive/decisions"
+ls -1 "$common/agentic-sdd-ops/archive/decisions" | rg -q "^$decision_sc1(-[0-9]{3})?\\.yaml$"
+
+# invalid decision-id must fail-fast
+if python3 "$REPO_ROOT/scripts/shogun-ops.py" skill --approve "NO-SUCH-DECISION" >/dev/null 2>&1; then
+  eprint "expected missing decision-id failure but succeeded"
+  exit 1
+fi
+
+# type mismatch must fail-fast and not move the decision
+decision_wrong="DEC-WRONG-1"
+cat > "$decisions_dir/$decision_wrong.yaml" <<'YAML'
+version: 1
+created_at: "2026-01-30T00:00:01Z"
+issue: 38
+type: "approval_required"
+request:
+  worker: "ashigaru1"
+  reason: "not a skill candidate"
+YAML
+if python3 "$REPO_ROOT/scripts/shogun-ops.py" skill --approve "$decision_wrong" >/dev/null 2>&1; then
+  eprint "expected type mismatch failure but succeeded"
+  exit 1
+fi
+test -f "$decisions_dir/$decision_wrong.yaml"
+
+# existing skills/<name>.md must fail-fast and not move the decision
+decision_exist="DEC-EXIST-1"
+echo "# existing" > "$skills_dir/existing-skill.md"
+cat > "$decisions_dir/$decision_exist.yaml" <<'YAML'
+version: 1
+created_at: "2026-01-30T00:00:02Z"
+issue: 38
+type: "skill_candidate"
+request:
+  worker: "ashigaru1"
+  name: "existing-skill"
+  summary: "should fail due to existing file"
+YAML
+if python3 "$REPO_ROOT/scripts/shogun-ops.py" skill --approve "$decision_exist" >/dev/null 2>&1; then
+  eprint "expected existing skill file failure but succeeded"
+  exit 1
+fi
+test -f "$decisions_dir/$decision_exist.yaml"
+test ! -f "$common/agentic-sdd-ops/archive/decisions/$decision_exist.yaml"
+cat "$skills_dir/README.md" | rg -qv '\[existing-skill\.md\]\(\./existing-skill\.md\)'
+
 eprint "OK: scripts/tests/test-shogun-ops.sh"
