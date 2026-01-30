@@ -365,6 +365,7 @@ assert action_required == [], action_required
 assert "## Action Required" in dash, dash
 assert "- (none)" in dash, dash
 assert "## Skill Candidates (Approval Pending)" in dash, dash
+assert "## Skill Candidates (Approval Pending)\n- (none)\n\n" in dash, dash
 PY
 
 # decisions-only update: skill_candidate must be listed (name/summary)
