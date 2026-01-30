@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - Clarify that TDD work still requires running `/review-cycle` after implementation (same as `/impl`).
 - Document a practical parent/child Issue pattern for `git worktree`: implement via a single parent Issue while keeping child Issues as tracking-only status observation points.
+- Add Shogun Ops `/skill --approve <decision-id>` to generate `skills/<name>.md`, update `skills/README.md`, and archive the approved `skill_candidate` decision.
 - Add Shogun Ops (core) action-required queue derived from decisions generated at collect time.
   - `scripts/shogun-ops.py`: Extend `/checkin` to capture `needs.*` (approval/contract-expansion/blockers), emit `queue/decisions/*.yaml` (SoT) during `/collect`, and derive `state.yaml.action_required` + dashboard section.
   - `scripts/tests/test-shogun-ops.sh`: Deterministic integration tests for decision generation and de-duplication.
@@ -15,8 +16,12 @@ All notable changes to this project will be documented in this file.
   - `scripts/shogun-ops.py`: During `/supervise --once`, assign orders only to idle workers based on `state.yaml` (busy phases: estimating/implementing/reviewing); treat `max_workers` as an upper bound.
   - `scripts/tests/test-shogun-ops.sh`: Deterministic integration tests for the above behaviors.
 - Make `/review-cycle` require running tests via `TEST_COMMAND` (allow `TESTS="not run: <reason>"` only).
+- Add Shogun Ops (skill candidates) dashboard section to list pending `decision(type=skill_candidate)` items (name/summary).
+  - `scripts/shogun-ops.py`: Derive `state.yaml.skill_candidates_pending` from decisions and render it in `dashboard.md`.
+  - `scripts/tests/test-shogun-ops.sh`: Deterministic integration test for decisions-only refresh + dashboard listing.
 - Add Shogun Ops (auto) tmux launcher for deterministic session/pane layout and order injection.
   - `scripts/shogun-tmux.sh`: Create tmux session with fixed pane titles (`upper`, `middle`, `ashigaru1`, `ashigaru2`, `ashigaru3`), send-order via pane title lookup (independent of `pane-base-index`), and dry-run support.
+  - `scripts/shogun-tmux.sh`: Add `--send-keys-mode single|two-step` to reduce send-keys injection flakiness by splitting cmd and Enter into separate tmux calls.
   - `scripts/tests/test-shogun-tmux.sh`: Deterministic tests for dry-run output and missing-tmux fail-fast behavior.
   - README: Add "Shogun Ops: tmux launcher" section with usage examples.
 - Add Shogun Ops (auto) GitHub sync to reflect local ops state to an Issue (Middle-only).
