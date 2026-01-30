@@ -2,6 +2,7 @@
 
 import argparse
 import datetime
+import fnmatch
 import hashlib
 import os
 import re
@@ -391,6 +392,33 @@ def build_action_required_index_from_decisions(ops_root: str) -> List[Dict[str, 
     return items
 
 
+def match_any_glob(path: str, patterns: List[str]) -> bool:
+    p = (path or "").strip()
+    if not p:
+        return False
+    for pat in patterns:
+        pat = (pat or "").strip()
+        if not pat:
+            continue
+        if fnmatch.fnmatchcase(p, pat):
+            return True
+    return False
+
+
+def ensure_blocked_reason(state: Dict[str, Any], issue: int, reason: str) -> None:
+    blocked = state.get("blocked")
+    if not isinstance(blocked, list):
+        blocked = []
+        state["blocked"] = blocked
+    key_issue = str(issue)
+    for it in blocked:
+        if not isinstance(it, dict):
+            continue
+        if str(it.get("issue") or "") == key_issue and str(it.get("reason") or "") == reason:
+            return
+    blocked.append({"issue": key_issue, "reason": reason})
+
+
 def emit_decisions_from_checkin(
     ops_root: str,
     issue: int,
@@ -546,7 +574,8 @@ def cmd_collect(_args: argparse.Namespace) -> int:
 
             entry = ensure_issue_entry(state, issue)
             entry["assigned_to"] = checkin.get("worker") or entry.get("assigned_to")
-            entry["phase"] = checkin.get("phase") or entry.get("phase") or "backlog"
+            phase_from_checkin = checkin.get("phase") or entry.get("phase") or "backlog"
+            entry["phase"] = phase_from_checkin
             progress = checkin.get("progress_percent")
             if progress is None:
                 progress = entry.get("progress_percent")
@@ -558,6 +587,69 @@ def cmd_collect(_args: argparse.Namespace) -> int:
                 "id": checkin.get("checkin_id") or "",
                 "summary": checkin.get("summary") or "",
             }
+
+            changes = checkin.get("changes") or {}
+            files_changed: List[str] = []
+            if isinstance(changes, dict):
+                fc = changes.get("files_changed") or []
+                if isinstance(fc, list):
+                    for x in fc:
+                        s = str(x).strip()
+                        if s:
+                            files_changed.append(s)
+
+            contract = entry.get("contract") or {}
+            allowed_files: List[str] = []
+            forbidden_files: List[str] = []
+            if isinstance(contract, dict):
+                af = contract.get("allowed_files") or []
+                if isinstance(af, list):
+                    for x in af:
+                        s = str(x).strip()
+                        if s:
+                            allowed_files.append(s)
+                ff = contract.get("forbidden_files") or []
+                if isinstance(ff, list):
+                    for x in ff:
+                        s = str(x).strip()
+                        if s:
+                            forbidden_files.append(s)
+
+            requested_files: List[str] = []
+            if allowed_files:
+                requested_files = [f for f in files_changed if f and f not in allowed_files]
+            requested_files = sorted(set(requested_files))
+            forbidden_hits = sorted(set([f for f in files_changed if match_any_glob(f, forbidden_files)]))
+            if forbidden_hits:
+                requested_files = sorted(set(requested_files + forbidden_hits))
+
+            if forbidden_hits or (requested_files and allowed_files):
+                payload = "requested_files=" + ",".join(requested_files) + "|forbidden=" + ",".join(forbidden_hits)
+                k = decision_dedupe_key("contract_drift", issue, str(checkin.get("worker") or ""), payload)
+                if k not in dedupe_keys:
+                    decision = {
+                        "version": 1,
+                        "created_at": utc_now_iso(),
+                        "issue": issue,
+                        "type": "contract_expansion",
+                        "dedupe_key": k,
+                        "request": {
+                            "worker": str(checkin.get("worker") or ""),
+                            "reason": "契約逸脱を検知（collect: changes.files_changed vs contract.allowed_files）",
+                            "requested_files": requested_files,
+                            "options": ["拡張", "差し戻し", "Issue分割", "別Issueへ移動"],
+                            "severity": "major" if forbidden_hits else "normal",
+                            "forbidden_files": forbidden_hits,
+                            "checkin_id": checkin.get("checkin_id") or "",
+                        },
+                    }
+                    write_decision(ops_root, decision)
+                    dedupe_keys.add(k)
+
+                entry["phase"] = "blocked"
+                ensure_blocked_reason(state, issue, "contract_violation")
+                if forbidden_hits:
+                    ensure_blocked_reason(state, issue, "contract_forbidden_violation")
 
             record_recent_checkin(state, checkin)
 
@@ -815,13 +907,34 @@ def cmd_supervise(args: argparse.Namespace) -> int:
     orders_dir = os.path.join(ops_root, "queue", "orders")
     ensure_dir(orders_dir)
 
+    busy_phases = {"estimating", "implementing", "reviewing"}
+    busy_workers: set = set()
+    issues = state.get("issues") or {}
+    if isinstance(issues, dict):
+        for _issue_id, entry in issues.items():
+            if not isinstance(entry, dict):
+                continue
+            assigned_to = str(entry.get("assigned_to") or "").strip()
+            phase = str(entry.get("phase") or "").strip()
+            if assigned_to and phase in busy_phases:
+                busy_workers.add(assigned_to)
+
+    idle_workers = [w for w in worker_ids if w not in busy_workers]
+    effective_max_workers = min(max_workers, len(idle_workers))
+    if effective_max_workers <= 0:
+        state["updated_at"] = utc_now_iso()
+        atomic_write_yaml(state_path, state)
+        atomic_write_text(dashboard_path, render_dashboard_md(state))
+        sys.stdout.write("orders=0\n")
+        return 0
+
     # Pre-extract change targets to:
     # - Emit per-issue decisions for missing/invalid targets
     # - Avoid `worktree.sh check` failing early with rc=2 for missing targets
     # - Fill up to max_workers by skipping invalid candidates and pulling additional ones
     assignable: List[Tuple[Dict[str, Any], List[str]]] = []
     for item in candidates:
-        if len(assignable) >= max_workers:
+        if len(assignable) >= effective_max_workers:
             break
         n = int(item.get("number"))
         try:
@@ -895,7 +1008,7 @@ def cmd_supervise(args: argparse.Namespace) -> int:
     for idx, (item, allowed_files) in enumerate(assignable):
         n = int(item.get("number"))
         title = str(item.get("title") or "")
-        worker = worker_ids[idx % len(worker_ids)]
+        worker = idle_workers[idx]
 
         entry = ensure_issue_entry(state, n)
         entry["title"] = title
