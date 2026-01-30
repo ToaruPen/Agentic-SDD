@@ -147,6 +147,34 @@ printf '%s\n' "$dry_out" | rg -q '^watch_tool=fswatch$'
 printf '%s\n' "$dry_out" | rg -q '^watch_cmd=fswatch '
 printf '%s\n' "$dry_out" | rg -q '^collect_cmd=python3 '
 
+# watchexec: --once unsupported must fail-fast (avoid hanging tests/automation).
+wx_bin="$tmpdir/watchexecpath"
+mkdir -p "$wx_bin"
+ln -s "$(command -v git)" "$wx_bin/git"
+cat > "$wx_bin/watchexec" <<'EOF'
+#!/usr/bin/env bash
+# Minimal watchexec stub that does NOT support --once.
+if [[ "${1:-}" == "--help" ]]; then
+  echo "watchexec 0.0.0"
+  echo "USAGE: watchexec -w <path> -- <cmd>"
+  exit 0
+fi
+# Should never be executed in this test.
+exit 2
+EOF
+chmod +x "$wx_bin/watchexec"
+
+set +e
+wx_out="$(PATH="$wx_bin" "$BASH_BIN" "$REPO_ROOT/scripts/shogun-watcher.sh" --once --dry-run 2>&1)"
+wx_status=$?
+set -e
+
+if [[ "$wx_status" -eq 0 ]]; then
+  eprint "expected non-zero exit when watchexec lacks --once"
+  exit 1
+fi
+printf '%s\n' "$wx_out" | rg -q 'watchexec does not support --once'
+
 # AC3: no watch tool => non-zero + next action.
 mini_bin="$tmpdir/minipath"
 mkdir -p "$mini_bin"

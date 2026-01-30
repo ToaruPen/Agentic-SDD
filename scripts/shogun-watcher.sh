@@ -162,6 +162,20 @@ else
   exit 1
 fi
 
+watchexec_once_supported=0
+if [[ "$WATCH_TOOL" == "watchexec" ]]; then
+  if watchexec --help 2>&1 | grep -q -- "--once"; then
+    watchexec_once_supported=1
+  fi
+  if [[ "$ONCE" -eq 1 && "$watchexec_once_supported" -ne 1 ]]; then
+    eprint "--once was requested but watchexec does not support --once."
+    eprint "Next actions:"
+    eprint "  - Upgrade watchexec (recommended)"
+    eprint "  - Or install fswatch (macOS): brew install fswatch"
+    exit 1
+  fi
+fi
+
 watch_cmd_str=""
 case "$WATCH_TOOL" in
   fswatch)
@@ -223,9 +237,8 @@ case "$WATCH_TOOL" in
   watchexec)
     once_flag=()
     if [[ "$ONCE" -eq 1 ]]; then
-      if watchexec --help 2>&1 | grep -q -- "--once"; then
-        once_flag=(--once)
-      fi
+      # Already validated above: watchexec must support --once when requested.
+      once_flag=(--once)
     fi
     exec watchexec "${once_flag[@]}" -w "$checkins_dir" -- "$SCRIPT_DIR/shogun-watcher.sh" --run-collect
     ;;
