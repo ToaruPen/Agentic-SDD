@@ -2,6 +2,7 @@
 
 import argparse
 import datetime
+import hashlib
 import os
 import re
 import subprocess
@@ -123,6 +124,7 @@ def default_state_yaml() -> Dict[str, Any]:
         "sot": {"prd": None, "epic": None},
         "issues": {},
         "blocked": [],
+        "action_required": [],
         "recent_checkins": [],
     }
 
@@ -152,6 +154,10 @@ def render_dashboard_md(state: Dict[str, Any]) -> str:
     if not isinstance(blocked_list, list):
         blocked_list = []
 
+    action_required = state.get("action_required") or []
+    if not isinstance(action_required, list):
+        action_required = []
+
     recent = state.get("recent_checkins") or []
     if not isinstance(recent, list):
         recent = []
@@ -164,6 +170,30 @@ def render_dashboard_md(state: Dict[str, Any]) -> str:
     lines.append(
         f"- Issues: {total} (Done {counts['done']} / In Progress {counts['in_progress']} / Blocked {counts['blocked']} / Backlog {counts['backlog']})"
     )
+    lines.append("")
+    lines.append("## Action Required")
+    if action_required:
+        for item in action_required[:20]:
+            if not isinstance(item, dict):
+                continue
+            decision_id = str(item.get("decision_id") or "").strip()
+            created_at = str(item.get("created_at") or "").strip()
+            issue = str(item.get("issue") or "").strip()
+            worker = str(item.get("worker") or "").strip()
+            kind = str(item.get("kind") or "").strip()
+            summary = str(item.get("summary") or "").strip()
+            prefix = f"- {created_at} #{issue}".rstrip()
+            if worker:
+                prefix += f" ({worker})"
+            if kind:
+                prefix += f" {kind}"
+            if summary:
+                prefix += f": {summary}"
+            if decision_id:
+                prefix += f" [{decision_id}]"
+            lines.append(prefix.rstrip())
+    else:
+        lines.append("- (none)")
     lines.append("")
     lines.append("## Blocked / Needs Decision")
     if blocked_list:
@@ -297,6 +327,165 @@ def record_recent_checkin(state: Dict[str, Any], checkin: Dict[str, Any]) -> Non
     # trim
     del recent[20:]
 
+
+def list_decision_paths(ops_root: str) -> List[str]:
+    base = os.path.join(ops_root, "queue", "decisions")
+    out: List[str] = []
+    if not os.path.isdir(base):
+        return out
+    for name in sorted(os.listdir(base)):
+        if not name.endswith(".yaml"):
+            continue
+        out.append(os.path.join(base, name))
+    return out
+
+
+def decision_dedupe_key(kind: str, issue: int, worker: str, payload: str) -> str:
+    raw = f"{kind}|issue={issue}|worker={worker}|{payload}".encode("utf-8", errors="strict")
+    return "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def existing_decision_dedupe_keys(ops_root: str) -> set:
+    keys: set = set()
+    for path in list_decision_paths(ops_root):
+        obj = read_yaml_file(path)
+        k = obj.get("dedupe_key")
+        if isinstance(k, str) and k:
+            keys.add(k)
+    return keys
+
+
+def build_action_required_index_from_decisions(ops_root: str) -> List[Dict[str, Any]]:
+    items: List[Dict[str, Any]] = []
+    for path in list_decision_paths(ops_root):
+        obj = read_yaml_file(path)
+        if not isinstance(obj, dict):
+            continue
+        decision_id = obj.get("decision_id")
+        if not decision_id:
+            decision_id = os.path.splitext(os.path.basename(path))[0]
+        created_at = obj.get("created_at") or ""
+        issue = obj.get("issue")
+        kind = obj.get("type") or ""
+        request = obj.get("request") or {}
+        worker = ""
+        summary = ""
+        if isinstance(request, dict):
+            worker = str(request.get("worker") or "")
+            summary = str(request.get("reason") or request.get("summary") or "")
+        items.append(
+            {
+                "decision_id": str(decision_id),
+                "created_at": str(created_at),
+                "issue": "" if issue is None else str(issue),
+                "worker": worker,
+                "kind": str(kind),
+                "summary": summary,
+            }
+        )
+
+    def sort_key(it: Dict[str, Any]) -> Tuple[str, str]:
+        return (str(it.get("created_at") or ""), str(it.get("decision_id") or ""))
+
+    items.sort(key=sort_key, reverse=True)
+    return items
+
+
+def emit_decisions_from_checkin(
+    ops_root: str,
+    issue: int,
+    worker: str,
+    checkin: Dict[str, Any],
+    existing_keys: set,
+) -> int:
+    needs = checkin.get("needs") or {}
+    if not isinstance(needs, dict):
+        needs = {}
+
+    created = 0
+
+    approval = bool(needs.get("approval") is True)
+    if approval:
+        k = decision_dedupe_key("approval_required", issue, worker, "v1")
+        if k not in existing_keys:
+            decision = {
+                "version": 1,
+                "created_at": utc_now_iso(),
+                "issue": issue,
+                "type": "approval_required",
+                "dedupe_key": k,
+                "request": {
+                    "worker": worker,
+                    "reason": "承認が必要（checkin.needs.approval=true）",
+                    "checkin_id": checkin.get("checkin_id") or "",
+                },
+            }
+            write_decision(ops_root, decision)
+            existing_keys.add(k)
+            created += 1
+
+    contract = needs.get("contract_expansion") or {}
+    requested_files: List[str] = []
+    if isinstance(contract, dict):
+        rf = contract.get("requested_files") or []
+        if isinstance(rf, list):
+            for x in rf:
+                s = str(x).strip()
+                if s:
+                    requested_files.append(s)
+    requested_files = sorted(set(requested_files))
+    if requested_files:
+        payload = "requested_files=" + ",".join(requested_files)
+        k = decision_dedupe_key("contract_expansion", issue, worker, payload)
+        if k not in existing_keys:
+            decision = {
+                "version": 1,
+                "created_at": utc_now_iso(),
+                "issue": issue,
+                "type": "contract_expansion",
+                "dedupe_key": k,
+                "request": {
+                    "worker": worker,
+                    "reason": "契約拡張が必要（checkin.needs.contract_expansion.requested_files）",
+                    "requested_files": requested_files,
+                    "checkin_id": checkin.get("checkin_id") or "",
+                },
+            }
+            write_decision(ops_root, decision)
+            existing_keys.add(k)
+            created += 1
+
+    blockers_raw = needs.get("blockers") or []
+    blockers: List[str] = []
+    if isinstance(blockers_raw, list):
+        for x in blockers_raw:
+            s = str(x).strip()
+            if s:
+                blockers.append(s)
+    for blocker in blockers:
+        payload = "blocker=" + blocker
+        k = decision_dedupe_key("blocker", issue, worker, payload)
+        if k in existing_keys:
+            continue
+        decision = {
+            "version": 1,
+            "created_at": utc_now_iso(),
+            "issue": issue,
+            "type": "blocker",
+            "dedupe_key": k,
+            "request": {
+                "worker": worker,
+                "reason": blocker,
+                "checkin_id": checkin.get("checkin_id") or "",
+            },
+        }
+        write_decision(ops_root, decision)
+        existing_keys.add(k)
+        created += 1
+
+    return created
+
+
 def unique_path_with_suffix(path: str) -> str:
     if not os.path.exists(path):
         return path
@@ -321,7 +510,10 @@ def cmd_collect(_args: argparse.Namespace) -> int:
             return 0
 
         state = read_yaml_file(state_path)
+        if "action_required" not in state:
+            state["action_required"] = []
         items: List[Tuple[str, str, Dict[str, Any], int]] = []
+        dedupe_keys = existing_decision_dedupe_keys(ops_root)
 
         for path in checkin_paths:
             checkin = read_yaml_file(path)
@@ -341,6 +533,14 @@ def cmd_collect(_args: argparse.Namespace) -> int:
             items.append((path, archive_base, checkin, issue))
 
         for path, _archive_base, checkin, issue in items:
+            emit_decisions_from_checkin(
+                ops_root=ops_root,
+                issue=issue,
+                worker=str(checkin.get("worker") or ""),
+                checkin=checkin,
+                existing_keys=dedupe_keys,
+            )
+
             entry = ensure_issue_entry(state, issue)
             entry["assigned_to"] = checkin.get("worker") or entry.get("assigned_to")
             entry["phase"] = checkin.get("phase") or entry.get("phase") or "backlog"
@@ -358,6 +558,7 @@ def cmd_collect(_args: argparse.Namespace) -> int:
 
             record_recent_checkin(state, checkin)
 
+        state["action_required"] = build_action_required_index_from_decisions(ops_root)
         state["updated_at"] = utc_now_iso()
         atomic_write_yaml(state_path, state)
 
@@ -845,6 +1046,20 @@ def cmd_checkin(args: argparse.Namespace) -> int:
             if f:
                 files_changed.append(f)
 
+    requested_files: List[str] = []
+    if args.request_file:
+        for f in args.request_file:
+            s = str(f).strip()
+            if s:
+                requested_files.append(s)
+
+    blockers: List[str] = []
+    if args.blocker:
+        for b in args.blocker:
+            s = str(b).strip()
+            if s:
+                blockers.append(s)
+
     obj: Dict[str, Any] = {
         "version": 1,
         "checkin_id": checkin_id,
@@ -860,7 +1075,11 @@ def cmd_checkin(args: argparse.Namespace) -> int:
         },
         "changes": {"files_changed": files_changed},
         "tests": {"command": args.tests_command or "", "result": args.tests_result or ""},
-        "needs": {"approval": False, "contract_expansion": {"requested_files": []}},
+        "needs": {
+            "approval": bool(args.needs_approval),
+            "contract_expansion": {"requested_files": sorted(set(requested_files))},
+            "blockers": blockers,
+        },
         "next": [],
     }
 
@@ -898,6 +1117,9 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--files-changed", action="append", help="Additional files_changed entry (repeatable)")
     c.add_argument("--tests-command", help="Test command to record (optional)")
     c.add_argument("--tests-result", choices=["pass", "fail", "skip"], help="Test result to record (optional)")
+    c.add_argument("--needs-approval", action="store_true", help="Set needs.approval=true (approval required)")
+    c.add_argument("--request-file", action="append", help="Append to needs.contract_expansion.requested_files (repeatable)")
+    c.add_argument("--blocker", action="append", help="Append blocker reason to needs.blockers (repeatable)")
     c.set_defaults(func=cmd_checkin)
 
     col = sub.add_parser("collect", help="Collect checkins and update state/dashboard (single-writer)")

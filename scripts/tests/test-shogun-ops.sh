@@ -39,6 +39,7 @@ git commit -q -m "init"
 out="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" status)"
 printf '%s\n' "$out" | rg -q "^# Agentic-SDD Ops Dashboard$"
 printf '%s\n' "$out" | rg -q "^## Summary$"
+printf '%s\n' "$out" | rg -q "^## Action Required$"
 printf '%s\n' "$out" | rg -q "^## Blocked / Needs Decision$"
 printf '%s\n' "$out" | rg -q "^## Recent Check-ins$"
 
@@ -201,6 +202,8 @@ entry = issues["18"]
 assert entry["phase"] == "implementing"
 assert entry["progress_percent"] == 40
 assert entry["last_checkin"]["summary"] == "progress"
+action_required = state.get("action_required") or []
+assert isinstance(action_required, list), type(action_required)
 recent = state.get("recent_checkins") or []
 assert recent, recent
 assert str(recent[0].get("issue")) == "18"
@@ -211,6 +214,139 @@ cat "$dashboard_path" | rg -q 'progress'
 
 test -f "$common/agentic-sdd-ops/archive/checkins/$worker/$ts.yaml"
 test ! -f "$checkin_path"
+
+# Phase 2: decisions + action_required (from checkin needs.*)
+ts_ar1="20260129T121510Z"
+ts_ar2="20260129T121511Z"
+ts_ar3="20260129T121512Z"
+
+checkin_ar1_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 50 \
+  --worker "$worker" \
+  --timestamp "$ts_ar1" \
+  --no-auto-files-changed \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  --needs-approval \
+  -- \
+  need_approval \
+)"
+test -f "$checkin_ar1_path"
+
+checkin_ar2_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 55 \
+  --worker "$worker" \
+  --timestamp "$ts_ar2" \
+  --no-auto-files-changed \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  --request-file "app/routes.ts" \
+  --request-file "app/profile/model.ts" \
+  -- \
+  contract_expansion_needed \
+)"
+test -f "$checkin_ar2_path"
+
+checkin_ar3_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 blocked 55 \
+  --worker "$worker" \
+  --timestamp "$ts_ar3" \
+  --no-auto-files-changed \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  --blocker "waiting_for_approval" \
+  -- \
+  blocked_waiting \
+)"
+test -f "$checkin_ar3_path"
+
+collect_out_ar="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_out_ar" | rg -q '^processed=3$'
+
+decisions_dir="$common/agentic-sdd-ops/queue/decisions"
+test -d "$decisions_dir"
+
+python3 - "$state_path" "$dashboard_path" "$decisions_dir" <<'PY'
+import glob
+import os
+import sys
+import yaml
+
+state_path, dashboard_path, decisions_dir = sys.argv[1], sys.argv[2], sys.argv[3]
+state = yaml.safe_load(open(state_path, "r", encoding="utf-8"))
+dash = open(dashboard_path, "r", encoding="utf-8").read()
+
+assert "## Action Required" in dash, dash
+
+paths = sorted(glob.glob(os.path.join(decisions_dir, "*.yaml")))
+assert paths, "no decisions created"
+
+types = set()
+for p in paths:
+    obj = yaml.safe_load(open(p, "r", encoding="utf-8")) or {}
+    types.add(obj.get("type"))
+
+assert "approval_required" in types, types
+assert "contract_expansion" in types, types
+assert "blocker" in types, types
+
+action_required = state.get("action_required") or []
+assert isinstance(action_required, list), type(action_required)
+kinds = set([it.get("kind") for it in action_required if isinstance(it, dict)])
+assert "approval_required" in kinds, kinds
+assert "contract_expansion" in kinds, kinds
+assert "blocker" in kinds, kinds
+PY
+
+# de-dup: identical approval_required should not multiply
+ts_ar4="20260129T121513Z"
+checkin_ar4_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 60 \
+  --worker "$worker" \
+  --timestamp "$ts_ar4" \
+  --no-auto-files-changed \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  --needs-approval \
+  -- \
+  need_approval_again \
+)"
+test -f "$checkin_ar4_path"
+
+approval_before="$(python3 - "$decisions_dir" <<'PY'
+import glob
+import os
+import sys
+import yaml
+
+decisions_dir = sys.argv[1]
+paths = sorted(glob.glob(os.path.join(decisions_dir, "*.yaml")))
+count = 0
+for p in paths:
+    obj = yaml.safe_load(open(p, "r", encoding="utf-8")) or {}
+    if obj.get("type") == "approval_required":
+        count += 1
+print(count)
+PY
+)"
+
+collect_out_ar2="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_out_ar2" | rg -q '^processed=1$'
+
+approval_after="$(python3 - "$decisions_dir" <<'PY'
+import glob
+import os
+import sys
+import yaml
+
+decisions_dir = sys.argv[1]
+paths = sorted(glob.glob(os.path.join(decisions_dir, "*.yaml")))
+count = 0
+for p in paths:
+    obj = yaml.safe_load(open(p, "r", encoding="utf-8")) or {}
+    if obj.get("type") == "approval_required":
+        count += 1
+print(count)
+PY
+)"
+
+test "$approval_before" = "$approval_after"
 
 # Prevent archive overwrites when the same timestamp is re-used after collect.
 archive_first="$common/agentic-sdd-ops/archive/checkins/$worker/$ts.yaml"
