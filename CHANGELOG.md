@@ -11,6 +11,9 @@ All notable changes to this project will be documented in this file.
   - `scripts/tests/test-shogun-ops.sh`: Deterministic integration tests for decision generation and de-duplication.
   - `.agent/commands/checkin.md`: Document new `/checkin` flags.
 - Make `/review-cycle` require running tests via `TEST_COMMAND` (allow `TESTS="not run: <reason>"` only).
+- Add Shogun Ops (skill candidates) dashboard section to list pending `decision(type=skill_candidate)` items (name/summary).
+  - `scripts/shogun-ops.py`: Derive `state.yaml.skill_candidates_pending` from decisions and render it in `dashboard.md`.
+  - `scripts/tests/test-shogun-ops.sh`: Deterministic integration test for decisions-only refresh + dashboard listing.
 - Add Shogun Ops (auto) tmux launcher for deterministic session/pane layout and order injection.
   - `scripts/shogun-tmux.sh`: Create tmux session with fixed pane titles (`upper`, `middle`, `ashigaru1`, `ashigaru2`, `ashigaru3`), send-order via pane title lookup (independent of `pane-base-index`), and dry-run support.
   - `scripts/shogun-tmux.sh`: Add `--send-keys-mode single|two-step` to reduce send-keys injection flakiness by splitting cmd and Enter into separate tmux calls.
