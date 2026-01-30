@@ -25,6 +25,7 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 DRY_RUN=0
 ONCE=0
+RUN_COLLECT_ONLY=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -34,6 +35,11 @@ while [[ $# -gt 0 ]]; do
       ;;
     --once)
       ONCE=1
+      shift
+      ;;
+    --run-collect)
+      # Internal: used as a watchexec target command.
+      RUN_COLLECT_ONLY=1
       shift
       ;;
     -h|--help)
@@ -47,23 +53,6 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
-
-# Select a watch tool (AC3: fail-fast with actionable next steps).
-WATCH_TOOL=""
-if command -v fswatch >/dev/null 2>&1; then
-  WATCH_TOOL="fswatch"
-elif command -v watchexec >/dev/null 2>&1; then
-  WATCH_TOOL="watchexec"
-elif command -v inotifywait >/dev/null 2>&1; then
-  WATCH_TOOL="inotifywait"
-else
-  eprint "No supported watch tool found (fswatch|watchexec|inotifywait)."
-  eprint "Next actions:"
-  eprint "  - macOS (recommended): brew install fswatch"
-  eprint "  - Alternative (macOS/Linux): brew install watchexec"
-  eprint "  - Debian/Ubuntu: sudo apt-get install inotify-tools"
-  exit 1
-fi
 
 # Resolve git common dir -> ops checkins dir.
 if ! abs_git_dir="$(git rev-parse --absolute-git-dir 2>/dev/null)"; then
@@ -87,14 +76,91 @@ else
   else
     common_abs="$abs_git_dir/$common_dir"
   fi
-  # Normalize
   common_abs="$(cd -- "$common_abs" && pwd -P)"
 fi
 
 ops_root="$common_abs/agentic-sdd-ops"
 checkins_dir="$ops_root/queue/checkins"
+lock_path="$ops_root/locks/collect.lock"
 
 collect_cmd=(python3 "$SCRIPT_DIR/shogun-ops.py" collect)
+
+queue_has_pending_checkins() {
+  find "$checkins_dir" -type f -name '*.yaml' -print -quit 2>/dev/null | grep -q .
+}
+
+run_collect_with_retry() {
+  local attempt=0
+  local max_attempts=10
+  local rc=0
+
+  while true; do
+    if "${collect_cmd[@]}"; then
+      return 0
+    fi
+
+    rc=$?
+    eprint "collect failed (exit=$rc)"
+    if [[ -f "$lock_path" ]]; then
+      eprint "collect.lock exists: $lock_path"
+    fi
+
+    # If there is nothing left in the queue, do not keep retrying.
+    if ! queue_has_pending_checkins; then
+      return "$rc"
+    fi
+
+    attempt=$((attempt+1))
+    if [[ "$attempt" -ge "$max_attempts" ]]; then
+      eprint "Pending checkins still exist but collect keeps failing."
+      eprint "Next action: run manually and inspect the error:"
+      eprint "  ${collect_cmd[*]}"
+      return "$rc"
+    fi
+
+    local sleep_s
+    case "$attempt" in
+      1) sleep_s="0.2" ;;
+      2) sleep_s="0.5" ;;
+      3) sleep_s="1" ;;
+      4) sleep_s="2" ;;
+      5) sleep_s="3" ;;
+      *) sleep_s="5" ;;
+    esac
+
+    eprint "retrying in ${sleep_s}s (attempt ${attempt}/${max_attempts})"
+    sleep "$sleep_s"
+  done
+}
+
+# --run-collect: just run collect with retry/backoff, then exit.
+if [[ "$RUN_COLLECT_ONLY" -eq 1 ]]; then
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    printf 'collect_cmd=%s\n' "${collect_cmd[*]}"
+    exit 0
+  fi
+  python3 "$SCRIPT_DIR/shogun-ops.py" status >/dev/null
+  mkdir -p "$checkins_dir"
+  run_collect_with_retry
+  exit $?
+fi
+
+# Select a watch tool (AC3: fail-fast with actionable next steps).
+WATCH_TOOL=""
+if command -v fswatch >/dev/null 2>&1; then
+  WATCH_TOOL="fswatch"
+elif command -v watchexec >/dev/null 2>&1; then
+  WATCH_TOOL="watchexec"
+elif command -v inotifywait >/dev/null 2>&1; then
+  WATCH_TOOL="inotifywait"
+else
+  eprint "No supported watch tool found (fswatch|watchexec|inotifywait)."
+  eprint "Next actions:"
+  eprint "  - macOS (recommended): brew install fswatch"
+  eprint "  - Alternative (macOS/Linux): brew install watchexec"
+  eprint "  - Debian/Ubuntu: sudo apt-get install inotify-tools"
+  exit 1
+fi
 
 watch_cmd_str=""
 case "$WATCH_TOOL" in
@@ -102,7 +168,7 @@ case "$WATCH_TOOL" in
     watch_cmd_str="fswatch -r '$checkins_dir'"
     ;;
   watchexec)
-    watch_cmd_str="watchexec -w '$checkins_dir' -- python3 '$SCRIPT_DIR/shogun-ops.py' collect"
+    watch_cmd_str="watchexec -w '$checkins_dir' -- '$SCRIPT_DIR/shogun-watcher.sh' --run-collect"
     ;;
   inotifywait)
     watch_cmd_str="inotifywait -m -e create -e moved_to -r '$checkins_dir'"
@@ -123,17 +189,16 @@ fi
 
 # Ensure ops layout exists (creates checkins_dir).
 python3 "$SCRIPT_DIR/shogun-ops.py" status >/dev/null
+mkdir -p "$checkins_dir"
 
 case "$WATCH_TOOL" in
   fswatch)
-    mkdir -p "$checkins_dir"
     while IFS= read -r _event; do
       rc=0
-      if "${collect_cmd[@]}"; then
+      if run_collect_with_retry; then
         rc=0
       else
         rc=$?
-        eprint "collect failed (exit=$rc)"
       fi
       if [[ "$ONCE" -eq 1 ]]; then
         exit "$rc"
@@ -142,14 +207,12 @@ case "$WATCH_TOOL" in
     ;;
 
   inotifywait)
-    mkdir -p "$checkins_dir"
     while IFS= read -r _event; do
       rc=0
-      if "${collect_cmd[@]}"; then
+      if run_collect_with_retry; then
         rc=0
       else
         rc=$?
-        eprint "collect failed (exit=$rc)"
       fi
       if [[ "$ONCE" -eq 1 ]]; then
         exit "$rc"
@@ -158,14 +221,13 @@ case "$WATCH_TOOL" in
     ;;
 
   watchexec)
-    mkdir -p "$checkins_dir"
     once_flag=()
     if [[ "$ONCE" -eq 1 ]]; then
       if watchexec --help 2>&1 | grep -q -- "--once"; then
         once_flag=(--once)
       fi
     fi
-    exec watchexec "${once_flag[@]}" -w "$checkins_dir" -- "${collect_cmd[@]}"
+    exec watchexec "${once_flag[@]}" -w "$checkins_dir" -- "$SCRIPT_DIR/shogun-watcher.sh" --run-collect
     ;;
 
   *)

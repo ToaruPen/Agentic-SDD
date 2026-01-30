@@ -98,6 +98,12 @@ exit 1
 EOF
 chmod +x "$stub_bin/fswatch"
 
+# Hold the collect lock to force one failure, then ensure the watcher retries
+# without requiring a second filesystem event.
+lock_path="$common/agentic-sdd-ops/locks/collect.lock"
+mkdir -p "$(dirname -- "$lock_path")"
+echo "locked" > "$lock_path"
+
 # Start watcher first, then add a checkin (AC1).
 PATH="$stub_bin:$PATH" "$BASH_BIN" "$REPO_ROOT/scripts/shogun-watcher.sh" --once >"$tmpdir/watcher.out" 2>"$tmpdir/watcher.err" &
 watcher_pid=$!
@@ -118,7 +124,12 @@ checkin_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementi
 
 test -f "$checkin_path"
 
+# Release lock and let the watcher retry until the queue is drained.
+( sleep 0.5; rm -f "$lock_path" ) &
+unlock_pid=$!
+
 wait "$watcher_pid"
+wait "$unlock_pid" || true
 
 after_updated="$(rg -n '^Updated: ' "$dashboard_path" | head -n1 | sed -e 's/^Updated: //')"
 
