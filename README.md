@@ -82,6 +82,22 @@ Shogun Ops(auto) can be operated with a deterministic tmux layout.
 ./scripts/shogun-tmux.sh attach
 ```
 
+## Shogun Ops: GitHub sync (experimental)
+
+Sync the local ops status to a GitHub Issue by adding a comment and updating labels.
+
+Notes:
+- Intended to be executed by **Middle only** (single writer policy).
+- Labels are created/updated automatically: `ops-phase:*`, `ops-blocked`.
+
+```bash
+# Preview the action (no gh write operations)
+./scripts/shogun-github-sync.sh --issue 25 --repo OWNER/REPO --dry-run
+
+# Apply (requires gh auth)
+./scripts/shogun-github-sync.sh --issue 25 --repo OWNER/REPO
+```
+
 ## Quick Start
 
 ### 0) Install (one-time per repo)
