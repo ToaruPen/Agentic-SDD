@@ -29,6 +29,14 @@ fi
 # Verify the key commands are present.
 out_init="$(bash "$sh" --dry-run init)"
 printf '%s\n' "$out_init" | rg -F -q "tmux new-session -d -s shogun-ops -n ops"
+
+# Ensure dry-run output is an executable command sequence (no nested tmux commands in args).
+new_session_count="$(printf '%s\n' "$out_init" | rg -F -c "tmux new-session")"
+if [[ "$new_session_count" -ne 1 ]]; then
+  eprint "Expected exactly 1 'tmux new-session' in dry-run output, got: $new_session_count"
+  printf '%s\n' "$out_init" >&2
+  exit 1
+fi
 printf '%s\n' "$out_init" | rg -F -q -- "-T upper"
 printf '%s\n' "$out_init" | rg -F -q -- "-T middle"
 printf '%s\n' "$out_init" | rg -F -q -- "-T ashigaru1"
@@ -41,6 +49,21 @@ printf '%s\n' "$out_init" | rg -F -q '#{pane_id}'
 # The new implementation uses list-panes to find pane by title.
 out_send="$(bash "$sh" --dry-run send-order)"
 printf '%s\n' "$out_send" | rg -F -q "tmux list-panes"
+
+list_panes_count="$(printf '%s\n' "$out_send" | rg -F -c "tmux list-panes")"
+if [[ "$list_panes_count" -ne 1 ]]; then
+  eprint "Expected exactly 1 'tmux list-panes' in dry-run output, got: $list_panes_count"
+  printf '%s\n' "$out_send" >&2
+  exit 1
+fi
+
+if printf '%s\n' "$out_send" | rg -F -q "tmux new-session"; then
+  eprint "send-order dry-run output must not contain init commands"
+  printf '%s\n' "$out_send" >&2
+  exit 1
+fi
+
+printf '%s\n' "$out_send" | rg -F -q "%middle"
 printf '%s\n' "$out_send" | rg -F -q "tmux send-keys"
 printf '%s\n' "$out_send" | rg -F -q "python3 scripts/shogun-ops.py supervise --once"
 printf '%s\n' "$out_send" | rg -F -q "Enter"

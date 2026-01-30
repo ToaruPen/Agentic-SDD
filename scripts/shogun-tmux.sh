@@ -95,13 +95,14 @@ run_tmux() {
 
 tmux_capture() {
   # Execute a tmux command that prints a value (e.g. -P -F '#{pane_id}').
-  # In dry-run, print the tmux command and return the placeholder.
+  # NOTE: Do not print anything to stdout in dry-run mode because callers may use
+  # command substitution (e.g. pane_id="$(tmux_capture ...)"), which would corrupt
+  # the dry-run command sequence.
   local dry_run="$1"
   local placeholder="$2"
   shift 2
 
   if [[ "$dry_run" -eq 1 ]]; then
-    print_cmd tmux "$@"
     printf '%s' "$placeholder"
     return 0
   fi
@@ -116,7 +117,7 @@ find_pane_id_by_title() {
   local title="$4"
 
   if [[ "$dry_run" -eq 1 ]]; then
-    print_cmd tmux list-panes -t "$session:$window" -F "#{pane_id}\t#{pane_title}"
+    # In dry-run, return only the placeholder (see tmux_capture note).
     case "$title" in
       upper) printf '%s' "%upper" ;;
       middle) printf '%s' "%middle" ;;
@@ -150,6 +151,35 @@ cmd_init() {
       eprint "tmux session already exists: $session"
       return 0
     fi
+  fi
+
+  if [[ "$dry_run" -eq 1 ]]; then
+    # In dry-run mode, print executable tmux commands to stdout.
+    # Do NOT use command substitution (pane_id="$(...)"), because mixing command
+    # logging and captured values would corrupt the printed command sequence.
+    local upper_id="%upper"
+    local middle_id="%middle"
+    local ash1_id="%ashigaru1"
+    local ash2_id="%ashigaru2"
+    local ash3_id="%ashigaru3"
+
+    print_cmd tmux new-session -d -s "$session" -n "$window" -P -F "#{pane_id}"
+    print_cmd tmux select-pane -t "$upper_id" -T upper
+
+    print_cmd tmux split-window -h -t "$upper_id" -P -F "#{pane_id}"
+    print_cmd tmux select-pane -t "$middle_id" -T middle
+
+    print_cmd tmux split-window -v -t "$middle_id" -P -F "#{pane_id}"
+    print_cmd tmux select-pane -t "$ash1_id" -T ashigaru1
+
+    print_cmd tmux split-window -v -t "$ash1_id" -P -F "#{pane_id}"
+    print_cmd tmux select-pane -t "$ash2_id" -T ashigaru2
+
+    print_cmd tmux split-window -v -t "$ash2_id" -P -F "#{pane_id}"
+    print_cmd tmux select-pane -t "$ash3_id" -T ashigaru3
+
+    print_cmd tmux select-pane -t "$middle_id"
+    return 0
   fi
 
   # Create session and capture the initial pane id.
@@ -192,6 +222,14 @@ cmd_send_order() {
       eprint "Next action: run: ./scripts/shogun-tmux.sh init"
       return 2
     fi
+  fi
+
+  if [[ "$dry_run" -eq 1 ]]; then
+    # Print commands deterministically; use a placeholder pane id for 'middle'.
+    print_cmd tmux list-panes -t "$session:$window" -F "#{pane_id}\t#{pane_title}"
+    local target_pane="%middle"
+    print_cmd tmux send-keys -t "$target_pane" "$cmd_str" Enter
+    return 0
   fi
 
   local target_pane
