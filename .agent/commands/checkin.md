@@ -19,6 +19,9 @@ python3 scripts/shogun-ops.py checkin 123 implementing 40 \
   --tests-command "npm test" \
   --tests-result fail \
   --include-staged \
+  --needs-approval \
+  --request-file app/routes.ts \
+  --blocker "upstream approval is required" \
   -- モデル/ハンドラ実装。テスト1件失敗
 ```
 
