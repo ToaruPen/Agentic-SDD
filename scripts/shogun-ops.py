@@ -250,6 +250,7 @@ def ensure_ops_layout(common_abs: str) -> Tuple[str, str, str]:
     ensure_dir(os.path.join(root, "queue", "checkins"))
     ensure_dir(os.path.join(root, "queue", "decisions"))
     ensure_dir(os.path.join(root, "archive", "checkins"))
+    ensure_dir(os.path.join(root, "archive", "decisions"))
     ensure_dir(os.path.join(root, "locks"))
 
     config_path = os.path.join(root, "config.yaml")
@@ -1162,6 +1163,176 @@ def cmd_status(_args: argparse.Namespace) -> int:
     return 0
 
 
+def normalize_decision_id(raw: str) -> str:
+    s = str(raw or "").strip()
+    if s.endswith(".yaml"):
+        s = s[: -len(".yaml")]
+    if not s:
+        raise RuntimeError("decision-id must be non-empty\nnext: pass a decision-id like DEC-... (from queue/decisions)")
+    if "/" in s or "\\" in s:
+        raise RuntimeError("decision-id must not contain path separators\nnext: pass the id only (e.g. DEC-123)")
+    return s
+
+
+def find_decision_path(ops_root: str, decision_id: str) -> str:
+    decisions_dir = os.path.join(ops_root, "queue", "decisions")
+    direct = os.path.join(decisions_dir, f"{decision_id}.yaml")
+    if os.path.isfile(direct):
+        return direct
+
+    # Fallback: search by decision_id field (if the filename does not match)
+    for path in list_decision_paths(ops_root):
+        obj = read_yaml_file(path)
+        if not isinstance(obj, dict):
+            continue
+        if str(obj.get("decision_id") or "").strip() == decision_id:
+            return path
+
+    raise RuntimeError(
+        f"decision not found: {decision_id}\n"
+        "next: ensure a decision file exists under queue/decisions (e.g. run /collect to generate it)"
+    )
+
+
+def validate_skill_name(name: str) -> str:
+    s = str(name or "").strip()
+    if not s:
+        raise RuntimeError("invalid decision payload: missing request.name\nnext: set request.name to a slug like 'my-skill'")
+    safe = slugify(s)
+    if safe != s:
+        raise RuntimeError(
+            f"invalid skill name: {s}\n"
+            "next: use lowercase letters/numbers and hyphens only (e.g. 'contract-expansion-triage')"
+        )
+    return s
+
+
+def render_skill_template_md(name: str, summary: str) -> str:
+    summary = str(summary or "").strip()
+    return (
+        f"# {name}\n"
+        "\n"
+        "## Overview\n"
+        f"{summary}\n"
+        "\n"
+        "## Principles\n"
+        "- TBD\n"
+        "\n"
+        "## Patterns\n"
+        "- TBD\n"
+        "\n"
+        "## Checklist\n"
+        "- [ ] TBD\n"
+        "\n"
+        "## Anti-patterns\n"
+        "- TBD\n"
+        "\n"
+        "## Related\n"
+        "- TBD\n"
+    )
+
+
+def compute_skills_readme_update(readme_text: str, name: str, summary: str) -> str:
+    link = f"- [{name}.md](./{name}.md): {summary}".rstrip()
+    if f"](./{name}.md)" in readme_text:
+        raise RuntimeError(
+            f"skills/README.md already references: {name}.md\n"
+            "next: pick a different skill name or remove the existing reference"
+        )
+
+    lines = readme_text.splitlines(True)
+    section_idx = -1
+    for i, ln in enumerate(lines):
+        if ln.strip() == "### Process Skills":
+            section_idx = i
+            break
+    if section_idx < 0:
+        raise RuntimeError(
+            "skills/README.md is missing section: '### Process Skills'\n"
+            "next: add that section (or update this tool to target another section)"
+        )
+
+    insert_at = len(lines)
+    for j in range(section_idx + 1, len(lines)):
+        t = lines[j].strip()
+        if t.startswith("### ") or t.startswith("## ") or t == "---":
+            insert_at = j
+            break
+
+    # Insert at end of "Process Skills" section (before trailing blank lines).
+    while insert_at > section_idx + 1 and lines[insert_at - 1].strip() == "":
+        insert_at -= 1
+    lines.insert(insert_at, link + "\n")
+    return "".join(lines)
+
+
+def cmd_skill(args: argparse.Namespace) -> int:
+    _abs_git_dir, common_abs, toplevel = resolve_git_dirs()
+    ops_root, _state_path, _dashboard_path = ensure_ops_layout(common_abs)
+
+    decision_id = normalize_decision_id(args.approve)
+    decision_path = find_decision_path(ops_root, decision_id)
+    decision = read_yaml_file(decision_path)
+    if not isinstance(decision, dict):
+        raise RuntimeError(f"invalid decision YAML (expected mapping): {decision_path}\nnext: recreate the decision YAML")
+
+    dtype = str(decision.get("type") or "").strip()
+    if dtype != "skill_candidate":
+        raise RuntimeError(
+            f"decision type mismatch (expected skill_candidate): {dtype or '(missing)'}\n"
+            "next: choose a decision with type=skill_candidate"
+        )
+
+    request = decision.get("request") or {}
+    if not isinstance(request, dict):
+        raise RuntimeError("invalid decision payload: request must be a mapping\nnext: set decision.request fields")
+
+    name = validate_skill_name(str(request.get("name") or ""))
+    summary = str(request.get("summary") or "").strip()
+    if not summary:
+        raise RuntimeError(
+            "invalid decision payload: missing request.summary\nnext: set request.summary (short description for README)"
+        )
+
+    skills_dir = os.path.join(toplevel, "skills")
+    skill_md_rel = os.path.join("skills", f"{name}.md")
+    skill_md_path = os.path.join(toplevel, skill_md_rel)
+    readme_rel = os.path.join("skills", "README.md")
+    readme_path = os.path.join(toplevel, readme_rel)
+
+    if not os.path.isfile(readme_path):
+        raise RuntimeError(f"missing {readme_rel}\nnext: create it (must include '### Process Skills' section)")
+    if os.path.exists(skill_md_path):
+        raise RuntimeError(f"skill file already exists: {skill_md_rel}\nnext: choose a different name (no overwrite)")
+
+    ensure_dir(skills_dir)
+    with open(readme_path, "r", encoding="utf-8") as fh:
+        readme_text = fh.read()
+    new_readme = compute_skills_readme_update(readme_text, name=name, summary=summary)
+
+    # Write skill file first (no overwrite), then update README.
+    atomic_write_text(skill_md_path, render_skill_template_md(name=name, summary=summary))
+    try:
+        atomic_write_text(readme_path, new_readme)
+    except Exception:
+        try:
+            os.unlink(skill_md_path)
+        except OSError:
+            pass
+        raise
+
+    archive_dir = os.path.join(ops_root, "archive", "decisions")
+    ensure_dir(archive_dir)
+    archive_base = os.path.join(archive_dir, os.path.basename(decision_path))
+    archive_path = unique_path_with_suffix(archive_base)
+    os.replace(decision_path, archive_path)
+
+    sys.stdout.write(f"skill={skill_md_rel}\n")
+    sys.stdout.write(f"readme={readme_rel}\n")
+    sys.stdout.write(f"archived_decision={archive_path}\n")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="shogun-ops.py", description="Agentic-SDD Shogun Ops helper")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -1194,6 +1365,10 @@ def build_parser() -> argparse.ArgumentParser:
     sup.add_argument("--gh-repo", help="OWNER/REPO (default: derived from origin)")
     sup.add_argument("--targets", type=int, action="append", help="Target Issue number (repeatable)")
     sup.set_defaults(func=cmd_supervise)
+
+    sk = sub.add_parser("skill", help="Approve skill_candidate decision and generate skills docs")
+    sk.add_argument("--approve", required=True, help="Decision id (from queue/decisions)")
+    sk.set_defaults(func=cmd_skill)
 
     s = sub.add_parser("status", help="Show ops dashboard (initializes if missing)")
     s.set_defaults(func=cmd_status)
