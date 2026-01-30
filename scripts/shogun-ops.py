@@ -250,8 +250,10 @@ def ensure_ops_layout(common_abs: str) -> Tuple[str, str, str]:
     ensure_dir(os.path.join(root, "queue", "orders"))
     ensure_dir(os.path.join(root, "queue", "checkins"))
     ensure_dir(os.path.join(root, "queue", "decisions"))
+    ensure_dir(os.path.join(root, "queue", "refactor-drafts"))
     ensure_dir(os.path.join(root, "archive", "checkins"))
     ensure_dir(os.path.join(root, "archive", "decisions"))
+    ensure_dir(os.path.join(root, "archive", "refactor-drafts"))
     ensure_dir(os.path.join(root, "locks"))
 
     config_path = os.path.join(root, "config.yaml")
@@ -953,6 +955,13 @@ def detect_gh_repo_from_origin(toplevel: str) -> str:
         parts = [p for p in path.split("/") if p]
         if len(parts) >= 2:
             return f"{parts[0]}/{parts[1]}"
+    if url.startswith("ssh://git@github.com/"):
+        path = url.split("ssh://git@github.com/", 1)[1]
+        if path.endswith(".git"):
+            path = path[: -len(".git")]
+        parts = [p for p in path.split("/") if p]
+        if len(parts) >= 2:
+            return f"{parts[0]}/{parts[1]}"
     raise RuntimeError(f"unsupported origin URL format (set --gh-repo): {url}")
 
 
@@ -969,6 +978,143 @@ def gh_json(cmd: List[str]) -> Any:
         return yaml.safe_load(out.decode("utf-8", errors="replace"))
     except Exception:
         raise RuntimeError("failed to parse gh JSON output")
+
+
+def gh_run(cmd: List[str]) -> str:
+    try:
+        out = subprocess.check_output(["gh", *cmd], stderr=subprocess.STDOUT)
+    except FileNotFoundError:
+        raise RuntimeError("gh not found")
+    except subprocess.CalledProcessError as exc:
+        msg = exc.output.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"gh command failed: gh {' '.join(cmd)}\n{msg}")
+    return out.decode("utf-8", errors="replace").strip()
+
+
+def parse_issue_url(text: str) -> Tuple[str, int]:
+    s = (text or "").strip()
+    if not s:
+        raise RuntimeError("gh issue create returned empty output (expected issue URL)")
+    url = s.splitlines()[-1].strip()
+    m = re.search(r"/issues/([0-9]+)(?:\\s|$)", url)
+    if not m:
+        raise RuntimeError(f"failed to parse issue number from gh output: {url}")
+    return url, int(m.group(1))
+
+
+_LABEL_COLORS = {
+    "refactor-candidate": "BFDADC",
+    "refactor-smell/": "D4C5F9",
+    "refactor-risk/": "F9D0C4",
+    "refactor-impact/": "C2E0C6",
+}
+
+
+def ensure_refactor_labels(gh_repo: str, labels: List[str]) -> None:
+    # Create or update labels deterministically. This is intended for Middle (single-writer).
+    for name in labels:
+        n = str(name or "").strip()
+        if not n:
+            continue
+        color = _LABEL_COLORS.get(n, "")
+        if not color:
+            for prefix, c in _LABEL_COLORS.items():
+                if prefix.endswith("/") and n.startswith(prefix):
+                    color = c
+                    break
+        if not color:
+            color = "C5DEF5"
+        desc = f"auto-managed by Agentic-SDD (refactor draft): {n}"
+        gh_run(["-R", gh_repo, "label", "create", n, "--color", color, "--description", desc, "--force"])
+
+
+def render_refactor_issue_body(draft: Dict[str, Any], draft_path: str) -> str:
+    summary = str(draft.get("summary") or "").strip()
+    timestamp = str(draft.get("timestamp") or "").strip()
+    ref = draft.get("refactor") or {}
+    smells = ref.get("smells") or []
+    risk = str(ref.get("risk") or "").strip()
+    impact = str(ref.get("impact") or "").strip()
+    targets = draft.get("targets") or {}
+    files = targets.get("files") or []
+
+    lines: List[str] = []
+    lines.append("## 概要")
+    lines.append("")
+    lines.append(summary if summary else "(要約を追記してください)")
+
+    lines.append("")
+    lines.append("## 背景")
+    lines.append("")
+    lines.append(f"- Refactor draft: `{draft_path}`")
+    if timestamp:
+        lines.append(f"- timestamp: `{timestamp}`")
+    if smells:
+        if isinstance(smells, list):
+            s = ", ".join([str(x) for x in smells if str(x).strip()])
+            if s:
+                lines.append(f"- smells: {s}")
+    if risk:
+        lines.append(f"- risk: {risk}")
+    if impact:
+        lines.append(f"- impact: {impact}")
+
+    lines.append("")
+    lines.append("## 受け入れ条件（AC）")
+    lines.append("")
+    lines.append("- [ ] AC1: （観測可能な条件を記述）")
+    lines.append("- [ ] AC2: （観測可能な条件を記述）")
+
+    lines.append("")
+    lines.append("## 技術メモ")
+    lines.append("")
+    lines.append("### 変更対象ファイル（推定）")
+    lines.append("")
+    if isinstance(files, list) and files:
+        for f in files:
+            s = str(f).strip()
+            if s:
+                lines.append(f"- [ ] `{s}`")
+    else:
+        lines.append("- [ ] `path/to/file1`")
+
+    lines.append("")
+    lines.append("### 推定行数")
+    lines.append("")
+    lines.append("- [ ] 50行未満（小さい）")
+    lines.append("- [ ] 50〜150行（適正）")
+    lines.append("- [ ] 150〜300行（大きめ）")
+    lines.append("- [ ] 300行超（要分割検討）")
+
+    lines.append("")
+    lines.append("## 依存関係")
+    lines.append("")
+    lines.append("- Blocked by: #[Issue番号]（[理由]）")
+    lines.append("- 先に終わると何が可能になるか: [説明]")
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def resolve_refactor_draft_path(
+    ops_root: str, draft_path: str, worker: Optional[str], timestamp: Optional[str]
+) -> Tuple[str, str, str]:
+    if draft_path:
+        p = os.path.realpath(draft_path)
+    else:
+        w = validate_worker_id(worker or "")
+        ts = parse_timestamp_for_id(timestamp or "")
+        p = os.path.join(ops_root, "queue", "refactor-drafts", w, f"{ts}.yaml")
+
+    base = os.path.join(ops_root, "queue", "refactor-drafts")
+    if not os.path.isfile(p):
+        raise RuntimeError(f"refactor draft not found: {p}")
+    if not os.path.realpath(p).startswith(os.path.realpath(base) + os.sep):
+        raise RuntimeError(f"refactor draft must be under ops queue: {p}")
+    worker_from_dir = os.path.basename(os.path.dirname(p))
+    worker_id = validate_worker_id(worker_from_dir)
+    ts_file = os.path.splitext(os.path.basename(p))[0]
+    ts_compact = parse_timestamp_for_id(ts_file)
+    return p, worker_id, ts_compact
 
 
 def read_ops_config(ops_root: str) -> Dict[str, Any]:
@@ -1476,6 +1622,157 @@ def cmd_checkin(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_refactor_draft(args: argparse.Namespace) -> int:
+    _abs_git_dir, common_abs, toplevel = resolve_git_dirs()
+    ops_root, _state_path, _dashboard_path = ensure_ops_layout(common_abs)
+    repo_root = os.path.dirname(common_abs)
+    worktree_root = os.path.relpath(toplevel, repo_root)
+
+    worker = detect_worker_id(args.worker)
+    title = str(args.title or "").strip()
+    if not title:
+        raise RuntimeError("title must be non-empty (use --title)")
+
+    summary = " ".join(args.summary).strip()
+    if not summary:
+        raise RuntimeError("summary must be non-empty")
+
+    ts_compact = parse_timestamp_for_id(args.timestamp) if args.timestamp else utc_now_compact()
+    ts_iso = (
+        args.timestamp
+        if args.timestamp and args.timestamp.endswith("Z") and "-" in args.timestamp
+        else datetime.datetime.strptime(ts_compact, "%Y%m%dT%H%M%SZ")
+        .replace(tzinfo=datetime.timezone.utc)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
+
+    smells: List[str] = []
+    if getattr(args, "smell", None):
+        for raw in args.smell or []:
+            s = str(raw or "").strip()
+            if s:
+                smells.append(s)
+    smells = sorted(set(smells))
+
+    risk = str(args.risk or "").strip()
+    impact = str(args.impact or "").strip()
+
+    files: List[str] = []
+    if getattr(args, "file", None):
+        for raw in args.file or []:
+            f = str(raw or "").strip()
+            if f:
+                files.append(f)
+    files = sorted(set(files))
+
+    draft_id = f"RD-{worker}-{ts_compact}"
+    out_dir = os.path.join(ops_root, "queue", "refactor-drafts", worker)
+    out_path = os.path.join(out_dir, f"{ts_compact}.yaml")
+    if os.path.exists(out_path):
+        raise RuntimeError(f"refactor draft already exists (append-only): {out_path}")
+
+    suggested_labels: List[str] = ["refactor-candidate"]
+    for s in smells:
+        slug = slugify(s)
+        if slug:
+            suggested_labels.append(f"refactor-smell/{slug}")
+    if risk:
+        suggested_labels.append(f"refactor-risk/{slugify(risk) or risk}")
+    if impact:
+        suggested_labels.append(f"refactor-impact/{slugify(impact) or impact}")
+    suggested_labels = sorted(set([x for x in suggested_labels if str(x).strip()]))
+
+    obj: Dict[str, Any] = {
+        "version": 1,
+        "draft_id": draft_id,
+        "timestamp": ts_iso,
+        "worker": worker,
+        "title": title,
+        "summary": summary,
+        "refactor": {
+            "smells": smells,
+            "risk": risk,
+            "impact": impact,
+            "suggested_labels": suggested_labels,
+        },
+        "repo": {
+            "worktree_root": worktree_root,
+            "toplevel": toplevel,
+        },
+        "targets": {"files": files},
+        "next": [],
+    }
+
+    ensure_dir(out_dir)
+    atomic_write_yaml(out_path, obj)
+    sys.stdout.write(out_path + "\n")
+    return 0
+
+
+def cmd_refactor_issue(args: argparse.Namespace) -> int:
+    _abs_git_dir, common_abs, toplevel = resolve_git_dirs()
+    ops_root, _state_path, _dashboard_path = ensure_ops_layout(common_abs)
+
+    gh_repo = str(args.gh_repo or "").strip()
+    if not gh_repo:
+        gh_repo = detect_gh_repo_from_origin(toplevel)
+
+    draft_path, worker, ts_compact = resolve_refactor_draft_path(
+        ops_root=ops_root,
+        draft_path=str(args.draft or "").strip(),
+        worker=str(args.worker or "").strip() if getattr(args, "worker", None) else None,
+        timestamp=str(args.timestamp or "").strip() if getattr(args, "timestamp", None) else None,
+    )
+
+    # Preflight: auth must succeed before any write operations.
+    gh_run(["auth", "status"])
+
+    draft = read_yaml_file(draft_path)
+    title = str(draft.get("title") or "").strip()
+    if not title:
+        raise RuntimeError(f"invalid refactor draft (missing title): {draft_path}")
+
+    ref = draft.get("refactor") or {}
+    suggested = ref.get("suggested_labels") or []
+    labels: List[str] = []
+    if isinstance(suggested, list):
+        labels = [str(x).strip() for x in suggested if str(x).strip()]
+    labels = sorted(set(labels))
+
+    # Ensure our labels exist (idempotent). This may update color/description (Middle-only).
+    ensure_refactor_labels(gh_repo, labels)
+
+    body = render_refactor_issue_body(draft, draft_path=draft_path)
+    fd, body_path = tempfile.mkstemp(prefix="refactor-issue-body.", suffix=".md")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(body)
+        cmd = ["-R", gh_repo, "issue", "create", "--title", title, "--body-file", body_path]
+        for lbl in labels:
+            cmd.extend(["--label", lbl])
+        out = gh_run(cmd)
+        url, issue_number = parse_issue_url(out)
+    finally:
+        try:
+            os.unlink(body_path)
+        except OSError:
+            pass
+
+    # Archive draft after successful issue creation (remove from queue).
+    archive_dir = os.path.join(ops_root, "archive", "refactor-drafts", worker)
+    ensure_dir(archive_dir)
+    archive_base = os.path.join(archive_dir, f"{ts_compact}.yaml")
+    archive_path = unique_path_with_suffix(archive_base)
+    os.replace(draft_path, archive_path)
+
+    sys.stdout.write(f"repo={gh_repo}\n")
+    sys.stdout.write(f"issue={issue_number}\n")
+    sys.stdout.write(f"url={url}\n")
+    sys.stdout.write(f"archived_draft={archive_path}\n")
+    return 0
+
+
 def cmd_status(_args: argparse.Namespace) -> int:
     _abs_git_dir, common_abs, _toplevel = resolve_git_dirs()
     _root, _state_path, dashboard_path = ensure_ops_layout(common_abs)
@@ -1679,6 +1976,24 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--skill-candidate", action="append", help="Skill candidate name (repeatable; requires --skill-summary)")
     c.add_argument("--skill-summary", action="append", help="Skill candidate summary (repeatable; must match --skill-candidate count)")
     c.set_defaults(func=cmd_checkin)
+
+    rd = sub.add_parser("refactor-draft", help="Create a refactor draft YAML (Lower-only; no GitHub writes)")
+    rd.add_argument("--title", required=True, help="Draft title (required)")
+    rd.add_argument("summary", nargs="+", help="Summary text (use `--` before summary if passing flags)")
+    rd.add_argument("--worker", help="Worker id (default: $AGENTIC_SDD_WORKER or $USER)")
+    rd.add_argument("--timestamp", help="Override timestamp (YYYYMMDDTHHMMSSZ or ISO8601Z)")
+    rd.add_argument("--smell", action="append", help="Qualitative smell tag (repeatable)")
+    rd.add_argument("--risk", help="Qualitative risk (e.g., low|med|high)")
+    rd.add_argument("--impact", help="Qualitative impact (e.g., local|cross-module)")
+    rd.add_argument("--file", action="append", help="Suspected target file path (repeatable)")
+    rd.set_defaults(func=cmd_refactor_draft)
+
+    ri = sub.add_parser("refactor-issue", help="Create a GitHub Issue from a refactor draft (Middle-only)")
+    ri.add_argument("--gh-repo", help="OWNER/REPO (default: derived from origin)")
+    ri.add_argument("--draft", help="Path to a refactor draft YAML (under ops queue)")
+    ri.add_argument("--worker", help="Worker id (when resolving draft path)")
+    ri.add_argument("--timestamp", help="Draft timestamp (YYYYMMDDTHHMMSSZ or ISO8601Z; when resolving draft path)")
+    ri.set_defaults(func=cmd_refactor_issue)
 
     col = sub.add_parser("collect", help="Collect checkins and update state/dashboard (single-writer)")
     col.set_defaults(func=cmd_collect)

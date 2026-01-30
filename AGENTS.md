@@ -119,6 +119,8 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/estimation`: create a Full estimate (11 sections) and get approval
 - `/impl`: implement an Issue (Full estimate required)
 - `/tdd`: implement via TDD (Red -> Green -> Refactor)
+- `/refactor-draft`: create a refactor draft YAML (Lower-only; no GitHub writes)
+- `/refactor-issue`: create a GitHub Issue from a refactor draft (Middle-only)
 - `/review-cycle`: local review loop (codex exec -> review.json)
 - `/review`: review (DoD check)
 - `/create-pr`: push branch and create a PR (gh)

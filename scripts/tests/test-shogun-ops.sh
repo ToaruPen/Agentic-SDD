@@ -119,16 +119,72 @@ cat "$checkin_path" | rg -q '^  - README.md$'
 	  exit 1
 	fi
 
-	if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 40 "dup" --worker "$worker" --timestamp "$ts" >/dev/null 2>&1; then
-	  eprint "expected append-only failure but succeeded"
+		if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 40 "dup" --worker "$worker" --timestamp "$ts" >/dev/null 2>&1; then
+		  eprint "expected append-only failure but succeeded"
+		  exit 1
+		fi
+
+	# Phase 2.5: refactor-draft (append-only; lower-only artifact)
+	rd_ts="20260129T121507Z"
+	rd_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" refactor-draft \
+	  --title "Refactor: split mixed responsibilities" \
+	  --worker "$worker" \
+	  --timestamp "$rd_ts" \
+	  --smell "mixed responsibilities" \
+	  --smell "duplication" \
+	  --risk "med" \
+	  --impact "local" \
+	  --file "README.md" \
+	  -- \
+	  draft \
+	)"
+	test -f "$rd_path"
+	test "$rd_path" = "$common/agentic-sdd-ops/queue/refactor-drafts/$worker/$rd_ts.yaml"
+		python3 - "$rd_path" <<'PY'
+import sys
+import yaml
+
+obj = yaml.safe_load(open(sys.argv[1], "r", encoding="utf-8"))
+assert obj["draft_id"].startswith("RD-ashigaru1-20260129T121507Z"), obj["draft_id"]
+assert obj["title"] == "Refactor: split mixed responsibilities"
+assert obj["summary"] == "draft"
+ref = obj.get("refactor") or {}
+assert ref.get("risk") == "med"
+assert ref.get("impact") == "local"
+assert "refactor-candidate" in (ref.get("suggested_labels") or [])
+assert "refactor-smell/duplication" in (ref.get("suggested_labels") or [])
+assert "refactor-smell/mixed-responsibilities" in (ref.get("suggested_labels") or [])
+targets = obj.get("targets") or {}
+assert targets.get("files") == ["README.md"]
+PY
+
+	if python3 "$REPO_ROOT/scripts/shogun-ops.py" refactor-draft \
+	  --title "dup" \
+	  --worker "$worker" \
+	  --timestamp "$rd_ts" \
+	  -- \
+	  dup \
+	  >/dev/null 2>&1; then
+	  eprint "expected refactor-draft append-only failure but succeeded"
 	  exit 1
 	fi
 
-# phase must be validated (typos should fail-fast)
-if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implmenting 40 \
-  --worker "$worker" \
-  --timestamp "20260129T121504Z" \
-  -- \
+	if python3 "$REPO_ROOT/scripts/shogun-ops.py" refactor-draft \
+	  --title "badworker" \
+	  --worker "../pwn" \
+	  --timestamp "20260129T121508Z" \
+	  -- \
+	  badworker \
+	  >/dev/null 2>&1; then
+	  eprint "expected refactor-draft invalid worker id failure but succeeded"
+	  exit 1
+	fi
+
+	# phase must be validated (typos should fail-fast)
+	if python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implmenting 40 \
+	  --worker "$worker" \
+	  --timestamp "20260129T121504Z" \
+	  -- \
   badphase \
   >/dev/null 2>&1; then
   eprint "expected invalid phase failure but succeeded"
