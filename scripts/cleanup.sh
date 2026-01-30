@@ -57,7 +57,7 @@ is_branch_merged() {
   local base="${2:-main}"
 
   # Check if branch is merged into base
-  if git branch --merged "$base" 2>/dev/null | grep -q "^\s*$branch\$"; then
+  if git branch --merged "$base" --format='%(refname:short)' 2>/dev/null | grep -Fxq "$branch"; then
     return 0
   fi
 
@@ -90,34 +90,49 @@ has_uncommitted_changes() {
   return 1
 }
 
-get_worktree_branch() {
-  local worktree_path="$1"
-  git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null
+list_worktrees_with_branch() {
+  # Output: <worktree_path>\t<branch_name>
+  # branch_name is empty for detached HEAD worktrees.
+  git worktree list --porcelain | awk '
+    $1=="worktree" {
+      $1=""
+      sub(/^ /,"")
+      path=$0
+      branch=""
+      next
+    }
+    $1=="branch" {
+      b=$2
+      sub("^refs/heads/","",b)
+      branch=b
+      next
+    }
+    /^$/ {
+      if (path != "") { printf "%s\t%s\n", path, branch }
+      path=""; branch=""
+      next
+    }
+    END {
+      if (path != "") { printf "%s\t%s\n", path, branch }
+    }
+  '
 }
 
-find_worktree_for_issue() {
+find_worktree_entry_for_issue() {
   local issue="$1"
   local root="$2"
 
-  # Get list of worktrees
-  while IFS= read -r line; do
-    local wt_path
-    wt_path="$(echo "$line" | awk '{print $1}')"
-
+  while IFS=$'\t' read -r wt_path branch; do
     # Skip main repo
     if [[ "$wt_path" == "$root" ]]; then
       continue
     fi
 
-    # Check if worktree path or branch contains the issue number
-    local branch
-    branch="$(get_worktree_branch "$wt_path" 2>/dev/null || true)"
-
-    if [[ "$wt_path" =~ issue-$issue(-|$) ]] || [[ "$branch" =~ issue-$issue(-|$) ]]; then
-      printf '%s\n' "$wt_path"
+    if [[ "$wt_path" =~ issue-$issue(-|$) ]] || [[ -n "$branch" && "$branch" =~ issue-$issue(-|$) ]]; then
+      printf '%s\t%s\n' "$wt_path" "$branch"
       return 0
     fi
-  done < <(git worktree list --porcelain | grep '^worktree ' | sed 's/^worktree //')
+  done < <(list_worktrees_with_branch)
 
   return 1
 }
@@ -126,22 +141,11 @@ list_merged_worktrees() {
   local root="$1"
   local base="${2:-main}"
 
-  while IFS= read -r line; do
-    local wt_path
-    wt_path="$(echo "$line" | awk '{print $1}')"
-
+  while IFS=$'\t' read -r wt_path branch; do
     # Skip main repo
     if [[ "$wt_path" == "$root" ]]; then
       continue
     fi
-
-    # Skip if not a valid directory
-    if [[ ! -d "$wt_path" ]]; then
-      continue
-    fi
-
-    local branch
-    branch="$(get_worktree_branch "$wt_path" 2>/dev/null || true)"
 
     if [[ -z "$branch" ]]; then
       continue
@@ -155,7 +159,72 @@ list_merged_worktrees() {
     if is_branch_merged "$branch" "$base"; then
       printf '%s\t%s\n' "$wt_path" "$branch"
     fi
-  done < <(git worktree list --porcelain | grep '^worktree ' | sed 's/^worktree //')
+  done < <(list_worktrees_with_branch)
+}
+
+find_local_branches_for_issue() {
+  local issue="$1"
+  while IFS= read -r branch; do
+    if [[ "$branch" =~ (^|/)issue-${issue}(-|$) ]]; then
+      printf '%s\n' "$branch"
+    fi
+  done < <(git for-each-ref --format='%(refname:short)' refs/heads)
+}
+
+find_worktree_for_branch() {
+  local target_branch="$1"
+  local root="$2"
+
+  while IFS=$'\t' read -r wt_path branch; do
+    if [[ "$wt_path" == "$root" ]]; then
+      continue
+    fi
+    if [[ -n "$branch" && "$branch" == "$target_branch" ]]; then
+      printf '%s\n' "$wt_path"
+      return 0
+    fi
+  done < <(list_worktrees_with_branch)
+
+  return 1
+}
+
+cleanup_branch_only() {
+  local branch="$1"
+  local dry_run="$2"
+  local skip_merge_check="$3"
+  local keep_local_branch="$4"
+  local force="$5"
+  local base="${6:-main}"
+
+  if [[ "$keep_local_branch" -eq 1 ]]; then
+    eprint "Keeping local branch as requested: $branch"
+    return 0
+  fi
+
+  # Safety check: merge status
+  if [[ "$skip_merge_check" -ne 1 ]]; then
+    if ! is_branch_merged "$branch" "$base"; then
+      eprint "Warning: branch '$branch' is not merged into '$base'"
+      eprint "  Use --skip-merge-check to force cleanup"
+      return 1
+    fi
+  fi
+
+  if [[ "$dry_run" -eq 1 ]]; then
+    eprint "[dry-run] Would delete local branch: $branch"
+    return 0
+  fi
+
+  if git show-ref --verify --quiet "refs/heads/$branch"; then
+    if [[ "$force" -eq 1 ]]; then
+      git branch -D "$branch" || return 1
+    else
+      git branch -d "$branch" || return 1
+    fi
+    eprint "Deleted local branch: $branch"
+  fi
+
+  return 0
 }
 
 cleanup_single() {
@@ -187,7 +256,9 @@ cleanup_single() {
   fi
 
   if [[ "$dry_run" -eq 1 ]]; then
-    eprint "[dry-run] Would remove worktree: $wt_path"
+    if [[ -n "$wt_path" ]]; then
+      eprint "[dry-run] Would remove worktree: $wt_path"
+    fi
     if [[ "$keep_local_branch" -ne 1 ]]; then
       eprint "[dry-run] Would delete local branch: $branch"
     fi
@@ -195,11 +266,11 @@ cleanup_single() {
   fi
 
   # Remove worktree
-  if [[ -d "$wt_path" ]]; then
+  if [[ -n "$wt_path" ]]; then
     if [[ "$force" -eq 1 ]]; then
-      git worktree remove --force "$wt_path"
+      git worktree remove --force "$wt_path" || return 1
     else
-      git worktree remove "$wt_path"
+      git worktree remove "$wt_path" || return 1
     fi
     eprint "Removed worktree: $wt_path"
   fi
@@ -208,9 +279,9 @@ cleanup_single() {
   if [[ "$keep_local_branch" -ne 1 ]]; then
     if git show-ref --verify --quiet "refs/heads/$branch"; then
       if [[ "$force" -eq 1 ]]; then
-        git branch -D "$branch"
+        git branch -D "$branch" || return 1
       else
-        git branch -d "$branch"
+        git branch -d "$branch" || return 1
       fi
       eprint "Deleted local branch: $branch"
     fi
@@ -312,26 +383,60 @@ main() {
       exit 2
     fi
 
-    local wt_path
-    wt_path="$(find_worktree_for_issue "$issue" "$main_root" || true)"
+    local wt_entry
+    wt_entry="$(find_worktree_entry_for_issue "$issue" "$main_root" || true)"
 
-    if [[ -z "$wt_path" ]]; then
-      printf '%s\n' "No worktree found for Issue #$issue" >&2
-      exit 1
-    fi
+    if [[ -z "$wt_entry" ]]; then
+      local branches=()
+      while IFS= read -r b; do
+        branches+=("$b")
+      done < <(find_local_branches_for_issue "$issue" || true)
 
-    local branch
-    branch="$(get_worktree_branch "$wt_path")"
+      if [[ "${#branches[@]}" -eq 0 ]]; then
+        printf '%s\n' "No worktree found for Issue #$issue" >&2
+        exit 1
+      fi
 
-    if [[ -z "$branch" ]]; then
-      eprint "Could not determine branch for worktree: $wt_path"
-      exit 1
-    fi
+      if [[ "${#branches[@]}" -gt 1 ]]; then
+        eprint "Multiple local branches match Issue #$issue:"
+        for b in "${branches[@]}"; do
+          eprint "  - $b"
+        done
+        eprint "Delete them manually or narrow the match."
+        exit 1
+      fi
 
-    if cleanup_single "$wt_path" "$branch" "$dry_run" "$force" "$skip_merge_check" "$keep_local_branch"; then
-      ((success_count++)) || true
+      local branch="${branches[0]}"
+      local wt_for_branch
+      wt_for_branch="$(find_worktree_for_branch "$branch" "$main_root" || true)"
+
+      if [[ -n "$wt_for_branch" ]]; then
+        if cleanup_single "$wt_for_branch" "$branch" "$dry_run" "$force" "$skip_merge_check" "$keep_local_branch"; then
+          ((success_count++)) || true
+        else
+          ((fail_count++)) || true
+        fi
+      else
+        if cleanup_branch_only "$branch" "$dry_run" "$skip_merge_check" "$keep_local_branch" "$force"; then
+          ((success_count++)) || true
+        else
+          ((fail_count++)) || true
+        fi
+      fi
     else
-      ((fail_count++)) || true
+      local wt_path branch
+      IFS=$'\t' read -r wt_path branch <<<"$wt_entry"
+
+      if [[ -z "$branch" ]]; then
+        eprint "Could not determine branch for worktree: $wt_path"
+        exit 1
+      fi
+
+      if cleanup_single "$wt_path" "$branch" "$dry_run" "$force" "$skip_merge_check" "$keep_local_branch"; then
+        ((success_count++)) || true
+      else
+        ((fail_count++)) || true
+      fi
     fi
   fi
 
