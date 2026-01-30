@@ -704,6 +704,201 @@ assert "/create-pr" in steps
 assert "/cleanup" in steps
 PY
 
+# Partial-idle case: if there is at least one idle worker, overlap among non-assigned candidates
+# must not block assignment (e.g., max_workers=3 but idle_workers=1).
+cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'
+version: 1
+policy:
+  parallel:
+    enabled: true
+    max_workers: 3
+    require_parallel_ok_label: false
+  impl_mode:
+    default: impl
+    force_tdd_labels: ["tdd", "bug", "high-risk"]
+  checkin:
+    required_on_phase_change: true
+workers:
+  - id: "ashigaru1"
+  - id: "ashigaru2"
+  - id: "ashigaru7"
+YAML
+
+python3 - "$state_path" <<'PY'
+import sys
+import yaml
+
+path = sys.argv[1]
+state = yaml.safe_load(open(path, "r", encoding="utf-8")) or {}
+issues = state.get("issues") or {}
+
+e18 = issues.get("18") or {}
+e18["assigned_to"] = "ashigaru1"
+e18["phase"] = "implementing"
+issues["18"] = e18
+
+issues["19"] = {
+    "title": "busy",
+    "assigned_to": "ashigaru2",
+    "phase": "implementing",
+    "progress_percent": 0,
+}
+
+state["issues"] = issues
+yaml.safe_dump(state, open(path, "w", encoding="utf-8"), sort_keys=False, allow_unicode=True)
+PY
+
+cat > "$tmpdir/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo=""
+if [[ ${1:-} == "-R" ]]; then
+  repo="${2:-}"
+  shift 2
+fi
+
+if [[ ${1:-} != "issue" ]]; then
+  echo "unsupported" >&2
+  exit 2
+fi
+
+sub="${2:-}"
+case "$sub" in
+  list)
+    # Return three issues; 2 and 3 overlap but 1 does not.
+    cat <<'JSON'
+[
+  {"number":1,"title":"Alpha task","labels":[]},
+  {"number":2,"title":"Beta task","labels":[]},
+  {"number":3,"title":"Gamma task","labels":[]}
+]
+JSON
+    ;;
+  view)
+    issue="${3:-}"
+    shift 3
+
+    body=""
+    case "$issue" in
+      1) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/a.ts`\n' ;;
+      2) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/shared.ts`\n' ;;
+      3) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/shared.ts`\n' ;;
+      *) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/other.ts`\n' ;;
+    esac
+
+    if [[ "$*" == *"--json"* ]]; then
+      if [[ "$*" == *"number,title,labels"* ]]; then
+        printf '{"number":%s,"title":"T","labels":[]}\n' "$issue"
+      elif [[ "$*" == *"body"* ]]; then
+        printf '{"body":%s}\n' "$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' <<<"$body")"
+      else
+        echo "unsupported json fields" >&2
+        exit 2
+      fi
+    else
+      echo "unsupported view format" >&2
+      exit 2
+    fi
+    ;;
+  *)
+    echo "unsupported subcommand: $sub" >&2
+    exit 2
+    ;;
+esac
+EOF
+chmod +x "$tmpdir/bin/gh"
+
+orders_root="$common/agentic-sdd-ops/queue/orders"
+before_partial="$(find "$orders_root" -type f -name '*.yaml' | wc -l | tr -d ' ')"
+sup_out_partial="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" supervise --once --gh-repo OWNER/REPO)"
+printf '%s\n' "$sup_out_partial" | rg -q '^orders=1$'
+after_partial="$(find "$orders_root" -type f -name '*.yaml' | wc -l | tr -d ' ')"
+test "$((after_partial - before_partial))" = "1"
+
+idle_worker7="ashigaru7"
+test "$(find "$orders_root/$idle_worker7" -type f -name '*.yaml' | wc -l | tr -d ' ')" -ge "1"
+order_file7="$(ls -1 "$orders_root/$idle_worker7" | head -n 1)"
+python3 - "$orders_root/$idle_worker7/$order_file7" <<'PY'
+import sys
+import yaml
+
+order = yaml.safe_load(open(sys.argv[1], "r", encoding="utf-8"))
+assert order["issue"] == 1
+assert order["worker"] == "ashigaru7"
+PY
+
+# Restore gh stub for subsequent overlap/no-idle tests (issues 1 and 2 overlap on src/shared.ts).
+cat > "$tmpdir/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo=""
+if [[ ${1:-} == "-R" ]]; then
+  repo="${2:-}"
+  shift 2
+fi
+
+if [[ ${1:-} != "issue" ]]; then
+  echo "unsupported" >&2
+  exit 2
+fi
+
+sub="${2:-}"
+case "$sub" in
+  list)
+    cat <<'JSON'
+[
+  {"number":1,"title":"Alpha task","labels":[{"name":"parallel-ok"}]},
+  {"number":2,"title":"Beta task","labels":[{"name":"parallel-ok"}]}
+]
+JSON
+    ;;
+  view)
+    issue="${3:-}"
+    shift 3
+
+    body=""
+    case "$issue" in
+      1) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/a.ts`\n- [ ] `src/shared.ts`\n' ;;
+      2) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/b.ts`\n- [ ] `src/shared.ts`\n' ;;
+      *) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/other.ts`\n' ;;
+    esac
+
+    if [[ "$*" == *"--json"* ]]; then
+      if [[ "$*" == *"number,title,labels"* ]]; then
+        if [[ "$issue" == "1" ]]; then
+          cat <<'JSON'
+{"number":1,"title":"Alpha task","labels":[{"name":"parallel-ok"}]}
+JSON
+        elif [[ "$issue" == "2" ]]; then
+          cat <<'JSON'
+{"number":2,"title":"Beta task","labels":[{"name":"parallel-ok"}]}
+JSON
+        else
+          cat <<'JSON'
+{"number":999,"title":"Other","labels":[{"name":"parallel-ok"}]}
+JSON
+        fi
+      elif [[ "$*" == *"body"* ]]; then
+        printf '{"body":%s}\n' "$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' <<<"$body")"
+      else
+        echo "unsupported json fields" >&2
+        exit 2
+      fi
+    else
+      echo "unsupported view format" >&2
+      exit 2
+    fi
+    ;;
+  *)
+    echo "unsupported subcommand: $sub" >&2
+    exit 2
+    ;;
+esac
+EOF
+chmod +x "$tmpdir/bin/gh"
+
 # No-idle case: even when all workers are busy, supervise must still emit decisions
 # (e.g., overlap_detected / missing_change_targets) based on deterministic change targets.
 cat > "$common/agentic-sdd-ops/config.yaml" <<'YAML'

@@ -1173,8 +1173,10 @@ def cmd_supervise(args: argparse.Namespace) -> int:
             continue
         assignable.append((item, allowed_files))
 
-    # Overlap check only for issues that have deterministic change targets.
-    issue_numbers = [int(item.get("number")) for (item, _files) in assignable]
+    # Overlap check only for issues that are actually going to be assigned.
+    # Otherwise, overlap among "extra" candidates (beyond idle capacity) could block assignment.
+    overlap_candidates = assignable if effective_max_workers <= 0 else assignable[:effective_max_workers]
+    issue_numbers = [int(item.get("number")) for (item, _files) in overlap_candidates]
     if len(issue_numbers) >= 2:
         rc, check_out = run_worktree_check(toplevel, gh_repo, issue_numbers)
         if rc == 3:
