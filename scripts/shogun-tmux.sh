@@ -29,6 +29,8 @@ Options:
 
 send-order options:
   --cmd <string>      Command string to send (default: "python3 scripts/shogun-ops.py supervise --once")
+  --send-keys-mode <mode>
+                      Send mode: single|two-step (default: single)
 
 Examples:
   # Show the tmux command sequence
@@ -214,6 +216,7 @@ cmd_send_order() {
   local session="$2"
   local window="$3"
   local cmd_str="$4"
+  local send_keys_mode="$5"
 
   if [[ "$dry_run" -ne 1 ]]; then
     require_tmux
@@ -228,7 +231,19 @@ cmd_send_order() {
     # Print commands deterministically; use a placeholder pane id for 'middle'.
     print_cmd tmux list-panes -t "$session:$window" -F "#{pane_id}\t#{pane_title}"
     local target_pane="%middle"
-    print_cmd tmux send-keys -t "$target_pane" "$cmd_str" Enter
+    case "$send_keys_mode" in
+      single)
+        print_cmd tmux send-keys -t "$target_pane" "$cmd_str" Enter
+        ;;
+      two-step)
+        print_cmd tmux send-keys -t "$target_pane" "$cmd_str"
+        print_cmd tmux send-keys -t "$target_pane" Enter
+        ;;
+      *)
+        eprint "Invalid --send-keys-mode: $send_keys_mode (expected single|two-step)"
+        return 2
+        ;;
+    esac
     return 0
   fi
 
@@ -239,7 +254,19 @@ cmd_send_order() {
     return 2
   fi
 
-  run_tmux "$dry_run" send-keys -t "$target_pane" "$cmd_str" Enter
+  case "$send_keys_mode" in
+    single)
+      run_tmux "$dry_run" send-keys -t "$target_pane" "$cmd_str" Enter
+      ;;
+    two-step)
+      run_tmux "$dry_run" send-keys -t "$target_pane" "$cmd_str"
+      run_tmux "$dry_run" send-keys -t "$target_pane" Enter
+      ;;
+    *)
+      eprint "Invalid --send-keys-mode: $send_keys_mode (expected single|two-step)"
+      return 2
+      ;;
+  esac
 }
 
 cmd_attach() {
@@ -303,10 +330,13 @@ main() {
       ;;
     send-order)
       local cmd_str="python3 scripts/shogun-ops.py supervise --once"
+      local send_keys_mode="single"
       while [[ $# -gt 0 ]]; do
         case "$1" in
           --cmd)
             cmd_str="$2"; shift 2 ;;
+          --send-keys-mode)
+            send_keys_mode="$2"; shift 2 ;;
           -h|--help)
             usage
             exit 0
@@ -317,7 +347,14 @@ main() {
             ;;
         esac
       done
-      cmd_send_order "$dry_run" "$session" "$window" "$cmd_str"
+      case "$send_keys_mode" in
+        single|two-step) ;;
+        *)
+          eprint "Invalid --send-keys-mode: $send_keys_mode (expected single|two-step)"
+          exit 2
+          ;;
+      esac
+      cmd_send_order "$dry_run" "$session" "$window" "$cmd_str" "$send_keys_mode"
       ;;
     attach)
       cmd_attach "$dry_run" "$session"

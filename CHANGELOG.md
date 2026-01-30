@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 - Make `/review-cycle` require running tests via `TEST_COMMAND` (allow `TESTS="not run: <reason>"` only).
 - Add Shogun Ops (auto) tmux launcher for deterministic session/pane layout and order injection.
   - `scripts/shogun-tmux.sh`: Create tmux session with fixed pane titles (`upper`, `middle`, `ashigaru1`, `ashigaru2`, `ashigaru3`), send-order via pane title lookup (independent of `pane-base-index`), and dry-run support.
+  - `scripts/shogun-tmux.sh`: Add `--send-keys-mode single|two-step` to reduce send-keys injection flakiness by splitting cmd and Enter into separate tmux calls.
   - `scripts/tests/test-shogun-tmux.sh`: Deterministic tests for dry-run output and missing-tmux fail-fast behavior.
   - README: Add "Shogun Ops: tmux launcher" section with usage examples.
 - Add Shogun Ops (auto) GitHub sync to reflect local ops state to an Issue (Middle-only).
