@@ -84,6 +84,12 @@ detect_repo_from_origin() {
     echo "$path"
     return 0
   fi
+  if [[ "$url" == ssh://git@github.com/* ]]; then
+    local path="${url#ssh://git@github.com/}"
+    path="${path%.git}"
+    echo "$path"
+    return 0
+  fi
   return 1
 }
 

@@ -37,6 +37,7 @@ git config user.name "Test"
 echo "ok" > README.md
 git add README.md
 git commit -q -m "init"
+git remote add origin "ssh://git@github.com/ToaruPen/Agentic-SDD.git"
 
 # Initialize ops layout.
 python3 "$REPO_ROOT/scripts/shogun-ops.py" status >/dev/null
@@ -155,6 +156,11 @@ PATH="$stub_bin:$PATH" GH_STUB_LOG="$log_path" GH_STUB_AUTH_OK=1 \
 cat "$tmpdir/dry.out" | rg -q '^issue=25$'
 cat "$tmpdir/dry.out" | rg -q '^repo=ToaruPen/Agentic-SDD$'
 cat "$tmpdir/dry.out" | rg -q '^next_action=/impl 25$'
+
+# --repo omitted should be derived from ssh://git@github.com/OWNER/REPO.git origin.
+PATH="$stub_bin:$PATH" GH_STUB_LOG="$log_path" GH_STUB_AUTH_OK=1 \
+  "$BASH_BIN" "$sync_sh" --issue 25 --dry-run >"$tmpdir/dry-origin.out"
+cat "$tmpdir/dry-origin.out" | rg -q '^repo=ToaruPen/Agentic-SDD$'
 
 PATH="$stub_bin:$PATH" GH_STUB_LOG="$log_path" GH_STUB_AUTH_OK=1 \
   "$BASH_BIN" "$sync_sh" --issue 25 --repo ToaruPen/Agentic-SDD >/dev/null
