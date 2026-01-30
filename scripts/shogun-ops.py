@@ -489,14 +489,51 @@ def build_skill_candidates_index_from_decisions(ops_root: str) -> List[Dict[str,
 
 
 def match_any_glob(path: str, patterns: List[str]) -> bool:
-    p = (path or "").strip()
-    if not p:
+    p = (path or "").strip().replace("\\", "/")
+    if p.startswith("./"):
+        p = p[2:]
+    if not p or p in {".", ".."}:
         return False
-    for pat in patterns:
-        pat = (pat or "").strip()
+    path_parts = [seg for seg in p.split("/") if seg]
+
+    def match_parts(parts: List[str], pat_parts: List[str]) -> bool:
+        i = 0
+        j = 0
+        while True:
+            if j >= len(pat_parts):
+                return i >= len(parts)
+
+            pat = pat_parts[j]
+            if pat == "**":
+                # Collapse consecutive globstars.
+                while j + 1 < len(pat_parts) and pat_parts[j + 1] == "**":
+                    j += 1
+                # Trailing globstar matches the rest.
+                if j == len(pat_parts) - 1:
+                    return True
+                # Try consuming 0..N segments.
+                j += 1
+                while i <= len(parts):
+                    if match_parts(parts[i:], pat_parts[j:]):
+                        return True
+                    i += 1
+                return False
+
+            if i >= len(parts):
+                return False
+            if not fnmatch.fnmatchcase(parts[i], pat):
+                return False
+            i += 1
+            j += 1
+
+    for raw_pat in patterns:
+        pat = (raw_pat or "").strip().replace("\\", "/")
+        if pat.startswith("./"):
+            pat = pat[2:]
         if not pat:
             continue
-        if fnmatch.fnmatchcase(p, pat):
+        pat_parts = [seg for seg in pat.split("/") if seg]
+        if match_parts(path_parts, pat_parts):
             return True
     return False
 

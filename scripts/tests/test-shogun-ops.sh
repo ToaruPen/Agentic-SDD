@@ -1266,6 +1266,54 @@ printf '%s\n' "$collect_contract_ok_glob_out" | rg -q '^processed=1$'
 after_no_drift_glob="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
 test "$after_no_drift_glob" = "$before_no_drift_glob"
 
+# Drift: glob should NOT match across path separators (src/*.ts must not allow src/nested/evil.ts)
+before_glob_nested="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+ls -1 "$decisions_dir"/*.yaml > "$tmpdir/decisions.before.contract.globnested" 2>/dev/null || true
+ts_contract_glob_nested="20260129T121524Z"
+checkin_contract_glob_nested_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 1 implementing 12 \
+  --worker "$worker" \
+  --timestamp "$ts_contract_glob_nested" \
+  --no-auto-files-changed \
+  --files-changed "src/nested/evil.ts" \
+  --tests-command "echo ok" \
+  --tests-result pass \
+  -- \
+  contract_glob_nested \
+)"
+test -f "$checkin_contract_glob_nested_path"
+collect_contract_glob_nested_out="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_contract_glob_nested_out" | rg -q '^processed=1$'
+after_glob_nested="$(ls -1 "$decisions_dir" | wc -l | tr -d ' ')"
+test "$((after_glob_nested - before_glob_nested))" = "1"
+
+new_glob_nested_decision_path="$(python3 - "$tmpdir/decisions.before.contract.globnested" "$decisions_dir" <<'PY'
+import glob
+import os
+import sys
+
+before_path = sys.argv[1]
+decisions_dir = sys.argv[2]
+try:
+    before = set([ln.strip() for ln in open(before_path, "r", encoding="utf-8").read().splitlines() if ln.strip()])
+except FileNotFoundError:
+    before = set()
+after = set(glob.glob(os.path.join(decisions_dir, "*.yaml")))
+added = sorted(after - before)
+assert len(added) == 1, added
+print(added[0])
+PY
+)"
+
+python3 - "$new_glob_nested_decision_path" <<'PY'
+import sys
+import yaml
+
+dec = yaml.safe_load(open(sys.argv[1], "r", encoding="utf-8"))
+assert dec.get("type") == "contract_expansion", dec
+req = dec.get("request") or {}
+assert "src/nested/evil.ts" in (req.get("requested_files") or []), req
+PY
+
 # Restore deterministic allowed_files for subsequent drift tests.
 python3 - "$state_path" <<'PY'
 import sys
