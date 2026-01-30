@@ -125,6 +125,7 @@ def default_state_yaml() -> Dict[str, Any]:
         "issues": {},
         "blocked": [],
         "action_required": [],
+        "skill_candidates_pending": [],
         "recent_checkins": [],
     }
 
@@ -157,6 +158,10 @@ def render_dashboard_md(state: Dict[str, Any]) -> str:
     action_required = state.get("action_required") or []
     if not isinstance(action_required, list):
         action_required = []
+
+    skill_candidates = state.get("skill_candidates_pending") or []
+    if not isinstance(skill_candidates, list):
+        skill_candidates = []
 
     recent = state.get("recent_checkins") or []
     if not isinstance(recent, list):
@@ -192,6 +197,22 @@ def render_dashboard_md(state: Dict[str, Any]) -> str:
             if decision_id:
                 prefix += f" [{decision_id}]"
             lines.append(prefix.rstrip())
+    else:
+        lines.append("- (none)")
+    lines.append("")
+    lines.append("## Skill Candidates (Approval Pending)")
+    if skill_candidates:
+        for item in skill_candidates[:20]:
+            if not isinstance(item, dict):
+                continue
+            name = str(item.get("name") or "").strip()
+            summary = str(item.get("summary") or "").strip()
+            if not name:
+                name = "(missing name)"
+            if summary:
+                lines.append(f"- {name}: {summary}".rstrip())
+            else:
+                lines.append(f"- {name}".rstrip())
     else:
         lines.append("- (none)")
     lines.append("")
@@ -391,6 +412,42 @@ def build_action_required_index_from_decisions(ops_root: str) -> List[Dict[str, 
     return items
 
 
+def build_skill_candidates_index_from_decisions(ops_root: str) -> List[Dict[str, Any]]:
+    items: List[Dict[str, Any]] = []
+    for path in list_decision_paths(ops_root):
+        obj = read_yaml_file(path)
+        if not isinstance(obj, dict):
+            continue
+        if str(obj.get("type") or "") != "skill_candidate":
+            continue
+
+        decision_id = obj.get("decision_id")
+        if not decision_id:
+            decision_id = os.path.splitext(os.path.basename(path))[0]
+
+        created_at = str(obj.get("created_at") or "")
+        request = obj.get("request") or {}
+        if not isinstance(request, dict):
+            request = {}
+
+        name = str(request.get("name") or obj.get("name") or "").strip()
+        summary = str(request.get("summary") or obj.get("summary") or request.get("reason") or "").strip()
+        items.append(
+            {
+                "decision_id": str(decision_id),
+                "created_at": created_at,
+                "name": name,
+                "summary": summary,
+            }
+        )
+
+    def sort_key(it: Dict[str, Any]) -> Tuple[str, str]:
+        return (str(it.get("created_at") or ""), str(it.get("decision_id") or ""))
+
+    items.sort(key=sort_key, reverse=True)
+    return items
+
+
 def emit_decisions_from_checkin(
     ops_root: str,
     issue: int,
@@ -509,8 +566,11 @@ def cmd_collect(_args: argparse.Namespace) -> int:
         state = read_yaml_file(state_path)
         if "action_required" not in state:
             state["action_required"] = []
+        if "skill_candidates_pending" not in state:
+            state["skill_candidates_pending"] = []
         if not checkin_paths:
             state["action_required"] = build_action_required_index_from_decisions(ops_root)
+            state["skill_candidates_pending"] = build_skill_candidates_index_from_decisions(ops_root)
             state["updated_at"] = utc_now_iso()
             atomic_write_yaml(state_path, state)
             atomic_write_text(dashboard_path, render_dashboard_md(state))
@@ -562,6 +622,7 @@ def cmd_collect(_args: argparse.Namespace) -> int:
             record_recent_checkin(state, checkin)
 
         state["action_required"] = build_action_required_index_from_decisions(ops_root)
+        state["skill_candidates_pending"] = build_skill_candidates_index_from_decisions(ops_root)
         state["updated_at"] = utc_now_iso()
         atomic_write_yaml(state_path, state)
 

@@ -40,6 +40,7 @@ out="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" status)"
 printf '%s\n' "$out" | rg -q "^# Agentic-SDD Ops Dashboard$"
 printf '%s\n' "$out" | rg -q "^## Summary$"
 printf '%s\n' "$out" | rg -q "^## Action Required$"
+printf '%s\n' "$out" | rg -q "^## Skill Candidates \\(Approval Pending\\)$"
 printf '%s\n' "$out" | rg -q "^## Blocked / Needs Decision$"
 printf '%s\n' "$out" | rg -q "^## Recent Check-ins$"
 
@@ -363,7 +364,23 @@ action_required = state.get("action_required") or []
 assert action_required == [], action_required
 assert "## Action Required" in dash, dash
 assert "- (none)" in dash, dash
+assert "## Skill Candidates (Approval Pending)" in dash, dash
 PY
+
+# decisions-only update: skill_candidate must be listed (name/summary)
+cat > "$decisions_dir/DEC-SC-1.yaml" <<'YAML'
+version: 1
+created_at: "2026-01-29T12:16:00Z"
+type: "skill_candidate"
+request:
+  name: "contract-expansion-triage"
+  summary: "allowed_files 逸脱時の切り分け手順"
+YAML
+
+python3 "$REPO_ROOT/scripts/shogun-ops.py" collect >/dev/null
+cat "$dashboard_path" | rg -q '^## Skill Candidates \(Approval Pending\)$'
+cat "$dashboard_path" | rg -q 'contract-expansion-triage'
+cat "$dashboard_path" | rg -q 'allowed_files 逸脱時の切り分け手順'
 
 # Prevent archive overwrites when the same timestamp is re-used after collect.
 archive_first="$common/agentic-sdd-ops/archive/checkins/$worker/$ts.yaml"
