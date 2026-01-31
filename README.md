@@ -136,6 +136,13 @@ Optional (opt-in): install a GitHub Actions CI template (tests + lint + typechec
 /agentic-sdd --ci github-actions opencode minimal
 ```
 
+Optional (opt-in): enable Shogun Ops (checkin/collect/supervise + ops scripts).
+Do NOT enable this when you are using an external multi-agent harness (e.g. Oh My OpenCode).
+
+```
+/agentic-sdd --shogun-ops opencode minimal
+```
+
 After install, edit `.github/workflows/agentic-sdd-ci.yml` and set the 3 env vars to your project's commands.
 To enforce in GitHub, require the check `agentic-sdd-ci / ci` via branch protection rules.
 

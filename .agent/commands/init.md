@@ -59,6 +59,13 @@ Optional (opt-in): install a GitHub Actions CI template:
 /agentic-sdd --ci github-actions [tool] [mode]
 ```
 
+Optional (opt-in): enable Shogun Ops (checkin/collect/supervise + ops scripts).
+Do NOT enable this when you are using an external multi-agent harness (e.g. Oh My OpenCode).
+
+```text
+/agentic-sdd --shogun-ops [tool] [mode]
+```
+
 Then edit `.github/workflows/agentic-sdd-ci.yml` and set the 3 env vars to your project's commands.
 
 Notes:
@@ -116,6 +123,7 @@ Common `/agentic-sdd` options:
 - `--mode minimal|full`
 - `--tool none|opencode|codex|claude|all`
 - `--ci none|github-actions` (opt-in: install a GitHub Actions CI template)
+- `--shogun-ops` (opt-in: install Shogun Ops commands/scripts)
 - `--dry-run`
 - `--force`
 - `--ref <tag>` (install a specific release tag)

@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.29] - 2026-01-31
+
+- Make Shogun Ops installation opt-in via `--shogun-ops`.
+  - `scripts/install-agentic-sdd.sh`: Exclude Shogun Ops commands/scripts unless explicitly enabled.
+  - `scripts/agentic-sdd`: Forward `--shogun-ops` to the installer.
+  - `scripts/tests/test-install-agentic-sdd.sh`: Add deterministic coverage for default-off and opt-in installs.
+  - README / `.agent/commands/init.md`: Document the new opt-in flag and external harness warning.
 - Add Shogun Ops (research loop) decision-centric research request/response flow.
   - `scripts/shogun-ops.py`: Extend `/checkin` with `--respond-to-decision` to link a research response deterministically to a decision.
   - `scripts/shogun-ops.py`: Treat `blocker` reasons prefixed with `調査依頼:` as research requests (`request.category=research`) and attach minimal `issue_context` (repo/number/title/url/labels).

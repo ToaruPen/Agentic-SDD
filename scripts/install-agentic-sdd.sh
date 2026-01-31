@@ -18,6 +18,7 @@ Usage: install-agentic-sdd.sh --target <dir> [options]
       --tool none|opencode|codex|claude|all
                                 Run sync for the selected tool (default: none)
       --ci none|github-actions  Optional CI template to install (default: none)
+      --shogun-ops              Optional: install Shogun Ops (checkin/collect/supervise + ops scripts)
       --force                   Overwrite conflicting files (backs up first)
       --dry-run                 Show what would change
       -h, --help                Show help
@@ -35,6 +36,7 @@ log_error() { echo "[ERROR] $*" >&2; }
 MODE="minimal"
 TOOL="none"
 CI="none"
+SHOGUN_OPS=false
 FORCE=false
 DRY_RUN=false
 TARGET_DIR=""
@@ -56,6 +58,10 @@ while [[ $# -gt 0 ]]; do
         --ci)
             CI="$2"
             shift 2
+            ;;
+        --shogun-ops)
+            SHOGUN_OPS=true
+            shift
             ;;
         --force)
             FORCE=true
@@ -155,6 +161,35 @@ scan_conflict_dir() {
     done < <(cd "$src_dir" && find . -type f -print0)
 }
 
+should_exclude_rel() {
+    local rel="$1"
+    shift
+    local pat
+    for pat in "$@"; do
+        if [[ "$rel" == $pat ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+scan_conflict_dir_excluding() {
+    local src_dir="$1"
+    local dst_dir="$2"
+    shift 2
+    local -a exclude_pats=("$@")
+
+    [ -d "$src_dir" ] || return 0
+
+    while IFS= read -r -d '' rel; do
+        rel=${rel#./}
+        if should_exclude_rel "$rel" "${exclude_pats[@]}"; then
+            continue
+        fi
+        scan_conflict_file "$src_dir/$rel" "$dst_dir/$rel"
+    done < <(cd "$src_dir" && find . -type f -print0)
+}
+
 backup_path() {
     local path="$1"
     local ts
@@ -232,6 +267,26 @@ copy_dir() {
     done < <(cd "$src_dir" && find . -type f -print0)
 }
 
+copy_dir_excluding() {
+    local src_dir="$1"
+    local dst_dir="$2"
+    shift 2
+    local -a exclude_pats=("$@")
+
+    if [ ! -d "$src_dir" ]; then
+        log_warn "Skip missing source dir: $src_dir"
+        return 0
+    fi
+
+    while IFS= read -r -d '' rel; do
+        rel=${rel#./}
+        if should_exclude_rel "$rel" "${exclude_pats[@]}"; then
+            continue
+        fi
+        copy_file "$src_dir/$rel" "$dst_dir/$rel"
+    done < <(cd "$src_dir" && find . -type f -print0)
+}
+
 ensure_gitignore_line() {
     local gitignore="$1"
     local line="$2"
@@ -251,17 +306,40 @@ ensure_gitignore_line() {
 }
 
 log_info "Installing Agentic-SDD into: $TARGET_DIR"
-log_info "Mode: $MODE, Tool: $TOOL, CI: $CI, Force: $FORCE, Dry-run: $DRY_RUN"
+log_info "Mode: $MODE, Tool: $TOOL, CI: $CI, Shogun Ops: $SHOGUN_OPS, Force: $FORCE, Dry-run: $DRY_RUN"
+
+agent_excludes=(
+    "commands/checkin.md"
+    "commands/collect.md"
+    "commands/supervise.md"
+    "commands/status.md"
+    "commands/refactor-draft.md"
+    "commands/refactor-issue.md"
+)
+
+scripts_excludes=(
+    "shogun-ops.py"
+    "shogun-*.sh"
+    "tests/test-shogun-*.sh"
+)
 
 # Fail-fast conflict scan (avoid partial installs when not using --force)
 if [ "$DRY_RUN" = false ] && [ "$FORCE" = false ]; then
-    scan_conflict_dir "$SOURCE_ROOT/.agent" "$TARGET_DIR/.agent"
+    if [ "$SHOGUN_OPS" = true ]; then
+        scan_conflict_dir "$SOURCE_ROOT/.agent" "$TARGET_DIR/.agent"
+    else
+        scan_conflict_dir_excluding "$SOURCE_ROOT/.agent" "$TARGET_DIR/.agent" "${agent_excludes[@]}"
+    fi
     scan_conflict_file "$SOURCE_ROOT/docs/prd/_template.md" "$TARGET_DIR/docs/prd/_template.md"
     scan_conflict_file "$SOURCE_ROOT/docs/epics/_template.md" "$TARGET_DIR/docs/epics/_template.md"
     scan_conflict_file "$SOURCE_ROOT/docs/decisions.md" "$TARGET_DIR/docs/decisions.md"
     scan_conflict_file "$SOURCE_ROOT/docs/glossary.md" "$TARGET_DIR/docs/glossary.md"
     scan_conflict_dir "$SOURCE_ROOT/skills" "$TARGET_DIR/skills"
-    scan_conflict_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts"
+    if [ "$SHOGUN_OPS" = true ]; then
+        scan_conflict_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts"
+    else
+        scan_conflict_dir_excluding "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts" "${scripts_excludes[@]}"
+    fi
     scan_conflict_dir "$SOURCE_ROOT/templates/project-config" "$TARGET_DIR/templates/project-config"
     scan_conflict_file "$SOURCE_ROOT/requirements-agentic-sdd.txt" "$TARGET_DIR/requirements-agentic-sdd.txt"
     scan_conflict_dir "$SOURCE_ROOT/.githooks" "$TARGET_DIR/.githooks"
@@ -301,7 +379,11 @@ if [ "$DRY_RUN" = false ] && [ "$FORCE" = false ]; then
 fi
 
 # Core workflow files
-copy_dir "$SOURCE_ROOT/.agent" "$TARGET_DIR/.agent"
+if [ "$SHOGUN_OPS" = true ]; then
+    copy_dir "$SOURCE_ROOT/.agent" "$TARGET_DIR/.agent"
+else
+    copy_dir_excluding "$SOURCE_ROOT/.agent" "$TARGET_DIR/.agent" "${agent_excludes[@]}"
+fi
 
 # Docs templates (only the required files)
 copy_file "$SOURCE_ROOT/docs/prd/_template.md" "$TARGET_DIR/docs/prd/_template.md"
@@ -313,7 +395,11 @@ copy_file "$SOURCE_ROOT/docs/glossary.md" "$TARGET_DIR/docs/glossary.md"
 copy_dir "$SOURCE_ROOT/skills" "$TARGET_DIR/skills"
 
 # Scripts
-copy_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts"
+if [ "$SHOGUN_OPS" = true ]; then
+    copy_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts"
+else
+    copy_dir_excluding "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts" "${scripts_excludes[@]}"
+fi
 
 # Templates (for /generate-project-config command)
 copy_dir "$SOURCE_ROOT/templates/project-config" "$TARGET_DIR/templates/project-config"

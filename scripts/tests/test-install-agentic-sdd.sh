@@ -73,6 +73,16 @@ if [[ ! -d "$proj2/.agent" ]]; then
   exit 1
 fi
 
+if [[ -f "$proj2/.agent/commands/checkin.md" ]]; then
+  eprint "Did not expect Shogun Ops command doc to be installed by default: .agent/commands/checkin.md"
+  exit 1
+fi
+
+if [[ -e "$proj2/scripts/shogun-ops.py" ]]; then
+  eprint "Did not expect Shogun Ops script to be installed by default: scripts/shogun-ops.py"
+  exit 1
+fi
+
 if ! cmp -s "$proj2/AGENTS.md" "$tmpdir/AGENTS.before"; then
   eprint "Expected AGENTS.md to remain unchanged"
   exit 1
@@ -90,6 +100,11 @@ fi
 
 if [[ ! -f "$proj2/.opencode/commands/create-pr.md" ]]; then
   eprint "Expected OpenCode command to exist: .opencode/commands/create-pr.md"
+  exit 1
+fi
+
+if [[ -f "$proj2/.opencode/commands/checkin.md" ]]; then
+  eprint "Did not expect Shogun Ops OpenCode command to be installed by default: .opencode/commands/checkin.md"
   exit 1
 fi
 
@@ -161,6 +176,32 @@ fi
 
 if [[ -f "$proj4/.github/workflows/release.yml" ]]; then
   eprint "Did not expect Agentic-SDD internal workflow to be installed: .github/workflows/release.yml"
+  exit 1
+fi
+
+# 5) Opt-in Shogun Ops should install ops scripts + commands
+proj5="$tmpdir/proj5"
+mkproj "$proj5"
+
+"$installer" --target "$proj5" --mode minimal --tool opencode --shogun-ops >/dev/null
+
+if [[ ! -f "$proj5/scripts/shogun-ops.py" ]]; then
+  eprint "Expected Shogun Ops script to be installed with --shogun-ops: scripts/shogun-ops.py"
+  exit 1
+fi
+
+if [[ ! -f "$proj5/scripts/shogun-tmux.sh" ]]; then
+  eprint "Expected Shogun Ops script to be installed with --shogun-ops: scripts/shogun-tmux.sh"
+  exit 1
+fi
+
+if [[ ! -f "$proj5/.agent/commands/checkin.md" ]]; then
+  eprint "Expected Shogun Ops command doc to be installed with --shogun-ops: .agent/commands/checkin.md"
+  exit 1
+fi
+
+if [[ ! -f "$proj5/.opencode/commands/checkin.md" ]]; then
+  eprint "Expected Shogun Ops OpenCode command to exist with --shogun-ops: .opencode/commands/checkin.md"
   exit 1
 fi
 

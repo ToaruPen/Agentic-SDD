@@ -4,6 +4,10 @@ set -euo pipefail
 
 eprint() { printf '%s\n' "$*" >&2; }
 
+# This test suite must be robust even when invoked from `scripts/review-cycle.sh`,
+# which sets TEST_COMMAND in the environment.
+unset TEST_COMMAND || true
+
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 schema_src="${repo_root}/.agent/schemas/review.json"
 review_cycle_sh="${repo_root}/scripts/review-cycle.sh"
