@@ -39,4 +39,6 @@ if [ "$need_ruff" -eq 1 ]; then
   fi
   # shellcheck disable=SC2086
   $ruff_cmd check scripts
+  # shellcheck disable=SC2086
+  $ruff_cmd format --check scripts
 fi

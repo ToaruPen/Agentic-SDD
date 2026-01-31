@@ -15,7 +15,9 @@ from typing import Any, Dict, List, Optional
 try:
     from jinja2 import Environment, FileSystemLoader, select_autoescape
 except ImportError:
-    print("Error: jinja2 is required. Install with: pip install jinja2", file=sys.stderr)
+    print(
+        "Error: jinja2 is required. Install with: pip install jinja2", file=sys.stderr
+    )
     sys.exit(1)
 
 
@@ -167,12 +169,14 @@ def generate_tech_stack_skill(
     """技術スタックスキルを生成"""
     tech_stack = config.get("tech_stack", {})
     # 技術選定情報が1つでもあれば生成
-    has_tech = any([
-        tech_stack.get("language"),
-        tech_stack.get("framework"),
-        tech_stack.get("database"),
-        tech_stack.get("infrastructure"),
-    ])
+    has_tech = any(
+        [
+            tech_stack.get("language"),
+            tech_stack.get("framework"),
+            tech_stack.get("database"),
+            tech_stack.get("infrastructure"),
+        ]
+    )
 
     if not has_tech:
         return None
@@ -218,8 +222,14 @@ def generate_all(
             generated_files.append(skill_path)
     else:
         tech_stack = config.get("tech_stack", {})
-        if any([tech_stack.get("language"), tech_stack.get("framework"),
-                tech_stack.get("database"), tech_stack.get("infrastructure")]):
+        if any(
+            [
+                tech_stack.get("language"),
+                tech_stack.get("framework"),
+                tech_stack.get("database"),
+                tech_stack.get("infrastructure"),
+            ]
+        ):
             generated_skills.append("tech-stack.md")
 
     # セキュリティルール
@@ -273,27 +283,23 @@ def main() -> int:
     )
     parser.add_argument(
         "config_file",
-        help="extract-epic-config.py の出力JSONファイル、またはEpicファイルのパス"
+        help="extract-epic-config.py の出力JSONファイル、またはEpicファイルのパス",
     )
     parser.add_argument(
-        "-o", "--output-dir",
+        "-o",
+        "--output-dir",
         default=".agentic-sdd/project",
-        help="出力ディレクトリ（デフォルト: .agentic-sdd/project）"
+        help="出力ディレクトリ（デフォルト: .agentic-sdd/project）",
     )
     parser.add_argument(
-        "-t", "--template-dir",
-        help="テンプレートディレクトリ（デフォルト: 自動検出）"
+        "-t", "--template-dir", help="テンプレートディレクトリ（デフォルト: 自動検出）"
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="実際にファイルを生成せず、生成予定のファイル一覧を表示"
+        help="実際にファイルを生成せず、生成予定のファイル一覧を表示",
     )
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        help="結果をJSON形式で出力"
-    )
+    parser.add_argument("--json", action="store_true", help="結果をJSON形式で出力")
 
     args = parser.parse_args()
 
@@ -308,6 +314,7 @@ def main() -> int:
     elif config_path.suffix == ".md":
         # Epicファイルの場合は extract-epic-config.py を呼び出す
         import subprocess
+
         script_dir = Path(__file__).parent
         extract_script = script_dir / "extract-epic-config.py"
 

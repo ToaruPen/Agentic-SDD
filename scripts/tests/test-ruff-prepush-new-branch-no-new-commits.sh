@@ -25,28 +25,14 @@ git -C "$work" config user.name "Test"
 
 mkdir -p "$work/scripts" "$work/.githooks"
 cp -p "$repo_root/scripts/validate-approval.py" "$work/scripts/validate-approval.py"
-cp -p "$repo_root/scripts/create-approval.py" "$work/scripts/create-approval.py"
 cp -p "$repo_root/.githooks/pre-commit" "$work/.githooks/pre-commit"
 cp -p "$repo_root/.githooks/pre-push" "$work/.githooks/pre-push"
 cp -p "$repo_root/pyproject.toml" "$work/pyproject.toml"
 cp -p "$repo_root/requirements-dev.txt" "$work/requirements-dev.txt"
 
-chmod +x "$work/scripts/validate-approval.py" "$work/scripts/create-approval.py"
+chmod +x "$work/scripts/validate-approval.py"
 chmod +x "$work/.githooks/pre-commit" "$work/.githooks/pre-push"
 git -C "$work" config core.hooksPath .githooks
-
-mkdir -p "$work/.agentic-sdd/approvals/issue-123"
-cat > "$work/.agentic-sdd/approvals/issue-123/estimate.md" <<'EOF'
-## Full見積もり
-
-### 1. 依頼内容の解釈
-
-テスト用見積もり（ruff pre-push gate）
-EOF
-
-# Prepare an approval record (required by hooks).
-(cd "$work" && python3 scripts/create-approval.py --issue 123 --mode impl >/dev/null)
-(cd "$work" && python3 scripts/validate-approval.py >/dev/null)
 
 git init --bare -q "$remote"
 git -C "$work" remote add origin "$remote"
@@ -56,7 +42,7 @@ export PATH="$venv_ok/bin:$PATH"
 python3 -m pip -q install --upgrade pip >/dev/null
 python3 -m pip -q install -r "$work/requirements-dev.txt" >/dev/null
 
-git -C "$work" checkout -b "feature/issue-123-base" -q
+git -C "$work" checkout -b "feature/base" -q
 mkdir -p "$work/scripts"
 cat > "$work/scripts/ok.py" <<'EOF'
 print("ok")
@@ -74,7 +60,7 @@ git -C "$work" fetch -q origin
 export PATH="$venv_no/bin:/usr/bin:/bin"
 
 sha="$(git -C "$work" rev-parse HEAD)"
-git -C "$work" checkout -b "feature/issue-123-new-branch-no-new-commits" -q "$sha"
+git -C "$work" checkout -b "feature/new-branch-no-new-commits" -q "$sha"
 
 set +e
 git -C "$work" push -u origin HEAD -q
