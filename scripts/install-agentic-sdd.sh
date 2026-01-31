@@ -320,6 +320,7 @@ agent_excludes=(
 scripts_excludes=(
     "shogun-ops.py"
     "shogun-*.sh"
+    "tmux"
     "tests/test-shogun-*.sh"
 )
 

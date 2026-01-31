@@ -98,6 +98,13 @@ Shogun Ops(auto) can be operated with a deterministic tmux layout.
 ./scripts/shogun-tmux.sh attach
 ```
 
+Optional: install the tmux shim (opt-in via `--shogun-ops`) and put `scripts/` first in `PATH`
+to allow opening the Shogun Ops layout with:
+
+```bash
+PATH="$(pwd)/scripts:$PATH" tmux --shogun-ops
+```
+
 ## Shogun Ops: GitHub sync (experimental)
 
 Sync the local ops status to a GitHub Issue by adding a comment and updating labels.

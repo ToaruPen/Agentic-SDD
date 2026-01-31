@@ -83,6 +83,11 @@ if [[ -e "$proj2/scripts/shogun-ops.py" ]]; then
   exit 1
 fi
 
+if [[ -e "$proj2/scripts/tmux" ]]; then
+  eprint "Did not expect Shogun Ops tmux shim to be installed by default: scripts/tmux"
+  exit 1
+fi
+
 if ! cmp -s "$proj2/AGENTS.md" "$tmpdir/AGENTS.before"; then
   eprint "Expected AGENTS.md to remain unchanged"
   exit 1
@@ -192,6 +197,11 @@ fi
 
 if [[ ! -f "$proj5/scripts/shogun-tmux.sh" ]]; then
   eprint "Expected Shogun Ops script to be installed with --shogun-ops: scripts/shogun-tmux.sh"
+  exit 1
+fi
+
+if [[ ! -f "$proj5/scripts/tmux" ]]; then
+  eprint "Expected tmux shim to be installed with --shogun-ops: scripts/tmux"
   exit 1
 fi
 
