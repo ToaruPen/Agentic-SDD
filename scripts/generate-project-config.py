@@ -7,7 +7,6 @@ extract-epic-config.py の出力を受け取り、テンプレートに変数置
 
 import argparse
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
