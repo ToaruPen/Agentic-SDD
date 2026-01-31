@@ -801,9 +801,9 @@ def fetch_issue_context_for_research(toplevel: str, issue: int) -> Dict[str, Any
     labels_raw = obj.get("labels") or []
     labels: List[str] = []
     if isinstance(labels_raw, list):
-        for l in labels_raw:
-            if isinstance(l, dict) and l.get("name"):
-                labels.append(str(l.get("name")))
+        for label in labels_raw:
+            if isinstance(label, dict) and label.get("name"):
+                labels.append(str(label.get("name")))
     labels = sorted(set([x for x in labels if str(x).strip()]))
 
     return {
@@ -1311,9 +1311,9 @@ def select_targets(gh_repo: str, config: Dict[str, Any], targets: List[int]) -> 
         labels = it.get("labels") or []
         label_names = set()
         if isinstance(labels, list):
-            for l in labels:
-                if isinstance(l, dict):
-                    name = l.get("name")
+            for label in labels:
+                if isinstance(label, dict):
+                    name = label.get("name")
                     if name:
                         label_names.add(str(name))
         if require_label and "parallel-ok" not in label_names:
@@ -1563,7 +1563,11 @@ def cmd_supervise(args: argparse.Namespace) -> int:
 
         entry = ensure_issue_entry(state, n)
         entry["title"] = title
-        labels = [l.get("name") for l in (item.get("labels") or []) if isinstance(l, dict) and l.get("name")]
+        labels = [
+            label.get("name")
+            for label in (item.get("labels") or [])
+            if isinstance(label, dict) and label.get("name")
+        ]
         entry["labels"] = labels
         entry["assigned_to"] = worker
         entry["phase"] = "estimating"

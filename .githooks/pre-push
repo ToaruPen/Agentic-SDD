@@ -19,3 +19,48 @@ fi
 
 python3 scripts/validate-approval.py
 
+# Python lint gate (Stage 1): ruff
+need_ruff=0
+zero="0000000000000000000000000000000000000000"
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -n "$local_ref" ] || continue
+  if [ "$local_sha" = "$zero" ]; then
+    continue
+  fi
+  if [ "$remote_sha" = "$zero" ]; then
+    # New branch on remote: inspect all commits that are not present in any remote ref
+    # to avoid missing Python changes in non-tip commits (including when pre-commit was bypassed).
+    commits="$(git rev-list "$local_sha" --not --remotes 2>/dev/null || true)"
+    if [ -z "$commits" ]; then
+      commits="$local_sha"
+    fi
+    for c in $commits; do
+      if git diff-tree --no-commit-id --name-only -r --root "$c" 2>/dev/null \
+        | grep -Eq '^scripts/.*\.py$|^pyproject\.toml$|^requirements-dev\.txt$'; then
+        need_ruff=1
+        break
+      fi
+    done
+    continue
+  fi
+  if git diff --name-only "$remote_sha..$local_sha" --diff-filter=ACMR 2>/dev/null \
+    | grep -Eq '^scripts/.*\.py$|^pyproject\.toml$|^requirements-dev\.txt$'; then
+    need_ruff=1
+    break
+  fi
+done
+
+if [ "$need_ruff" -eq 1 ]; then
+  ruff_cmd=""
+  if command -v ruff >/dev/null 2>&1; then
+    ruff_cmd="ruff"
+  elif python3 -m ruff --version >/dev/null 2>&1; then
+    ruff_cmd="python3 -m ruff"
+  else
+    echo "[agentic-sdd gate] BLOCKED: ruff is required for Python lint." >&2
+    echo "[agentic-sdd gate] Install: python3 -m pip install -r requirements-dev.txt" >&2
+    exit 1
+  fi
+  # shellcheck disable=SC2086
+  $ruff_cmd check scripts
+fi
