@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.30] - 2026-01-31
+
+- Document the recommended approach for using Agentic-SDD with external multi-agent harnesses (treat the harness as the orchestration layer and tailor project `AGENTS.md`/`skills/` accordingly).
+
 ## [0.2.29] - 2026-01-31
 
 - Make Shogun Ops installation opt-in via `--shogun-ops`.
