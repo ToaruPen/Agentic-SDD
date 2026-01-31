@@ -27,6 +27,22 @@ python3 scripts/shogun-ops.py checkin 123 implementing 40 \
   -- モデル/ハンドラ実装。テスト1件失敗
 ```
 
+調査依頼/調査結果（decision に紐づける）:
+
+```bash
+# 調査依頼（blocker として発行）
+python3 scripts/shogun-ops.py checkin 123 blocked 0 \
+  --worker ashigaru1 \
+  --blocker "調査依頼: なぜビルドが落ちるか調べてください" \
+  -- 調査依頼を出した
+
+# 調査結果（decision_id を指定して応答）
+python3 scripts/shogun-ops.py checkin 123 implementing 0 \
+  --worker researcher1 \
+  --respond-to-decision "DEC-..." \
+  -- 原因はX。対策はY（詳細はIssue参照）
+```
+
 ## Notes
 
 - append-only: 既存の checkin ファイルがある場合は非ゼロ終了します。

@@ -365,6 +365,18 @@ def list_decision_paths(ops_root: str) -> List[str]:
     return out
 
 
+def list_archived_decision_paths(ops_root: str) -> List[str]:
+    base = os.path.join(ops_root, "archive", "decisions")
+    out: List[str] = []
+    if not os.path.isdir(base):
+        return out
+    for name in sorted(os.listdir(base)):
+        if not name.endswith(".yaml"):
+            continue
+        out.append(os.path.join(base, name))
+    return out
+
+
 def decision_dedupe_key(kind: str, issue: int, worker: str, payload: str) -> str:
     raw = f"{kind}|issue={issue}|worker={worker}|{payload}".encode("utf-8", errors="strict")
     return "sha256:" + hashlib.sha256(raw).hexdigest()
@@ -561,6 +573,7 @@ def emit_decisions_from_checkin(
     checkin: Dict[str, Any],
     existing_keys: set,
     existing_paths: Dict[str, str],
+    issue_context: Optional[Dict[str, Any]] = None,
 ) -> int:
     needs = checkin.get("needs") or {}
     if not isinstance(needs, dict):
@@ -631,6 +644,7 @@ def emit_decisions_from_checkin(
         k = decision_dedupe_key("blocker", issue, worker, payload)
         if k in existing_keys:
             continue
+        is_research_request = blocker.strip().startswith("調査依頼:")
         decision = {
             "version": 1,
             "created_at": utc_now_iso(),
@@ -643,6 +657,10 @@ def emit_decisions_from_checkin(
                 "checkin_id": checkin.get("checkin_id") or "",
             },
         }
+        if is_research_request:
+            decision["request"]["category"] = "research"
+            if issue_context is not None:
+                decision["issue_context"] = issue_context
         write_decision(ops_root, decision)
         existing_keys.add(k)
         created += 1
@@ -761,8 +779,135 @@ def unique_path_with_suffix(path: str) -> str:
         suffix += 1
 
 
+def has_research_request_blocker(checkin: Dict[str, Any]) -> bool:
+    needs = checkin.get("needs") or {}
+    if not isinstance(needs, dict):
+        return False
+    blockers = needs.get("blockers") or []
+    if not isinstance(blockers, list):
+        return False
+    for b in blockers:
+        if str(b).strip().startswith("調査依頼:"):
+            return True
+    return False
+
+
+def fetch_issue_context_for_research(toplevel: str, issue: int) -> Dict[str, Any]:
+    gh_repo = detect_gh_repo_from_origin(toplevel)
+    obj = gh_json(["-R", gh_repo, "issue", "view", str(issue), "--json", "number,title,url,labels"])
+    if not isinstance(obj, dict):
+        raise RuntimeError("gh issue view must return an object")
+
+    labels_raw = obj.get("labels") or []
+    labels: List[str] = []
+    if isinstance(labels_raw, list):
+        for l in labels_raw:
+            if isinstance(l, dict) and l.get("name"):
+                labels.append(str(l.get("name")))
+    labels = sorted(set([x for x in labels if str(x).strip()]))
+
+    return {
+        "repo": gh_repo,
+        "number": int(obj.get("number") or issue),
+        "title": str(obj.get("title") or "").strip(),
+        "url": str(obj.get("url") or "").strip(),
+        "labels": labels,
+    }
+
+
+def extract_respond_to_decision_id(checkin: Dict[str, Any]) -> str:
+    respond_to = checkin.get("respond_to") or {}
+    if not isinstance(respond_to, dict):
+        return ""
+    raw = str(respond_to.get("decision_id") or "").strip()
+    if not raw:
+        return ""
+    return normalize_decision_id(raw)
+
+
+def apply_research_response(ops_root: str, decision_id: str, checkin: Dict[str, Any]) -> str:
+    decision_path = find_decision_path_anywhere(ops_root, decision_id)
+    decision = read_yaml_file(decision_path)
+    if not isinstance(decision, dict):
+        raise RuntimeError(f"invalid decision YAML (expected mapping): {decision_path}")
+
+    if str(decision.get("type") or "") != "blocker":
+        raise RuntimeError(f"respond_to is supported only for blocker decisions: {decision_id}")
+    req = decision.get("request") or {}
+    if not isinstance(req, dict):
+        req = {}
+        decision["request"] = req
+    if str(req.get("category") or "") != "research":
+        raise RuntimeError(f"respond_to is supported only for research blocker decisions: {decision_id}")
+
+    issue_decision = decision.get("issue")
+    try:
+        issue_decision_int = int(issue_decision) if issue_decision is not None else None
+    except Exception:
+        issue_decision_int = None
+    issue_checkin_raw = checkin.get("issue")
+    try:
+        issue_checkin = int(issue_checkin_raw) if issue_checkin_raw is not None else None
+    except Exception:
+        issue_checkin = None
+    if issue_decision_int is not None and issue_checkin is not None and issue_decision_int != issue_checkin:
+        raise RuntimeError(
+            f"respond_to issue mismatch: decision.issue={issue_decision_int} != checkin.issue={issue_checkin} ({decision_id})"
+        )
+
+    response = {
+        "timestamp": str(checkin.get("timestamp") or ""),
+        "worker": str(checkin.get("worker") or ""),
+        "checkin_id": str(checkin.get("checkin_id") or ""),
+        "summary": str(checkin.get("summary") or ""),
+    }
+    if not response["checkin_id"]:
+        raise RuntimeError(f"invalid checkin (missing checkin_id) for respond_to: {decision_id}")
+
+    responses_raw = decision.get("responses") or []
+    responses: List[Dict[str, str]] = []
+    if isinstance(responses_raw, list):
+        for it in responses_raw:
+            if not isinstance(it, dict):
+                continue
+            cid = str(it.get("checkin_id") or "").strip()
+            if cid:
+                responses.append(
+                    {
+                        "timestamp": str(it.get("timestamp") or ""),
+                        "worker": str(it.get("worker") or ""),
+                        "checkin_id": cid,
+                        "summary": str(it.get("summary") or ""),
+                    }
+                )
+    if not any(r.get("checkin_id") == response["checkin_id"] for r in responses):
+        responses.append(response)
+    decision["responses"] = responses
+
+    if not str(decision.get("resolved_at") or "").strip():
+        decision["resolved_at"] = response["timestamp"]
+    if not str(decision.get("resolved_by") or "").strip():
+        decision["resolved_by"] = response["worker"]
+    if not str(decision.get("resolution_summary") or "").strip():
+        decision["resolution_summary"] = response["summary"]
+
+    atomic_write_yaml(decision_path, decision)
+
+    # Auto-archive (A): if the decision lives in queue, move it to archive/decisions.
+    queue_dir = os.path.join(ops_root, "queue", "decisions")
+    archive_dir = os.path.join(ops_root, "archive", "decisions")
+    if os.path.realpath(decision_path).startswith(os.path.realpath(queue_dir) + os.sep):
+        ensure_dir(archive_dir)
+        archive_base = os.path.join(archive_dir, os.path.basename(decision_path))
+        archive_path = unique_path_with_suffix(archive_base)
+        os.replace(decision_path, archive_path)
+        return archive_path
+
+    return decision_path
+
+
 def cmd_collect(_args: argparse.Namespace) -> int:
-    _abs_git_dir, common_abs, _toplevel = resolve_git_dirs()
+    _abs_git_dir, common_abs, toplevel = resolve_git_dirs()
     ops_root, state_path, dashboard_path = ensure_ops_layout(common_abs)
 
     lock_path = os.path.join(ops_root, "locks", "collect.lock")
@@ -802,7 +947,11 @@ def cmd_collect(_args: argparse.Namespace) -> int:
             archive_base = os.path.join(archive_dir, os.path.basename(path))
             items.append((path, archive_base, checkin, issue))
 
+        # Pass 1: process normal checkins first (may create decisions).
         for path, _archive_base, checkin, issue in items:
+            if extract_respond_to_decision_id(checkin):
+                continue
+
             entry = ensure_issue_entry(state, issue)
             entry["assigned_to"] = checkin.get("worker") or entry.get("assigned_to")
             phase_from_checkin = checkin.get("phase") or entry.get("phase") or "backlog"
@@ -818,6 +967,10 @@ def cmd_collect(_args: argparse.Namespace) -> int:
                 "id": checkin.get("checkin_id") or "",
                 "summary": checkin.get("summary") or "",
             }
+
+            issue_context: Optional[Dict[str, Any]] = None
+            if has_research_request_blocker(checkin):
+                issue_context = fetch_issue_context_for_research(toplevel, issue)
 
             changes = checkin.get("changes") or {}
             files_changed: List[str] = []
@@ -889,8 +1042,18 @@ def cmd_collect(_args: argparse.Namespace) -> int:
                 checkin=checkin,
                 existing_keys=dedupe_keys,
                 existing_paths=dedupe_paths,
+                issue_context=issue_context,
             )
 
+            record_recent_checkin(state, checkin)
+
+        # Pass 2: process out-of-band responses after decisions have been created.
+        for path, _archive_base, checkin, issue in items:
+            respond_to_decision_id = extract_respond_to_decision_id(checkin)
+            if not respond_to_decision_id:
+                continue
+            # Treat as an out-of-band response (do not mutate issue phase/assignee/progress).
+            apply_research_response(ops_root, respond_to_decision_id, checkin)
             record_recent_checkin(state, checkin)
 
         state["action_required"] = build_action_required_index_from_decisions(ops_root)
@@ -1525,6 +1688,11 @@ def cmd_checkin(args: argparse.Namespace) -> int:
     if not summary:
         raise RuntimeError("summary must be non-empty")
 
+    respond_to: Dict[str, str] = {}
+    respond_to_decision_raw = str(getattr(args, "respond_to_decision", "") or "").strip()
+    if respond_to_decision_raw:
+        respond_to["decision_id"] = normalize_decision_id(respond_to_decision_raw)
+
     ts_compact = parse_timestamp_for_id(args.timestamp) if args.timestamp else utc_now_compact()
     ts_iso = (
         args.timestamp
@@ -1612,6 +1780,8 @@ def cmd_checkin(args: argparse.Namespace) -> int:
         },
         "next": [],
     }
+    if respond_to:
+        obj["respond_to"] = respond_to
     if skills:
         obj["candidates"] = {"skills": skills}
 
@@ -1781,6 +1951,17 @@ def cmd_status(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_decision(args: argparse.Namespace) -> int:
+    _abs_git_dir, common_abs, _toplevel = resolve_git_dirs()
+    ops_root, _state_path, _dashboard_path = ensure_ops_layout(common_abs)
+
+    decision_id = normalize_decision_id(str(args.id or ""))
+    path = find_decision_path_anywhere(ops_root, decision_id)
+    with open(path, "r", encoding="utf-8") as fh:
+        sys.stdout.write(fh.read())
+    return 0
+
+
 def normalize_decision_id(raw: str) -> str:
     s = str(raw or "").strip()
     if s.endswith(".yaml"):
@@ -1809,6 +1990,31 @@ def find_decision_path(ops_root: str, decision_id: str) -> str:
     raise RuntimeError(
         f"decision not found: {decision_id}\n"
         "next: ensure a decision file exists under queue/decisions (e.g. run /collect to generate it)"
+    )
+
+
+def find_decision_path_anywhere(ops_root: str, decision_id: str) -> str:
+    queue_dir = os.path.join(ops_root, "queue", "decisions")
+    archive_dir = os.path.join(ops_root, "archive", "decisions")
+
+    direct_queue = os.path.join(queue_dir, f"{decision_id}.yaml")
+    if os.path.isfile(direct_queue):
+        return direct_queue
+    direct_archive = os.path.join(archive_dir, f"{decision_id}.yaml")
+    if os.path.isfile(direct_archive):
+        return direct_archive
+
+    # Fallback: scan both queue and archive by decision_id field (handles archive suffixes).
+    for path in list_decision_paths(ops_root) + list_archived_decision_paths(ops_root):
+        obj = read_yaml_file(path)
+        if not isinstance(obj, dict):
+            continue
+        if str(obj.get("decision_id") or "").strip() == decision_id:
+            return path
+
+    raise RuntimeError(
+        f"decision not found: {decision_id}\n"
+        "next: ensure a decision file exists under queue/decisions or archive/decisions (e.g. run /collect to generate it)"
     )
 
 
@@ -1973,6 +2179,7 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--needs-approval", action="store_true", help="Set needs.approval=true (approval required)")
     c.add_argument("--request-file", action="append", help="Append to needs.contract_expansion.requested_files (repeatable)")
     c.add_argument("--blocker", action="append", help="Append blocker reason to needs.blockers (repeatable)")
+    c.add_argument("--respond-to-decision", help="Decision id to respond to (e.g. DEC-... or DEC-....yaml)")
     c.add_argument("--skill-candidate", action="append", help="Skill candidate name (repeatable; requires --skill-summary)")
     c.add_argument("--skill-summary", action="append", help="Skill candidate summary (repeatable; must match --skill-candidate count)")
     c.set_defaults(func=cmd_checkin)
@@ -2010,6 +2217,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("status", help="Show ops dashboard (initializes if missing)")
     s.set_defaults(func=cmd_status)
+
+    d = sub.add_parser("decision", help="Show a decision YAML by id (queue or archive)")
+    d.add_argument("--id", required=True, help="Decision id (DEC-...)")
+    d.set_defaults(func=cmd_decision)
     return p
 
 

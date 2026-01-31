@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Add Shogun Ops (research loop) decision-centric research request/response flow.
+  - `scripts/shogun-ops.py`: Extend `/checkin` with `--respond-to-decision` to link a research response deterministically to a decision.
+  - `scripts/shogun-ops.py`: Treat `blocker` reasons prefixed with `調査依頼:` as research requests (`request.category=research`) and attach minimal `issue_context` (repo/number/title/url/labels).
+  - `scripts/shogun-ops.py`: During `/collect`, apply research responses to the referenced decision, auto-archive resolved decisions to `archive/decisions/`, and avoid mutating Issue progress/assignee from response checkins.
+  - `scripts/shogun-ops.py`: Add `decision --id DEC-...` to show decision YAML from `queue/decisions` or `archive/decisions`.
+  - `scripts/tests/test-shogun-ops.sh`: Add deterministic integration tests for research request decision creation, response application, and auto-archiving.
+  - `.agent/commands/checkin.md`: Document research request/response usage.
+
 ## [0.2.28] - 2026-01-30
 
 - Add Shogun Ops `/refactor-draft` (Lower-only) to write refactor candidate drafts under `queue/refactor-drafts/` for Middle to turn into Issues.

@@ -700,31 +700,34 @@ JSON
       *) body=$'## 概要\n\nfrom gh\n\n### 変更対象ファイル（推定）\n\n- [ ] `src/other.ts`\n' ;;
     esac
 
-    if [[ "$*" == *"--json"* ]]; then
-      if [[ "$*" == *"number,title,labels"* ]]; then
-        if [[ "$issue" == "1" ]]; then
-          cat <<'JSON'
-{"number":1,"title":"Alpha task","labels":[{"name":"parallel-ok"}]}
-JSON
-        elif [[ "$issue" == "2" ]]; then
-          cat <<'JSON'
-{"number":2,"title":"Beta task","labels":[{"name":"parallel-ok"}]}
-JSON
-        else
-          cat <<'JSON'
-{"number":999,"title":"Other","labels":[{"name":"parallel-ok"}]}
-JSON
-        fi
-      elif [[ "$*" == *"body"* ]]; then
-        printf '{"body":%s}\n' "$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' <<<"$body")"
-      else
-        echo "unsupported json fields" >&2
-        exit 2
-      fi
-    else
-      echo "unsupported view format" >&2
-      exit 2
-    fi
+	    if [[ "$*" == *"--json"* ]]; then
+	      if [[ "$*" == *"number,title,url,labels"* ]]; then
+	        # Used by collect for research issue_context.
+	        printf '{"number":%s,"title":"Issue %s","url":"https://github.com/%s/issues/%s","labels":[{"name":"parallel-ok"}]}\n' "$issue" "$issue" "${repo:-OWNER/REPO}" "$issue"
+	      elif [[ "$*" == *"number,title,labels"* ]]; then
+	        if [[ "$issue" == "1" ]]; then
+	          cat <<-'JSON'
+	{"number":1,"title":"Alpha task","labels":[{"name":"parallel-ok"}]}
+	JSON
+	        elif [[ "$issue" == "2" ]]; then
+	          cat <<-'JSON'
+	{"number":2,"title":"Beta task","labels":[{"name":"parallel-ok"}]}
+	JSON
+	        else
+	          cat <<-'JSON'
+	{"number":999,"title":"Other","labels":[{"name":"parallel-ok"}]}
+	JSON
+	        fi
+	      elif [[ "$*" == *"body"* ]]; then
+	        printf '{"body":%s}\n' "$(python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))' <<<"$body")"
+	      else
+	        echo "unsupported json fields" >&2
+	        exit 2
+	      fi
+	    else
+	      echo "unsupported view format" >&2
+	      exit 2
+	    fi
     ;;
   *)
     echo "unsupported subcommand: $sub" >&2
@@ -735,6 +738,92 @@ EOF
 chmod +x "$tmpdir/bin/gh"
 
 git remote add origin https://github.com/OWNER/REPO.git
+
+# Phase 4: research request decision -> response -> auto-archive (decision YAML is the SoT for LLM context)
+ts_rq="20260129T130000Z"
+checkin_rq_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 60 \
+  --worker "$worker" \
+  --timestamp "$ts_rq" \
+  --no-auto-files-changed \
+  --blocker "調査依頼: why is it failing?" \
+  -- \
+  research_request \
+)"
+test -f "$checkin_rq_path"
+
+collect_out_rq="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_out_rq" | rg -q '^processed=1$'
+
+decision_id_rq="$(python3 - "$common/agentic-sdd-ops/queue/decisions" <<'PY'
+import glob
+import os
+import sys
+import yaml
+
+decisions_dir = sys.argv[1]
+paths = sorted(glob.glob(os.path.join(decisions_dir, "*.yaml")))
+assert paths, "no decisions created"
+found = None
+for p in paths:
+    obj = yaml.safe_load(open(p, "r", encoding="utf-8")) or {}
+    if obj.get("type") != "blocker":
+        continue
+    req = obj.get("request") or {}
+    if isinstance(req, dict) and req.get("category") == "research":
+        found = obj
+        break
+assert found is not None, "no research blocker decision"
+ctx = found.get("issue_context") or {}
+assert ctx.get("repo") == "OWNER/REPO", ctx
+assert ctx.get("number") == 18, ctx
+assert "https://github.com/OWNER/REPO/issues/18" in str(ctx.get("url") or ""), ctx
+print(found["decision_id"])
+PY
+)"
+test -n "$decision_id_rq"
+
+ts_rsp="20260129T130100Z"
+checkin_rsp_path="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" checkin 18 implementing 61 \
+  --worker "researcher1" \
+  --timestamp "$ts_rsp" \
+  --no-auto-files-changed \
+  --respond-to-decision "$decision_id_rq" \
+  -- \
+  research_result_summary \
+)"
+test -f "$checkin_rsp_path"
+
+collect_out_rsp="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" collect)"
+printf '%s\n' "$collect_out_rsp" | rg -q '^processed=1$'
+
+test ! -f "$common/agentic-sdd-ops/queue/decisions/$decision_id_rq.yaml"
+python3 - "$common/agentic-sdd-ops/archive/decisions" "$decision_id_rq" <<'PY'
+import glob
+import os
+import sys
+import yaml
+
+archive_dir, decision_id = sys.argv[1], sys.argv[2]
+paths = sorted(glob.glob(os.path.join(archive_dir, "*.yaml")))
+assert paths, "no archived decisions"
+
+hit = None
+for p in paths:
+    obj = yaml.safe_load(open(p, "r", encoding="utf-8")) or {}
+    if obj.get("decision_id") == decision_id:
+        hit = obj
+        break
+assert hit is not None, "archived decision not found"
+assert hit.get("resolved_at") == "2026-01-29T13:01:00Z", hit.get("resolved_at")
+assert hit.get("resolved_by") == "researcher1", hit.get("resolved_by")
+assert hit.get("resolution_summary") == "research_result_summary"
+responses = hit.get("responses") or []
+assert any(isinstance(r, dict) and r.get("worker") == "researcher1" for r in responses), responses
+PY
+
+decision_out="$(python3 "$REPO_ROOT/scripts/shogun-ops.py" decision --id "$decision_id_rq")"
+printf '%s\n' "$decision_out" | rg -q "^decision_id: $decision_id_rq$"
+printf '%s\n' "$decision_out" | rg -q "^resolution_summary: research_result_summary$"
 
 # Overlap case: issues 1 and 2 overlap on src/shared.ts => decision emitted, no orders.
 sup_out="$(env PATH="$tmpdir/bin:$PATH" python3 "$REPO_ROOT/scripts/shogun-ops.py" supervise --once --gh-repo OWNER/REPO)"
