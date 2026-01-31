@@ -32,7 +32,9 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     # to avoid missing Python changes in non-tip commits (including when pre-commit was bypassed).
     commits="$(git rev-list "$local_sha" --not --remotes 2>/dev/null || true)"
     if [ -z "$commits" ]; then
-      commits="$local_sha"
+      # No new commits to push (the ref points to an already-remote commit).
+      # Skip gating to avoid blocking branch creation for already-verified commits.
+      continue
     fi
     for c in $commits; do
       if git diff-tree --no-commit-id --name-only -r --root "$c" 2>/dev/null \
