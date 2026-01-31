@@ -33,6 +33,19 @@ Optional: enable GitHub-hosted CI (GitHub Actions) via `/agentic-sdd --ci github
 
 ---
 
+## External multi-agent harnesses
+
+If you are using an external multi-agent harness, treat it as the **single orchestration layer** (agent lifecycle, task queue, state/progress tracking, parallel execution).
+
+Use Agentic-SDD as the workflow/rules layer (PRD → Epic → Issues → estimation gates → review gates), and tailor your project's `AGENTS.md` and `skills/` to match the harness's operating model.
+
+In other words:
+- External harness = orchestration SoT (state/progress)
+- Agentic-SDD = spec-driven workflow + quality gates
+- Avoid mixing orchestration layers (do not enable `--shogun-ops` in this case)
+
+---
+
 ## Parallel Implementation (git worktree)
 
 Agentic-SDD supports deterministic parallel implementation by running one Issue per branch/worktree.
@@ -139,12 +152,7 @@ Optional (opt-in): install a GitHub Actions CI template (tests + lint + typechec
 Optional (opt-in): enable Shogun Ops (checkin/collect/supervise + ops scripts).
 Do NOT enable this when you are using an external multi-agent harness (e.g. Oh My OpenCode).
 
-When you are using an external multi-agent harness, we recommend treating that harness as the single orchestration layer (agent lifecycle, task queue, state/progress tracking, parallel execution). Use Agentic-SDD as the workflow/rules layer (PRD → Epic → Issues → estimation gates → review gates), and tailor your project's `AGENTS.md` and `skills/` to match the harness's operating model.
-
-In other words:
-- External harness = orchestration SoT (state/progress)
-- Agentic-SDD = spec-driven workflow + quality gates
-- Avoid mixing orchestration layers (do not enable `--shogun-ops` in this case)
+See "External multi-agent harnesses" above for the recommended responsibility split and adaptation guidance.
 
 ```
 /agentic-sdd --shogun-ops opencode minimal
