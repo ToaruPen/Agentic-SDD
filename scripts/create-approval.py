@@ -18,7 +18,9 @@ def eprint(msg: str) -> None:
 
 def now_utc_z() -> str:
     # Agentic-SDD datetime rule: YYYY-MM-DDTHH:mm:ssZ (UTC, no milliseconds).
-    return datetime.now(timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return (
+        datetime.now(timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+    )
 
 
 def git_repo_root() -> str:
@@ -80,7 +82,9 @@ def main() -> int:
     )
     parser.add_argument("--issue", type=int, required=True, help="Issue number")
     parser.add_argument("--mode", required=True, help="impl|tdd|custom")
-    parser.add_argument("--approver", default="user", help="Approver label (default: user)")
+    parser.add_argument(
+        "--approver", default="user", help="Approver label (default: user)"
+    )
     parser.add_argument(
         "--approved-at",
         default="",

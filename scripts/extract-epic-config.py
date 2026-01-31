@@ -73,7 +73,7 @@ def extract_tech_stack(text: str) -> Dict[str, Any]:
         "framework": None,
         "database": None,
         "infrastructure": None,
-        "raw": tech_items
+        "raw": tech_items,
     }
 
     for item in tech_items:
@@ -100,14 +100,16 @@ def extract_q6_requirements(text: str) -> Dict[str, Any]:
         "performance": False,
         "observability": False,
         "availability": False,
-        "details": {}
+        "details": {},
     }
 
     # セキュリティ（Q6-5）
     security_section = extract_section(text, r"5\.2\s+セキュリティ設計")
     if security_section:
         # 行頭の「PRD Q6-X:」パターンを検索（ヘッダー内の「Yesの場合必須」を除外）
-        q6_match = re.search(r"^PRD Q6-5:\s*(Yes|No)\s*$", security_section, re.IGNORECASE | re.MULTILINE)
+        q6_match = re.search(
+            r"^PRD Q6-5:\s*(Yes|No)\s*$", security_section, re.IGNORECASE | re.MULTILINE
+        )
         if q6_match and q6_match.group(1).lower() == "yes":
             result["security"] = True
             result["details"]["security"] = extract_security_details(security_section)
@@ -115,7 +117,9 @@ def extract_q6_requirements(text: str) -> Dict[str, Any]:
     # パフォーマンス（Q6-7）
     perf_section = extract_section(text, r"5\.1\s+パフォーマンス設計")
     if perf_section:
-        q6_match = re.search(r"^PRD Q6-7:\s*(Yes|No)\s*$", perf_section, re.IGNORECASE | re.MULTILINE)
+        q6_match = re.search(
+            r"^PRD Q6-7:\s*(Yes|No)\s*$", perf_section, re.IGNORECASE | re.MULTILINE
+        )
         if q6_match and q6_match.group(1).lower() == "yes":
             result["performance"] = True
             result["details"]["performance"] = extract_performance_details(perf_section)
@@ -123,18 +127,26 @@ def extract_q6_requirements(text: str) -> Dict[str, Any]:
     # 観測性（Q6-6）
     obs_section = extract_section(text, r"5\.3\s+観測性設計")
     if obs_section:
-        q6_match = re.search(r"^PRD Q6-6:\s*(Yes|No)\s*$", obs_section, re.IGNORECASE | re.MULTILINE)
+        q6_match = re.search(
+            r"^PRD Q6-6:\s*(Yes|No)\s*$", obs_section, re.IGNORECASE | re.MULTILINE
+        )
         if q6_match and q6_match.group(1).lower() == "yes":
             result["observability"] = True
-            result["details"]["observability"] = extract_observability_details(obs_section)
+            result["details"]["observability"] = extract_observability_details(
+                obs_section
+            )
 
     # 可用性（Q6-8）
     avail_section = extract_section(text, r"5\.4\s+可用性設計")
     if avail_section:
-        q6_match = re.search(r"^PRD Q6-8:\s*(Yes|No)\s*$", avail_section, re.IGNORECASE | re.MULTILINE)
+        q6_match = re.search(
+            r"^PRD Q6-8:\s*(Yes|No)\s*$", avail_section, re.IGNORECASE | re.MULTILINE
+        )
         if q6_match and q6_match.group(1).lower() == "yes":
             result["availability"] = True
-            result["details"]["availability"] = extract_availability_details(avail_section)
+            result["details"]["availability"] = extract_availability_details(
+                avail_section
+            )
 
     return result
 
@@ -146,7 +158,7 @@ def extract_security_details(section: str) -> Dict[str, Any]:
         "auth_expiry": None,
         "password_hash": None,
         "pii_list": [],
-        "data_protection": []
+        "data_protection": [],
     }
 
     # 認証方式
@@ -166,35 +178,38 @@ def extract_security_details(section: str) -> Dict[str, Any]:
             line = line.strip("- ").strip()
             if ": " in line:
                 data_type, protection = line.split(": ", 1)
-                details["data_protection"].append({
-                    "type": data_type.strip(),
-                    "protection": protection.strip()
-                })
+                details["data_protection"].append(
+                    {"type": data_type.strip(), "protection": protection.strip()}
+                )
                 # パスワードハッシュの検出
                 if "パスワード" in data_type.lower():
-                    hash_match = re.search(r"(bcrypt|argon2|scrypt|pbkdf2)", protection.lower())
+                    hash_match = re.search(
+                        r"(bcrypt|argon2|scrypt|pbkdf2)", protection.lower()
+                    )
                     if hash_match:
-                        details["password_hash"] = {
-                            "algorithm": hash_match.group(1)
-                        }
+                        details["password_hash"] = {"algorithm": hash_match.group(1)}
                 # PIIの検出
-                pii_keywords = ["メール", "email", "名前", "name", "住所", "address", "電話", "phone"]
+                pii_keywords = [
+                    "メール",
+                    "email",
+                    "名前",
+                    "name",
+                    "住所",
+                    "address",
+                    "電話",
+                    "phone",
+                ]
                 if any(kw in data_type.lower() for kw in pii_keywords):
-                    details["pii_list"].append({
-                        "name": data_type.strip(),
-                        "protection": protection.strip()
-                    })
+                    details["pii_list"].append(
+                        {"name": data_type.strip(), "protection": protection.strip()}
+                    )
 
     return details
 
 
 def extract_performance_details(section: str) -> Dict[str, Any]:
     """パフォーマンスセクションの詳細を抽出"""
-    details = {
-        "targets": [],
-        "measurement": {},
-        "bottlenecks": []
-    }
+    details = {"targets": [], "measurement": {}, "bottlenecks": []}
 
     # 対象操作
     target_section = re.search(r"対象操作:\n((?:- [^\n]+\n?)+)", section)
@@ -203,10 +218,9 @@ def extract_performance_details(section: str) -> Dict[str, Any]:
             line = line.strip("- ").strip()
             if ": " in line:
                 operation, target = line.split(": ", 1)
-                details["targets"].append({
-                    "operation": operation.strip(),
-                    "target": target.strip()
-                })
+                details["targets"].append(
+                    {"operation": operation.strip(), "target": target.strip()}
+                )
 
     # 測定方法
     tool_match = re.search(r"ツール:\s*\[?([^\]\n]+)\]?", section)
@@ -222,11 +236,7 @@ def extract_performance_details(section: str) -> Dict[str, Any]:
 
 def extract_observability_details(section: str) -> Dict[str, Any]:
     """観測性セクションの詳細を抽出"""
-    details = {
-        "logging": {},
-        "metrics": [],
-        "alerts": []
-    }
+    details = {"logging": {}, "metrics": [], "alerts": []}
 
     # ログ設定
     output_match = re.search(r"出力先:\s*\[?([^\]\n]+)\]?", section)
@@ -246,11 +256,7 @@ def extract_observability_details(section: str) -> Dict[str, Any]:
 
 def extract_availability_details(section: str) -> Dict[str, Any]:
     """可用性セクションの詳細を抽出"""
-    details = {
-        "slo": {},
-        "recovery": {},
-        "rollback": {}
-    }
+    details = {"slo": {}, "recovery": {}, "rollback": {}}
 
     # SLO
     uptime_match = re.search(r"稼働率:\s*\[?([^\]\n]+)\]?", section)
@@ -281,22 +287,20 @@ def extract_api_design(text: str) -> List[Dict[str, str]]:
     for item in api_items:
         endpoint = item.get("エンドポイント", "")
         if endpoint and endpoint != "[例: /api/users]":
-            apis.append({
-                "endpoint": endpoint,
-                "method": item.get("メソッド", ""),
-                "description": item.get("説明", "")
-            })
+            apis.append(
+                {
+                    "endpoint": endpoint,
+                    "method": item.get("メソッド", ""),
+                    "description": item.get("説明", ""),
+                }
+            )
 
     return apis
 
 
 def extract_meta_info(text: str) -> Dict[str, str]:
     """メタ情報を抽出"""
-    meta = {
-        "prd_path": None,
-        "created_date": None,
-        "status": None
-    }
+    meta = {"prd_path": None, "created_date": None, "status": None}
 
     # 参照PRD
     prd_match = re.search(r"参照PRD:\s*`?([^`\n]+)`?", text)
@@ -325,29 +329,19 @@ def extract_epic_config(epic_path: str) -> Dict[str, Any]:
         "meta": extract_meta_info(text),
         "tech_stack": extract_tech_stack(text),
         "requirements": extract_q6_requirements(text),
-        "api_design": extract_api_design(text)
+        "api_design": extract_api_design(text),
     }
 
     return config
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Epic情報を抽出してJSON形式で出力"
-    )
+    parser = argparse.ArgumentParser(description="Epic情報を抽出してJSON形式で出力")
+    parser.add_argument("epic_file", help="Epicファイルのパス")
     parser.add_argument(
-        "epic_file",
-        help="Epicファイルのパス"
+        "-o", "--output", help="出力ファイルのパス（指定しない場合は標準出力）"
     )
-    parser.add_argument(
-        "-o", "--output",
-        help="出力ファイルのパス（指定しない場合は標準出力）"
-    )
-    parser.add_argument(
-        "--pretty",
-        action="store_true",
-        help="整形して出力"
-    )
+    parser.add_argument("--pretty", action="store_true", help="整形して出力")
 
     args = parser.parse_args()
 

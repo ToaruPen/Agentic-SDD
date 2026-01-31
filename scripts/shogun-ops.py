@@ -30,7 +30,12 @@ def run_git(args: List[str]) -> str:
 
 
 def utc_now_iso() -> str:
-    return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return (
+        datetime.datetime.now(datetime.timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 def resolve_git_dirs() -> Tuple[str, str, str]:
@@ -39,7 +44,9 @@ def resolve_git_dirs() -> Tuple[str, str, str]:
 
     common_abs = ""
     try:
-        common_abs = run_git(["rev-parse", "--path-format=absolute", "--git-common-dir"])
+        common_abs = run_git(
+            ["rev-parse", "--path-format=absolute", "--git-common-dir"]
+        )
     except RuntimeError:
         common_abs = ""
 
@@ -110,8 +117,15 @@ def default_config_yaml() -> Dict[str, Any]:
     return {
         "version": 1,
         "policy": {
-            "parallel": {"enabled": True, "max_workers": 3, "require_parallel_ok_label": True},
-            "impl_mode": {"default": "impl", "force_tdd_labels": ["tdd", "bug", "high-risk"]},
+            "parallel": {
+                "enabled": True,
+                "max_workers": 3,
+                "require_parallel_ok_label": True,
+            },
+            "impl_mode": {
+                "default": "impl",
+                "force_tdd_labels": ["tdd", "bug", "high-risk"],
+            },
             "checkin": {"required_on_phase_change": True},
         },
         "workers": [{"id": "ashigaru1"}, {"id": "ashigaru2"}, {"id": "ashigaru3"}],
@@ -378,12 +392,16 @@ def list_archived_decision_paths(ops_root: str) -> List[str]:
 
 
 def decision_dedupe_key(kind: str, issue: int, worker: str, payload: str) -> str:
-    raw = f"{kind}|issue={issue}|worker={worker}|{payload}".encode("utf-8", errors="strict")
+    raw = f"{kind}|issue={issue}|worker={worker}|{payload}".encode(
+        "utf-8", errors="strict"
+    )
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
 def skill_candidate_dedupe_key(issue: int, name: str, summary: str) -> str:
-    raw = f"skill_candidate|issue={issue}|name={name}|summary={summary}".encode("utf-8", errors="strict")
+    raw = f"skill_candidate|issue={issue}|name={name}|summary={summary}".encode(
+        "utf-8", errors="strict"
+    )
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
@@ -445,7 +463,11 @@ def build_action_required_index_from_decisions(ops_root: str) -> List[Dict[str, 
                             s = str(sub.get("worker") or "").strip()
                             if s and s not in worker_ids:
                                 worker_ids.append(s)
-                worker = ", ".join(worker_ids) if worker_ids else str(request.get("worker") or "")
+                worker = (
+                    ", ".join(worker_ids)
+                    if worker_ids
+                    else str(request.get("worker") or "")
+                )
             else:
                 worker = str(request.get("worker") or "")
             summary = str(request.get("reason") or request.get("summary") or "")
@@ -466,6 +488,7 @@ def build_action_required_index_from_decisions(ops_root: str) -> List[Dict[str, 
     items.sort(key=sort_key, reverse=True)
     return items
 
+
 def build_skill_candidates_index_from_decisions(ops_root: str) -> List[Dict[str, Any]]:
     items: List[Dict[str, Any]] = []
     for path in list_decision_paths(ops_root):
@@ -485,7 +508,9 @@ def build_skill_candidates_index_from_decisions(ops_root: str) -> List[Dict[str,
             request = {}
 
         name = str(request.get("name") or obj.get("name") or "").strip()
-        summary = str(request.get("summary") or obj.get("summary") or request.get("reason") or "").strip()
+        summary = str(
+            request.get("summary") or obj.get("summary") or request.get("reason") or ""
+        ).strip()
         items.append(
             {
                 "decision_id": str(decision_id),
@@ -561,7 +586,10 @@ def ensure_blocked_reason(state: Dict[str, Any], issue: int, reason: str) -> Non
     for it in blocked:
         if not isinstance(it, dict):
             continue
-        if str(it.get("issue") or "") == key_issue and str(it.get("reason") or "") == reason:
+        if (
+            str(it.get("issue") or "") == key_issue
+            and str(it.get("reason") or "") == reason
+        ):
             return
     blocked.append({"issue": key_issue, "reason": reason})
 
@@ -674,13 +702,19 @@ def emit_decisions_from_checkin(
             raise RuntimeError("invalid checkin candidates.skills (expected an array)")
         for it in skills_raw:
             if not isinstance(it, dict):
-                raise RuntimeError("invalid checkin candidates.skills[] (expected objects)")
+                raise RuntimeError(
+                    "invalid checkin candidates.skills[] (expected objects)"
+                )
             name = str(it.get("name") or "").strip()
             summary = str(it.get("summary") or "").strip()
             if not name:
-                raise RuntimeError("invalid checkin candidates.skills[].name (required)")
+                raise RuntimeError(
+                    "invalid checkin candidates.skills[].name (required)"
+                )
             if not summary:
-                raise RuntimeError("invalid checkin candidates.skills[].summary (required)")
+                raise RuntimeError(
+                    "invalid checkin candidates.skills[].summary (required)"
+                )
             k = skill_candidate_dedupe_key(issue=issue, name=name, summary=summary)
             checkin_id = str(checkin.get("checkin_id") or "").strip()
             submitter = {
@@ -696,9 +730,13 @@ def emit_decisions_from_checkin(
                     continue
                 obj = read_yaml_file(path)
                 if not isinstance(obj, dict):
-                    raise RuntimeError(f"invalid decision object (expected a mapping): {path}")
+                    raise RuntimeError(
+                        f"invalid decision object (expected a mapping): {path}"
+                    )
                 if str(obj.get("type") or "") != "skill_candidate":
-                    raise RuntimeError(f"dedupe_key collision across decision types: {path}")
+                    raise RuntimeError(
+                        f"dedupe_key collision across decision types: {path}"
+                    )
                 req = obj.get("request") or {}
                 if not isinstance(req, dict):
                     req = {}
@@ -728,15 +766,22 @@ def emit_decisions_from_checkin(
                         ts = str(sub.get("timestamp") or "")
                         if not w:
                             continue
-                        submitters.append({"worker": w, "checkin_id": cid, "timestamp": ts})
+                        submitters.append(
+                            {"worker": w, "checkin_id": cid, "timestamp": ts}
+                        )
                 if not submitters:
                     w0 = str(req.get("worker") or "").strip()
                     cid0 = str(req.get("checkin_id") or "").strip()
                     if w0:
-                        submitters.append({"worker": w0, "checkin_id": cid0, "timestamp": ""})
+                        submitters.append(
+                            {"worker": w0, "checkin_id": cid0, "timestamp": ""}
+                        )
 
                 key = f"{worker}|{checkin_id}"
-                seen = set(f"{s.get('worker','')}|{s.get('checkin_id','')}" for s in submitters)
+                seen = set(
+                    f"{s.get('worker', '')}|{s.get('checkin_id', '')}"
+                    for s in submitters
+                )
                 if key not in seen:
                     submitters.append(submitter)
                     req["submitters"] = submitters
@@ -761,7 +806,9 @@ def emit_decisions_from_checkin(
             }
             write_decision(ops_root, decision)
             existing_keys.add(k)
-            existing_paths[k] = os.path.join(ops_root, "queue", "decisions", f"{decision.get('decision_id')}.yaml")
+            existing_paths[k] = os.path.join(
+                ops_root, "queue", "decisions", f"{decision.get('decision_id')}.yaml"
+            )
             created += 1
 
     return created
@@ -794,7 +841,17 @@ def has_research_request_blocker(checkin: Dict[str, Any]) -> bool:
 
 def fetch_issue_context_for_research(toplevel: str, issue: int) -> Dict[str, Any]:
     gh_repo = detect_gh_repo_from_origin(toplevel)
-    obj = gh_json(["-R", gh_repo, "issue", "view", str(issue), "--json", "number,title,url,labels"])
+    obj = gh_json(
+        [
+            "-R",
+            gh_repo,
+            "issue",
+            "view",
+            str(issue),
+            "--json",
+            "number,title,url,labels",
+        ]
+    )
     if not isinstance(obj, dict):
         raise RuntimeError("gh issue view must return an object")
 
@@ -825,20 +882,26 @@ def extract_respond_to_decision_id(checkin: Dict[str, Any]) -> str:
     return normalize_decision_id(raw)
 
 
-def apply_research_response(ops_root: str, decision_id: str, checkin: Dict[str, Any]) -> str:
+def apply_research_response(
+    ops_root: str, decision_id: str, checkin: Dict[str, Any]
+) -> str:
     decision_path = find_decision_path_anywhere(ops_root, decision_id)
     decision = read_yaml_file(decision_path)
     if not isinstance(decision, dict):
         raise RuntimeError(f"invalid decision YAML (expected mapping): {decision_path}")
 
     if str(decision.get("type") or "") != "blocker":
-        raise RuntimeError(f"respond_to is supported only for blocker decisions: {decision_id}")
+        raise RuntimeError(
+            f"respond_to is supported only for blocker decisions: {decision_id}"
+        )
     req = decision.get("request") or {}
     if not isinstance(req, dict):
         req = {}
         decision["request"] = req
     if str(req.get("category") or "") != "research":
-        raise RuntimeError(f"respond_to is supported only for research blocker decisions: {decision_id}")
+        raise RuntimeError(
+            f"respond_to is supported only for research blocker decisions: {decision_id}"
+        )
 
     issue_decision = decision.get("issue")
     try:
@@ -847,10 +910,16 @@ def apply_research_response(ops_root: str, decision_id: str, checkin: Dict[str, 
         issue_decision_int = None
     issue_checkin_raw = checkin.get("issue")
     try:
-        issue_checkin = int(issue_checkin_raw) if issue_checkin_raw is not None else None
+        issue_checkin = (
+            int(issue_checkin_raw) if issue_checkin_raw is not None else None
+        )
     except Exception:
         issue_checkin = None
-    if issue_decision_int is not None and issue_checkin is not None and issue_decision_int != issue_checkin:
+    if (
+        issue_decision_int is not None
+        and issue_checkin is not None
+        and issue_decision_int != issue_checkin
+    ):
         raise RuntimeError(
             f"respond_to issue mismatch: decision.issue={issue_decision_int} != checkin.issue={issue_checkin} ({decision_id})"
         )
@@ -862,7 +931,9 @@ def apply_research_response(ops_root: str, decision_id: str, checkin: Dict[str, 
         "summary": str(checkin.get("summary") or ""),
     }
     if not response["checkin_id"]:
-        raise RuntimeError(f"invalid checkin (missing checkin_id) for respond_to: {decision_id}")
+        raise RuntimeError(
+            f"invalid checkin (missing checkin_id) for respond_to: {decision_id}"
+        )
 
     responses_raw = decision.get("responses") or []
     responses: List[Dict[str, str]] = []
@@ -920,8 +991,12 @@ def cmd_collect(_args: argparse.Namespace) -> int:
         if "skill_candidates_pending" not in state:
             state["skill_candidates_pending"] = []
         if not checkin_paths:
-            state["action_required"] = build_action_required_index_from_decisions(ops_root)
-            state["skill_candidates_pending"] = build_skill_candidates_index_from_decisions(ops_root)
+            state["action_required"] = build_action_required_index_from_decisions(
+                ops_root
+            )
+            state["skill_candidates_pending"] = (
+                build_skill_candidates_index_from_decisions(ops_root)
+            )
             state["updated_at"] = utc_now_iso()
             atomic_write_yaml(state_path, state)
             atomic_write_text(dashboard_path, render_dashboard_md(state))
@@ -1001,15 +1076,26 @@ def cmd_collect(_args: argparse.Namespace) -> int:
 
             requested_files: List[str] = []
             if allowed_files:
-                requested_files = [f for f in files_changed if f and not match_any_glob(f, allowed_files)]
+                requested_files = [
+                    f
+                    for f in files_changed
+                    if f and not match_any_glob(f, allowed_files)
+                ]
             requested_files = sorted(set(requested_files))
-            forbidden_hits = sorted(set([f for f in files_changed if match_any_glob(f, forbidden_files)]))
+            forbidden_hits = sorted(
+                set([f for f in files_changed if match_any_glob(f, forbidden_files)])
+            )
             if forbidden_hits:
                 requested_files = sorted(set(requested_files + forbidden_hits))
 
             if forbidden_hits or (requested_files and allowed_files):
                 payload = "requested_files=" + ",".join(requested_files)
-                k = decision_dedupe_key("contract_expansion", issue, str(checkin.get("worker") or ""), payload)
+                k = decision_dedupe_key(
+                    "contract_expansion",
+                    issue,
+                    str(checkin.get("worker") or ""),
+                    payload,
+                )
                 if k not in dedupe_keys:
                     decision = {
                         "version": 1,
@@ -1021,7 +1107,12 @@ def cmd_collect(_args: argparse.Namespace) -> int:
                             "worker": str(checkin.get("worker") or ""),
                             "reason": "契約逸脱を検知（collect: changes.files_changed vs contract.allowed_files）",
                             "requested_files": requested_files,
-                            "options": ["拡張", "差し戻し", "Issue分割", "別Issueへ移動"],
+                            "options": [
+                                "拡張",
+                                "差し戻し",
+                                "Issue分割",
+                                "別Issueへ移動",
+                            ],
                             "severity": "major" if forbidden_hits else "normal",
                             "forbidden_files": forbidden_hits,
                             "checkin_id": checkin.get("checkin_id") or "",
@@ -1057,7 +1148,9 @@ def cmd_collect(_args: argparse.Namespace) -> int:
             record_recent_checkin(state, checkin)
 
         state["action_required"] = build_action_required_index_from_decisions(ops_root)
-        state["skill_candidates_pending"] = build_skill_candidates_index_from_decisions(ops_root)
+        state["skill_candidates_pending"] = build_skill_candidates_index_from_decisions(
+            ops_root
+        )
         state["updated_at"] = utc_now_iso()
         atomic_write_yaml(state_path, state)
 
@@ -1097,9 +1190,14 @@ def slugify(s: str) -> str:
 
 def detect_gh_repo_from_origin(toplevel: str) -> str:
     try:
-        url = subprocess.check_output(
-            ["git", "-C", toplevel, "remote", "get-url", "origin"], stderr=subprocess.STDOUT
-        ).decode("utf-8", errors="replace").strip()
+        url = (
+            subprocess.check_output(
+                ["git", "-C", toplevel, "remote", "get-url", "origin"],
+                stderr=subprocess.STDOUT,
+            )
+            .decode("utf-8", errors="replace")
+            .strip()
+        )
     except subprocess.CalledProcessError as exc:
         msg = exc.output.decode("utf-8", errors="replace").strip()
         raise RuntimeError(f"failed to get origin remote URL (set --gh-repo): {msg}")
@@ -1188,7 +1286,20 @@ def ensure_refactor_labels(gh_repo: str, labels: List[str]) -> None:
         if not color:
             color = "C5DEF5"
         desc = f"auto-managed by Agentic-SDD (refactor draft): {n}"
-        gh_run(["-R", gh_repo, "label", "create", n, "--color", color, "--description", desc, "--force"])
+        gh_run(
+            [
+                "-R",
+                gh_repo,
+                "label",
+                "create",
+                n,
+                "--color",
+                color,
+                "--description",
+                desc,
+                "--force",
+            ]
+        )
 
 
 def render_refactor_issue_body(draft: Dict[str, Any], draft_path: str) -> str:
@@ -1287,11 +1398,23 @@ def read_ops_config(ops_root: str) -> Dict[str, Any]:
     return read_yaml_file(cfg_path)
 
 
-def select_targets(gh_repo: str, config: Dict[str, Any], targets: List[int]) -> List[Dict[str, Any]]:
+def select_targets(
+    gh_repo: str, config: Dict[str, Any], targets: List[int]
+) -> List[Dict[str, Any]]:
     if targets:
         selected: List[Dict[str, Any]] = []
         for n in targets:
-            obj = gh_json(["-R", gh_repo, "issue", "view", str(n), "--json", "number,title,labels"])
+            obj = gh_json(
+                [
+                    "-R",
+                    gh_repo,
+                    "issue",
+                    "view",
+                    str(n),
+                    "--json",
+                    "number,title,labels",
+                ]
+            )
             if not isinstance(obj, dict):
                 raise RuntimeError("gh issue view must return an object")
             selected.append(obj)
@@ -1300,7 +1423,20 @@ def select_targets(gh_repo: str, config: Dict[str, Any], targets: List[int]) -> 
     policy = (config.get("policy") or {}).get("parallel") or {}
     require_label = bool(policy.get("require_parallel_ok_label", True))
 
-    items = gh_json(["-R", gh_repo, "issue", "list", "--state", "open", "--limit", "100", "--json", "number,title,labels"])
+    items = gh_json(
+        [
+            "-R",
+            gh_repo,
+            "issue",
+            "list",
+            "--state",
+            "open",
+            "--limit",
+            "100",
+            "--json",
+            "number,title,labels",
+        ]
+    )
     if not isinstance(items, list):
         raise RuntimeError("gh issue list must return an array")
 
@@ -1322,8 +1458,15 @@ def select_targets(gh_repo: str, config: Dict[str, Any], targets: List[int]) -> 
     return out
 
 
-def run_worktree_check(toplevel: str, gh_repo: str, issues: List[int]) -> Tuple[int, str]:
-    cmd = [os.path.join(toplevel, "scripts", "worktree.sh"), "check", "--gh-repo", gh_repo]
+def run_worktree_check(
+    toplevel: str, gh_repo: str, issues: List[int]
+) -> Tuple[int, str]:
+    cmd = [
+        os.path.join(toplevel, "scripts", "worktree.sh"),
+        "check",
+        "--gh-repo",
+        gh_repo,
+    ]
     for n in issues:
         cmd.extend(["--issue", str(n)])
     try:
@@ -1336,9 +1479,22 @@ def run_worktree_check(toplevel: str, gh_repo: str, issues: List[int]) -> Tuple[
 
 def extract_allowed_files(toplevel: str, gh_repo: str, issue: int) -> List[str]:
     extractor = os.path.join(toplevel, "scripts", "extract-issue-files.py")
-    cmd = ["python3", extractor, "--repo-root", toplevel, "--issue", str(issue), "--gh-repo", gh_repo, "--mode", "section"]
+    cmd = [
+        "python3",
+        extractor,
+        "--repo-root",
+        toplevel,
+        "--issue",
+        str(issue),
+        "--gh-repo",
+        gh_repo,
+        "--mode",
+        "section",
+    ]
     try:
-        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode("utf-8", errors="replace")
+        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode(
+            "utf-8", errors="replace"
+        )
     except subprocess.CalledProcessError as exc:
         msg = exc.output.decode("utf-8", errors="replace").strip()
         raise RuntimeError(f"failed to extract allowed_files for issue {issue}:\n{msg}")
@@ -1355,7 +1511,9 @@ def write_decision(ops_root: str, decision: Dict[str, Any]) -> str:
     base_id = decision.get("decision_id") or f"DEC-{ts}-{issue_part}"
     while True:
         _DECISION_SEQ += 1
-        decision_id = base_id if decision.get("decision_id") else f"{base_id}-{_DECISION_SEQ:03d}"
+        decision_id = (
+            base_id if decision.get("decision_id") else f"{base_id}-{_DECISION_SEQ:03d}"
+        )
         path = os.path.join(decisions_dir, f"{decision_id}.yaml")
         if not os.path.exists(path):
             decision["decision_id"] = decision_id
@@ -1412,7 +1570,10 @@ def cmd_supervise(args: argparse.Namespace) -> int:
                 "version": 1,
                 "created_at": utc_now_iso(),
                 "type": "config_invalid_workers",
-                "request": {"reason": "config.yaml の workers が不正（許可: A-Z a-z 0-9 _ -）", "workers": invalid_worker_ids},
+                "request": {
+                    "reason": "config.yaml の workers が不正（許可: A-Z a-z 0-9 _ -）",
+                    "workers": invalid_worker_ids,
+                },
             },
         )
         state = read_yaml_file(state_path)
@@ -1489,7 +1650,10 @@ def cmd_supervise(args: argparse.Namespace) -> int:
                     "created_at": utc_now_iso(),
                     "issue": n,
                     "type": "missing_change_targets",
-                    "request": {"reason": "Issue本文から変更対象ファイル（推定）を抽出できない", "details": str(exc)},
+                    "request": {
+                        "reason": "Issue本文から変更対象ファイル（推定）を抽出できない",
+                        "details": str(exc),
+                    },
                 },
             )
             blocked = state.get("blocked")
@@ -1507,7 +1671,9 @@ def cmd_supervise(args: argparse.Namespace) -> int:
                     "created_at": utc_now_iso(),
                     "issue": n,
                     "type": "missing_change_targets",
-                    "request": {"reason": "Issue本文から変更対象ファイル（推定）を抽出できない"},
+                    "request": {
+                        "reason": "Issue本文から変更対象ファイル（推定）を抽出できない"
+                    },
                 },
             )
             blocked = state.get("blocked")
@@ -1521,7 +1687,9 @@ def cmd_supervise(args: argparse.Namespace) -> int:
 
     # Overlap check only for issues that are actually going to be assigned.
     # Otherwise, overlap among "extra" candidates (beyond idle capacity) could block assignment.
-    overlap_candidates = assignable if effective_max_workers <= 0 else assignable[:effective_max_workers]
+    overlap_candidates = (
+        assignable if effective_max_workers <= 0 else assignable[:effective_max_workers]
+    )
     issue_numbers = [int(item.get("number")) for (item, _files) in overlap_candidates]
     if len(issue_numbers) >= 2:
         rc, check_out = run_worktree_check(toplevel, gh_repo, issue_numbers)
@@ -1547,7 +1715,9 @@ def cmd_supervise(args: argparse.Namespace) -> int:
             sys.stdout.write(f"decision={decision_path}\n")
             return 0
         if rc != 0:
-            raise RuntimeError(f"worktree.sh check failed (rc={rc}):\n{check_out.strip()}")
+            raise RuntimeError(
+                f"worktree.sh check failed (rc={rc}):\n{check_out.strip()}"
+            )
 
     if effective_max_workers <= 0:
         state["updated_at"] = utc_now_iso()
@@ -1573,17 +1743,24 @@ def cmd_supervise(args: argparse.Namespace) -> int:
         entry["phase"] = "estimating"
         impl_policy = (config.get("policy") or {}).get("impl_mode") or {}
         default_mode = str(impl_policy.get("default") or "impl")
-        force_labels = set([str(x) for x in (impl_policy.get("force_tdd_labels") or [])])
-        impl_mode = "tdd" if any(lbl in force_labels for lbl in labels) else default_mode
+        force_labels = set(
+            [str(x) for x in (impl_policy.get("force_tdd_labels") or [])]
+        )
+        impl_mode = (
+            "tdd" if any(lbl in force_labels for lbl in labels) else default_mode
+        )
         entry["impl_mode"] = impl_mode
         entry["progress_percent"] = entry.get("progress_percent") or 0
-        entry["contract"] = {"allowed_files": allowed_files, "forbidden_files": forbidden}
+        entry["contract"] = {
+            "allowed_files": allowed_files,
+            "forbidden_files": forbidden,
+        }
 
         slug = slugify(title)[:50]
         worktree_path = f".worktrees/issue-{n}-{slug}"
         entry["worktree"] = {"path": worktree_path}
 
-        order_id = f"ORD-{utc_now_compact().replace('Z','')}-{worker}-{n}"
+        order_id = f"ORD-{utc_now_compact().replace('Z', '')}-{worker}-{n}"
         impl_step = "/tdd" if impl_mode == "tdd" else "/impl"
         order = {
             "version": 1,
@@ -1630,11 +1807,14 @@ def parse_timestamp_for_id(value: str) -> str:
         return v.replace(":", "").replace("-", "").replace("T", "T")
     if v.endswith("Z") and len(v) == 16 and v[8] == "T":
         return v
-    raise RuntimeError(f"invalid timestamp format (expected YYYYMMDDTHHMMSSZ or ISO8601Z): {value}")
+    raise RuntimeError(
+        f"invalid timestamp format (expected YYYYMMDDTHHMMSSZ or ISO8601Z): {value}"
+    )
 
 
 def utc_now_compact() -> str:
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
 
 _WORKER_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
@@ -1693,11 +1873,15 @@ def cmd_checkin(args: argparse.Namespace) -> int:
         raise RuntimeError("summary must be non-empty")
 
     respond_to: Dict[str, str] = {}
-    respond_to_decision_raw = str(getattr(args, "respond_to_decision", "") or "").strip()
+    respond_to_decision_raw = str(
+        getattr(args, "respond_to_decision", "") or ""
+    ).strip()
     if respond_to_decision_raw:
         respond_to["decision_id"] = normalize_decision_id(respond_to_decision_raw)
 
-    ts_compact = parse_timestamp_for_id(args.timestamp) if args.timestamp else utc_now_compact()
+    ts_compact = (
+        parse_timestamp_for_id(args.timestamp) if args.timestamp else utc_now_compact()
+    )
     ts_iso = (
         args.timestamp
         if args.timestamp and args.timestamp.endswith("Z") and "-" in args.timestamp
@@ -1746,9 +1930,13 @@ def cmd_checkin(args: argparse.Namespace) -> int:
 
     if skill_names or skill_summaries:
         if not skill_names:
-            raise RuntimeError("--skill-candidate is required when --skill-summary is used")
+            raise RuntimeError(
+                "--skill-candidate is required when --skill-summary is used"
+            )
         if not skill_summaries:
-            raise RuntimeError("--skill-summary is required when --skill-candidate is used")
+            raise RuntimeError(
+                "--skill-summary is required when --skill-candidate is used"
+            )
         if len(skill_names) != len(skill_summaries):
             raise RuntimeError(
                 f"--skill-candidate and --skill-summary counts must match: {len(skill_names)} != {len(skill_summaries)}"
@@ -1776,7 +1964,10 @@ def cmd_checkin(args: argparse.Namespace) -> int:
             "toplevel": toplevel,
         },
         "changes": {"files_changed": files_changed},
-        "tests": {"command": args.tests_command or "", "result": args.tests_result or ""},
+        "tests": {
+            "command": args.tests_command or "",
+            "result": args.tests_result or "",
+        },
         "needs": {
             "approval": bool(args.needs_approval),
             "contract_expansion": {"requested_files": sorted(set(requested_files))},
@@ -1811,7 +2002,9 @@ def cmd_refactor_draft(args: argparse.Namespace) -> int:
     if not summary:
         raise RuntimeError("summary must be non-empty")
 
-    ts_compact = parse_timestamp_for_id(args.timestamp) if args.timestamp else utc_now_compact()
+    ts_compact = (
+        parse_timestamp_for_id(args.timestamp) if args.timestamp else utc_now_compact()
+    )
     ts_iso = (
         args.timestamp
         if args.timestamp and args.timestamp.endswith("Z") and "-" in args.timestamp
@@ -1895,8 +2088,12 @@ def cmd_refactor_issue(args: argparse.Namespace) -> int:
     draft_path, worker, ts_compact = resolve_refactor_draft_path(
         ops_root=ops_root,
         draft_path=str(args.draft or "").strip(),
-        worker=str(args.worker or "").strip() if getattr(args, "worker", None) else None,
-        timestamp=str(args.timestamp or "").strip() if getattr(args, "timestamp", None) else None,
+        worker=str(args.worker or "").strip()
+        if getattr(args, "worker", None)
+        else None,
+        timestamp=str(args.timestamp or "").strip()
+        if getattr(args, "timestamp", None)
+        else None,
     )
 
     # Preflight: auth must succeed before any write operations.
@@ -1922,7 +2119,16 @@ def cmd_refactor_issue(args: argparse.Namespace) -> int:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(body)
-        cmd = ["-R", gh_repo, "issue", "create", "--title", title, "--body-file", body_path]
+        cmd = [
+            "-R",
+            gh_repo,
+            "issue",
+            "create",
+            "--title",
+            title,
+            "--body-file",
+            body_path,
+        ]
         for lbl in labels:
             cmd.extend(["--label", lbl])
         out = gh_run(cmd)
@@ -1971,9 +2177,13 @@ def normalize_decision_id(raw: str) -> str:
     if s.endswith(".yaml"):
         s = s[: -len(".yaml")]
     if not s:
-        raise RuntimeError("decision-id must be non-empty\nnext: pass a decision-id like DEC-... (from queue/decisions)")
+        raise RuntimeError(
+            "decision-id must be non-empty\nnext: pass a decision-id like DEC-... (from queue/decisions)"
+        )
     if "/" in s or "\\" in s:
-        raise RuntimeError("decision-id must not contain path separators\nnext: pass the id only (e.g. DEC-123)")
+        raise RuntimeError(
+            "decision-id must not contain path separators\nnext: pass the id only (e.g. DEC-123)"
+        )
     return s
 
 
@@ -2025,7 +2235,9 @@ def find_decision_path_anywhere(ops_root: str, decision_id: str) -> str:
 def validate_skill_name(name: str) -> str:
     s = str(name or "").strip()
     if not s:
-        raise RuntimeError("invalid decision payload: missing request.name\nnext: set request.name to a slug like 'my-skill'")
+        raise RuntimeError(
+            "invalid decision payload: missing request.name\nnext: set request.name to a slug like 'my-skill'"
+        )
     safe = slugify(s)
     if safe != s:
         raise RuntimeError(
@@ -2102,7 +2314,9 @@ def cmd_skill(args: argparse.Namespace) -> int:
     decision_path = find_decision_path(ops_root, decision_id)
     decision = read_yaml_file(decision_path)
     if not isinstance(decision, dict):
-        raise RuntimeError(f"invalid decision YAML (expected mapping): {decision_path}\nnext: recreate the decision YAML")
+        raise RuntimeError(
+            f"invalid decision YAML (expected mapping): {decision_path}\nnext: recreate the decision YAML"
+        )
 
     dtype = str(decision.get("type") or "").strip()
     if dtype != "skill_candidate":
@@ -2113,7 +2327,9 @@ def cmd_skill(args: argparse.Namespace) -> int:
 
     request = decision.get("request") or {}
     if not isinstance(request, dict):
-        raise RuntimeError("invalid decision payload: request must be a mapping\nnext: set decision.request fields")
+        raise RuntimeError(
+            "invalid decision payload: request must be a mapping\nnext: set decision.request fields"
+        )
 
     name = validate_skill_name(str(request.get("name") or ""))
     summary = str(request.get("summary") or "").strip()
@@ -2129,9 +2345,13 @@ def cmd_skill(args: argparse.Namespace) -> int:
     readme_path = os.path.join(toplevel, readme_rel)
 
     if not os.path.isfile(readme_path):
-        raise RuntimeError(f"missing {readme_rel}\nnext: create it (must include '### Process Skills' section)")
+        raise RuntimeError(
+            f"missing {readme_rel}\nnext: create it (must include '### Process Skills' section)"
+        )
     if os.path.exists(skill_md_path):
-        raise RuntimeError(f"skill file already exists: {skill_md_rel}\nnext: choose a different name (no overwrite)")
+        raise RuntimeError(
+            f"skill file already exists: {skill_md_rel}\nnext: choose a different name (no overwrite)"
+        )
 
     ensure_dir(skills_dir)
     with open(readme_path, "r", encoding="utf-8") as fh:
@@ -2139,7 +2359,9 @@ def cmd_skill(args: argparse.Namespace) -> int:
     new_readme = compute_skills_readme_update(readme_text, name=name, summary=summary)
 
     # Write skill file first (no overwrite), then update README.
-    atomic_write_text(skill_md_path, render_skill_template_md(name=name, summary=summary))
+    atomic_write_text(
+        skill_md_path, render_skill_template_md(name=name, summary=summary)
+    )
     try:
         atomic_write_text(readme_path, new_readme)
     except Exception:
@@ -2162,61 +2384,141 @@ def cmd_skill(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="shogun-ops.py", description="Agentic-SDD Shogun Ops helper")
+    p = argparse.ArgumentParser(
+        prog="shogun-ops.py", description="Agentic-SDD Shogun Ops helper"
+    )
     sub = p.add_subparsers(dest="cmd", required=True)
 
     c = sub.add_parser("checkin", help="Create an append-only checkin YAML")
     c.add_argument("issue", type=int, help="Issue number")
     phases = ["backlog", "estimating", "implementing", "reviewing", "blocked", "done"]
-    c.add_argument("phase", choices=phases, help="backlog|estimating|implementing|reviewing|blocked|done")
+    c.add_argument(
+        "phase",
+        choices=phases,
+        help="backlog|estimating|implementing|reviewing|blocked|done",
+    )
     c.add_argument("percent", type=int, help="Progress percent (0-100)")
-    c.add_argument("summary", nargs="+", help="Summary text (use `--` before summary if passing flags)")
+    c.add_argument(
+        "summary",
+        nargs="+",
+        help="Summary text (use `--` before summary if passing flags)",
+    )
     c.add_argument("--worker", help="Worker id (default: $AGENTIC_SDD_WORKER or $USER)")
-    c.add_argument("--timestamp", help="Override timestamp (YYYYMMDDTHHMMSSZ or ISO8601Z)")
-    c.add_argument("--no-auto-files-changed", dest="auto_files_changed", action="store_false")
-    c.add_argument("--auto-files-changed", dest="auto_files_changed", action="store_true")
+    c.add_argument(
+        "--timestamp", help="Override timestamp (YYYYMMDDTHHMMSSZ or ISO8601Z)"
+    )
+    c.add_argument(
+        "--no-auto-files-changed", dest="auto_files_changed", action="store_false"
+    )
+    c.add_argument(
+        "--auto-files-changed", dest="auto_files_changed", action="store_true"
+    )
     c.set_defaults(auto_files_changed=True)
-    c.add_argument("--include-staged", action="store_true", help="Include staged changes in files_changed")
-    c.add_argument("--files-changed", action="append", help="Additional files_changed entry (repeatable)")
+    c.add_argument(
+        "--include-staged",
+        action="store_true",
+        help="Include staged changes in files_changed",
+    )
+    c.add_argument(
+        "--files-changed",
+        action="append",
+        help="Additional files_changed entry (repeatable)",
+    )
     c.add_argument("--tests-command", help="Test command to record (optional)")
-    c.add_argument("--tests-result", choices=["pass", "fail", "skip"], help="Test result to record (optional)")
-    c.add_argument("--needs-approval", action="store_true", help="Set needs.approval=true (approval required)")
-    c.add_argument("--request-file", action="append", help="Append to needs.contract_expansion.requested_files (repeatable)")
-    c.add_argument("--blocker", action="append", help="Append blocker reason to needs.blockers (repeatable)")
-    c.add_argument("--respond-to-decision", help="Decision id to respond to (e.g. DEC-... or DEC-....yaml)")
-    c.add_argument("--skill-candidate", action="append", help="Skill candidate name (repeatable; requires --skill-summary)")
-    c.add_argument("--skill-summary", action="append", help="Skill candidate summary (repeatable; must match --skill-candidate count)")
+    c.add_argument(
+        "--tests-result",
+        choices=["pass", "fail", "skip"],
+        help="Test result to record (optional)",
+    )
+    c.add_argument(
+        "--needs-approval",
+        action="store_true",
+        help="Set needs.approval=true (approval required)",
+    )
+    c.add_argument(
+        "--request-file",
+        action="append",
+        help="Append to needs.contract_expansion.requested_files (repeatable)",
+    )
+    c.add_argument(
+        "--blocker",
+        action="append",
+        help="Append blocker reason to needs.blockers (repeatable)",
+    )
+    c.add_argument(
+        "--respond-to-decision",
+        help="Decision id to respond to (e.g. DEC-... or DEC-....yaml)",
+    )
+    c.add_argument(
+        "--skill-candidate",
+        action="append",
+        help="Skill candidate name (repeatable; requires --skill-summary)",
+    )
+    c.add_argument(
+        "--skill-summary",
+        action="append",
+        help="Skill candidate summary (repeatable; must match --skill-candidate count)",
+    )
     c.set_defaults(func=cmd_checkin)
 
-    rd = sub.add_parser("refactor-draft", help="Create a refactor draft YAML (Lower-only; no GitHub writes)")
+    rd = sub.add_parser(
+        "refactor-draft",
+        help="Create a refactor draft YAML (Lower-only; no GitHub writes)",
+    )
     rd.add_argument("--title", required=True, help="Draft title (required)")
-    rd.add_argument("summary", nargs="+", help="Summary text (use `--` before summary if passing flags)")
-    rd.add_argument("--worker", help="Worker id (default: $AGENTIC_SDD_WORKER or $USER)")
-    rd.add_argument("--timestamp", help="Override timestamp (YYYYMMDDTHHMMSSZ or ISO8601Z)")
-    rd.add_argument("--smell", action="append", help="Qualitative smell tag (repeatable)")
+    rd.add_argument(
+        "summary",
+        nargs="+",
+        help="Summary text (use `--` before summary if passing flags)",
+    )
+    rd.add_argument(
+        "--worker", help="Worker id (default: $AGENTIC_SDD_WORKER or $USER)"
+    )
+    rd.add_argument(
+        "--timestamp", help="Override timestamp (YYYYMMDDTHHMMSSZ or ISO8601Z)"
+    )
+    rd.add_argument(
+        "--smell", action="append", help="Qualitative smell tag (repeatable)"
+    )
     rd.add_argument("--risk", help="Qualitative risk (e.g., low|med|high)")
     rd.add_argument("--impact", help="Qualitative impact (e.g., local|cross-module)")
-    rd.add_argument("--file", action="append", help="Suspected target file path (repeatable)")
+    rd.add_argument(
+        "--file", action="append", help="Suspected target file path (repeatable)"
+    )
     rd.set_defaults(func=cmd_refactor_draft)
 
-    ri = sub.add_parser("refactor-issue", help="Create a GitHub Issue from a refactor draft (Middle-only)")
+    ri = sub.add_parser(
+        "refactor-issue",
+        help="Create a GitHub Issue from a refactor draft (Middle-only)",
+    )
     ri.add_argument("--gh-repo", help="OWNER/REPO (default: derived from origin)")
     ri.add_argument("--draft", help="Path to a refactor draft YAML (under ops queue)")
     ri.add_argument("--worker", help="Worker id (when resolving draft path)")
-    ri.add_argument("--timestamp", help="Draft timestamp (YYYYMMDDTHHMMSSZ or ISO8601Z; when resolving draft path)")
+    ri.add_argument(
+        "--timestamp",
+        help="Draft timestamp (YYYYMMDDTHHMMSSZ or ISO8601Z; when resolving draft path)",
+    )
     ri.set_defaults(func=cmd_refactor_issue)
 
-    col = sub.add_parser("collect", help="Collect checkins and update state/dashboard (single-writer)")
+    col = sub.add_parser(
+        "collect", help="Collect checkins and update state/dashboard (single-writer)"
+    )
     col.set_defaults(func=cmd_collect)
 
     sup = sub.add_parser("supervise", help="Supervise issues and emit orders/decisions")
     sup.add_argument("--once", action="store_true", help="Run one cycle (required)")
     sup.add_argument("--gh-repo", help="OWNER/REPO (default: derived from origin)")
-    sup.add_argument("--targets", type=int, action="append", help="Target Issue number (repeatable)")
+    sup.add_argument(
+        "--targets", type=int, action="append", help="Target Issue number (repeatable)"
+    )
     sup.set_defaults(func=cmd_supervise)
 
-    sk = sub.add_parser("skill", help="Approve skill_candidate decision and generate skills docs")
-    sk.add_argument("--approve", required=True, help="Decision id (from queue/decisions)")
+    sk = sub.add_parser(
+        "skill", help="Approve skill_candidate decision and generate skills docs"
+    )
+    sk.add_argument(
+        "--approve", required=True, help="Decision id (from queue/decisions)"
+    )
     sk.set_defaults(func=cmd_skill)
 
     s = sub.add_parser("status", help="Show ops dashboard (initializes if missing)")
