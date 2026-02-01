@@ -81,8 +81,8 @@ Both engines may open repo files for context, but findings must still be grounde
 
 - `CODEX_BIN`: codex binary (default: `codex`)
 - `MODEL`: Codex model (default: `gpt-5.2-codex`)
-- `REASONING_EFFORT`: `none` | `low` | `medium` | `high` | `xhigh` (default: `high`)
-  - Note: `REASONING_EFFORT=minimal` is accepted as an alias for `low` (backward compatibility).
+- `REASONING_EFFORT`: `minimal` | `low` | `medium` | `high` | `xhigh` (default: `high`)
+  - Note: `REASONING_EFFORT=none` is accepted as an alias for `minimal` (backward compatibility).
   - Note: This script passes the value via `codex exec -c model_reasoning_effort=...`, so it overrides global Codex config for the run.
 
 ### Claude options (when `REVIEW_ENGINE=claude`)

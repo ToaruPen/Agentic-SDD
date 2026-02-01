@@ -240,11 +240,20 @@ if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json" ]]; then
 fi
 
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
-  CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=none EXPECTED_EFFORT=none \
+  CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=none EXPECTED_EFFORT=minimal \
   "$review_cycle_sh" issue-1 run_effort_none) >/dev/null
 
 if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run_effort_none/review.json" ]]; then
   eprint "Expected review.json to be created for REASONING_EFFORT=none"
+  exit 1
+fi
+
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=minimal EXPECTED_EFFORT=minimal \
+  "$review_cycle_sh" issue-1 run_effort_minimal) >/dev/null
+
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run_effort_minimal/review.json" ]]; then
+  eprint "Expected review.json to be created for REASONING_EFFORT=minimal"
   exit 1
 fi
 

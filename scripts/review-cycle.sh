@@ -47,8 +47,8 @@ Required environment:
 	  Codex options (when REVIEW_ENGINE=codex):
 	  CODEX_BIN        codex binary (default: codex)
 	  MODEL            codex model (default: gpt-5.2-codex)
-	  REASONING_EFFORT none|low|medium|high|xhigh (default: high)
-	                  Note: minimal is accepted as an alias for low.
+	  REASONING_EFFORT minimal|low|medium|high|xhigh (default: high)
+	                  Note: none is accepted as an alias for minimal (backward compatibility).
 
   Claude options (when REVIEW_ENGINE=claude):
   CLAUDE_BIN       claude binary (default: claude)
@@ -133,12 +133,12 @@ esac
 	model="${MODEL:-gpt-5.2-codex}"
 	effort="${REASONING_EFFORT:-high}"
 	case "$effort" in
-	  none|low|medium|high|xhigh) ;;
-	  minimal)
-	    effort="low"
+	  minimal|low|medium|high|xhigh) ;;
+	  none)
+	    effort="minimal"
 	    ;;
 	  *)
-	    eprint "Invalid REASONING_EFFORT: $effort (use none|low|medium|high|xhigh)"
+	    eprint "Invalid REASONING_EFFORT: $effort (use minimal|low|medium|high|xhigh)"
 	    exit 2
 	    ;;
 	esac
