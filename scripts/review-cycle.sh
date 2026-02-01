@@ -27,7 +27,7 @@ Required environment:
     TESTS                Short test summary (can be 'not run: reason')
                         OR set TEST_COMMAND to run tests and auto-populate TESTS.
 
-Optional environment:
+  Optional environment:
   GH_ISSUE             GitHub issue number or URL
   GH_REPO              Repo for gh (OWNER/REPO)
   GH_INCLUDE_COMMENTS  1 to include comments in issue JSON (default: 0)
@@ -35,7 +35,7 @@ Optional environment:
   SOT_FILES            Extra SoT files (repo-relative paths, space-separated)
   SOT_MAX_CHARS        Max chars for assembled SoT bundle (0 = no limit)
   TEST_COMMAND     Command to run tests (captures full output to tests.txt)
-  DIFF_MODE        staged|worktree|auto (default: auto)
+  DIFF_MODE        pr|staged|worktree|auto (default: pr)
   DIFF_FILE        Optional path to a diff file (overrides DIFF_MODE)
   OUTPUT_ROOT      Output root (default: <repo_root>/.agentic-sdd/reviews)
   SCHEMA_PATH      JSON schema path (default: <repo_root>/.agent/schemas/review.json)
@@ -44,10 +44,11 @@ Optional environment:
   Engine selection:
   REVIEW_ENGINE    codex|claude (default: codex)
 
-  Codex options (when REVIEW_ENGINE=codex):
-  CODEX_BIN        codex binary (default: codex)
-  MODEL            codex model (default: gpt-5.2-codex)
-  REASONING_EFFORT high|medium|low (default: high)
+	  Codex options (when REVIEW_ENGINE=codex):
+	  CODEX_BIN        codex binary (default: codex)
+	  MODEL            codex model (default: gpt-5.2-codex)
+	  REASONING_EFFORT none|low|medium|high|xhigh (default: high)
+	                  Note: minimal is accepted as an alias for low.
 
   Claude options (when REVIEW_ENGINE=claude):
   CLAUDE_BIN       claude binary (default: claude)
@@ -59,10 +60,11 @@ Optional environment:
   EXEC_TIMEOUT_SEC Optional timeout (uses timeout/gtimeout if available)
   FORMAT_JSON      1 to pretty-format output JSON (default: 1)
 
-Notes:
-  - This script writes outputs under .agentic-sdd/ (recommended to gitignore).
-  - In DIFF_MODE=auto, if both staged and worktree diffs are non-empty, this script
-    fails and asks you to choose.
+  Notes:
+    - This script writes outputs under .agentic-sdd/ (recommended to gitignore).
+    - In DIFF_MODE=auto, if both staged and worktree diffs are non-empty, this script
+      fails and asks you to choose.
+    - Untracked files are not included in `git diff`. If you added new files, `git add` them so they appear in the diff.
 EOF
 }
 
@@ -109,7 +111,7 @@ fi
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 constraints="${CONSTRAINTS:-none}"
-diff_mode="${DIFF_MODE:-auto}"
+diff_mode="${DIFF_MODE:-pr}"
 diff_file="${DIFF_FILE:-}"
 output_root="${OUTPUT_ROOT:-${repo_root}/.agentic-sdd/reviews}"
 schema_path="${SCHEMA_PATH:-${repo_root}/.agent/schemas/review.json}"
@@ -126,10 +128,20 @@ case "$review_engine" in
     ;;
 esac
 
-# Codex options
-codex_bin="${CODEX_BIN:-codex}"
-model="${MODEL:-gpt-5.2-codex}"
-effort="${REASONING_EFFORT:-high}"
+	# Codex options
+	codex_bin="${CODEX_BIN:-codex}"
+	model="${MODEL:-gpt-5.2-codex}"
+	effort="${REASONING_EFFORT:-high}"
+	case "$effort" in
+	  none|low|medium|high|xhigh) ;;
+	  minimal)
+	    effort="low"
+	    ;;
+	  *)
+	    eprint "Invalid REASONING_EFFORT: $effort (use none|low|medium|high|xhigh)"
+	    exit 2
+	    ;;
+	esac
 
 # Claude options
 claude_bin="${CLAUDE_BIN:-claude}"
@@ -197,6 +209,7 @@ out_issue_json="${run_dir}/issue.json"
 out_issue_body="${run_dir}/issue.txt"
 
 diff_source=""
+changed_files=""
 
 timeout_bin=""
 if [[ -n "$exec_timeout_sec" ]]; then
@@ -302,6 +315,44 @@ write_diff() {
   fi
 
   case "$diff_mode" in
+    pr)
+      local base_ref=""
+      if git -C "$repo_root" rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
+        base_ref="origin/main"
+      elif git -C "$repo_root" rev-parse --verify --quiet origin/master >/dev/null 2>&1; then
+        base_ref="origin/master"
+      elif git -C "$repo_root" rev-parse --verify --quiet main >/dev/null 2>&1; then
+        base_ref="main"
+      elif git -C "$repo_root" rev-parse --verify --quiet master >/dev/null 2>&1; then
+        base_ref="master"
+      else
+        eprint "Failed to resolve base ref for PR diff (tried: origin/main, origin/master, main, master)."
+        eprint "Fetch remotes, or set DIFF_MODE=staged/worktree, or set DIFF_FILE."
+        exit 2
+      fi
+
+      local merge_base=""
+      merge_base="$(git -C "$repo_root" merge-base "$base_ref" HEAD 2>/dev/null || true)"
+      if [[ -z "$merge_base" ]]; then
+        eprint "Failed to resolve merge-base for PR diff: $base_ref...HEAD"
+        exit 2
+      fi
+
+      if git -C "$repo_root" diff --quiet "$merge_base"; then
+        eprint "Diff is empty (pr: $base_ref...HEAD)."
+        exit 2
+      fi
+
+      diff_source="pr:${base_ref}...HEAD"
+      if [[ "$has_staged" -eq 1 || "$has_worktree" -eq 1 ]]; then
+        diff_source="pr+worktree:${base_ref}...HEAD"
+      fi
+
+      if [[ "$DRY_RUN" -eq 0 ]]; then
+        ensure_run_dir
+        git -C "$repo_root" diff --no-color "$merge_base" > "$out_diff"
+      fi
+      ;;
     staged)
       if [[ "$has_staged" -eq 0 ]]; then
         eprint "Diff is empty (staged)."
@@ -348,7 +399,7 @@ write_diff() {
       fi
       ;;
     *)
-      eprint "Invalid DIFF_MODE: $diff_mode (use staged|worktree|auto)"
+      eprint "Invalid DIFF_MODE: $diff_mode (use pr|staged|worktree|auto)"
       exit 2
       ;;
   esac
@@ -359,6 +410,32 @@ write_diff() {
       exit 2
     fi
   fi
+}
+
+collect_changed_files() {
+  if [[ "$DRY_RUN" -eq 1 ]]; then
+    return 0
+  fi
+
+  if [[ ! -f "$out_diff" || ! -s "$out_diff" ]]; then
+    eprint "Diff file not found or empty (cannot collect changed files): $out_diff"
+    exit 1
+  fi
+
+  # Note: This intentionally supports the common `diff --git a/... b/...` form.
+  # It does not attempt to fully parse quoted paths with spaces.
+  changed_files="$(
+    awk '
+      $1 == "diff" && $2 == "--git" {
+        a = $3
+        b = $4
+        sub(/^a\//, "", a)
+        sub(/^b\//, "", b)
+        if (b == "/dev/null") print a
+        else print b
+      }
+    ' "$out_diff" | sort -u
+  )"
 }
 
 print_plan() {
@@ -481,6 +558,7 @@ write_sot() {
 write_diff
 write_tests
 write_sot
+collect_changed_files
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   print_plan
@@ -520,6 +598,14 @@ fi
 
 tmp_json="${out_json}.tmp.$$"
 tmp_prompt="${run_dir}/prompt.txt"
+diff_path_for_prompt="$out_diff"
+if [[ "$out_diff" == "$repo_root/"* ]]; then
+  diff_path_for_prompt="${out_diff#"$repo_root"/}"
+fi
+extra_tool_dir=""
+if [[ "$out_diff" != "$repo_root/"* ]]; then
+  extra_tool_dir="$(dirname "$out_diff")"
+fi
 
 # Build prompt
 {
@@ -528,11 +614,15 @@ You are a code reviewer.
 
 Output JSON only. Your output MUST validate against the provided JSON schema.
 
-Review rules:
-- Only flag issues introduced by this diff (do not flag pre-existing issues).
-- Only flag issues the author would likely fix if aware (meaningful impact).
-- Be concrete; avoid speculation; explain impact.
-- Ignore trivial style unless it obscures meaning or violates documented standards.
+	Review rules:
+	- Only flag issues introduced by this diff (do not flag pre-existing issues).
+	- Only flag issues the author would likely fix if aware (meaningful impact).
+	- Be concrete; avoid speculation; explain impact.
+	- Ignore trivial style unless it obscures meaning or violates documented standards.
+	- You MAY inspect other repo files for context when needed, but your findings must still be based on this diff.
+	- Diff is provided via a local file path below (repo-relative). You MUST open it.
+	- If you cannot open Diff-File, return status=Question and add a question explaining the access failure.
+	- For context, you SHOULD inspect files listed under Changed-Files as needed.
 
 Priority:
 - P0: must-fix (correctness/security/data-loss)
@@ -572,26 +662,41 @@ PROMPT
   printf '\n'
   printf 'Tests: %s\n' "$tests_summary"
   printf 'Constraints: %s\n' "$constraints"
-  printf 'Diff:\n'
-  cat "$out_diff"
-} > "$tmp_prompt"
+  printf 'Diff-Source: %s\n' "$diff_source"
+  printf 'Diff-File: %s\n' "$diff_path_for_prompt"
+  printf 'Changed-Files:\n'
+  if [[ -n "$changed_files" ]]; then
+    printf '%s\n' "$changed_files"
+  else
+    printf '(none)\n'
+  fi
+
+	} > "$tmp_prompt"
 
 # Execute review engine
-case "$review_engine" in
-  codex)
-    cmd=(
-      "$codex_bin" exec
-      --sandbox read-only
-      -m "$model"
-      -c "reasoning.effort=\"${effort}\""
-      --output-last-message "$tmp_json"
-      --output-schema "$schema_path"
-      -
-    )
+		case "$review_engine" in
+		  codex)
+			    cmd=(
+			      "$codex_bin" exec
+			      --sandbox read-only
+			      -C "$repo_root"
+			    )
 
-    if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
-      cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
-    fi
+			    if [[ -n "$extra_tool_dir" ]]; then
+			      cmd+=(--add-dir "$extra_tool_dir")
+			    fi
+
+			    cmd+=(
+			      -m "$model"
+			      -c "model_reasoning_effort=\"${effort}\""
+			      --output-last-message "$tmp_json"
+			      --output-schema "$schema_path"
+			      -
+			    )
+
+	    if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
+	      cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
+	    fi
 
     "${cmd[@]}" < "$tmp_prompt"
     ;;
@@ -609,22 +714,29 @@ schema.pop('\$schema', None)
 print(json.dumps(schema, ensure_ascii=False))
 ")"
 
-    cmd=(
-      "$claude_bin" -p
-      --model "$claude_model"
-      --json-schema "$schema_content"
-      --output-format json
-      --betas interleaved-thinking
-    )
+	    cmd=(
+	      "$claude_bin" -p
+	      --model "$claude_model"
+	      --json-schema "$schema_content"
+	      --output-format json
+	      --betas interleaved-thinking
+	      --tools Read
+	      --allowedTools Read
+	      --add-dir "$repo_root"
+	    )
 
-    if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
-      cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
-    fi
+	    if [[ -n "$extra_tool_dir" ]]; then
+	      cmd+=(--add-dir "$extra_tool_dir")
+	    fi
 
-    # Claude CLI outputs wrapped JSON with structured_output field.
-    # Extract the structured_output and check for errors.
-    tmp_claude_out="${tmp_json}.claude.$$"
-    "${cmd[@]}" < "$tmp_prompt" > "$tmp_claude_out"
+	    if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
+	      cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
+	    fi
+
+	    # Claude CLI outputs wrapped JSON with structured_output field.
+	    # Extract the structured_output and check for errors.
+	    tmp_claude_out="${tmp_json}.claude.$$"
+	    (cd "$repo_root" && "${cmd[@]}" < "$tmp_prompt" > "$tmp_claude_out")
 
     # Extract structured_output from Claude's wrapped response.
     # Claude CLI with --output-format json wraps the schema output in:

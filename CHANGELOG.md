@@ -9,6 +9,10 @@ All notable changes to this project will be documented in this file.
   - `scripts/install-agentic-sdd.sh`: Exclude `scripts/tmux` unless `--shogun-ops` is enabled.
   - `scripts/tests/test-tmux-shogun-ops.sh`: Deterministic tests for `--shogun-ops` dry-run and forwarding behavior.
   - `scripts/tests/test-install-agentic-sdd.sh`: Ensure the shim is installed only with `--shogun-ops`.
+- Make `/review-cycle` default to the whole PR/branch diff and improve review context deterministically.
+  - `scripts/review-cycle.sh`: Default `DIFF_MODE=pr`, pass the diff as a local file path + changed-file list, add `origin/master`/`master` base-branch fallback, and accept `REASONING_EFFORT=none|low|medium|high|xhigh` (`minimal` alias: `low`) (Codex: `model_reasoning_effort`).
+  - `.agent/commands/review-cycle.md`: Document the new default, modes, and reasoning options.
+  - `scripts/tests/test-review-cycle.sh`: Add deterministic coverage for `DIFF_MODE=pr` and Codex config wiring.
 
 ## [0.2.31] - 2026-01-31
 
