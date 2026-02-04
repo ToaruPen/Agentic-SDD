@@ -49,16 +49,16 @@ Review taxonomy (status/priority) and output rules are defined in:
 
 ### Tests (one required)
 
-- `TEST_COMMAND`（推奨: 実行して検証する）
-  - `TEST_COMMAND`: command to run tests (e.g. `npm test`). `/review-cycle` が実行して `tests.txt` に全ログを保存する。
+- `TEST_COMMAND` (recommended: actually run tests)
+  - `TEST_COMMAND`: command to run tests (e.g. `npm test`). `/review-cycle` runs it and writes full logs to `tests.txt`.
   - `TEST_STDERR_POLICY`: `warn` | `fail` | `ignore` (default: `warn`)
-    - `warn`: stderr が検知されたら警告を出す（exit code は `TEST_COMMAND` に従う）
-    - `fail`: stderr が検知されたら fail-fast（レビューエンジン実行前に停止）
-    - `ignore`: stderr は記録するが判定には使わない
-    - 注: Vitest の `stderr | ...` のような「stderr レポート」も検知対象
-- 例外: `TESTS="not run: <reason>"` のみ許可
-  - `TESTS`: **実際にテストを実行できない場合のみ**、理由つきで明示する（例: `not run: CI only`）。
-  - `TEST_COMMAND` 未指定で `TESTS` が `not run: ...` 以外の場合は fail-fast（レビューの根拠にならないため）。
+    - `warn`: print a warning when stderr is detected (exit code still follows `TEST_COMMAND`)
+    - `fail`: fail fast when stderr is detected (stop before running the review engine)
+    - `ignore`: record stderr but do not use it for gating
+    - Note: Vitest-style `stderr | ...` “stderr reports” are also treated as stderr signals.
+- Exception: `TESTS="not run: <reason>"` is allowed only when you truly cannot run tests
+  - `TESTS`: an explicit reasoned summary (e.g. `not run: CI only`).
+  - If `TEST_COMMAND` is not set and `TESTS` is not `not run: ...`, `/review-cycle` fails fast (because it is not valid evidence).
 
 ## Optional inputs (env vars)
 
