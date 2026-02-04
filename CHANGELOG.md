@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
   - `scripts/install-agentic-sdd.sh`: Exclude `scripts/tmux` unless `--shogun-ops` is enabled.
   - `scripts/tests/test-tmux-shogun-ops.sh`: Deterministic tests for `--shogun-ops` dry-run and forwarding behavior.
   - `scripts/tests/test-install-agentic-sdd.sh`: Ensure the shim is installed only with `--shogun-ops`.
+- Add `TEST_STDERR_POLICY` to `/review-cycle` to detect stderr output during `TEST_COMMAND` runs and optionally fail fast; writes `tests.stderr` alongside `tests.txt`.
 
 ## [0.2.31] - 2026-01-31
 
