@@ -51,6 +51,11 @@ Review taxonomy (status/priority) and output rules are defined in:
 
 - `TEST_COMMAND`（推奨: 実行して検証する）
   - `TEST_COMMAND`: command to run tests (e.g. `npm test`). `/review-cycle` が実行して `tests.txt` に全ログを保存する。
+  - `TEST_STDERR_POLICY`: `warn` | `fail` | `ignore` (default: `warn`)
+    - `warn`: stderr が検知されたら警告を出す（exit code は `TEST_COMMAND` に従う）
+    - `fail`: stderr が検知されたら fail-fast（レビューエンジン実行前に停止）
+    - `ignore`: stderr は記録するが判定には使わない
+    - 注: Vitest の `stderr | ...` のような「stderr レポート」も検知対象
 - 例外: `TESTS="not run: <reason>"` のみ許可
   - `TESTS`: **実際にテストを実行できない場合のみ**、理由つきで明示する（例: `not run: CI only`）。
   - `TEST_COMMAND` 未指定で `TESTS` が `not run: ...` 以外の場合は fail-fast（レビューの根拠にならないため）。
@@ -85,6 +90,7 @@ Review taxonomy (status/priority) and output rules are defined in:
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/review.json`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/diff.patch`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.txt`
+- `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.stderr`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/sot.txt`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/prompt.txt`
 

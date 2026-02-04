@@ -246,6 +246,9 @@ During development (and before committing, per `/impl`), iterate locally with:
 If you set `GH_ISSUE=123`, it reads the Issue body and `- PRD:` / `- Epic:` references
 to assemble SoT automatically.
 
+When running tests via `TEST_COMMAND`, you can optionally set `TEST_STDERR_POLICY=fail` to fail-fast
+if stderr output is detected (and save it to `tests.stderr`).
+
 ### 6) Create PR
 
 After `/review` is approved, push the branch and create a PR:
