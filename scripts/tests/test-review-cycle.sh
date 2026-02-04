@@ -294,6 +294,62 @@ if ! grep -q "PRD file not found" "$tmpdir/stderr2"; then
   exit 1
 fi
 
+# TEST_COMMAND stderr detection (warn should succeed, fail should stop before engine)
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" DIFF_MODE=staged \
+  TEST_COMMAND='bash -lc "echo boom >&2; exit 0"' TESTS="" \
+  CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-stderr-warn) >/dev/null 2>"$tmpdir/stderr-stderr-warn"
+code_stderr_warn=$?
+set -e
+if [[ "$code_stderr_warn" -ne 0 ]]; then
+  eprint "Expected success for stderr warn policy, got exit=$code_stderr_warn"
+  cat "$tmpdir/stderr-stderr-warn" >&2
+  exit 1
+fi
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-stderr-warn/tests.stderr" ]]; then
+  eprint "Expected tests.stderr to be created"
+  exit 1
+fi
+if ! grep -q "WARNING: test command produced stderr output" "$tmpdir/stderr-stderr-warn"; then
+  eprint "Expected stderr warning message, got:"
+  cat "$tmpdir/stderr-stderr-warn" >&2
+  exit 1
+fi
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-stderr-warn/review.json" ]]; then
+  eprint "Expected review.json to be created for warn policy"
+  exit 1
+fi
+if ! grep -q "Tests-Stderr:" "$tmpdir/.agentic-sdd/reviews/issue-1/run-stderr-warn/prompt.txt"; then
+  eprint "Expected Tests-Stderr to appear in prompt.txt"
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" DIFF_MODE=staged \
+  TEST_COMMAND='bash -lc "echo boom >&2; exit 0"' TESTS="" TEST_STDERR_POLICY=fail \
+  CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-stderr-fail) >/dev/null 2>"$tmpdir/stderr-stderr-fail"
+code_stderr_fail=$?
+set -e
+if [[ "$code_stderr_fail" -eq 0 ]]; then
+  eprint "Expected failure for stderr fail policy"
+  exit 1
+fi
+if ! grep -q "TEST_STDERR_POLICY=fail" "$tmpdir/stderr-stderr-fail"; then
+  eprint "Expected fail policy error message, got:"
+  cat "$tmpdir/stderr-stderr-fail" >&2
+  exit 1
+fi
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-stderr-fail/tests.stderr" ]]; then
+  eprint "Expected tests.stderr to be created for fail policy"
+  exit 1
+fi
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-stderr-fail/review.json" ]]; then
+  eprint "Did not expect review.json to be created when failing on stderr"
+  exit 1
+fi
+
 # Validator smoke test
 cat > "$tmpdir/review.json" <<'EOF'
 {
