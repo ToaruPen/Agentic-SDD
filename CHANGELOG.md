@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.32] - 2026-02-04
+
 - Add optional tmux shim to open Shogun Ops tmux layout via `tmux --shogun-ops` (opt-in; requires putting `scripts/` first in `PATH`).
   - `scripts/tmux`: Intercepts `--shogun-ops` and runs `scripts/shogun-tmux.sh init` + `attach`; forwards all other calls to the real tmux binary.
   - `scripts/install-agentic-sdd.sh`: Exclude `scripts/tmux` unless `--shogun-ops` is enabled.
