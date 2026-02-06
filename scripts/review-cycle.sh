@@ -50,7 +50,7 @@ Required environment:
   Codex options (when REVIEW_ENGINE=codex):
   CODEX_BIN        codex binary (default: codex)
   MODEL            codex model (default: gpt-5.3-codex)
-  REASONING_EFFORT xhigh|high|medium|low (default: xhigh)
+  REASONING_EFFORT high|medium|low (default: high)
 
   Claude options (when REVIEW_ENGINE=claude):
   CLAUDE_BIN       claude binary (default: claude)
@@ -132,7 +132,7 @@ esac
 # Codex options
 codex_bin="${CODEX_BIN:-codex}"
 model="${MODEL:-gpt-5.3-codex}"
-effort="${REASONING_EFFORT:-xhigh}"
+effort="${REASONING_EFFORT:-high}"
 
 # Claude options
 claude_bin="${CLAUDE_BIN:-claude}"
