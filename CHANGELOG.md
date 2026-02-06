@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.34] - 2026-02-06
+
 - Change `/review-cycle` default `REASONING_EFFORT` back to `high`.
 - Change OpenCode reviewer agent (`sdd-reviewer`) default `reasoningEffort` back to `high`.
 
