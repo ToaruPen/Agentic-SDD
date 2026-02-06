@@ -160,10 +160,15 @@ fi
 shift
 
 out=""
+model=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --output-last-message)
       out="$2"
+      shift 2
+      ;;
+    -m|--model)
+      model="${2:-}"
       shift 2
       ;;
     -)
@@ -184,14 +189,26 @@ if [[ -z "$out" ]]; then
 fi
 
 mkdir -p "$(dirname "$out")"
-cat > "$out" <<'JSON'
+# Generate JSON without requiring python3 in this stub.
+json_escape() {
+  local s="${1:-}"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\t'/\\t}"
+  printf '%s' "$s"
+}
+
+escaped_model="$(json_escape "$model")"
+cat > "$out" <<JSON
 {
   "schema_version": 3,
   "scope_id": "issue-1",
   "status": "Approved",
   "findings": [],
   "questions": [],
-  "overall_explanation": "stub"
+  "overall_explanation": "stub (model=${escaped_model})"
 }
 JSON
 EOF
@@ -219,6 +236,32 @@ fi
 
 if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run1/sot.txt" ]]; then
   eprint "Expected sot.txt to be created"
+  exit 1
+fi
+
+if ! grep -q "model=stub" "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json"; then
+  eprint "Expected model passthrough to codex stub (MODEL=stub)"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json" >&2
+  exit 1
+fi
+
+# CLI --model should override env MODEL
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  CODEX_BIN="$tmpdir/codex" MODEL=envstub REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-model-cli --model clistub) >/dev/null
+if ! grep -q "model=clistub" "$tmpdir/.agentic-sdd/reviews/issue-1/run-model-cli/review.json"; then
+  eprint "Expected --model to override env MODEL"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/run-model-cli/review.json" >&2
+  exit 1
+fi
+
+# Env MODEL should still work when no --model is provided
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  CODEX_BIN="$tmpdir/codex" MODEL=envonly REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-model-env) >/dev/null
+if ! grep -q "model=envonly" "$tmpdir/.agentic-sdd/reviews/issue-1/run-model-env/review.json"; then
+  eprint "Expected env MODEL to be used when --model is not provided"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/run-model-env/review.json" >&2
   exit 1
 fi
 

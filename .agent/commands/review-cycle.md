@@ -20,6 +20,12 @@ Review taxonomy (status/priority) and output rules are defined in:
 - `scope-id`: identifier like `issue-123` (`[A-Za-z0-9._-]+`)
 - `run-id`: optional; defaults to reusing `.agentic-sdd/reviews/<scope-id>/.current_run` or a timestamp
 
+Underlying script:
+
+```bash
+./scripts/review-cycle.sh <scope-id> [run-id] [--dry-run] [--model MODEL] [--claude-model MODEL]
+```
+
 ## Flow
 
 1. Collect the diff (default: `DIFF_MODE=auto`)
@@ -109,9 +115,8 @@ Using Codex (default):
 SOT="docs/prd/example.md docs/epics/example.md" \
 TEST_COMMAND="npm test" \
 DIFF_MODE=auto \
-MODEL=gpt-5.3-codex \
 REASONING_EFFORT=high \
-./scripts/review-cycle.sh issue-123
+./scripts/review-cycle.sh issue-123 --model gpt-5.3-codex
 ```
 
 Auto-build SoT from a GitHub Issue:

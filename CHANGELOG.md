@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix `scripts/review-cycle.sh` model selection precedence by adding `--model` and `--claude-model` CLI options (CLI overrides env defaults).
+
 ## [0.2.34] - 2026-02-06
 
 - Change `/review-cycle` default `REASONING_EFFORT` back to `high`.

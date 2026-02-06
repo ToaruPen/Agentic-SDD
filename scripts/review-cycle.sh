@@ -4,7 +4,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: review-cycle.sh <scope-id> [run-id] [--dry-run]
+Usage: review-cycle.sh <scope-id> [run-id] [options]
 
 Generate a review JSON (schema v3) via `codex exec --output-schema`.
 
@@ -14,6 +14,8 @@ Positional arguments:
 
 Options:
   --dry-run  Print the plan and exit without calling codex
+  --model MODEL         Codex model override (takes precedence over env MODEL)
+  --claude-model MODEL  Claude model override (takes precedence over env CLAUDE_MODEL)
   -h, --help Show help
 
 Required environment:
@@ -72,16 +74,63 @@ EOF
 eprint() { printf '%s\n' "$*" >&2; }
 
 DRY_RUN=0
+model_cli_set=0
+model_cli=""
+claude_model_cli_set=0
+claude_model_cli=""
 args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --)
+      # End of options marker. Treat the remaining args as positional.
+      shift
+      while [[ $# -gt 0 ]]; do
+        args+=("$1")
+        shift
+      done
+      ;;
     --dry-run)
       DRY_RUN=1
+      shift
+      ;;
+    --model)
+      if [[ $# -lt 2 ]]; then
+        eprint "Missing value for --model"
+        usage
+        exit 2
+      fi
+      model_cli_set=1
+      model_cli="$2"
+      shift 2
+      ;;
+    --model=*)
+      model_cli_set=1
+      model_cli="${1#*=}"
+      shift
+      ;;
+    --claude-model)
+      if [[ $# -lt 2 ]]; then
+        eprint "Missing value for --claude-model"
+        usage
+        exit 2
+      fi
+      claude_model_cli_set=1
+      claude_model_cli="$2"
+      shift 2
+      ;;
+    --claude-model=*)
+      claude_model_cli_set=1
+      claude_model_cli="${1#*=}"
       shift
       ;;
     -h|--help)
       usage
       exit 0
+      ;;
+    -*)
+      eprint "Unknown option: $1"
+      usage
+      exit 2
       ;;
     *)
       args+=("$1")
@@ -131,12 +180,20 @@ esac
 
 # Codex options
 codex_bin="${CODEX_BIN:-codex}"
-model="${MODEL:-gpt-5.3-codex}"
+if [[ "$model_cli_set" -eq 1 && -z "$model_cli" ]]; then
+  eprint "Invalid --model: empty"
+  exit 2
+fi
+model="${model_cli:-${MODEL:-gpt-5.3-codex}}"
 effort="${REASONING_EFFORT:-high}"
 
 # Claude options
 claude_bin="${CLAUDE_BIN:-claude}"
-claude_model="${CLAUDE_MODEL:-claude-opus-4-5-20250929}"
+if [[ "$claude_model_cli_set" -eq 1 && -z "$claude_model_cli" ]]; then
+  eprint "Invalid --claude-model: empty"
+  exit 2
+fi
+claude_model="${claude_model_cli:-${CLAUDE_MODEL:-claude-opus-4-5-20250929}}"
 
 # Common options
 exec_timeout_sec="${EXEC_TIMEOUT_SEC:-}"
