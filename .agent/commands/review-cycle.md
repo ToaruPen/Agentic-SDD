@@ -78,7 +78,7 @@ Review taxonomy (status/priority) and output rules are defined in:
 
 - `CODEX_BIN`: codex binary (default: `codex`)
 - `MODEL`: Codex model (default: `gpt-5.3-codex`)
-- `REASONING_EFFORT`: `xhigh` | `high` | `medium` | `low` (default: `xhigh`)
+- `REASONING_EFFORT`: `high` | `medium` | `low` (default: `high`)
 
 ### Claude options (when `REVIEW_ENGINE=claude`)
 
@@ -110,7 +110,7 @@ SOT="docs/prd/example.md docs/epics/example.md" \
 TEST_COMMAND="npm test" \
 DIFF_MODE=auto \
 MODEL=gpt-5.3-codex \
-REASONING_EFFORT=xhigh \
+REASONING_EFFORT=high \
 ./scripts/review-cycle.sh issue-123
 ```
 

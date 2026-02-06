@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Change `/review-cycle` default `REASONING_EFFORT` back to `high`.
+- Change OpenCode reviewer agent (`sdd-reviewer`) default `reasoningEffort` back to `high`.
+
 ## [0.2.33] - 2026-02-06
 
 - Change `/review-cycle` default Codex model to `gpt-5.3-codex` and default `REASONING_EFFORT` to `xhigh`.
