@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.33] - 2026-02-06
+
 - Change `/review-cycle` default Codex model to `gpt-5.3-codex` and default `REASONING_EFFORT` to `xhigh`.
 - Update OpenCode reviewer agent (`sdd-reviewer`) to `openai/gpt-5.3-codex` with `reasoningEffort: xhigh`.
 
