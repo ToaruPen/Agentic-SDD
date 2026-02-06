@@ -4,7 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Fix `scripts/review-cycle.sh` model selection precedence by adding `--model` and `--claude-model` CLI options (CLI overrides env defaults).
+## [0.2.35] - 2026-02-06
+
+- Fix `/review-cycle` model selection precedence by adding `--model` and `--claude-model` to `scripts/review-cycle.sh` (CLI overrides env defaults).
+- Support `--` end-of-options terminator in `scripts/review-cycle.sh`.
 
 ## [0.2.34] - 2026-02-06
 
