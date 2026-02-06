@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Change `/review-cycle` default Codex model to `gpt-5.3-codex` and default `REASONING_EFFORT` to `xhigh`.
+- Update OpenCode reviewer agent (`sdd-reviewer`) to `openai/gpt-5.3-codex` with `reasoningEffort: xhigh`.
+
 ## [0.2.32] - 2026-02-04
 
 - Add optional tmux shim to open Shogun Ops tmux layout via `tmux --shogun-ops` (opt-in; requires putting `scripts/` first in `PATH`).
