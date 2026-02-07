@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.36] - 2026-02-07
+
+- Add `/codex-pr-review` command (Codex bot PR review loop documentation).
+
 ## [0.2.35] - 2026-02-06
 
 - Fix `/review-cycle` model selection precedence by adding `--model` and `--claude-model` to `scripts/review-cycle.sh` (CLI overrides env defaults).
