@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python scripts/check-impl-gate.py"
+            "command": "python3 scripts/check-impl-gate.py"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python scripts/check-commit-gate.py"
+            "command": "python3 scripts/check-commit-gate.py"
           }
         ]
       }
