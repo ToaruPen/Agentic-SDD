@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.37] - 2026-02-07
+
+- Fix GitHub Actions `release` workflow to reliably upload assets when a release for the tag already exists (avoid `gh release view` false negatives).
+- Use `python3` in Claude Code gate hooks to avoid environments where `python` is missing.
+
 ## [0.2.36] - 2026-02-07
 
 - Add `/codex-pr-review` command (Codex bot PR review loop documentation).

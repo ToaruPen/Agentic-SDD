@@ -71,8 +71,17 @@ jobs:
           set -euo pipefail
 
           tag="${GITHUB_REF_NAME}"
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" dist/* --clobber
-          else
-            gh release create "$tag" dist/* --title "$tag" --generate-notes
+          repo="${GITHUB_REPOSITORY}"
+
+          # Prefer upload-first: it is the real "update" action and avoids edge cases where
+          # `gh release view` fails but the release already exists (observed in v0.2.35).
+          if gh release upload "$tag" dist/* --clobber --repo "$repo"; then
+            exit 0
           fi
+
+          # Create if missing. If the create races with an already-existing release, retry upload.
+          if gh release create "$tag" dist/* --title "$tag" --generate-notes --repo "$repo"; then
+            exit 0
+          fi
+
+          gh release upload "$tag" dist/* --clobber --repo "$repo"
