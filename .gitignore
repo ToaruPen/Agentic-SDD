@@ -17,3 +17,7 @@
 # Tool-specific generated directories (from sync-agent-config.sh)
 .codex/
 .opencode/
+
+# Python
+__pycache__/
+*.pyc

@@ -124,6 +124,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/review-cycle`: local review loop (codex exec -> review.json)
 - `/review`: review (DoD check)
 - `/create-pr`: push branch and create a PR (gh)
+- `/codex-pr-review`: request a Codex bot review on a PR and iterate until feedback is resolved
 - `/sync-docs`: consistency check between PRD/Epic/code
 - `/worktree`: manage git worktrees for parallel Issues
 - `/cleanup`: clean up worktree and local branch after merge

@@ -238,6 +238,9 @@ sync_opencode() {
                 create-pr)
                     cmd_description="Push branch and create a Pull Request via gh"
                     ;;
+                codex-pr-review)
+                    cmd_description="Request a Codex bot PR review (@codex review) and iterate until resolved"
+                    ;;
                 worktree)
                     cmd_description="Manage git worktrees for parallel Issues"
                     ;;
