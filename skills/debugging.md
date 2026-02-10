@@ -87,6 +87,29 @@ Debugging principles and systematic approaches. Language/framework-agnostic.
 
 ---
 
+## Performance / Reliability Investigations
+
+When the problem is about performance or reliability (not a functional bug), treat it as an investigation:
+
+- Define the metric (SLI) you are trying to improve or stabilize.
+- Establish a baseline (Before) and measurement method.
+- Change one variable at a time and re-measure.
+
+What to record (minimum):
+
+- Metric name and unit (e.g. latency ms, error rate %, CPU %, memory MB)
+- Measurement method (command/tool/dataset) and time window
+- Baseline vs current (include sample size; use percentiles for latency when relevant)
+- Load/traffic conditions (single user vs load test vs production-like)
+- Any confounders (cache warm/cold, background jobs, deploy time, feature flags)
+
+Related:
+
+- `skills/data-driven.md` - metrics-driven investigations
+- `.agent/rules/performance.md` / `.agent/rules/availability.md` / `.agent/rules/observability.md`
+
+---
+
 ## Common Bug Patterns
 
 **Off-by-one**

@@ -2,7 +2,7 @@
 
 Rules for AI agents working in this repository.
 
-Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues) remain in Japanese.
+Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues/PRs) remain in Japanese.
 This control documentation is written in English to reduce token usage during agent bootstrap.
 
 ## Start Here (Development Cycle Protocol)
@@ -116,6 +116,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/create-epic`: create an Epic (requires 3 lists: external services / components / new tech)
 - `/generate-project-config`: generate project-specific skills/rules from Epic
 - `/create-issues`: create Issues (granularity rules)
+- `/debug`: create a structured debugging/investigation note (Issue comment or a new Investigation Issue)
 - `/estimation`: create a Full estimate (11 sections) and get approval
 - `/impl`: implement an Issue (Full estimate required)
 - `/tdd`: implement via TDD (Red -> Green -> Refactor)

@@ -4,7 +4,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 
 Agentic-SDD = Agentic Spec-Driven Development
 
-Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues) remain in Japanese.
+Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues/PRs) remain in Japanese.
 
 ---
 
@@ -225,6 +225,14 @@ To run strict TDD directly:
 
 Both `/impl` and `/tdd` require the same Full estimate + user approval gate (via `/estimation`).
 
+### 4.5) Debug/Investigate (optional)
+
+If you need to debug a bug or run a performance/reliability investigation, use:
+
+```
+/debug [issue-number]
+```
+
 ### 5) Review (`/review` (`/review-cycle`))
 
 Final gate:
@@ -272,6 +280,7 @@ If you enable CI (optional), wait for CI checks and fix failures before merging.
 │   ├── generate-project-config.md
 │   ├── create-issues.md
 │   ├── create-pr.md
+│   ├── debug.md
 │   ├── estimation.md
 │   ├── impl.md
 │   ├── tdd.md

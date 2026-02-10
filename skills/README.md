@@ -47,6 +47,8 @@ Before running /impl #123, check relevant skills:
 - Debugging issues -> debugging.md
 ```
 
+For a structured debugging/investigation note (Issue comment or a new Investigation Issue), see `/debug`.
+
 ### 2) Use as a checklist
 
 Each skill contains a checklist. Use it when you finish implementation.

@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Clarify that Issue/PR titles and bodies must be written in Japanese (allowing Conventional Commit-style prefixes like `feat:` to remain in English).
+- Clarify that `/impl` and `/tdd` run `/review-cycle` automatically after implementation; for lightweight changes (e.g. documentation-only updates), ask the user before running it.
+- Add `/debug` command documentation for structured debugging/investigation notes (Issue comment or a new Investigation Issue), including performance/reliability evidence fields.
+- Clarify language requirements for Shogun Ops refactor drafts/issues and Codex PR review comments.
+
 ## [0.2.37] - 2026-02-07
 
 - Fix GitHub Actions `release` workflow to reliably upload assets when a release for the tag already exists (avoid `gh release view` false negatives).

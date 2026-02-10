@@ -31,17 +31,18 @@ HEAD_SHA="$(git rev-parse HEAD)"
 echo "$HEAD_SHA"
 ```
 
-2. Comment `@codex review` on the PR (include the head SHA so the bot reviews the current PR state):
+2. Comment `@codex review` on the PR (include the head SHA so the bot reviews the current PR state).
+The comment body should be Japanese, but keep `@codex review` exactly as-is.
 
 ```bash
 gh pr comment <PR_NUMBER_OR_URL> --body "$(cat <<EOF
 @codex review
 
-Please review the entire PR as a diff from the base branch (main), not a single commit.
+このPRを、ベースブランチ（main）との差分としてレビューしてください（単一コミットではなくPR全体のdiffとして）。
 
-Focus on the current PR state (head SHA: ${HEAD_SHA}).
-Review all files changed in the PR and any relevant surrounding context.
-Call out only actionable issues; avoid repeating already-fixed items.
+対象は現時点のPR状態です（head SHA: ${HEAD_SHA}）。
+変更された全ファイルと、必要に応じて周辺コンテキストも確認してください。
+指摘は「今このPRに対して実行可能なもの」だけに絞り、既に解消済みの事項の繰り返しは避けてください。
 EOF
 )"
 ```
@@ -93,9 +94,9 @@ HEAD_SHA="$(git rev-parse HEAD)"
 gh pr comment <PR_NUMBER_OR_URL> --body "$(cat <<EOF
 @codex review
 
-Please re-review the PR as a diff from the base branch (main), focusing on the current head SHA (${HEAD_SHA}).
+このPRを再レビューしてください（ベースブランチ main との差分として）。対象は現時点の head SHA (${HEAD_SHA}) です。
 
-Only call out actionable issues that remain in the current PR state; avoid repeating already-fixed items.
+現時点のPRに残っている「実行可能な指摘」だけを挙げ、既に解消済みの事項の繰り返しは避けてください。
 EOF
 )"
 ```
@@ -107,4 +108,3 @@ Stop when:
 1. Codex provides no further actionable findings.
 2. CI is green.
 3. Human review requirements (if any) are satisfied.
-

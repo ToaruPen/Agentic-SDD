@@ -2,7 +2,9 @@
 
 Create Issues from an Epic.
 
-Issue bodies are user-facing artifacts and should remain in Japanese.
+Issue titles and bodies are user-facing artifacts and must remain in Japanese.
+Exception: Conventional Commit-style prefixes at the start of the title (e.g. `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`) may remain in English.
+Exception: machine-readable keys/tokens used for automation may remain in English (e.g. `- PRD:`, `- Epic:`, `Blocked by:`, label names like `parallel-ok` / `blocked` / `priority:P[0-4]`).
 
 ## Usage
 

@@ -4,6 +4,9 @@ Create a Pull Request for an Issue (push + PR creation).
 
 This command assumes GitHub is the source of truth for Issues and linked branches.
 User-facing output remains in Japanese.
+PR titles and bodies are user-facing artifacts and must remain in Japanese.
+Exception: Conventional Commit-style prefixes at the start of the title (e.g. `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`) may remain in English.
+Exception: GitHub closing keywords may remain in English (e.g. `Closes #123`, `Fixes #123`).
 
 ## Usage
 

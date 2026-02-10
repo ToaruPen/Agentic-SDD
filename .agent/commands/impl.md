@@ -48,7 +48,8 @@ Stop conditions:
 
 ### Phase 4: Local review (required)
 
-Run `/review-cycle` before committing:
+After implementation is complete, run `/review-cycle` automatically before committing.
+If the change is lightweight (e.g. documentation-only updates), ask the user whether to run `/review-cycle` (skipping requires explicit approval and a recorded reason).
 
 1. Execute review checks
 2. Fix any issues found

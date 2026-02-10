@@ -36,6 +36,7 @@ Underlying script:
 ## Iteration protocol (how far/how to loop)
 
 - Run `/review-cycle` at least once before committing (see `/impl`).
+  Exception: for lightweight changes (e.g. documentation-only updates), ask the user whether to run it; skipping requires explicit approval and a recorded reason.
 - After each run, decide next action based on `review.json.status`:
   - `Blocked`: fix all `P0`/`P1` findings and re-run.
   - `Question`: answer questions (do not guess). If you cannot answer from the repo, stop and ask the user, then re-run after clarifying.

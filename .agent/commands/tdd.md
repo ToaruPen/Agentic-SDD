@@ -72,7 +72,8 @@ Summarize briefly:
 
 Before committing:
 
-- Run `/review-cycle` (required) and fix findings until it passes.
+- After implementation is complete, run `/review-cycle` automatically before committing and fix findings until it passes.
+  If the change is lightweight (e.g. documentation-only updates), ask the user whether to run `/review-cycle` (skipping requires explicit approval and a recorded reason).
 - Then run `/review` (final DoD + `/sync-docs` gate).
 
 After `/review` is approved:

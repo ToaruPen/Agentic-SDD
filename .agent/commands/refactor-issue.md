@@ -8,6 +8,9 @@ This command is intended for Middle (single writer):
 - On failure: exits non-zero and leaves the draft in `queue/`
 - On success: moves the draft to `archive/refactor-drafts/` (removed from `queue/`)
 
+Issue titles and bodies are user-facing artifacts and must remain in Japanese.
+Exception: machine-readable keys/tokens used for automation may remain in English (e.g. `- PRD:`, `- Epic:`).
+
 ## Usage
 
 ```
@@ -39,4 +42,3 @@ python3 scripts/shogun-ops.py refactor-issue \
 
 - The command applies `refactor.suggested_labels` from the draft YAML to the created Issue.
 - Missing labels are created/updated via `gh label create --force` to ensure the Issue can be created deterministically.
-
