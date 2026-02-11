@@ -303,8 +303,7 @@ fetch_remote_tracking_ref() {
     if [[ -z "$branch" ]]; then
       return 0
     fi
-    if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$ref" && \
-      ! git -C "$repo_root" show-ref --verify --quiet "refs/remotes/${remote_name}/${branch}"; then
+    if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$ref"; then
       return 0
     fi
     git -C "$repo_root" fetch --no-tags --quiet "$remote_name" "$branch"

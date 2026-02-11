@@ -186,9 +186,8 @@ release_bare="$tmpdir/release.git"
 git init -q --bare "$release_bare"
 git -C "$work" remote add release "$release_bare"
 git -C "$work" branch release/v1 "$base_sha"
-git -C "$work" push -u release release/v1 -q
-git -C "$work" fetch -q release release/v1
 release_base_sha="$(git -C "$work" rev-parse release/v1)"
+git -C "$work" update-ref refs/remotes/release/v1 "$release_base_sha"
 write_review_metadata "$head_sha" "release/v1" "$release_base_sha"
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base release/v1) >/dev/null 2>"$tmpdir/stderr_local_slash_base"
 

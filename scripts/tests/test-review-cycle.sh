@@ -195,6 +195,7 @@ git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "loc
 release_shadow_bare="$tmpdir/release-shadow.git"
 git init -q --bare "$release_shadow_bare"
 git -C "$tmpdir" remote add release "$release_shadow_bare"
+git -C "$tmpdir" update-ref refs/remotes/release/v1 "$(git -C "$tmpdir" rev-parse release/v1)"
 (cd "$tmpdir" && SOT="test" TESTS="not run: reason" BASE_REF=release/v1 \
   "$review_cycle_sh" issue-range-local-slash --dry-run) >/dev/null 2>"$tmpdir/stderr_range_local_slash"
 if ! grep -q "diff_detail: release/v1" "$tmpdir/stderr_range_local_slash"; then
