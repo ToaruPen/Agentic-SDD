@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.39] - 2026-02-11
+
+- Add estimation guidance for deciding which values should be configurable vs hard-coded (record policy in estimate preconditions).
+
 ## [0.2.38] - 2026-02-11
 
 - Clarify that Issue/PR titles and bodies must be written in Japanese (allowing Conventional Commit-style prefixes like `feat:` to remain in English).
