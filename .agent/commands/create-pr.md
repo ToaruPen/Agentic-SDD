@@ -32,6 +32,9 @@ Required:
    - If any linked branch exists and you are not on it, report and stop.
 4. `/review-cycle` has a passing `review.json` for this Issue scope (`Approved` or `Approved with nits`).
    - If missing or not passing, stop and ask to re-run `/review-cycle`.
+   - `review-metadata.json` must match the current branch state:
+     - `head_sha` equals current `HEAD`
+     - if `base_sha` is present, the same `base_ref` still points to that `base_sha`
 
 ### Phase 1: Push
 

@@ -50,6 +50,7 @@ EOF
 
 git -C "$tmpdir" add hello.txt
 git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "init" -q
+git -C "$tmpdir" branch -M main
 
 # PRD/Epic fixtures
 mkdir -p "$tmpdir/docs/prd" "$tmpdir/docs/epics"
@@ -104,6 +105,44 @@ EOF
 
 git -C "$tmpdir" add docs/prd/prd.md docs/epics/epic.md
 git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "add docs" -q
+
+# Default diff mode (range) should compare BASE_REF...HEAD.
+# In this test repo, origin/main does not exist, so it must fallback to main.
+git -C "$tmpdir" switch -c feature/default-range -q
+echo "range-change" >> "$tmpdir/hello.txt"
+git -C "$tmpdir" add hello.txt
+git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "range change" -q
+
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" \
+  "$review_cycle_sh" issue-range --dry-run) >/dev/null 2>"$tmpdir/stderr_range_ok"
+if ! grep -q "diff_source: range" "$tmpdir/stderr_range_ok"; then
+  eprint "Expected default diff source to be range"
+  cat "$tmpdir/stderr_range_ok" >&2
+  exit 1
+fi
+if ! grep -q "diff_detail: main" "$tmpdir/stderr_range_ok"; then
+  eprint "Expected range diff base fallback to main"
+  cat "$tmpdir/stderr_range_ok" >&2
+  exit 1
+fi
+
+# Default range mode should fail-fast when BASE_REF...HEAD has no diff.
+git -C "$tmpdir" switch main -q
+set +e
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" \
+  "$review_cycle_sh" issue-range-empty --dry-run) >/dev/null 2>"$tmpdir/stderr_range_empty"
+code_range_empty=$?
+set -e
+if [[ "$code_range_empty" -eq 0 ]]; then
+  eprint "Expected failure when range diff is empty"
+  exit 1
+fi
+if ! grep -q "Diff is empty (range: main...HEAD)." "$tmpdir/stderr_range_empty"; then
+  eprint "Expected empty range diff error message, got:"
+  cat "$tmpdir/stderr_range_empty" >&2
+  exit 1
+fi
+git -C "$tmpdir" switch feature/default-range -q
 
 # Staged diff only (should succeed)
 echo "change1" >> "$tmpdir/hello.txt"
@@ -234,6 +273,11 @@ if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" ]]; then
+  eprint "Expected review-metadata.json to be created"
+  exit 1
+fi
+
 if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run1/sot.txt" ]]; then
   eprint "Expected sot.txt to be created"
   exit 1
@@ -242,6 +286,18 @@ fi
 if ! grep -q "model=stub" "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json"; then
   eprint "Expected model passthrough to codex stub (MODEL=stub)"
   cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json" >&2
+  exit 1
+fi
+
+if ! grep -q '"diff_source": "staged"' "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
+  eprint "Expected diff_source=staged in review metadata"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" >&2
+  exit 1
+fi
+
+if ! grep -q '"head_sha": "' "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
+  eprint "Expected head_sha in review metadata"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" >&2
   exit 1
 fi
 

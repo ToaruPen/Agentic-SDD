@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Change `/review-cycle` default diff source to base-branch range (`origin/main...HEAD`, fallback `main...HEAD`) via `DIFF_MODE=range`.
+- Add `BASE_REF` support to `/review-cycle` and extend `DIFF_MODE` with `range`.
+- Add `/review-cycle` metadata output (`review-metadata.json`) with `head_sha`/`base_ref`/`base_sha`/`diff_sha256`.
+- Add `/create-pr` freshness checks against `review-metadata.json` (fail-fast when reviewed `HEAD` or base SHA has changed).
+- Add deterministic tests for default range diff behavior, empty-range fail-fast, review metadata generation, and `/create-pr` freshness checks.
 - Add `/ui-iterate` command documentation for iterative UI redesign loops (`capture -> patch -> verify`) with required gate alignment (`/estimation`, `/review-cycle`, `/review`).
 - Add `skills/ui-redesign.md` and register it in `skills/README.md`.
 - Add `scripts/ui-iterate.sh` helper to create round folders, run configurable checks, and capture desktop/mobile screenshots.
