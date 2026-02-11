@@ -147,6 +147,36 @@ May not need tests:
 
 ---
 
+## Property-Based Testing (PBT) (recommended, conditional)
+
+Property-Based Testing (PBT) is a test style where you define "properties" (invariants) and
+check them across many generated inputs. Use it as a complement to example-based tests,
+especially for logic with a large input space.
+
+Recommended when:
+
+- The logic can be expressed as invariants (normalization, parsers, transformations, state machines)
+- Boundary cases are numerous and easy to miss with hand-written examples
+- You can write an oracle (expected relationship) without re-implementing the same algorithm
+
+Avoid or de-prioritize when:
+
+- The behavior is primarily I/O or integration driven (DB/network/filesystem)
+- The spec is example-driven and no stable invariant is available yet
+- You cannot make the test deterministic (see below)
+
+Operational constraints (must):
+
+- Deterministic: fix randomness (seed) and record counterexamples so failures are reproducible
+- Fast: cap generated cases to keep feedback loops short
+- Actionable failures: shrink/minimize inputs when possible; keep the minimized case as a regression example
+
+Note:
+
+- PBT is optional. Prioritize the minimal set of tests that deterministically verify the Acceptance Criteria (AC).
+
+---
+
 ## Test data
 
 Approaches:
