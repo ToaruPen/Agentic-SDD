@@ -75,6 +75,7 @@ Underlying script:
 
 - `DIFF_MODE`: `range` | `auto` | `staged` | `worktree` (default: `range`)
   - `range`: review `BASE_REF...HEAD` (default `BASE_REF=origin/main`, fallback to `main` if `origin/main` is missing)
+    - Requires a clean working tree (no staged/unstaged changes). For pre-commit local changes, use `staged` or `worktree`.
   - If both staged and worktree diffs exist in `auto`, fail-fast and ask you to choose.
 - `BASE_REF`: base ref for `range` mode (default: `origin/main`; fallback to `main`)
 - `CONSTRAINTS`: additional constraints (default: `none`)

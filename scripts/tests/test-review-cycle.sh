@@ -184,6 +184,24 @@ if [[ "$current_origin_main" != "$new_origin_main" ]]; then
   exit 1
 fi
 
+# Range mode should fail-fast when uncommitted local changes exist.
+echo "range-local-change" >> "$tmpdir/hello.txt"
+set +e
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" \
+  "$review_cycle_sh" issue-range-dirty --dry-run) >/dev/null 2>"$tmpdir/stderr_range_dirty"
+code_range_dirty=$?
+set -e
+if [[ "$code_range_dirty" -eq 0 ]]; then
+  eprint "Expected failure when DIFF_MODE=range has local changes"
+  exit 1
+fi
+if ! grep -q "DIFF_MODE=range requires a clean working tree" "$tmpdir/stderr_range_dirty"; then
+  eprint "Expected clean working tree error message, got:"
+  cat "$tmpdir/stderr_range_dirty" >&2
+  exit 1
+fi
+git -C "$tmpdir" restore hello.txt
+
 # Staged diff only (should succeed)
 echo "change1" >> "$tmpdir/hello.txt"
 git -C "$tmpdir" add hello.txt

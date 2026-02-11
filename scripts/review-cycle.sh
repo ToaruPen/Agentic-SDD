@@ -461,6 +461,11 @@ write_diff() {
   case "$diff_mode" in
     range)
       local base="$base_ref"
+      if [[ "$has_staged" -eq 1 || "$has_worktree" -eq 1 ]]; then
+        eprint "DIFF_MODE=range requires a clean working tree (no staged/unstaged changes)."
+        eprint "Use DIFF_MODE=staged or DIFF_MODE=worktree for pre-commit local changes."
+        exit 2
+      fi
       if ! fetch_remote_tracking_ref "$base"; then
         # Preserve existing fallback behavior when origin/main cannot be fetched
         # and a local main exists.
