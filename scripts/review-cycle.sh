@@ -267,6 +267,7 @@ out_issue_body="${run_dir}/issue.txt"
 
 diff_source=""
 diff_detail=""
+diff_base_sha=""
 
 timeout_bin=""
 if [[ -n "$exec_timeout_sec" ]]; then
@@ -498,6 +499,11 @@ write_diff() {
       fi
       diff_source="range"
       diff_detail="$base"
+      diff_base_sha="$(git -C "$repo_root" rev-parse "$base" 2>/dev/null || true)"
+      if [[ -z "$diff_base_sha" ]]; then
+        eprint "Failed to resolve base SHA during range diff collection: $base"
+        exit 2
+      fi
       if git -C "$repo_root" diff --quiet "${base}...HEAD"; then
         eprint "Diff is empty (range: ${base}...HEAD)."
         exit 2
@@ -933,9 +939,9 @@ meta_base_ref=""
 meta_base_sha=""
 if [[ "$diff_source" == "range" && -n "$diff_detail" ]]; then
   meta_base_ref="$diff_detail"
-  meta_base_sha="$(git -C "$repo_root" rev-parse "$meta_base_ref" 2>/dev/null || true)"
+  meta_base_sha="$diff_base_sha"
   if [[ -z "$meta_base_sha" ]]; then
-    eprint "Failed to resolve base SHA for review metadata: $meta_base_ref"
+    eprint "Failed to resolve pinned base SHA for review metadata: $meta_base_ref"
     exit 1
   fi
 fi

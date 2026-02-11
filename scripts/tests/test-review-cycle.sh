@@ -300,6 +300,10 @@ done
 
 cat >/dev/null || true
 
+if [[ -n "${CODEX_STUB_MOVE_MAIN_TO:-}" ]]; then
+  git branch -f main "$CODEX_STUB_MOVE_MAIN_TO" >/dev/null
+fi
+
 if [[ -z "$out" ]]; then
   echo "missing --output-last-message" >&2
   exit 2
@@ -341,6 +345,52 @@ cat > "$tmpdir/issue-body.md" <<'EOF'
 
 - [ ] AC1: something
 EOF
+
+# Base SHA in review metadata must be pinned to the diff-collection time.
+range_repo="$tmpdir/range-meta-pin"
+mkdir -p "$range_repo/.agent/schemas"
+cp -p "$schema_src" "$range_repo/.agent/schemas/review.json"
+git -C "$range_repo" init -q
+cat > "$range_repo/hello.txt" <<'EOF'
+hello
+EOF
+git -C "$range_repo" add hello.txt
+git -C "$range_repo" -c user.name=test -c user.email=test@example.com commit -m "init" -q
+git -C "$range_repo" branch -M main
+git -C "$range_repo" switch -c feature/range-base-pin -q
+echo "feature-change" >> "$range_repo/hello.txt"
+git -C "$range_repo" add hello.txt
+git -C "$range_repo" -c user.name=test -c user.email=test@example.com commit -m "feature change" -q
+base_sha_before="$(git -C "$range_repo" rev-parse main)"
+git -C "$range_repo" switch -c main-future main -q
+echo "main-future" >> "$range_repo/hello.txt"
+git -C "$range_repo" add hello.txt
+git -C "$range_repo" -c user.name=test -c user.email=test@example.com commit -m "main future" -q
+base_sha_after="$(git -C "$range_repo" rev-parse HEAD)"
+git -C "$range_repo" switch feature/range-base-pin -q
+
+(cd "$range_repo" && SOT="test" TESTS="not run: reason" DIFF_MODE=range BASE_REF=main \
+  CODEX_STUB_MOVE_MAIN_TO="$base_sha_after" CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-range-base-pin) >/dev/null
+
+metadata_base_sha="$(python3 - "$range_repo/.agentic-sdd/reviews/issue-1/run-range-base-pin/review-metadata.json" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+print(data.get("base_sha", ""))
+PY
+)"
+if [[ "$metadata_base_sha" != "$base_sha_before" ]]; then
+  eprint "Expected review metadata base_sha to be pinned at diff collection time"
+  eprint "metadata=$metadata_base_sha expected=$base_sha_before"
+  exit 1
+fi
+if [[ "$metadata_base_sha" == "$base_sha_after" ]]; then
+  eprint "Expected review metadata base_sha not to drift to post-diff base"
+  eprint "unexpected=$metadata_base_sha"
+  exit 1
+fi
 
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
   CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
