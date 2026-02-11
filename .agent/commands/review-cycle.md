@@ -99,6 +99,7 @@ Underlying script:
 
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/review.json`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/review-metadata.json`
+  - In `DIFF_MODE=range`, `base_sha` is pinned to the SHA resolved when `diff.patch` is collected.
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/diff.patch`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.txt`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.stderr`
