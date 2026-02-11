@@ -36,6 +36,24 @@ require_cmd() {
   fi
 }
 
+fetch_remote_tracking_ref() {
+  local repo_root="$1"
+  local ref="$2"
+  if [[ ! "$ref" =~ ^([^/]+)/(.+)$ ]]; then
+    return 0
+  fi
+  local remote="${BASH_REMATCH[1]}"
+  local branch="${BASH_REMATCH[2]}"
+  if ! git -C "$repo_root" remote get-url "$remote" >/dev/null 2>&1; then
+    return 0
+  fi
+  if ! git -C "$repo_root" fetch --no-tags --quiet "$remote" "$branch"; then
+    eprint "Failed to fetch latest base ref: $ref"
+    eprint "Run 'git fetch $remote $branch' and retry /create-pr."
+    exit 2
+  fi
+}
+
 DRY_RUN=0
 ISSUE=""
 TITLE=""
@@ -223,6 +241,7 @@ fi
 
 if [[ -n "$meta_base_sha" ]]; then
   effective_base_ref="${meta_base_ref:-main}"
+  fetch_remote_tracking_ref "$repo_root" "$effective_base_ref"
   if ! git -C "$repo_root" rev-parse --verify "$effective_base_ref" >/dev/null 2>&1; then
     eprint "Base ref '$effective_base_ref' from review metadata was not found."
     eprint "Run /review-cycle ${scope_id} again."

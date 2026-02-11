@@ -70,9 +70,9 @@ write_review_metadata() {
 EOF
 }
 
-base_sha="$(git -C "$work" rev-parse main)"
+base_sha="$(git -C "$work" rev-parse origin/main)"
 head_sha="$(git -C "$work" rev-parse HEAD)"
-write_review_metadata "$head_sha" "main" "$base_sha"
+write_review_metadata "$head_sha" "origin/main" "$base_sha"
 
 # Stub gh (no network/auth)
 mkdir -p "$tmpdir/bin"
@@ -150,13 +150,16 @@ fi
 
 # Refresh metadata for current head.
 head_sha="$(git -C "$work" rev-parse HEAD)"
-write_review_metadata "$head_sha" "main" "$base_sha"
+write_review_metadata "$head_sha" "origin/main" "$base_sha"
 
 # Stale base should fail and require re-review.
 git -C "$work" checkout main -q
 echo "main-update" >> "$work/README.md"
 git -C "$work" add README.md
 git -C "$work" -c user.name=test -c user.email=test@example.com commit -m "chore: main update" -q
+git -C "$work" push origin main -q
+# Simulate a stale local remote-tracking ref. The script should fetch before comparing.
+git -C "$work" update-ref refs/remotes/origin/main "$base_sha"
 git -C "$work" checkout feature/issue-1-test -q
 set +e
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>"$tmpdir/stderr_stale_base"
@@ -166,16 +169,16 @@ if [[ "$code_stale_base" -eq 0 ]]; then
   eprint "Expected moved base ref to fail"
   exit 1
 fi
-if ! grep -q "Base ref 'main' moved since /review-cycle" "$tmpdir/stderr_stale_base"; then
+if ! grep -q "Base ref 'origin/main' moved since /review-cycle" "$tmpdir/stderr_stale_base"; then
   eprint "Expected stale base error message, got:"
   cat "$tmpdir/stderr_stale_base" >&2
   exit 1
 fi
 
 # Refresh metadata after base/head drift fixes.
-base_sha="$(git -C "$work" rev-parse main)"
+base_sha="$(git -C "$work" rev-parse origin/main)"
 head_sha="$(git -C "$work" rev-parse HEAD)"
-write_review_metadata "$head_sha" "main" "$base_sha"
+write_review_metadata "$head_sha" "origin/main" "$base_sha"
 
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
 

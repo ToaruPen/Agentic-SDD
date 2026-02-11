@@ -288,7 +288,20 @@ git_ref_exists() {
   git -C "$repo_root" rev-parse --verify "$ref" >/dev/null 2>&1
 }
 
-	write_tests() {
+fetch_remote_tracking_ref() {
+  local ref="$1"
+  if [[ ! "$ref" =~ ^([^/]+)/(.+)$ ]]; then
+    return 0
+  fi
+  local remote="${BASH_REMATCH[1]}"
+  local branch="${BASH_REMATCH[2]}"
+  if ! git -C "$repo_root" remote get-url "$remote" >/dev/null 2>&1; then
+    return 0
+  fi
+  git -C "$repo_root" fetch --no-tags --quiet "$remote" "$branch"
+}
+
+		write_tests() {
 	  local exit_code=0
 	  local reported_stderr=0
 	  local tmp_tests_stdout=""
@@ -448,6 +461,17 @@ write_diff() {
   case "$diff_mode" in
     range)
       local base="$base_ref"
+      if ! fetch_remote_tracking_ref "$base"; then
+        # Preserve existing fallback behavior when origin/main cannot be fetched
+        # and a local main exists.
+        if [[ "$base" == "origin/main" ]] && ! git_ref_exists "$base" && git_ref_exists "main"; then
+          base="main"
+        else
+          eprint "Failed to fetch latest base ref: $base"
+          eprint "Run 'git fetch' and retry /review-cycle."
+          exit 2
+        fi
+      fi
       if ! git_ref_exists "$base"; then
         if [[ "$base" == "origin/main" ]] && git_ref_exists "main"; then
           base="main"

@@ -144,6 +144,46 @@ if ! grep -q "Diff is empty (range: main...HEAD)." "$tmpdir/stderr_range_empty";
 fi
 git -C "$tmpdir" switch feature/default-range -q
 
+# If fetch for origin/main fails and the ref is missing, range mode should
+# still fallback to local main (preserve legacy behavior).
+origin_range_bare="$tmpdir/origin-range.git"
+git init -q --bare "$origin_range_bare"
+git -C "$tmpdir" remote add origin "$origin_range_bare"
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" \
+  "$review_cycle_sh" issue-range-missing --dry-run) >/dev/null 2>"$tmpdir/stderr_range_missing"
+if ! grep -q "diff_detail: main" "$tmpdir/stderr_range_missing"; then
+  eprint "Expected fallback to main when remote-tracking base cannot be fetched"
+  cat "$tmpdir/stderr_range_missing" >&2
+  exit 1
+fi
+
+# Range mode should fetch remote-tracking base refs before diffing.
+git -C "$tmpdir" checkout main -q
+git -C "$tmpdir" push -u origin main -q
+old_origin_main="$(git -C "$tmpdir" rev-parse origin/main)"
+
+updater="$tmpdir/updater"
+git clone -q "$origin_range_bare" "$updater"
+git -C "$updater" checkout main -q
+echo "remote-main-update" >> "$updater/hello.txt"
+git -C "$updater" add hello.txt
+git -C "$updater" -c user.name=test -c user.email=test@example.com commit -m "main update" -q
+git -C "$updater" push origin main -q
+new_origin_main="$(git -C "$updater" rev-parse HEAD)"
+
+# Force local origin/main to stale SHA; /review-cycle should fetch and refresh it.
+git -C "$tmpdir" update-ref refs/remotes/origin/main "$old_origin_main"
+git -C "$tmpdir" switch feature/default-range -q
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" \
+  "$review_cycle_sh" issue-range-fetch --dry-run) >/dev/null 2>"$tmpdir/stderr_range_fetch"
+current_origin_main="$(git -C "$tmpdir" rev-parse origin/main)"
+if [[ "$current_origin_main" != "$new_origin_main" ]]; then
+  eprint "Expected /review-cycle to fetch and refresh origin/main"
+  eprint "current=$current_origin_main expected=$new_origin_main"
+  cat "$tmpdir/stderr_range_fetch" >&2
+  exit 1
+fi
+
 # Staged diff only (should succeed)
 echo "change1" >> "$tmpdir/hello.txt"
 git -C "$tmpdir" add hello.txt
