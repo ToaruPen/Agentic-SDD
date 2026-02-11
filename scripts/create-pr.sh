@@ -292,9 +292,18 @@ fi
 
 if [[ -n "$meta_base_sha" ]]; then
   reviewed_base_branch="${meta_base_ref:-main}"
-  if [[ "$reviewed_base_branch" =~ ^[^/]+/(.+)$ ]]; then
-    reviewed_base_branch="${BASH_REMATCH[1]}"
-  fi
+  while IFS= read -r remote_name; do
+    [[ -n "$remote_name" ]] || continue
+    remote_prefix="${remote_name}/"
+    if [[ "$reviewed_base_branch" != "$remote_prefix"* ]]; then
+      continue
+    fi
+    candidate_branch="${reviewed_base_branch#"$remote_prefix"}"
+    if git -C "$repo_root" show-ref --verify --quiet "refs/remotes/${remote_name}/${candidate_branch}"; then
+      reviewed_base_branch="$candidate_branch"
+    fi
+    break
+  done < <(git -C "$repo_root" remote)
   if [[ "$BASE" != "$reviewed_base_branch" ]]; then
     eprint "PR base '$BASE' differs from reviewed base '$reviewed_base_branch'."
     eprint "Re-run /review-cycle for the target base, or use --base '$reviewed_base_branch'."

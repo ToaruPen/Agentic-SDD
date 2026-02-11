@@ -180,6 +180,15 @@ base_sha="$(git -C "$work" rev-parse origin/main)"
 head_sha="$(git -C "$work" rev-parse HEAD)"
 write_review_metadata "$head_sha" "origin/main" "$base_sha"
 
+# Local base branch names that include "/" must not be treated as remote refs.
+git -C "$work" branch release/v1 "$base_sha"
+release_base_sha="$(git -C "$work" rev-parse release/v1)"
+write_review_metadata "$head_sha" "release/v1" "$release_base_sha"
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base release/v1) >/dev/null 2>"$tmpdir/stderr_local_slash_base"
+
+# Restore metadata for origin/main scenarios below.
+write_review_metadata "$head_sha" "origin/main" "$base_sha"
+
 # PR base override must match reviewed base branch.
 set +e
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base develop) >/dev/null 2>"$tmpdir/stderr_base_branch_mismatch"
