@@ -290,15 +290,27 @@ git_ref_exists() {
 
 fetch_remote_tracking_ref() {
   local ref="$1"
-  if [[ ! "$ref" =~ ^([^/]+)/(.+)$ ]]; then
-    return 0
-  fi
-  local remote="${BASH_REMATCH[1]}"
-  local branch="${BASH_REMATCH[2]}"
-  if ! git -C "$repo_root" remote get-url "$remote" >/dev/null 2>&1; then
-    return 0
-  fi
-  git -C "$repo_root" fetch --no-tags --quiet "$remote" "$branch"
+  local remote_name=""
+  local remote_prefix=""
+  local branch=""
+  while IFS= read -r remote_name; do
+    [[ -n "$remote_name" ]] || continue
+    remote_prefix="${remote_name}/"
+    if [[ "$ref" != "$remote_prefix"* ]]; then
+      continue
+    fi
+    branch="${ref#"$remote_prefix"}"
+    if [[ -z "$branch" ]]; then
+      return 0
+    fi
+    if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$ref" && \
+      ! git -C "$repo_root" show-ref --verify --quiet "refs/remotes/${remote_name}/${branch}"; then
+      return 0
+    fi
+    git -C "$repo_root" fetch --no-tags --quiet "$remote_name" "$branch"
+    return $?
+  done < <(git -C "$repo_root" remote)
+  return 0
 }
 
 		write_tests() {

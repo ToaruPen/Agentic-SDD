@@ -184,6 +184,25 @@ if [[ "$current_origin_main" != "$new_origin_main" ]]; then
   exit 1
 fi
 
+# Range mode should prefer local BASE_REF values containing "/" even when a
+# same-prefix remote exists.
+git -C "$tmpdir" switch main -q
+git -C "$tmpdir" branch release/v1
+git -C "$tmpdir" switch -c feature/local-slash-base -q
+echo "local-slash-base-change" >> "$tmpdir/hello.txt"
+git -C "$tmpdir" add hello.txt
+git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "local slash base change" -q
+release_shadow_bare="$tmpdir/release-shadow.git"
+git init -q --bare "$release_shadow_bare"
+git -C "$tmpdir" remote add release "$release_shadow_bare"
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" BASE_REF=release/v1 \
+  "$review_cycle_sh" issue-range-local-slash --dry-run) >/dev/null 2>"$tmpdir/stderr_range_local_slash"
+if ! grep -q "diff_detail: release/v1" "$tmpdir/stderr_range_local_slash"; then
+  eprint "Expected local slash base ref to be used without remote fetch failure"
+  cat "$tmpdir/stderr_range_local_slash" >&2
+  exit 1
+fi
+
 # Range mode should fail-fast when uncommitted local changes exist.
 echo "range-local-change" >> "$tmpdir/hello.txt"
 set +e

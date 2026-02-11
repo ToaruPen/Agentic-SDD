@@ -180,7 +180,11 @@ base_sha="$(git -C "$work" rev-parse origin/main)"
 head_sha="$(git -C "$work" rev-parse HEAD)"
 write_review_metadata "$head_sha" "origin/main" "$base_sha"
 
-# Local base branch names that include "/" must not be treated as remote refs.
+# Local base branch names that include "/" must not be treated as remote refs,
+# even when a same-prefix remote exists.
+release_bare="$tmpdir/release.git"
+git init -q --bare "$release_bare"
+git -C "$work" remote add release "$release_bare"
 git -C "$work" branch release/v1 "$base_sha"
 release_base_sha="$(git -C "$work" rev-parse release/v1)"
 write_review_metadata "$head_sha" "release/v1" "$release_base_sha"

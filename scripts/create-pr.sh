@@ -39,19 +39,31 @@ require_cmd() {
 fetch_remote_tracking_ref() {
   local repo_root="$1"
   local ref="$2"
-  if [[ ! "$ref" =~ ^([^/]+)/(.+)$ ]]; then
+  local remote_name=""
+  local remote_prefix=""
+  local branch=""
+  while IFS= read -r remote_name; do
+    [[ -n "$remote_name" ]] || continue
+    remote_prefix="${remote_name}/"
+    if [[ "$ref" != "$remote_prefix"* ]]; then
+      continue
+    fi
+    branch="${ref#"$remote_prefix"}"
+    if [[ -z "$branch" ]]; then
+      return 0
+    fi
+    if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$ref" && \
+      ! git -C "$repo_root" show-ref --verify --quiet "refs/remotes/${remote_name}/${branch}"; then
+      return 0
+    fi
+    if ! git -C "$repo_root" fetch --no-tags --quiet "$remote_name" "$branch"; then
+      eprint "Failed to fetch latest base ref: $ref"
+      eprint "Run 'git fetch $remote_name $branch' and retry /create-pr."
+      exit 2
+    fi
     return 0
-  fi
-  local remote="${BASH_REMATCH[1]}"
-  local branch="${BASH_REMATCH[2]}"
-  if ! git -C "$repo_root" remote get-url "$remote" >/dev/null 2>&1; then
-    return 0
-  fi
-  if ! git -C "$repo_root" fetch --no-tags --quiet "$remote" "$branch"; then
-    eprint "Failed to fetch latest base ref: $ref"
-    eprint "Run 'git fetch $remote $branch' and retry /create-pr."
-    exit 2
-  fi
+  done < <(git -C "$repo_root" remote)
+  return 0
 }
 
 DRY_RUN=0
