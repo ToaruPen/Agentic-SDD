@@ -50,6 +50,7 @@ EOF
 
 git -C "$tmpdir" add hello.txt
 git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "init" -q
+git -C "$tmpdir" branch -M main
 
 # PRD/Epic fixtures
 mkdir -p "$tmpdir/docs/prd" "$tmpdir/docs/epics"
@@ -104,6 +105,122 @@ EOF
 
 git -C "$tmpdir" add docs/prd/prd.md docs/epics/epic.md
 git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "add docs" -q
+
+# Default diff mode (range) should compare BASE_REF...HEAD.
+# In this test repo, origin/main does not exist, so it must fallback to main.
+git -C "$tmpdir" switch -c feature/default-range -q
+echo "range-change" >> "$tmpdir/hello.txt"
+git -C "$tmpdir" add hello.txt
+git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "range change" -q
+
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" \
+  "$review_cycle_sh" issue-range --dry-run) >/dev/null 2>"$tmpdir/stderr_range_ok"
+if ! grep -q "diff_source: range" "$tmpdir/stderr_range_ok"; then
+  eprint "Expected default diff source to be range"
+  cat "$tmpdir/stderr_range_ok" >&2
+  exit 1
+fi
+if ! grep -q "diff_detail: main" "$tmpdir/stderr_range_ok"; then
+  eprint "Expected range diff base fallback to main"
+  cat "$tmpdir/stderr_range_ok" >&2
+  exit 1
+fi
+
+# Default range mode should fail-fast when BASE_REF...HEAD has no diff.
+git -C "$tmpdir" switch main -q
+set +e
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" \
+  "$review_cycle_sh" issue-range-empty --dry-run) >/dev/null 2>"$tmpdir/stderr_range_empty"
+code_range_empty=$?
+set -e
+if [[ "$code_range_empty" -eq 0 ]]; then
+  eprint "Expected failure when range diff is empty"
+  exit 1
+fi
+if ! grep -q "Diff is empty (range: main...HEAD)." "$tmpdir/stderr_range_empty"; then
+  eprint "Expected empty range diff error message, got:"
+  cat "$tmpdir/stderr_range_empty" >&2
+  exit 1
+fi
+git -C "$tmpdir" switch feature/default-range -q
+
+# If fetch for origin/main fails and the ref is missing, range mode should
+# still fallback to local main (preserve legacy behavior).
+origin_range_bare="$tmpdir/origin-range.git"
+git init -q --bare "$origin_range_bare"
+git -C "$tmpdir" remote add origin "$origin_range_bare"
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" \
+  "$review_cycle_sh" issue-range-missing --dry-run) >/dev/null 2>"$tmpdir/stderr_range_missing"
+if ! grep -q "diff_detail: main" "$tmpdir/stderr_range_missing"; then
+  eprint "Expected fallback to main when remote-tracking base cannot be fetched"
+  cat "$tmpdir/stderr_range_missing" >&2
+  exit 1
+fi
+
+# Range mode should fetch remote-tracking base refs before diffing.
+git -C "$tmpdir" checkout main -q
+git -C "$tmpdir" push -u origin main -q
+old_origin_main="$(git -C "$tmpdir" rev-parse origin/main)"
+
+updater="$tmpdir/updater"
+git clone -q "$origin_range_bare" "$updater"
+git -C "$updater" checkout main -q
+echo "remote-main-update" >> "$updater/hello.txt"
+git -C "$updater" add hello.txt
+git -C "$updater" -c user.name=test -c user.email=test@example.com commit -m "main update" -q
+git -C "$updater" push origin main -q
+new_origin_main="$(git -C "$updater" rev-parse HEAD)"
+
+# Force local origin/main to stale SHA; /review-cycle should fetch and refresh it.
+git -C "$tmpdir" update-ref refs/remotes/origin/main "$old_origin_main"
+git -C "$tmpdir" switch feature/default-range -q
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" \
+  "$review_cycle_sh" issue-range-fetch --dry-run) >/dev/null 2>"$tmpdir/stderr_range_fetch"
+current_origin_main="$(git -C "$tmpdir" rev-parse origin/main)"
+if [[ "$current_origin_main" != "$new_origin_main" ]]; then
+  eprint "Expected /review-cycle to fetch and refresh origin/main"
+  eprint "current=$current_origin_main expected=$new_origin_main"
+  cat "$tmpdir/stderr_range_fetch" >&2
+  exit 1
+fi
+
+# Range mode should prefer local BASE_REF values containing "/" even when a
+# same-prefix remote exists.
+git -C "$tmpdir" switch main -q
+git -C "$tmpdir" branch release/v1
+git -C "$tmpdir" switch -c feature/local-slash-base -q
+echo "local-slash-base-change" >> "$tmpdir/hello.txt"
+git -C "$tmpdir" add hello.txt
+git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "local slash base change" -q
+release_shadow_bare="$tmpdir/release-shadow.git"
+git init -q --bare "$release_shadow_bare"
+git -C "$tmpdir" remote add release "$release_shadow_bare"
+git -C "$tmpdir" update-ref refs/remotes/release/v1 "$(git -C "$tmpdir" rev-parse release/v1)"
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" BASE_REF=release/v1 \
+  "$review_cycle_sh" issue-range-local-slash --dry-run) >/dev/null 2>"$tmpdir/stderr_range_local_slash"
+if ! grep -q "diff_detail: release/v1" "$tmpdir/stderr_range_local_slash"; then
+  eprint "Expected local slash base ref to be used without remote fetch failure"
+  cat "$tmpdir/stderr_range_local_slash" >&2
+  exit 1
+fi
+
+# Range mode should fail-fast when uncommitted local changes exist.
+echo "range-local-change" >> "$tmpdir/hello.txt"
+set +e
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" \
+  "$review_cycle_sh" issue-range-dirty --dry-run) >/dev/null 2>"$tmpdir/stderr_range_dirty"
+code_range_dirty=$?
+set -e
+if [[ "$code_range_dirty" -eq 0 ]]; then
+  eprint "Expected failure when DIFF_MODE=range has local changes"
+  exit 1
+fi
+if ! grep -q "DIFF_MODE=range requires a clean working tree" "$tmpdir/stderr_range_dirty"; then
+  eprint "Expected clean working tree error message, got:"
+  cat "$tmpdir/stderr_range_dirty" >&2
+  exit 1
+fi
+git -C "$tmpdir" restore hello.txt
 
 # Staged diff only (should succeed)
 echo "change1" >> "$tmpdir/hello.txt"
@@ -183,6 +300,10 @@ done
 
 cat >/dev/null || true
 
+if [[ -n "${CODEX_STUB_MOVE_MAIN_TO:-}" ]]; then
+  git branch -f main "$CODEX_STUB_MOVE_MAIN_TO" >/dev/null
+fi
+
 if [[ -z "$out" ]]; then
   echo "missing --output-last-message" >&2
   exit 2
@@ -225,12 +346,63 @@ cat > "$tmpdir/issue-body.md" <<'EOF'
 - [ ] AC1: something
 EOF
 
+# Base SHA in review metadata must be pinned to the diff-collection time.
+range_repo="$tmpdir/range-meta-pin"
+mkdir -p "$range_repo/.agent/schemas"
+cp -p "$schema_src" "$range_repo/.agent/schemas/review.json"
+git -C "$range_repo" init -q
+cat > "$range_repo/hello.txt" <<'EOF'
+hello
+EOF
+git -C "$range_repo" add hello.txt
+git -C "$range_repo" -c user.name=test -c user.email=test@example.com commit -m "init" -q
+git -C "$range_repo" branch -M main
+git -C "$range_repo" switch -c feature/range-base-pin -q
+echo "feature-change" >> "$range_repo/hello.txt"
+git -C "$range_repo" add hello.txt
+git -C "$range_repo" -c user.name=test -c user.email=test@example.com commit -m "feature change" -q
+base_sha_before="$(git -C "$range_repo" rev-parse main)"
+git -C "$range_repo" switch -c main-future main -q
+echo "main-future" >> "$range_repo/hello.txt"
+git -C "$range_repo" add hello.txt
+git -C "$range_repo" -c user.name=test -c user.email=test@example.com commit -m "main future" -q
+base_sha_after="$(git -C "$range_repo" rev-parse HEAD)"
+git -C "$range_repo" switch feature/range-base-pin -q
+
+(cd "$range_repo" && SOT="test" TESTS="not run: reason" DIFF_MODE=range BASE_REF=main \
+  CODEX_STUB_MOVE_MAIN_TO="$base_sha_after" CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-range-base-pin) >/dev/null
+
+metadata_base_sha="$(python3 - "$range_repo/.agentic-sdd/reviews/issue-1/run-range-base-pin/review-metadata.json" <<'PY'
+import json
+import sys
+with open(sys.argv[1], "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+print(data.get("base_sha", ""))
+PY
+)"
+if [[ "$metadata_base_sha" != "$base_sha_before" ]]; then
+  eprint "Expected review metadata base_sha to be pinned at diff collection time"
+  eprint "metadata=$metadata_base_sha expected=$base_sha_before"
+  exit 1
+fi
+if [[ "$metadata_base_sha" == "$base_sha_after" ]]; then
+  eprint "Expected review metadata base_sha not to drift to post-diff base"
+  eprint "unexpected=$metadata_base_sha"
+  exit 1
+fi
+
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
   CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
   "$review_cycle_sh" issue-1 run1) >/dev/null
 
 if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json" ]]; then
   eprint "Expected review.json to be created"
+  exit 1
+fi
+
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" ]]; then
+  eprint "Expected review-metadata.json to be created"
   exit 1
 fi
 
@@ -242,6 +414,18 @@ fi
 if ! grep -q "model=stub" "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json"; then
   eprint "Expected model passthrough to codex stub (MODEL=stub)"
   cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json" >&2
+  exit 1
+fi
+
+if ! grep -q '"diff_source": "staged"' "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
+  eprint "Expected diff_source=staged in review metadata"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" >&2
+  exit 1
+fi
+
+if ! grep -q '"head_sha": "' "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
+  eprint "Expected head_sha in review metadata"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" >&2
   exit 1
 fi
 

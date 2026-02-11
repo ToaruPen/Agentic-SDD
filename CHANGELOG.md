@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Change `/review-cycle` default diff source to base-branch range (`origin/main...HEAD`, fallback `main...HEAD`) via `DIFF_MODE=range`.
+- Add `BASE_REF` support to `/review-cycle` and extend `DIFF_MODE` with `range`.
+- Add `/review-cycle` metadata output (`review-metadata.json`) with `head_sha`/`base_ref`/`base_sha`/`diff_sha256`.
+- Pin `/review-cycle` metadata `base_sha` to the SHA resolved at range-diff collection time (avoid drift when base refs move during engine execution).
+- Add `/create-pr` freshness checks against `review-metadata.json` (fail-fast when reviewed `HEAD` or base SHA has changed).
+- Make `/create-pr` fail fast when PR base (`--base` or default) differs from the base branch reviewed in `/review-cycle` metadata.
+- Fix local-vs-remote base ref ambiguity for branch names containing `/` (for example `release/v1`) in both `/create-pr` and `/review-cycle`, even when a same-prefix remote exists.
+- Fetch remote-tracking base refs (`origin/*`) before `/review-cycle` range diff and `/create-pr` base-SHA freshness checks (while preserving fallback to local `main` when `origin/main` is unavailable).
+- Make `DIFF_MODE=range` fail fast when staged/unstaged local changes exist, to avoid reviewing a stale `base...HEAD` patch against a different working-tree state.
+- Add deterministic tests for default range diff behavior, empty-range fail-fast, review metadata generation, and `/create-pr` freshness checks.
 - Add `/ui-iterate` command documentation for iterative UI redesign loops (`capture -> patch -> verify`) with required gate alignment (`/estimation`, `/review-cycle`, `/review`).
 - Add `skills/ui-redesign.md` and register it in `skills/README.md`.
 - Add `scripts/ui-iterate.sh` helper to create round folders, run configurable checks, and capture desktop/mobile screenshots.

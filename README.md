@@ -272,6 +272,8 @@ During development (and before committing, per `/impl`), iterate locally with:
 ```
 
 `/review-cycle` generates `review.json` and is meant to be used in a fix -> re-review loop.
+By default, it reviews the branch diff against `origin/main...HEAD` (fallback: `main...HEAD`).
+In this default (`DIFF_MODE=range`), the working tree must be clean; for pre-commit local changes, use `DIFF_MODE=staged` or `DIFF_MODE=worktree`.
 
 If you set `GH_ISSUE=123`, it reads the Issue body and `- PRD:` / `- Epic:` references
 to assemble SoT automatically.
@@ -286,6 +288,9 @@ After `/review` is approved, push the branch and create a PR:
 ```
 /create-pr [issue-number]
 ```
+
+`/create-pr` validates that `/review-cycle` metadata still matches the current branch
+(`HEAD`, and base SHA when available). If they differ, re-run `/review-cycle`.
 
 If you enable CI (optional), wait for CI checks and fix failures before merging.
 

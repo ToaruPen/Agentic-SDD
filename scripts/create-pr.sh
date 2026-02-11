@@ -36,6 +36,35 @@ require_cmd() {
   fi
 }
 
+fetch_remote_tracking_ref() {
+  local repo_root="$1"
+  local ref="$2"
+  local remote_name=""
+  local remote_prefix=""
+  local branch=""
+  while IFS= read -r remote_name; do
+    [[ -n "$remote_name" ]] || continue
+    remote_prefix="${remote_name}/"
+    if [[ "$ref" != "$remote_prefix"* ]]; then
+      continue
+    fi
+    branch="${ref#"$remote_prefix"}"
+    if [[ -z "$branch" ]]; then
+      return 0
+    fi
+    if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$ref"; then
+      return 0
+    fi
+    if ! git -C "$repo_root" fetch --no-tags --quiet "$remote_name" "$branch"; then
+      eprint "Failed to fetch latest base ref: $ref"
+      eprint "Run 'git fetch $remote_name $branch' and retry /create-pr."
+      exit 2
+    fi
+    return 0
+  done < <(git -C "$repo_root" remote)
+  return 0
+}
+
 DRY_RUN=0
 ISSUE=""
 TITLE=""
@@ -154,6 +183,13 @@ if [[ ! -f "$review_json" ]]; then
   exit 2
 fi
 
+review_meta="$review_root/$run_id/review-metadata.json"
+if [[ ! -f "$review_meta" ]]; then
+  eprint "Missing review metadata: $review_meta"
+  eprint "Run /review-cycle ${scope_id} again to generate review-metadata.json."
+  exit 2
+fi
+
 status="$(python3 - "$review_json" <<'PY'
 import json
 import sys
@@ -169,6 +205,67 @@ if [[ "$status" != "Approved" && "$status" != "Approved with nits" ]]; then
   eprint "review.json is not passing: status='$status' (${review_json})"
   eprint "Fix findings/questions, then re-run /review-cycle ${scope_id}."
   exit 2
+fi
+
+meta_values="$(python3 - "$review_meta" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, 'r', encoding='utf-8') as fh:
+    data = json.load(fh)
+print(str(data.get('head_sha') or ''))
+print(str(data.get('base_ref') or ''))
+print(str(data.get('base_sha') or ''))
+print(str(data.get('diff_source') or ''))
+PY
+)"
+meta_head_sha=""
+meta_base_ref=""
+meta_base_sha=""
+meta_diff_source=""
+{
+  IFS= read -r meta_head_sha || true
+  IFS= read -r meta_base_ref || true
+  IFS= read -r meta_base_sha || true
+  IFS= read -r meta_diff_source || true
+} <<< "$meta_values"
+
+if [[ -z "$meta_head_sha" ]]; then
+  eprint "Invalid review metadata (missing head_sha): $review_meta"
+  eprint "Run /review-cycle ${scope_id} again."
+  exit 2
+fi
+
+current_head_sha="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || true)"
+if [[ -z "$current_head_sha" ]]; then
+  eprint "Failed to resolve current HEAD."
+  exit 2
+fi
+if [[ "$current_head_sha" != "$meta_head_sha" ]]; then
+  eprint "Current HEAD differs from reviewed HEAD."
+  eprint "- current:  $current_head_sha"
+  eprint "- reviewed: $meta_head_sha"
+  eprint "Run /review-cycle ${scope_id} again on the current branch state."
+  exit 2
+fi
+
+if [[ -n "$meta_base_sha" ]]; then
+  effective_base_ref="${meta_base_ref:-main}"
+  fetch_remote_tracking_ref "$repo_root" "$effective_base_ref"
+  if ! git -C "$repo_root" rev-parse --verify "$effective_base_ref" >/dev/null 2>&1; then
+    eprint "Base ref '$effective_base_ref' from review metadata was not found."
+    eprint "Run /review-cycle ${scope_id} again."
+    exit 2
+  fi
+  current_base_sha="$(git -C "$repo_root" rev-parse "$effective_base_ref")"
+  if [[ "$current_base_sha" != "$meta_base_sha" ]]; then
+    eprint "Base ref '$effective_base_ref' moved since /review-cycle."
+    eprint "- current:  $current_base_sha"
+    eprint "- reviewed: $meta_base_sha"
+    eprint "Run /review-cycle ${scope_id} again against the latest base."
+    exit 2
+  fi
 fi
 
 linked="$(gh issue develop --list "$ISSUE" 2>/dev/null || true)"
@@ -204,6 +301,29 @@ if [[ -z "$BASE" ]]; then
   fi
 fi
 
+if [[ -n "$meta_base_sha" ]]; then
+  reviewed_base_branch="${meta_base_ref:-main}"
+  if ! git -C "$repo_root" show-ref --verify --quiet "refs/heads/$reviewed_base_branch"; then
+    while IFS= read -r remote_name; do
+      [[ -n "$remote_name" ]] || continue
+      remote_prefix="${remote_name}/"
+      if [[ "$reviewed_base_branch" != "$remote_prefix"* ]]; then
+        continue
+      fi
+      candidate_branch="${reviewed_base_branch#"$remote_prefix"}"
+      if git -C "$repo_root" show-ref --verify --quiet "refs/remotes/${remote_name}/${candidate_branch}"; then
+        reviewed_base_branch="$candidate_branch"
+      fi
+      break
+    done < <(git -C "$repo_root" remote)
+  fi
+  if [[ "$BASE" != "$reviewed_base_branch" ]]; then
+    eprint "PR base '$BASE' differs from reviewed base '$reviewed_base_branch'."
+    eprint "Re-run /review-cycle for the target base, or use --base '$reviewed_base_branch'."
+    exit 2
+  fi
+fi
+
 if [[ -z "$TITLE" ]]; then
   issue_json="$(gh issue view "$ISSUE" --json title,url 2>/dev/null || true)"
   if [[ -z "$issue_json" ]]; then
@@ -233,6 +353,7 @@ eprint "- branch: $branch"
 eprint "- issue: #$ISSUE"
 eprint "- base: $BASE"
 eprint "- review: $review_json (status=$status)"
+eprint "- review_meta: $review_meta (diff_source=${meta_diff_source:-unknown})"
 eprint "- origin: $origin_url"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then

@@ -40,7 +40,8 @@ Required environment:
   TEST_STDERR_POLICY   warn|fail|ignore (default: warn). When TEST_COMMAND is set,
                      detect stderr output (and Vitest-style "stderr |" reports).
                      Writes tests.stderr alongside tests.txt.
-  DIFF_MODE        staged|worktree|auto (default: auto)
+  DIFF_MODE        range|staged|worktree|auto (default: range)
+  BASE_REF         Base ref for range mode (default: origin/main; fallback: main)
   DIFF_FILE        Optional path to a diff file (overrides DIFF_MODE)
   OUTPUT_ROOT      Output root (default: <repo_root>/.agentic-sdd/reviews)
   SCHEMA_PATH      JSON schema path (default: <repo_root>/.agent/schemas/review.json)
@@ -66,6 +67,7 @@ Required environment:
 
 Notes:
   - This script writes outputs under .agentic-sdd/ (recommended to gitignore).
+  - DIFF_MODE=range compares BASE_REF...HEAD (default behavior).
   - In DIFF_MODE=auto, if both staged and worktree diffs are non-empty, this script
     fails and asks you to choose.
 EOF
@@ -161,7 +163,8 @@ fi
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 constraints="${CONSTRAINTS:-none}"
-diff_mode="${DIFF_MODE:-auto}"
+diff_mode="${DIFF_MODE:-range}"
+base_ref="${BASE_REF:-origin/main}"
 diff_file="${DIFF_FILE:-}"
 output_root="${OUTPUT_ROOT:-${repo_root}/.agentic-sdd/reviews}"
 schema_path="${SCHEMA_PATH:-${repo_root}/.agent/schemas/review.json}"
@@ -253,6 +256,7 @@ fi
 
 run_dir="${scope_root}/${run_id}"
 out_json="${run_dir}/review.json"
+out_meta="${run_dir}/review-metadata.json"
 out_diff="${run_dir}/diff.patch"
 out_tests="${run_dir}/tests.txt"
 out_tests_stderr="${run_dir}/tests.stderr"
@@ -262,6 +266,8 @@ out_issue_json="${run_dir}/issue.json"
 out_issue_body="${run_dir}/issue.txt"
 
 diff_source=""
+diff_detail=""
+diff_base_sha=""
 
 timeout_bin=""
 if [[ -n "$exec_timeout_sec" ]]; then
@@ -278,7 +284,36 @@ ensure_run_dir() {
   mkdir -p "$run_dir"
 }
 
-	write_tests() {
+git_ref_exists() {
+  local ref="$1"
+  git -C "$repo_root" rev-parse --verify "$ref" >/dev/null 2>&1
+}
+
+fetch_remote_tracking_ref() {
+  local ref="$1"
+  local remote_name=""
+  local remote_prefix=""
+  local branch=""
+  while IFS= read -r remote_name; do
+    [[ -n "$remote_name" ]] || continue
+    remote_prefix="${remote_name}/"
+    if [[ "$ref" != "$remote_prefix"* ]]; then
+      continue
+    fi
+    branch="${ref#"$remote_prefix"}"
+    if [[ -z "$branch" ]]; then
+      return 0
+    fi
+    if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$ref"; then
+      return 0
+    fi
+    git -C "$repo_root" fetch --no-tags --quiet "$remote_name" "$branch"
+    return $?
+  done < <(git -C "$repo_root" remote)
+  return 0
+}
+
+		write_tests() {
 	  local exit_code=0
 	  local reported_stderr=0
 	  local tmp_tests_stdout=""
@@ -436,6 +471,48 @@ write_diff() {
   fi
 
   case "$diff_mode" in
+    range)
+      local base="$base_ref"
+      if [[ "$has_staged" -eq 1 || "$has_worktree" -eq 1 ]]; then
+        eprint "DIFF_MODE=range requires a clean working tree (no staged/unstaged changes)."
+        eprint "Use DIFF_MODE=staged or DIFF_MODE=worktree for pre-commit local changes."
+        exit 2
+      fi
+      if ! fetch_remote_tracking_ref "$base"; then
+        # Preserve existing fallback behavior when origin/main cannot be fetched
+        # and a local main exists.
+        if [[ "$base" == "origin/main" ]] && ! git_ref_exists "$base" && git_ref_exists "main"; then
+          base="main"
+        else
+          eprint "Failed to fetch latest base ref: $base"
+          eprint "Run 'git fetch' and retry /review-cycle."
+          exit 2
+        fi
+      fi
+      if ! git_ref_exists "$base"; then
+        if [[ "$base" == "origin/main" ]] && git_ref_exists "main"; then
+          base="main"
+        else
+          eprint "Base ref not found for range diff: $base"
+          exit 2
+        fi
+      fi
+      diff_source="range"
+      diff_detail="$base"
+      diff_base_sha="$(git -C "$repo_root" rev-parse "$base" 2>/dev/null || true)"
+      if [[ -z "$diff_base_sha" ]]; then
+        eprint "Failed to resolve base SHA during range diff collection: $base"
+        exit 2
+      fi
+      if git -C "$repo_root" diff --quiet "${base}...HEAD"; then
+        eprint "Diff is empty (range: ${base}...HEAD)."
+        exit 2
+      fi
+      if [[ "$DRY_RUN" -eq 0 ]]; then
+        ensure_run_dir
+        git -C "$repo_root" diff --no-color "${base}...HEAD" > "$out_diff"
+      fi
+      ;;
     staged)
       if [[ "$has_staged" -eq 0 ]]; then
         eprint "Diff is empty (staged)."
@@ -482,14 +559,18 @@ write_diff() {
       fi
       ;;
     *)
-      eprint "Invalid DIFF_MODE: $diff_mode (use staged|worktree|auto)"
+      eprint "Invalid DIFF_MODE: $diff_mode (use range|staged|worktree|auto)"
       exit 2
       ;;
   esac
 
   if [[ "$DRY_RUN" -eq 0 ]]; then
     if [[ ! -s "$out_diff" ]]; then
-      eprint "Diff is empty after collection: $out_diff"
+      if [[ "$diff_source" == "range" && -n "$diff_detail" ]]; then
+        eprint "Diff is empty (range: ${diff_detail}...HEAD)."
+      else
+        eprint "Diff is empty after collection: $out_diff"
+      fi
       exit 2
     fi
   fi
@@ -503,13 +584,18 @@ print_plan() {
   eprint "- schema_path: $schema_path"
   eprint "- out_dir: $run_dir"
   eprint "- out_json: $out_json"
+  eprint "- out_meta: $out_meta"
   eprint "- out_diff: $out_diff"
   eprint "- out_tests: $out_tests"
   eprint "- out_tests_stderr: $out_tests_stderr"
   eprint "- out_sot: $out_sot"
   eprint "- diff_mode: $diff_mode"
+  eprint "- base_ref: $base_ref"
   if [[ -n "$diff_source" ]]; then
     eprint "- diff_source: $diff_source"
+  fi
+  if [[ -n "$diff_detail" ]]; then
+    eprint "- diff_detail: $diff_detail"
   fi
   if [[ -n "$diff_file" ]]; then
     eprint "- diff_file: $diff_file"
@@ -842,6 +928,60 @@ if [[ "$format_json" != "0" ]]; then
   validate_args+=(--format)
 fi
 python3 "$script_dir/validate-review-json.py" "${validate_args[@]}"
+
+head_sha="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || true)"
+if [[ -z "$head_sha" ]]; then
+  eprint "Failed to resolve current HEAD SHA for review metadata."
+  exit 1
+fi
+
+meta_base_ref=""
+meta_base_sha=""
+if [[ "$diff_source" == "range" && -n "$diff_detail" ]]; then
+  meta_base_ref="$diff_detail"
+  meta_base_sha="$diff_base_sha"
+  if [[ -z "$meta_base_sha" ]]; then
+    eprint "Failed to resolve pinned base SHA for review metadata: $meta_base_ref"
+    exit 1
+  fi
+fi
+
+python3 - "$out_meta" "$scope_id" "$run_id" "$diff_source" "$meta_base_ref" "$meta_base_sha" "$head_sha" "$out_diff" <<'PY'
+import datetime
+import hashlib
+import json
+import os
+import sys
+
+out_meta = sys.argv[1]
+scope_id = sys.argv[2]
+run_id = sys.argv[3]
+diff_source = sys.argv[4]
+base_ref = sys.argv[5]
+base_sha = sys.argv[6]
+head_sha = sys.argv[7]
+diff_path = sys.argv[8]
+
+with open(diff_path, "rb") as fh:
+    diff_sha256 = hashlib.sha256(fh.read()).hexdigest()
+
+payload = {
+    "schema_version": 1,
+    "scope_id": scope_id,
+    "run_id": run_id,
+    "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    "diff_source": diff_source,
+    "base_ref": base_ref,
+    "base_sha": base_sha,
+    "head_sha": head_sha,
+    "diff_sha256": diff_sha256,
+}
+
+os.makedirs(os.path.dirname(out_meta), exist_ok=True)
+with open(out_meta, "w", encoding="utf-8") as fh:
+    json.dump(payload, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
 
 tmp_run_file="${current_run_file}.tmp"
 mkdir -p "$scope_root"
