@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - Add `BASE_REF` support to `/review-cycle` and extend `DIFF_MODE` with `range`.
 - Add `/review-cycle` metadata output (`review-metadata.json`) with `head_sha`/`base_ref`/`base_sha`/`diff_sha256`.
 - Add `/create-pr` freshness checks against `review-metadata.json` (fail-fast when reviewed `HEAD` or base SHA has changed).
+- Make `/create-pr` fail fast when PR base (`--base` or default) differs from the base branch reviewed in `/review-cycle` metadata.
 - Fetch remote-tracking base refs (`origin/*`) before `/review-cycle` range diff and `/create-pr` base-SHA freshness checks (while preserving fallback to local `main` when `origin/main` is unavailable).
 - Make `DIFF_MODE=range` fail fast when staged/unstaged local changes exist, to avoid reviewing a stale `base...HEAD` patch against a different working-tree state.
 - Add deterministic tests for default range diff behavior, empty-range fail-fast, review metadata generation, and `/create-pr` freshness checks.

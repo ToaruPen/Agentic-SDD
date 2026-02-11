@@ -180,6 +180,21 @@ base_sha="$(git -C "$work" rev-parse origin/main)"
 head_sha="$(git -C "$work" rev-parse HEAD)"
 write_review_metadata "$head_sha" "origin/main" "$base_sha"
 
+# PR base override must match reviewed base branch.
+set +e
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base develop) >/dev/null 2>"$tmpdir/stderr_base_branch_mismatch"
+code_base_branch_mismatch=$?
+set -e
+if [[ "$code_base_branch_mismatch" -eq 0 ]]; then
+  eprint "Expected reviewed base branch mismatch to fail"
+  exit 1
+fi
+if ! grep -q "PR base 'develop' differs from reviewed base 'main'" "$tmpdir/stderr_base_branch_mismatch"; then
+  eprint "Expected base branch mismatch error message, got:"
+  cat "$tmpdir/stderr_base_branch_mismatch" >&2
+  exit 1
+fi
+
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
 
 out="$(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --issue 1 2>/dev/null)"

@@ -290,6 +290,18 @@ if [[ -z "$BASE" ]]; then
   fi
 fi
 
+if [[ -n "$meta_base_sha" ]]; then
+  reviewed_base_branch="${meta_base_ref:-main}"
+  if [[ "$reviewed_base_branch" =~ ^[^/]+/(.+)$ ]]; then
+    reviewed_base_branch="${BASH_REMATCH[1]}"
+  fi
+  if [[ "$BASE" != "$reviewed_base_branch" ]]; then
+    eprint "PR base '$BASE' differs from reviewed base '$reviewed_base_branch'."
+    eprint "Re-run /review-cycle for the target base, or use --base '$reviewed_base_branch'."
+    exit 2
+  fi
+fi
+
 if [[ -z "$TITLE" ]]; then
   issue_json="$(gh issue view "$ISSUE" --json title,url 2>/dev/null || true)"
   if [[ -z "$issue_json" ]]; then

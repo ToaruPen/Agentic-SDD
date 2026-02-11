@@ -35,6 +35,7 @@ Required:
    - `review-metadata.json` must match the current branch state:
      - `head_sha` equals current `HEAD`
      - if `base_sha` is present, the same `base_ref` still points to that `base_sha`
+     - if `base_sha` is present, the PR target base (`--base` or default base) must match the reviewed base branch
 
 ### Phase 1: Push
 
