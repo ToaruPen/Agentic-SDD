@@ -32,6 +32,7 @@ Write all 11 sections. If a section is not applicable, write `N/A (reason)`.
 - Epic: [Epicファイル]
 - PRD: [PRDファイル]
 - 技術方針: [シンプル優先/バランス/拡張性優先]
+- 設定値/定数の方針: [設定化する値 / 固定する値 / 上限・下限 / 変更手段]
 
 ### 1. 依頼内容の解釈
 

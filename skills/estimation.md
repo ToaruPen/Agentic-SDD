@@ -32,6 +32,33 @@ Rules:
 
 ---
 
+## Configuration vs hard-coded values (decision rule)
+
+If the change introduces or modifies "tuning" values (timeouts, thresholds, retry counts,
+batch sizes, TTLs, concurrency limits, feature flags), explicitly decide whether each value
+should be configurable or hard-coded.
+
+Recommended defaults:
+
+- Make values configurable when they can vary by environment or are likely to require
+  operational tuning without code changes.
+- Hard-code values when they are part of the spec/standard, security guardrails, or
+  compatibility-critical invariants.
+
+Stability constraints:
+
+- Configurability must be deterministic in tests (avoid hidden non-determinism).
+- Avoid "magic numbers" for adjustments: use either configuration or named constants with a
+  clear rationale.
+
+Where to record:
+
+- Section 0 (preconditions): the overall policy (what is configurable vs fixed)
+- Section 2 (change targets): which files introduce new config/constants
+- Section 10 (questions): if the policy is ambiguous, ask before implementation
+
+---
+
 ## Confidence levels
 
 - High: similar prior work exists; scope is clear (range can be tight)
