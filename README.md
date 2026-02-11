@@ -19,14 +19,16 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues/PRs) r
 ## Workflow
 
 ```
-/agentic-sdd* -> /create-prd -> /create-epic -> /generate-project-config** -> /create-issues -> /estimation -> /impl|/tdd -> /review-cycle -> /review -> /create-pr -> [Merge] -> /cleanup
-     |            |              |              |                            |              |            |              |            |            |                         |
-     v            v              v              v                            v              v            v              v            v            v                         v
-     Install       7 questions    3-layer guard  Generate project            LOC-based       Full estimate Implement      Local loop    DoD gate       Push + PR create       Remove worktree
-                  + checklist    + 3 required   skills/rules                50-300 LOC      + approval    + tests        review.json   + sync-docs    (gh)                   + local branch
+/agentic-sdd* -> /create-prd -> /create-epic -> /generate-project-config** -> /create-issues -> /estimation -> /impl|/tdd -> /ui-iterate*** -> /review-cycle -> /review -> /create-pr -> [Merge] -> /cleanup
+     |            |              |              |                            |              |            |              |              |            |            |                         |
+     v            v              v              v                            v              v            v              v              v            v            v                         v
+     Install       7 questions    3-layer guard  Generate project            LOC-based       Full estimate Implement      UI round loop  Local loop    DoD gate       Push + PR create       Remove worktree
+                  + checklist    + 3 required   skills/rules                50-300 LOC      + approval    + tests        capture/verify review.json   + sync-docs    (gh)                   + local branch
 ```
 
 \*\* Optional: generates project-specific skills/rules based on Epic tech stack and Q6 requirements.
+
+\*\*\* Optional: recommended for iterative UI redesign Issues.
 
 \* One-time install of Agentic-SDD workflow files in the repo.
 Optional: enable GitHub-hosted CI (GitHub Actions) via `/agentic-sdd --ci github-actions` and enforce it with branch protection.
@@ -40,6 +42,7 @@ If you are using an external multi-agent harness, treat it as the **single orche
 Use Agentic-SDD as the workflow/rules layer (PRD → Epic → Issues → estimation gates → review gates), and tailor your project's `AGENTS.md` and `skills/` to match the harness's operating model.
 
 In other words:
+
 - External harness = orchestration SoT (state/progress)
 - Agentic-SDD = spec-driven workflow + quality gates
 - Avoid mixing orchestration layers (do not enable `--shogun-ops` in this case)
@@ -110,6 +113,7 @@ PATH="$(pwd)/scripts:$PATH" tmux --shogun-ops
 Sync the local ops status to a GitHub Issue by adding a comment and updating labels.
 
 Notes:
+
 - Intended to be executed by **Middle only** (single writer policy).
 - Labels are created/updated automatically: `ops-phase:*`, `ops-blocked`.
 
@@ -126,6 +130,7 @@ Notes:
 Watch the local checkin queue and run `/collect` automatically (useful for the auto/multi-agent loop).
 
 Notes:
+
 - Requires a file watch tool: `fswatch` | `watchexec` | `inotifywait`.
 - Ops data lives under `<git-common-dir>/agentic-sdd-ops/`.
 
@@ -233,6 +238,23 @@ If you need to debug a bug or run a performance/reliability investigation, use:
 /debug [issue-number]
 ```
 
+### 4.6) UI iteration (optional)
+
+For UI-heavy Issues, run short redesign loops with screenshot evidence:
+
+```text
+/ui-iterate [issue-number] [route]
+```
+
+Helper script example:
+
+```bash
+./scripts/ui-iterate.sh 99 --route /kiosk \
+  --check-cmd "<typecheck-command>" \
+  --check-cmd "<lint-command>" \
+  --check-cmd "<test-command>"
+```
+
 ### 5) Review (`/review` (`/review-cycle`))
 
 Final gate:
@@ -284,6 +306,7 @@ If you enable CI (optional), wait for CI checks and fix failures before merging.
 │   ├── estimation.md
 │   ├── impl.md
 │   ├── tdd.md
+│   ├── ui-iterate.md
 │   ├── review-cycle.md
 │   ├── review.md
 │   ├── sync-docs.md
@@ -329,6 +352,7 @@ skills/                 # design skills
 ├── security.md
 ├── testing.md
 ├── tdd-protocol.md
+├── ui-redesign.md
 └── worktree-parallel.md
 
 scripts/
@@ -350,6 +374,7 @@ scripts/
 ├── setup-global-agentic-sdd.sh
 ├── sot_refs.py
 ├── sync-agent-config.sh
+├── ui-iterate.sh
 ├── validate-approval.py
 ├── validate-review-json.py
 ├── worktree.sh
@@ -361,6 +386,7 @@ scripts/
     ├── test-review-cycle.sh
     ├── test-setup-global-agentic-sdd.sh
     ├── test-sync-docs-inputs.sh
+    ├── test-ui-iterate.sh
     └── test-worktree.sh
 
 templates/
@@ -538,12 +564,12 @@ python3 scripts/validate-approval.py
 
 ### Suggested defaults
 
-| Item | Default |
-|------|---------|
-| Estimation | Full required |
-| Exception labels | Do not use |
-| Technical policy | Simple-first |
-| Q6 Unknowns | Aim for 0 |
+| Item             | Default       |
+| ---------------- | ------------- |
+| Estimation       | Full required |
+| Exception labels | Do not use    |
+| Technical policy | Simple-first  |
+| Q6 Unknowns      | Aim for 0     |
 
 ### Success criteria
 

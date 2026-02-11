@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Add `/ui-iterate` command documentation for iterative UI redesign loops (`capture -> patch -> verify`) with required gate alignment (`/estimation`, `/review-cycle`, `/review`).
+- Add `skills/ui-redesign.md` and register it in `skills/README.md`.
+- Add `scripts/ui-iterate.sh` helper to create round folders, run configurable checks, and capture desktop/mobile screenshots.
+- Add GitHub Issue template `.github/ISSUE_TEMPLATE/ui-iteration.md` for UI iteration Issues.
+- Update command/workflow docs (`AGENTS.md`, `README.md`) to include `/ui-iterate`.
+
 ## [0.2.39] - 2026-02-11
 
 - Add estimation guidance for deciding which values should be configurable vs hard-coded (record policy in estimate preconditions).

@@ -73,6 +73,21 @@ if [[ ! -d "$proj2/.agent" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$proj2/.agent/commands/ui-iterate.md" ]]; then
+  eprint "Expected UI iterate command doc to be installed: .agent/commands/ui-iterate.md"
+  exit 1
+fi
+
+if [[ ! -f "$proj2/skills/ui-redesign.md" ]]; then
+  eprint "Expected UI redesign skill to be installed: skills/ui-redesign.md"
+  exit 1
+fi
+
+if [[ ! -f "$proj2/scripts/ui-iterate.sh" ]]; then
+  eprint "Expected UI iterate helper script to be installed: scripts/ui-iterate.sh"
+  exit 1
+fi
+
 if [[ -f "$proj2/.agent/commands/checkin.md" ]]; then
   eprint "Did not expect Shogun Ops command doc to be installed by default: .agent/commands/checkin.md"
   exit 1
@@ -155,6 +170,11 @@ fi
 
 if [[ ! -f "$proj3/.github/ISSUE_TEMPLATE/feature.md" ]]; then
   eprint "Expected issue template to be installed in mode=full"
+  exit 1
+fi
+
+if [[ ! -f "$proj3/.github/ISSUE_TEMPLATE/ui-iteration.md" ]]; then
+  eprint "Expected UI iteration issue template to be installed in mode=full"
   exit 1
 fi
 

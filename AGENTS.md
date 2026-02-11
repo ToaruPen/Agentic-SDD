@@ -87,7 +87,7 @@ Absolute prohibitions with no exceptions:
    - Failure reproducibility: Test must fail before the change
    - Correction assurance: Test must pass after the change
    - Without both conditions, the test is not valid evidence
-</non_negotiables>
+     </non_negotiables>
 
 ---
 
@@ -120,6 +120,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/estimation`: create a Full estimate (11 sections) and get approval
 - `/impl`: implement an Issue (Full estimate required)
 - `/tdd`: implement via TDD (Red -> Green -> Refactor)
+- `/ui-iterate`: iterate UI redesign in short loops (capture -> patch -> verify)
 - `/refactor-draft`: create a refactor draft YAML (Lower-only; no GitHub writes) (Shogun Ops opt-in; requires `--shogun-ops`)
 - `/refactor-issue`: create a GitHub Issue from a refactor draft (Middle-only) (Shogun Ops opt-in; requires `--shogun-ops`)
 - `/review-cycle`: local review loop (codex exec -> review.json)
