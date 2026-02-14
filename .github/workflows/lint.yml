@@ -87,6 +87,14 @@ jobs:
             .github/workflows/*.yml \
             templates/ci/github-actions/.github/workflows/*.yml
 
+      - name: Shell tests (scripts/tests)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for t in scripts/tests/test-*.sh; do
+            bash "$t"
+          done
+
       - name: Docs / SoT lint
         shell: bash
         run: |
