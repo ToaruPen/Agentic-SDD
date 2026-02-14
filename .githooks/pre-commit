@@ -17,6 +17,12 @@ if [ ! -f "scripts/validate-approval.py" ]; then
   exit 0
 fi
 
+if [ ! -f "scripts/validate-worktree.py" ]; then
+  echo "[agentic-sdd gate] BLOCKED: validate-worktree.py is missing. Reinstall/upgrade Agentic-SDD." >&2
+  exit 1
+fi
+
+python3 scripts/validate-worktree.py
 python3 scripts/validate-approval.py
 
 # Python lint gate (Stage 1): ruff

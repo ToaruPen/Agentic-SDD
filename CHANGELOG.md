@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file.
 - Fetch remote-tracking base refs (`origin/*`) before `/review-cycle` range diff and `/create-pr` base-SHA freshness checks (while preserving fallback to local `main` when `origin/main` is unavailable).
 - Make `DIFF_MODE=range` fail fast when staged/unstaged local changes exist, to avoid reviewing a stale `base...HEAD` patch against a different working-tree state.
 - Add deterministic tests for default range diff behavior, empty-range fail-fast, review metadata generation, and `/create-pr` freshness checks.
-- Add `/ui-iterate` command documentation for iterative UI redesign loops (`capture -> patch -> verify`) with required gate alignment (`/estimation`, `/review-cycle`, `/review`).
+- Add `/ui-iterate` command documentation for iterative UI redesign loops (`capture -> patch -> verify`) with required gate alignment (`/estimation`, `/review-cycle`, `/final-review`).
 - Add `skills/ui-redesign.md` and register it in `skills/README.md`.
 - Add `scripts/ui-iterate.sh` helper to create round folders, run configurable checks, and capture desktop/mobile screenshots.
 - Add GitHub Issue template `.github/ISSUE_TEMPLATE/ui-iteration.md` for UI iteration Issues.
@@ -192,7 +192,7 @@ All notable changes to this project will be documented in this file.
 
 ## [0.2.19] - 2026-01-25
 
-- Fix `worktree.sh check --issue-body-file <issue.json>` by allowing JSON `{body: ...}` as an input to `extract-issue-files.py`.
+- Fix `extract-issue-files.py --issue-body-file <issue.json>` by allowing JSON `{body: ...}` as an input.
 - Keep UTF-8 (no `\\uXXXX` escapes) when `validate-review-json.py --format` rewrites `review.json`.
 - Add offline tests covering the above behaviors.
 
@@ -246,10 +246,10 @@ All notable changes to this project will be documented in this file.
 
 ## [0.2.5] - 2026-01-25
 
-- Make `/review` the SoT for review taxonomy (P0-P3, status rules) shared by `/review-cycle`.
-- Refocus `/review-cycle` docs on the iteration protocol (fix -> re-review) and reference `/review` for criteria.
+- Make `/final-review` the SoT for review taxonomy (P0-P3, status rules) shared by `/review-cycle`.
+- Refocus `/review-cycle` docs on the iteration protocol (fix -> re-review) and reference `/final-review` for criteria.
 - Update reviewer agent guidance to use P0-P3 and review.json-aligned statuses.
-- Merge README review steps into "5) Review (/review (/review-cycle))".
+- Merge README review steps into "5) Review (/final-review (/review-cycle))".
 
 ## [0.2.4] - 2026-01-25
 

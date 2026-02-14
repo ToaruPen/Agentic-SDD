@@ -93,7 +93,7 @@ Use the helper script:
 ## Workflow position
 
 ```
-/impl -> /review-cycle -> /review -> /create-pr -> [Merge] -> /cleanup
+/impl -> /review-cycle -> /final-review -> /create-pr -> [Merge] -> /cleanup
 ```
 
 After PR is merged, run `/cleanup` to remove the worktree and local branch.

@@ -80,11 +80,27 @@ def is_agentic_sdd_local_path(path: str) -> bool:
 def main() -> int:
     obj = read_stdin_json()
     path = extract_path(obj)
-    if path and is_agentic_sdd_local_path(path):
-        return 0
 
     root = repo_root()
     if not root:
+        return 0
+
+    worktree_gate = os.path.join(root, "scripts", "validate-worktree.py")
+    if os.path.isfile(worktree_gate):
+        try:
+            p = run([sys.executable, worktree_gate], cwd=root, check=False)
+        except Exception as exc:  # noqa: BLE001
+            eprint(f"[agentic-sdd gate] error: {exc}")
+            return 1
+        if p.stdout:
+            sys.stdout.write(p.stdout)
+        if p.stderr:
+            sys.stderr.write(p.stderr)
+        if p.returncode != 0:
+            return p.returncode
+
+    if path and is_agentic_sdd_local_path(path):
+        # Allow writing Agentic-SDD local artifacts (approvals/reviews), but still enforce worktree.
         return 0
 
     script = os.path.join(root, "scripts", "validate-approval.py")

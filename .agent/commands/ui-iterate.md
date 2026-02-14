@@ -5,7 +5,7 @@ Iterate UI redesign in short loops:
 "capture -> review -> patch -> verify -> re-capture".
 
 This command is for visual/UX convergence on one Issue.
-It does not bypass implementation gates (`/estimation`, tests, `/review-cycle`, `/review`).
+It does not bypass implementation gates (`/estimation`, tests, `/review-cycle`, `/final-review`).
 
 User-facing output remains in Japanese.
 
@@ -103,7 +103,7 @@ Stop conditions:
 After final round:
 
 1. Run `/review-cycle` for the Issue scope and fix findings until Approved/Approved with nits.
-2. Run `/review` (DoD + `/sync-docs` gate).
+2. Run `/final-review` (DoD + `/sync-docs` gate).
 
 ### Phase 5: Output
 
@@ -141,5 +141,5 @@ UI反復を完了しました（Issue #<n>）。
 - `skills/crud-screen.md` - screen design checklist
 - `.agent/commands/estimation.md` - Full estimate + approval gate
 - `.agent/commands/review-cycle.md` - local review loop
-- `.agent/commands/review.md` - final review gate
+- `.agent/commands/final-review.md` - final review gate
 - `.agent/rules/dod.md` - Definition of Done

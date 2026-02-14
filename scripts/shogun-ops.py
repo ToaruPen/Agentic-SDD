@@ -1786,7 +1786,7 @@ def cmd_supervise(args: argparse.Namespace) -> int:
                 "/estimation (if not approved)",
                 impl_step,
                 "/review-cycle (loop until ready)",
-                "/review",
+                "/final-review",
                 "/create-pr",
                 "/cleanup",
             ],

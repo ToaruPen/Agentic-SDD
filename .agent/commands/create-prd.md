@@ -40,7 +40,7 @@ Collect answers using the following choices:
 - Deadline
   - Choices: [date] / Unknown
 - Budget cap
-  - Choices: ある / ない / Unknown
+  - Choices (Japanese): `ある` / `ない` / Unknown
 - PII / confidential data
   - Choices: Yes / No / Unknown
   - If Yes: add security requirements

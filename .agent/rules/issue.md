@@ -147,7 +147,7 @@ Example:
 Required fields:
 
 1. Blocked by: dependent Issue number and reason
-2. 先に終わると何が可能になるか: one-line description of what becomes possible after completion
+2. `先に終わると何が可能になるか`: one-line description of what becomes possible after completion (Japanese field label; keep as-is)
 
 Example:
 

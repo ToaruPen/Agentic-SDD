@@ -1,8 +1,8 @@
 # /supervise
 
-Shogun Ops の監督コマンドです。GitHub Issues を SoT として参照し、配賦対象の選別と衝突検知（declared change targets の overlap）を行い、orders/decisions と state/dashboard を更新します。
+Supervisor command for Shogun Ops. It uses GitHub Issues as the SoT, selects targets and detects conflicts (overlap in declared change targets), and updates orders/decisions and state/dashboard.
 
-現状は `--once` のみ実装しています。
+Currently, only `--once` is implemented.
 
 ## Usage
 
@@ -13,15 +13,14 @@ Shogun Ops の監督コマンドです。GitHub Issues を SoT として参照�
 ## Script
 
 ```bash
-# 例: parallel-ok ラベルの Issue を自動選別（config.yaml に従う）
+# Example: auto-select Issues labeled parallel-ok (per config.yaml)
 python3 scripts/shogun-ops.py supervise --once
 
-# 例: 対象Issueを明示
+# Example: explicitly specify target Issues
 python3 scripts/shogun-ops.py supervise --once --gh-repo OWNER/REPO --targets 123 --targets 124
 ```
 
 ## Notes
 
-- overlap が検知された場合は orders を出さず、`queue/decisions/*.yaml` と `state.yaml` の blocked を更新します。
-- overlap 検知には `scripts/worktree.sh check` を使用します。
-
+- If overlap is detected, it does not emit orders; instead it updates `queue/decisions/*.yaml` and the blocked state in `state.yaml`.
+- Overlap detection uses `scripts/worktree.sh check`.

@@ -18,7 +18,7 @@ Commands:
   remove     Remove a worktree
 
 Examples:
-  ./scripts/worktree.sh check --issue-body-file issues/123.md --issue-body-file issues/124.md
+  ./scripts/worktree.sh check --issue 123 --issue 124
   ./scripts/worktree.sh new --issue 123 --desc "add user profile" --tool opencode
   ./scripts/worktree.sh remove --dir ../.worktrees/myrepo/issue-123-add-user-profile
 
@@ -439,14 +439,11 @@ cmd_check() {
   local gh_repo=""
   local mode="section"
   declare -a issues=()
-  declare -a body_files=()
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --issue)
         issues+=("$2"); shift 2 ;;
-      --issue-body-file)
-        body_files+=("$2"); shift 2 ;;
       --gh-repo)
         gh_repo="$2"; shift 2 ;;
       --mode)
@@ -454,7 +451,7 @@ cmd_check() {
       -h|--help)
         cat <<'EOF'
 Usage: scripts/worktree.sh check [--gh-repo OWNER/REPO] [--mode section|anywhere] \
-  (--issue <n>|--issue-body-file <path>)...
+  --issue <n>...
 
 Detect overlaps between Issues by declared change-target files.
 
@@ -470,8 +467,8 @@ EOF
     esac
   done
 
-  if [[ "${#issues[@]}" -eq 0 && "${#body_files[@]}" -eq 0 ]]; then
-    eprint "At least one --issue or --issue-body-file is required"
+  if [[ "${#issues[@]}" -eq 0 ]]; then
+    eprint "At least one --issue is required"
     exit 2
   fi
 
@@ -508,22 +505,6 @@ EOF
       key="issue:$n"
       out_file="$tmpdir/set.$idx"
       if ! python3 "$extractor" --repo-root "$root" --issue "$n" --gh-repo "$gh_repo" --mode "$mode" >"$out_file" 2>"$tmpdir/err.$idx"; then
-        eprint "Failed to extract files for $key:"
-        cat "$tmpdir/err.$idx" >&2
-        exit 2
-      fi
-      sort -u "$out_file" >"$out_file.sorted" && mv "$out_file.sorted" "$out_file"
-      keys+=("$key")
-      filesets+=("$out_file")
-      idx=$((idx+1))
-    done
-  fi
-
-  if [[ "${#body_files[@]}" -gt 0 ]]; then
-    for f in "${body_files[@]}"; do
-      key="file:$f"
-      out_file="$tmpdir/set.$idx"
-      if ! python3 "$extractor" --repo-root "$root" --issue-body-file "$f" --mode "$mode" >"$out_file" 2>"$tmpdir/err.$idx"; then
         eprint "Failed to extract files for $key:"
         cat "$tmpdir/err.$idx" >&2
         exit 2

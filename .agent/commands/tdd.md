@@ -21,9 +21,9 @@ Before starting any TDD cycle, pass the implementation gates.
 1. Ensure you are on the linked branch
    - List linked branches (SoT): `gh issue develop --list <issue-number>`
    - If any linked branch exists and you are not on it, report and stop
-   - If no linked branch exists, create one before starting:
-     - Recommended: `/worktree new --issue <issue-number> --desc "<ascii short desc>"`
-     - Alternative (no worktree): `gh issue develop <issue-number> --name "<branch>" --checkout`
+   - If no linked branch exists, STOP and create one before starting:
+     - Required: `/worktree new --issue <issue-number> --desc "<ascii short desc>"`
+     - Then re-run `/tdd` inside that worktree
 2. Run `/estimation` and get explicit approval
    - `/estimation [issue-number]`
    - When prompted for the implementation mode, choose `/tdd`.
@@ -74,9 +74,9 @@ Before committing:
 
 - After implementation is complete, run `/review-cycle` automatically before committing and fix findings until it passes.
   If the change is lightweight (e.g. documentation-only updates), ask the user whether to run `/review-cycle` (skipping requires explicit approval and a recorded reason).
-- Then run `/review` (final DoD + `/sync-docs` gate).
+- Then run `/final-review` (final DoD + `/sync-docs` gate).
 
-After `/review` is approved:
+After `/final-review` is approved:
 
 - Run `/create-pr` to push and create the PR.
 
@@ -89,4 +89,4 @@ After `/review` is approved:
 - `.agent/commands/estimation.md` - Full estimate + approval gate
 - `.agent/commands/impl.md` - normal implementation flow
 - `.agent/commands/review-cycle.md` - local review loop (required before commit)
-- `.agent/commands/review.md` - final review gate
+- `.agent/commands/final-review.md` - final review gate

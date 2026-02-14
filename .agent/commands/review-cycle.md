@@ -5,11 +5,11 @@ Iterate locally during development using:
 "review (JSON) -> fix -> re-review (JSON)".
 
 This command uses `codex exec` (default) or `claude -p` to generate `review.json` (review result JSON).
-The final gate remains `/review` (DoD + `/sync-docs`).
+The final gate remains `/final-review` (DoD + `/sync-docs`).
 
 Review taxonomy (status/priority) and output rules are defined in:
 
-- `.agent/commands/review.md` (SoT)
+- `.agent/commands/final-review.md` (SoT)
 
 ## Usage
 
@@ -79,6 +79,13 @@ Underlying script:
   - If both staged and worktree diffs exist in `auto`, fail-fast and ask you to choose.
 - `BASE_REF`: base ref for `range` mode (default: `origin/main`; fallback to `main`)
 - `CONSTRAINTS`: additional constraints (default: `none`)
+
+### Timeout (review engine execution)
+
+- `EXEC_TIMEOUT_SEC`: set an execution timeout in seconds for the review engine command.
+  - Default: unset (no timeout is enforced; the review engine may run indefinitely).
+  - Applies to both `codex exec` and `claude -p`.
+  - If `timeout`/`gtimeout` is not available, it runs without a timeout even when set.
 
 ### Engine selection
 
@@ -150,5 +157,5 @@ REVIEW_ENGINE=claude \
 
 ## Related
 
-- `.agent/commands/review.md` - final gate (DoD + `/sync-docs`)
+- `.agent/commands/final-review.md` - final gate (DoD + `/sync-docs`)
 - `.agent/schemas/review.json` - review JSON schema (schema v3)

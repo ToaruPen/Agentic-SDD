@@ -10,6 +10,16 @@
 
 ## Gate一覧（最小）
 
+### Gate 0: worktree が必須条件を満たすこと
+
+- Pass: Issueブランチ（`issue-<n>` を含むブランチ）では linked worktree で作業している
+- Fail: worktree なしで作業している（`.git/` がディレクトリのまま等）
+
+根拠（実装/仕様）:
+
+- enforcement: `scripts/validate-worktree.py`
+- 要件（仕様）: `.agent/commands/estimation.md`, `.agent/rules/impl-gate.md`
+
 ### Gate 1: SoT の解決が決定的であること
 
 - Pass: PRD/Epic/差分の参照元が一意に解決できる
@@ -51,11 +61,11 @@
 
 ### Gate 5: 最終レビュー（DoD + docs sync）が通ること
 
-- Pass: `/review` が Approved
+- Pass: `/final-review` が Approved
 - Fail: DoD未達 / docs sync不一致 / 未解決のQuestion
 
 根拠（仕様）:
-- `/review`: `.agent/commands/review.md`
+- `/final-review`: `.agent/commands/final-review.md`
 - docs syncルール: `.agent/rules/docs-sync.md`
 
 ---

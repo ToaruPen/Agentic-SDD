@@ -46,7 +46,7 @@ Balanced:
 
 ### Phase 4: Create the 3 required lists
 
-Always include these three lists in the Epic (write "なし" if not applicable):
+Always include these three lists in the Epic (write `なし` (Japanese for "none") if not applicable):
 
 - External services
 - Components
@@ -68,7 +68,7 @@ Based on PRD Q6 answers, include the required production quality sections in sec
 
 Rules:
 - If Q6 is "Yes": fill the section with specific details
-- If Q6 is "No": write "N/A（理由）" in the section
+- If Q6 is "No": write `N/A（理由）` (Japanese; "N/A (reason)") in the section
 - If Q6 is "Unknown": resolve Unknown first (Phase 2)
 
 ### Phase 5: Apply counting definitions
@@ -80,7 +80,7 @@ Rules:
 ### Phase 6: Provide simpler alternatives
 
 If a simpler alternative exists, present both options and record the chosen option and the reason
-in the Epic (follow the template's "技術選定" section style).
+in the Epic (follow the template's `技術選定` section style).
 
 ### Phase 7: Create an Issue split proposal
 

@@ -180,7 +180,7 @@ Before submit:
 - [ ] Tests are not overly coupled to implementation details
 - [ ] Non-determinism is injected/fixed
 - [ ] Run `/review-cycle` after implementation (same as `/impl`), fix findings until it passes
-- [ ] Then run `/review` as the final DoD + `/sync-docs` gate
+- [ ] Then run `/final-review` as the final DoD + `/sync-docs` gate
 
 ---
 
