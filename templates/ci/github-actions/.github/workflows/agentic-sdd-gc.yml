@@ -1,0 +1,23 @@
+name: agentic-sdd-gc
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Docs / SoT lint
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f ./scripts/lint-sot.py
+          python3 ./scripts/lint-sot.py docs
