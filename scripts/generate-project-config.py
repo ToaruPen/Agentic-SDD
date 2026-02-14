@@ -322,16 +322,16 @@ def main() -> int:
             eprint(f"Error: extract-epic-config.py not found at {extract_script}")
             return 1
 
-        result = subprocess.run(
+        proc = subprocess.run(
             [sys.executable, str(extract_script), str(config_path)],
             capture_output=True,
             text=True,
         )
-        if result.returncode != 0:
-            eprint(f"Error: Failed to extract config: {result.stderr}")
+        if proc.returncode != 0:
+            eprint(f"Error: Failed to extract config: {proc.stderr}")
             return 1
 
-        config = json.loads(result.stdout)
+        config = json.loads(proc.stdout)
     else:
         eprint(f"Error: Unsupported file type: {config_path.suffix}")
         return 1
