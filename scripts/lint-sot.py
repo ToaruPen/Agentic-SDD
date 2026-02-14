@@ -83,7 +83,7 @@ def is_approved_prd_or_epic(rel_path: str, text: str) -> bool:
     return False
 
 
-def lint_placeholders(repo: str, rel_path: str, text: str) -> List[LintError]:
+def lint_placeholders(_repo: str, rel_path: str, text: str) -> List[LintError]:
     errs: List[LintError] = []
     if is_approved_prd_or_epic(rel_path, text):
         scrubbed = strip_inline_code_spans(strip_fenced_code_blocks(text))
