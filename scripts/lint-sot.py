@@ -86,7 +86,7 @@ def is_approved_prd_or_epic(rel_path: str, text: str) -> bool:
 def lint_placeholders(repo: str, rel_path: str, text: str) -> List[LintError]:
     errs: List[LintError] = []
     if is_approved_prd_or_epic(rel_path, text):
-        scrubbed = strip_fenced_code_blocks(text)
+        scrubbed = strip_inline_code_spans(strip_fenced_code_blocks(text))
         if "<!--" in scrubbed and not _ALLOW_HTML_COMMENTS_RE.search(scrubbed):
             errs.append(
                 LintError(
@@ -141,34 +141,27 @@ def strip_fenced_code_blocks(text: str) -> str:
 
 def strip_inline_code_spans(text: str) -> str:
     out: List[str] = []
-    in_code = False
-    delim_len = 0
-
     i = 0
     n = len(text)
     while i < n:
         ch = text[i]
-        if ch == "`":
-            j = i
-            while j < n and text[j] == "`":
-                j += 1
-            run_len = j - i
-            if not in_code:
-                in_code = True
-                delim_len = run_len
-                i = j
-                continue
-            if run_len == delim_len:
-                in_code = False
-                delim_len = 0
-                i = j
-                continue
+        if ch != "`":
+            out.append(ch)
+            i += 1
+            continue
+
+        j = i
+        while j < n and text[j] == "`":
+            j += 1
+        delim = text[i:j]
+
+        k = text.find(delim, j)
+        if k == -1:
+            out.append(delim)
             i = j
             continue
 
-        if not in_code:
-            out.append(ch)
-        i += 1
+        i = k + len(delim)
 
     return "".join(out)
 

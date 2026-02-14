@@ -210,6 +210,34 @@ if [[ "$code4" -eq 0 ]]; then
   exit 1
 fi
 
+r6b="$(new_repo case-marker-in-inline-code)"
+write_base_docs "$r6b"
+cat > "$r6b/docs/prd/prd.md" <<'EOF'
+# PRD: Test
+
+## メタ情報
+
+- 作成日: 2026-02-14
+- 作成者: @test
+- ステータス: Approved
+- バージョン: 1.0
+
+This is inline code, not an allow marker: `<!-- lint-sot: allow-html-comments -->`
+
+<!-- placeholder -->
+EOF
+
+set +e
+(cd "$r6b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r6b/stderr5"
+code5=$?
+set -e
+
+if [[ "$code5" -eq 0 ]]; then
+  eprint "Expected lint-sot failure when marker appears only inside inline code"
+  cat "$r6b/stderr5" >&2 || true
+  exit 1
+fi
+
 r7="$(new_repo case-unsafe-root)"
 write_base_docs "$r7"
 set +e
@@ -226,6 +254,27 @@ fi
 if ! grep -q "Root path must be repo-relative" "$r7/stderr3"; then
   eprint "Expected repo-relative root error message, got:"
   cat "$r7/stderr3" >&2 || true
+  exit 1
+fi
+
+r8="$(new_repo case-unmatched-backtick)"
+write_base_docs "$r8"
+cat > "$r8/docs/sot/unmatched.md" <<'EOF'
+# Unmatched backtick
+
+This is a stray backtick: `
+
+- bad: [x](./missing.md)
+EOF
+
+set +e
+(cd "$r8" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r8/stderr"
+code_bt=$?
+set -e
+
+if [[ "$code_bt" -eq 0 ]]; then
+  eprint "Expected lint-sot failure when broken link appears after an unmatched backtick"
+  cat "$r8/stderr" >&2 || true
   exit 1
 fi
 
