@@ -18,6 +18,8 @@ require_cmd() {
 require_cmd bash
 require_cmd rg
 
+BASH_BIN="$(command -v bash)"
+
 sh="$REPO_ROOT/scripts/shogun-tmux.sh"
 if [[ ! -f "$sh" ]]; then
   eprint "Missing script: $sh"
@@ -111,31 +113,13 @@ if printf '%s\n' "$send_keys_line_2" | rg -F -q "python3 scripts/shogun-ops.py s
 fi
 
 # --- missing tmux should fail-fast (non-dry-run) ---
-# Build PATH without tmux dir (if tmux exists).
-orig_path="$PATH"
-new_path=""
-if command -v tmux >/dev/null 2>&1; then
-  tmux_dir="$(dirname "$(command -v tmux)")"
-  IFS=':' read -r -a parts <<<"$orig_path"
-  for p in "${parts[@]}"; do
-    if [[ -z "$p" ]]; then
-      continue
-    fi
-    if [[ "$p" == "$tmux_dir" ]]; then
-      continue
-    fi
-    if [[ -z "$new_path" ]]; then
-      new_path="$p"
-    else
-      new_path="$new_path:$p"
-    fi
-  done
-else
-  new_path="$orig_path"
-fi
+tmpdir_missing_tmux="$(mktemp -d 2>/dev/null || mktemp -d -t agentic-sdd-missing-tmux)"
+cleanup_missing_tmux() { rm -rf "$tmpdir_missing_tmux"; }
+trap cleanup_missing_tmux EXIT
+mkdir -p "$tmpdir_missing_tmux/empty"
 
 set +e
-err="$({ PATH="$new_path" bash "$sh" init 1>/dev/null; } 2>&1)"
+err="$({ PATH="$tmpdir_missing_tmux/empty" "$BASH_BIN" "$sh" init 1>/dev/null; } 2>&1)"
 code=$?
 set -e
 
