@@ -9,7 +9,6 @@ import subprocess
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
-
 EXIT_GATE_BLOCKED = 2
 
 MODE_ALLOWED = {"impl", "tdd", "custom"}

@@ -2,10 +2,9 @@
 
 import json
 import os
+import subprocess
 import sys
 from typing import List, Optional
-
-import subprocess
 
 
 def eprint(msg: str) -> None:

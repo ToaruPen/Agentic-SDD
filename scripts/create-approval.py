@@ -8,7 +8,6 @@ import re
 import sys
 from datetime import datetime, timezone
 
-
 MODE_ALLOWED = {"impl", "tdd", "custom"}
 
 
