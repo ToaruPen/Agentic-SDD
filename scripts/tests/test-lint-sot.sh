@@ -58,10 +58,25 @@ cat > "$r2/docs/sot/codefence.md" <<'EOF'
 ```python
 - this link should be ignored by the linter: [x](./missing-in-codefence.md)
 ```
+
+Inline code span should also be ignored: `[x](./missing-inline.md)`
 EOF
 
 if ! (cd "$r2" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
   eprint "Expected lint-sot OK when broken links only exist inside fenced code blocks"
+  exit 1
+fi
+
+r2b="$(new_repo case-inline-code)"
+write_base_docs "$r2b"
+cat > "$r2b/docs/sot/inline-code.md" <<'EOF'
+# Inline code
+
+This should not be linted as a link target: `[x](./missing.md)`
+EOF
+
+if ! (cd "$r2b" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+  eprint "Expected lint-sot OK when broken links only exist inside inline code spans"
   exit 1
 fi
 
@@ -87,6 +102,27 @@ fi
 if ! grep -q "Broken relative link target" "$r3/stderr"; then
   eprint "Expected broken link message, got:"
   cat "$r3/stderr" >&2 || true
+  exit 1
+fi
+
+r3b="$(new_repo case-ref-def-broken)"
+write_base_docs "$r3b"
+cat > "$r3b/docs/sot/ref.md" <<'EOF'
+# Reference def
+
+[x][id]
+
+[id]: ./missing.md
+EOF
+
+set +e
+(cd "$r3b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r3b/stderr"
+code_ref=$?
+set -e
+
+if [[ "$code_ref" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for broken reference-style link definition"
+  cat "$r3b/stderr" >&2 || true
   exit 1
 fi
 

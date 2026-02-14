@@ -101,6 +101,7 @@ def lint_placeholders(repo: str, rel_path: str, text: str) -> List[LintError]:
 
 
 _MD_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
+_MD_REF_DEF_RE = re.compile(r"^[ \t]{0,3}\[[^\]]+\]:\s*(\S+)", re.MULTILINE)
 
 
 _FENCE_OPEN_RE = re.compile(r"^[ \t]{0,3}((?:`{3,})|(?:~{3,}))")
@@ -138,10 +139,49 @@ def strip_fenced_code_blocks(text: str) -> str:
     return "".join(out_lines)
 
 
+def strip_inline_code_spans(text: str) -> str:
+    out: List[str] = []
+    in_code = False
+    delim_len = 0
+
+    i = 0
+    n = len(text)
+    while i < n:
+        ch = text[i]
+        if ch == "`":
+            j = i
+            while j < n and text[j] == "`":
+                j += 1
+            run_len = j - i
+            if not in_code:
+                in_code = True
+                delim_len = run_len
+                i = j
+                continue
+            if run_len == delim_len:
+                in_code = False
+                delim_len = 0
+                i = j
+                continue
+            i = j
+            continue
+
+        if not in_code:
+            out.append(ch)
+        i += 1
+
+    return "".join(out)
+
+
 def parse_md_link_targets(text: str) -> List[str]:
     out: List[str] = []
-    scrubbed = strip_fenced_code_blocks(text)
+    scrubbed = strip_inline_code_spans(strip_fenced_code_blocks(text))
     for m in _MD_LINK_RE.finditer(scrubbed):
+        target = (m.group(1) or "").strip()
+        if not target:
+            continue
+        out.append(target)
+    for m in _MD_REF_DEF_RE.finditer(scrubbed):
         target = (m.group(1) or "").strip()
         if not target:
             continue
