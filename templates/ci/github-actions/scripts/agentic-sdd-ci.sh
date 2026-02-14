@@ -16,6 +16,7 @@ run_cmd() {
 test_cmd="${AGENTIC_SDD_CI_TEST_CMD:-}"
 lint_cmd="${AGENTIC_SDD_CI_LINT_CMD:-}"
 typecheck_cmd="${AGENTIC_SDD_CI_TYPECHECK_CMD:-}"
+docs_cmd="${AGENTIC_SDD_CI_DOCS_CMD:-}"
 
 missing=()
 [[ -n "$test_cmd" ]] || missing+=("AGENTIC_SDD_CI_TEST_CMD")
@@ -47,5 +48,9 @@ fi
 run_cmd "tests" "$test_cmd"
 run_cmd "lint" "$lint_cmd"
 run_cmd "typecheck" "$typecheck_cmd"
+
+if [[ -n "$docs_cmd" ]]; then
+  run_cmd "docs" "$docs_cmd"
+fi
 
 eprint "[CI] OK"
