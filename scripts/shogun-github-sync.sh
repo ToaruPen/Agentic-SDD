@@ -24,8 +24,6 @@ Options:
 EOF
 }
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-
 ISSUE=""
 GH_REPO=""
 DRY_RUN=0

@@ -131,7 +131,6 @@ find_pane_id_by_title() {
     return 0
   fi
 
-  local line
   while IFS=$'\t' read -r pane_id pane_title; do
     if [[ "$pane_title" == "$title" ]]; then
       printf '%s' "$pane_id"

@@ -22,7 +22,7 @@ python3 scripts/validate-approval.py
 # Python lint gate (Stage 1): ruff
 need_ruff=0
 zero="0000000000000000000000000000000000000000"
-while read -r local_ref local_sha remote_ref remote_sha; do
+while read -r local_ref local_sha _remote_ref remote_sha; do
   [ -n "$local_ref" ] || continue
   if [ "$local_sha" = "$zero" ]; then
     continue

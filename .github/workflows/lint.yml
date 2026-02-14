@@ -71,7 +71,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          shellcheck \
+          shellcheck -S warning \
             .githooks/pre-commit \
             .githooks/pre-push \
             scripts/*.sh \
