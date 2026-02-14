@@ -11,7 +11,7 @@ User-facing output remains in Japanese.
 
 ## Usage
 
-```
+```text
 /final-review [PR-number | Issue-number]
 ```
 

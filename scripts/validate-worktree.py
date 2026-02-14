@@ -68,6 +68,10 @@ def gate_blocked(msg: str) -> int:
     return EXIT_GATE_BLOCKED
 
 
+def is_linked_worktree_gitfile(content: str) -> bool:
+    return bool(re.search(r"\.git/worktrees/", content))
+
+
 def main() -> int:
     try:
         repo_root = git_repo_root()
@@ -82,7 +86,20 @@ def main() -> int:
 
     git_path = os.path.join(repo_root, ".git")
     if os.path.isfile(git_path):
-        return 0
+        try:
+            with open(git_path, "r", encoding="utf-8") as fh:
+                content = fh.read()
+        except OSError as exc:
+            return gate_blocked(f"Failed to read .git file.\n- error: {exc}")
+
+        if is_linked_worktree_gitfile(content):
+            return 0
+
+        return gate_blocked(
+            "Worktree is required for Issue branches (non-worktree gitdir detected).\n"
+            f"- branch: {branch}\n"
+            f"- path: {git_path}"
+        )
 
     if os.path.isdir(git_path):
         return gate_blocked(

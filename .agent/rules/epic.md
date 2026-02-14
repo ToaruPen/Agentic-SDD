@@ -124,10 +124,10 @@ Based on PRD Q6 answers, additional Epic sections become required.
 
 | PRD Q6 item | Answer | Required Epic section | Rule file |
 |-----------|------|-------------------|---------------|
-| `Q6-5: 個人情報/機密データ` | Yes | 5.2 Security design | `.agent/rules/security.md` |
-| `Q6-6: 監査ログ要件` | Yes | 5.3 Observability design | `.agent/rules/observability.md` |
-| `Q6-7: パフォーマンス要件` | Yes | 5.1 Performance design | `.agent/rules/performance.md` |
-| `Q6-8: 可用性要件` | Yes | 5.4 Availability design | `.agent/rules/availability.md` |
+| `Q6-5: 個人情報/機密データ` | Yes | 5.2 セキュリティ設計 | `.agent/rules/security.md` |
+| `Q6-6: 監査ログ要件` | Yes | 5.3 観測性設計 | `.agent/rules/observability.md` |
+| `Q6-7: パフォーマンス要件` | Yes | 5.1 パフォーマンス設計 | `.agent/rules/performance.md` |
+| `Q6-8: 可用性要件` | Yes | 5.4 可用性設計 | `.agent/rules/availability.md` |
 
 Apply rules:
 
