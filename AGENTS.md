@@ -15,6 +15,16 @@ Invariant (SoT)
 - If you detect a contradiction, STOP and ask a human with references (PRD/Epic/code:line).
   Do not invent requirements.
 
+Fail-fast (no fallback in implementation)
+- During implementation, do not add "fallback" behavior that silently changes outcomes.
+  If a required input/assumption is missing or ambiguous, fail fast with an explicit error,
+  and ask a human (with PRD/Epic/code references) instead of guessing.
+
+Static analysis (required)
+- You must introduce and keep running static analysis: lint, format, and typecheck.
+- If the repository has no lint/format/typecheck yet, treat it as a blocker and introduce the minimal viable checks before proceeding.
+- If you cannot introduce or run a required check due to environment or constraints, STOP and ask a human for an explicit exception (with rationale and impact).
+
 Release hygiene (required)
 - After making changes to this repo, you MUST update `CHANGELOG.md`, publish a GitHub Release (tag),
   and update pinned scripts (e.g. `scripts/agentic-sdd` default ref).
@@ -43,11 +53,12 @@ Bug fix Issues require Priority (P0-P4). See `.agent/rules/issue.md` for details
 2) Complete one Issue (iterate)
 - /impl or /tdd: pass the implementation gates (.agent/rules/impl-gate.md)
   - Full estimate (11 sections) -> user approval -> implement -> add/run tests
+  - Worktree is required for Issue branches (see `.agent/rules/impl-gate.md` Gate -1)
 - /review-cycle: run locally before committing (fix -> re-run)
-- /review: always run /sync-docs; if there is a diff, follow SoT and re-check
+- /final-review: always run /sync-docs; if there is a diff, follow SoT and re-check
 
 3) PR / merge
-- Create a PR only after /review passes (do not change anything outside the Issue scope)
+- Create a PR only after /final-review passes (do not change anything outside the Issue scope)
   - Then run: /create-pr
 ```
 
@@ -124,7 +135,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/refactor-draft`: create a refactor draft YAML (Lower-only; no GitHub writes) (Shogun Ops opt-in; requires `--shogun-ops`)
 - `/refactor-issue`: create a GitHub Issue from a refactor draft (Middle-only) (Shogun Ops opt-in; requires `--shogun-ops`)
 - `/review-cycle`: local review loop (codex exec -> review.json)
-- `/review`: review (DoD check)
+- `/final-review`: review (DoD check)
 - `/create-pr`: push branch and create a PR (gh)
 - `/codex-pr-review`: request a Codex bot review on a PR and iterate until feedback is resolved
 - `/sync-docs`: consistency check between PRD/Epic/code
@@ -142,7 +153,7 @@ To keep this bootstrap file small, detailed rules live in these files:
 - Project Config: `.agent/commands/generate-project-config.md`, `templates/project-config/`
 - Issues: `.agent/commands/create-issues.md`, `.agent/rules/issue.md`
 - Estimation: `.agent/commands/estimation.md`, `.agent/rules/impl-gate.md`
-- Review: `.agent/commands/review.md`, `.agent/rules/dod.md`, `.agent/rules/docs-sync.md`
+- Review: `.agent/commands/final-review.md`, `.agent/rules/dod.md`, `.agent/rules/docs-sync.md`
 - Production Quality: `.agent/rules/security.md`, `.agent/rules/performance.md`, `.agent/rules/observability.md`, `.agent/rules/availability.md`
 
 ---

@@ -10,7 +10,7 @@ Required:
 
 - [ ] All AC are satisfied
 - [ ] Tests are added/updated (when applicable)
-- [ ] Quality checks are run and passing (tests required; lint/format/typecheck when applicable). If not run, record "not run: reason" and get explicit approval.
+- [ ] Quality checks are run and passing (tests required; lint/format/typecheck required). If a required check does not exist yet, introduce the minimal viable check before proceeding. If a required check cannot be run, record "not run: reason" and get explicit approval.
 - [ ] `/sync-docs` is "no diff" or the diff is explicitly approved
 - [ ] Code review is complete
 - [ ] CI passes (when applicable)
@@ -126,7 +126,7 @@ This ensures changes are verifiable and not based on hope.
 
 - `.agent/rules/docs-sync.md` - documentation sync rules
 - `.agent/commands/sync-docs.md` - sync-docs command
-- `.agent/commands/review.md` - review command
+- `.agent/commands/final-review.md` - final review command
 - `.agent/commands/estimation.md` - Full estimate + approval gate
 - `skills/estimation.md` - estimation skill
 - `.agent/rules/impl-gate.md` - implementation gate checklist

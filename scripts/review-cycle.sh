@@ -62,7 +62,7 @@ Required environment:
                    For large PRD+Epic+diff combinations, consider setting SOT_MAX_CHARS.
 
   Common options:
-  EXEC_TIMEOUT_SEC Optional timeout (uses timeout/gtimeout if available)
+  EXEC_TIMEOUT_SEC Optional timeout in seconds (unset/empty => no timeout; uses timeout/gtimeout if available)
   FORMAT_JSON      1 to pretty-format output JSON (default: 1)
 
 Notes:

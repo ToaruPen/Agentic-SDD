@@ -1,8 +1,8 @@
 # /checkin
 
-Lower の進捗報告を標準化するため、append-only の checkin YAML を生成します。
+Generate an append-only checkin YAML to standardize progress reporting from Lower.
 
-生成先は Shogun Ops の集積場（`git rev-parse --git-common-dir` 配下）の `queue/checkins/<worker>/` です。
+The output is written under Shogun Ops' collection area: `queue/checkins/<worker>/` under `git rev-parse --git-common-dir`.
 
 ## Usage
 
@@ -13,7 +13,7 @@ Lower の進捗報告を標準化するため、append-only の checkin YAML を
 ## Script
 
 ```bash
-# 例: worker は環境変数でも可（AGENTIC_SDD_WORKER）
+# Example: worker can also be set via env var (AGENTIC_SDD_WORKER)
 python3 scripts/shogun-ops.py checkin 123 implementing 40 \
   --worker ashigaru1 \
   --tests-command "npm test" \
@@ -27,16 +27,16 @@ python3 scripts/shogun-ops.py checkin 123 implementing 40 \
   -- モデル/ハンドラ実装。テスト1件失敗
 ```
 
-調査依頼/調査結果（decision に紐づける）:
+Research request/response (linked to a decision):
 
 ```bash
-# 調査依頼（blocker として発行）
+# Research request (emit as a blocker)
 python3 scripts/shogun-ops.py checkin 123 blocked 0 \
   --worker ashigaru1 \
   --blocker "調査依頼: なぜビルドが落ちるか調べてください" \
   -- 調査依頼を出した
 
-# 調査結果（decision_id を指定して応答）
+# Research response (reply by specifying decision_id)
 python3 scripts/shogun-ops.py checkin 123 implementing 0 \
   --worker researcher1 \
   --respond-to-decision "DEC-..." \
@@ -45,5 +45,5 @@ python3 scripts/shogun-ops.py checkin 123 implementing 0 \
 
 ## Notes
 
-- append-only: 既存の checkin ファイルがある場合は非ゼロ終了します。
-- フラグを併用する場合は、`--` 以降を summary として扱うため安全です（例: `... --tests-result pass -- 進捗メモ`）。
+- Append-only: if a checkin file already exists, this command exits non-zero.
+- When combining flags, everything after `--` is treated as the summary, which is safer (example: `... --tests-result pass -- 進捗メモ`).

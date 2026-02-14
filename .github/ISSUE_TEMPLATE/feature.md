@@ -58,7 +58,7 @@ assignees: ''
 <!-- - #123（理由） -->
 
 <!-- parallel-ok を付けたい場合は、他Issueと変更対象ファイルが重ならないことを確認 -->
-<!-- 例: ./scripts/worktree.sh check --issue-body-file issues/123.md --issue-body-file issues/124.md -->
+<!-- 例: ./scripts/worktree.sh check --issue 123 --issue 124 -->
 
 ### 先に終わると何が可能になるか
 

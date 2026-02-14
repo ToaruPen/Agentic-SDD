@@ -1,6 +1,6 @@
 # /generate-project-config
 
-Epic情報からプロジェクト固有のスキル/ルールを生成する。
+Generate project-specific skills/rules from an Epic.
 
 ## Usage
 
@@ -10,60 +10,67 @@ Epic情報からプロジェクト固有のスキル/ルールを生成する。
 
 ## Overview
 
-Epicで決まった仕様（技術選定、Q6要件）に基づいて、プロジェクト固有のスキル/ルールを生成する。
+Based on the Epic decisions (tech choices and PRD Q6 requirements), generate project-specific skills/rules.
 
-生成されるファイル:
-- `config.json` - プロジェクト設定（常に生成）
-- `skills/tech-stack.md` - 技術スタックガイド（技術選定がある場合）
-- `rules/security.md` - セキュリティルール（Q6-5 = Yes の場合）
-- `rules/performance.md` - パフォーマンスルール（Q6-7 = Yes の場合）
-- `rules/api-conventions.md` - API規約（API設計がある場合）
+Generated files:
+- `config.json`: project config (always generated)
+- `skills/tech-stack.md`: tech stack guide (when the Epic includes tech selection)
+- `rules/security.md`: security rules (when Q6-5 = Yes)
+- `rules/performance.md`: performance rules (when Q6-7 = Yes)
+- `rules/api-conventions.md`: API conventions (when the Epic includes API design)
+
+Notes (user-facing artifacts remain Japanese; these files are project-local guidance):
+- `config.json`: project config (always generated)
+- `skills/tech-stack.md`: tech stack guide (when the Epic includes tech selection)
+- `rules/security.md`: security rules (when Q6-5 = Yes)
+- `rules/performance.md`: performance rules (when Q6-7 = Yes)
+- `rules/api-conventions.md`: API conventions (when the Epic includes API design)
 
 ## Flow
 
-### Phase 1: Epicファイルの読み込み
+### Phase 1: Load the Epic file
 
-1. 指定されたEpicファイルを読み込む
-2. ファイルが存在しない場合はエラー
+1. Read the specified Epic file
+2. If the file does not exist, fail
 
-### Phase 2: 情報抽出
+### Phase 2: Extract inputs
 
-`scripts/extract-epic-config.py` を使用して以下を抽出:
+Use `scripts/extract-epic-config.py` to extract:
 
-1. 技術選定情報（セクション3.2）
-   - 言語、フレームワーク、データベース、インフラ
-2. Q6要件（セクション5）
-   - Q6-5: セキュリティ要件
-   - Q6-6: 観測性要件
-   - Q6-7: パフォーマンス要件
-   - Q6-8: 可用性要件
-3. API設計情報（セクション3.4）
-   - エンドポイント一覧
+1. Tech selection (section 3.2)
+   - language, framework, database, infrastructure
+2. PRD Q6 requirements (section 5)
+   - Q6-5: security
+   - Q6-6: observability
+   - Q6-7: performance
+   - Q6-8: availability
+3. API design (section 3.4)
+   - endpoint list
 
-### Phase 3: テンプレート選択
+### Phase 3: Select templates
 
-抽出した情報に基づいて、該当するテンプレートを選択:
+Select templates based on extracted inputs:
 
-| 条件 | 生成ファイル |
+| Condition | Generated file |
 |------|-------------|
-| 技術選定がある | `skills/tech-stack.md` |
+| Tech selection exists | `skills/tech-stack.md` |
 | Q6-5 = Yes | `rules/security.md` |
 | Q6-7 = Yes | `rules/performance.md` |
-| API設計がある | `rules/api-conventions.md` |
+| API design exists | `rules/api-conventions.md` |
 
-### Phase 4: 変数置換とファイル生成
+### Phase 4: Render templates and write files
 
-`scripts/generate-project-config.py` を使用:
+Use `scripts/generate-project-config.py`:
 
-1. テンプレートファイルを読み込み
-2. Jinja2形式で変数置換
-3. `.agentic-sdd/project/` にファイル出力
+1. Load template files
+2. Render via Jinja2 variables
+3. Write outputs under `.agentic-sdd/project/`
 
-### Phase 5: 生成内容の確認
+### Phase 5: Review generated outputs
 
-1. 生成されたファイル一覧を表示
-2. 各ファイルの概要を表示
-3. ユーザーに確認を求める
+1. Print the list of generated files
+2. Print a short summary per file
+3. Ask the user to confirm
 
 ## Output
 
@@ -81,30 +88,30 @@ Epicで決まった仕様（技術選定、Q6要件）に基づいて、プロ�
 ## Example
 
 ```bash
-# Epicファイルから直接生成
+# Generate directly from an Epic file
 python scripts/generate-project-config.py docs/epics/my-project-epic.md
 
-# 抽出と生成を分けて実行
+# Split extraction and generation
 python scripts/extract-epic-config.py docs/epics/my-project-epic.md -o /tmp/config.json
 python scripts/generate-project-config.py /tmp/config.json
 
-# ドライラン（生成予定ファイルの確認）
+# Dry-run (preview generated files)
 python scripts/generate-project-config.py docs/epics/my-project-epic.md --dry-run
 ```
 
 ## Notes
 
-- 生成されるファイルはテンプレートベースのため、プロジェクト固有の詳細は手動で追記が必要
-- 汎用ルール（`.agent/rules/`）は別途存在し、生成されるルールはプロジェクト固有の補足
-- 既存ファイルがある場合は上書きされるため注意
+- Outputs are template-based; project-specific details still require manual edits.
+- Generic rules live under `.agent/rules/`; generated rules are project-specific supplements.
+- Existing files may be overwritten.
 
 ## Related
 
-- `.agent/commands/create-epic.md` - Epic作成コマンド
-- `.agent/rules/security.md` - 汎用セキュリティルール
-- `.agent/rules/performance.md` - 汎用パフォーマンスルール
-- `templates/project-config/` - テンプレートファイル
+- `.agent/commands/create-epic.md` - Epic creation command
+- `.agent/rules/security.md` - Generic security rules
+- `.agent/rules/performance.md` - Generic performance rules
+ - `templates/project-config/` - template files
 
 ## Next command
 
-生成完了後、必要に応じて生成されたファイルを確認・編集し、`/create-issues` を実行してIssue分割に進む。
+After generation, review/edit the generated files as needed, then run `/create-issues` to split into Issues.

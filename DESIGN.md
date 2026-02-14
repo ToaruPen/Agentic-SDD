@@ -337,7 +337,7 @@ Agentic-SDD/
 │   │   ├── impl.md
 │   │   ├── tdd.md
 │   │   ├── review-cycle.md
-│   │   ├── review.md
+│   │   ├── final-review.md
 │   │   ├── sync-docs.md
 │   │   └── worktree.md
 │   ├── schemas/
@@ -391,6 +391,7 @@ Agentic-SDD/
 │   ├── create-pr.sh
 │   ├── check-commit-gate.py
 │   ├── check-impl-gate.py
+│   ├── validate-worktree.py
 │   ├── extract-issue-files.py
 │   ├── review-cycle.sh
 │   ├── resolve-sync-docs-inputs.py
@@ -425,7 +426,7 @@ Agentic-SDD/
 | 2 | 正本ルール | `docs-sync.md`, `dod.md`, `sync-docs.md` |
 | 3 | Epic関連 | `create-epic.md`, `epic.md`, `docs/epics/_template.md` |
 | 4 | Issue関連 | `create-issues.md`, `issue.md` |
-| 5 | レビュー | `review-cycle.md`, `review.md` |
+| 5 | レビュー | `review-cycle.md`, `final-review.md` |
 | 6 | 実装 | `impl.md`, `estimation.md` |
 
 ---
@@ -438,7 +439,7 @@ Agentic-SDD/
 ├── create-prd.md
 ├── create-epic.md
 ├── create-issues.md
-├── review.md
+├── final-review.md
 └── sync-docs.md
 
 .agent/rules/

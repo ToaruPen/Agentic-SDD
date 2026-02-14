@@ -225,8 +225,8 @@ sync_opencode() {
                 tdd)
                     cmd_description="Implement an issue via strict TDD (Red -> Green -> Refactor)"
                     ;;
-                review)
-                    cmd_description="Review with DoD and sync-docs"
+                final-review)
+                    cmd_description="Final review with DoD and sync-docs"
                     cmd_agent="sdd-reviewer"
                     ;;
                 review-cycle)
@@ -398,7 +398,7 @@ export const AgenticSddGatePlugin = async ({ $, worktree }) => {
   }
 
   const validate = async () => {
-    // Run from the worktree root to keep paths stable.
+    await $`cd ${worktree} && python3 scripts/validate-worktree.py`
     await $`cd ${worktree} && python3 scripts/validate-approval.py`
   }
 
@@ -406,7 +406,10 @@ export const AgenticSddGatePlugin = async ({ $, worktree }) => {
     "tool.execute.before": async (input, output) => {
       if (input.tool === "edit" || input.tool === "write") {
         const p = getPathFromArgs(output.args)
-        if (isAllowedPath(p)) return
+        if (isAllowedPath(p)) {
+          await $`cd ${worktree} && python3 scripts/validate-worktree.py`
+          return
+        }
         await validate()
         return
       }

@@ -86,4 +86,4 @@ assignees: []
 - [ ] ACを満たした
 - [ ] P0/P1が残っていない
 - [ ] `/review-cycle` を通過
-- [ ] `/review` でDoDを確認
+- [ ] `/final-review` でDoDを確認

@@ -143,4 +143,4 @@ Check touch target size, overlap, clipping, and scroll traps.
 - `skills/crud-screen.md` - screen design checklist
 - `skills/testing.md` - test strategy and coverage
 - `.agent/commands/review-cycle.md` - local review loop
-- `.agent/commands/review.md` - final gate
+- `.agent/commands/final-review.md` - final gate

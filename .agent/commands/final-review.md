@@ -1,18 +1,18 @@
-# /review
+# /final-review
 
 Review a PR or an Issue.
 
 This command is the SoT for review taxonomy (status/priority) shared by:
 
-- `/review` (human-readable Japanese review output)
+- `/final-review` (human-readable Japanese review output)
 - `/review-cycle` (machine-readable `review.json` output)
 
 User-facing output remains in Japanese.
 
 ## Usage
 
-```
-/review [PR-number | Issue-number]
+```text
+/final-review [PR-number | Issue-number]
 ```
 
 If omitted, review the PR associated with the current branch.
@@ -130,5 +130,5 @@ Write a short Japanese review with:
 
 - Approved: if no PR exists, run `/create-pr`; otherwise can merge
 - Approved with nits: if no PR exists, run `/create-pr`; otherwise can merge (optionally batch-fix P2/P3)
-- Blocked: fix P0/P1 -> run `/review-cycle` -> re-run `/review`
-- Question: answer questions (do not guess) -> run `/review-cycle` -> re-run `/review`
+- Blocked: fix P0/P1 -> run `/review-cycle` -> re-run `/final-review`
+- Question: answer questions (do not guess) -> run `/review-cycle` -> re-run `/final-review`

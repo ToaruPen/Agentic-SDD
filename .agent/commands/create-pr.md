@@ -17,7 +17,7 @@ Exception: GitHub closing keywords may remain in English (e.g. `Closes #123`, `F
 Notes:
 
 - If omitted, infer the Issue number from the current branch name (`issue-<n>`).
-- This command is intended to run after `/review` is approved.
+- This command is intended to run after `/final-review` is approved.
 
 ## Flow
 
@@ -76,11 +76,11 @@ Notes:
 
 ## Related
 
-- `.agent/commands/review.md` - final review gate
+- `.agent/commands/final-review.md` - final review gate
 - `.agent/commands/review-cycle.md` - local review cycle (review.json)
 - `.agent/commands/worktree.md` - worktree + linked branch flow
 - `.agent/rules/branch.md` - branch naming rules
 
 ## Next command
 
-After PR creation, optionally run `/review <pr-number>` to review the PR diff.
+After PR creation, optionally run `/final-review <pr-number>` to review the PR diff.

@@ -216,42 +216,6 @@ if ! printf '%s\n' "$out_gh" | grep -qx "src/shared.ts"; then
   exit 1
 fi
 
-# worktree.sh check: conflict
-set +e
-(cd "$tmpdir" && ./scripts/worktree.sh check --issue-body-file issue-1.md --issue-body-file issue-2.md) >/dev/null 2>"$tmpdir/stderr"
-code=$?
-set -e
-
-if [[ "$code" -ne 3 ]]; then
-  eprint "Expected exit code 3 for conflict, got: $code"
-  cat "$tmpdir/stderr" >&2
-  exit 1
-fi
-
-# worktree.sh check: conflict (JSON fixtures)
-set +e
-(cd "$tmpdir" && ./scripts/worktree.sh check --issue-body-file issue-1.json --issue-body-file issue-2.json) >/dev/null 2>"$tmpdir/stderr-json"
-code_json=$?
-set -e
-
-if [[ "$code_json" -ne 3 ]]; then
-  eprint "Expected exit code 3 for conflict (JSON fixtures), got: $code_json"
-  cat "$tmpdir/stderr-json" >&2
-  exit 1
-fi
-
-if ! grep -q "src/shared.ts" "$tmpdir/stderr-json"; then
-  eprint "Expected shared file in conflict output (JSON fixtures)"
-  cat "$tmpdir/stderr-json" >&2
-  exit 1
-fi
-
-if ! grep -q "src/shared.ts" "$tmpdir/stderr"; then
-  eprint "Expected shared file in conflict output"
-  cat "$tmpdir/stderr" >&2
-  exit 1
-fi
-
 # worktree.sh check: conflict via gh (stub)
 set +e
 (cd "$tmpdir" && PATH="$tmpdir/bin:$PATH" ./scripts/worktree.sh check --issue 1 --issue 2) >/dev/null 2>"$tmpdir/stderr-gh"
@@ -271,7 +235,7 @@ if ! grep -q "src/shared.ts" "$tmpdir/stderr-gh"; then
 fi
 
 # worktree.sh check: no conflict
-(cd "$tmpdir" && ./scripts/worktree.sh check --issue-body-file issue-1.md --issue-body-file issue-3.md) >/dev/null
+(cd "$tmpdir" && PATH="$tmpdir/bin:$PATH" ./scripts/worktree.sh check --issue 1 --issue 3) >/dev/null
 
 
 # worktree.sh new/remove (Issue lock enabled by default; gh is stubbed)

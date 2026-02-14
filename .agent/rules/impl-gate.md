@@ -9,6 +9,15 @@ User-facing output remains in Japanese.
 
 ---
 
+## Gate -1: Worktree (required)
+
+- [ ] Before `/estimation`, create and use a per-Issue branch/worktree via `/worktree new`.
+- [ ] If no linked branch exists for the Issue, STOP and create one before estimating.
+
+Rationale:
+
+- Estimation/implementation must be anchored to a deterministic branch/worktree state.
+
 ## Gate 0: Mode selection (required)
 
 - [ ] Ask the user which mode to use (do not choose on your own):
@@ -51,14 +60,14 @@ Implementation note:
 
 ## Gate 3: Quality gate (post-implementation, required)
 
-- [ ] Run project-defined quality checks:
-  - tests (required)
-  - lint / format / typecheck (when applicable)
-- [ ] If any check cannot be run, report:
-  - reason
-  - impact
-  - what was done instead (if any)
-  - and ask for explicit approval to proceed.
+ - [ ] Run project-defined quality checks:
+   - tests (required)
+   - lint / format / typecheck (required)
+  - [ ] If any check cannot be run, report:
+    - reason
+    - impact
+    - what was done instead (if any)
+    - and ask for explicit approval to proceed.
 
 ---
 

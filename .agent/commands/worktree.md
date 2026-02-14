@@ -53,11 +53,6 @@ Run the overlap checker before applying `parallel-ok`.
 Examples:
 
 ```bash
-# Check local Issue body markdown files
-./scripts/worktree.sh check \
-  --issue-body-file issues/123.md \
-  --issue-body-file issues/124.md
-
 # Check GitHub Issues (requires gh)
 ./scripts/worktree.sh check --issue 123 --issue 124
 ```
@@ -94,7 +89,7 @@ Merge in a "finish one, merge one" manner to reduce conflicts.
 For each Issue, run:
 
 - `/review-cycle` (required)
-- `/review` (required; includes `/sync-docs`)
+- `/final-review` (required; includes `/sync-docs`)
 
 ## Options
 

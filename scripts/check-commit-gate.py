@@ -61,6 +61,20 @@ def main() -> int:
     if not root:
         return 0
 
+    worktree_gate = os.path.join(root, "scripts", "validate-worktree.py")
+    if os.path.isfile(worktree_gate):
+        try:
+            p = run([sys.executable, worktree_gate], cwd=root, check=False)
+        except Exception as exc:  # noqa: BLE001
+            eprint(f"[agentic-sdd gate] error: {exc}")
+            return 1
+        if p.stdout:
+            sys.stdout.write(p.stdout)
+        if p.stderr:
+            sys.stderr.write(p.stderr)
+        if p.returncode != 0:
+            return p.returncode
+
     script = os.path.join(root, "scripts", "validate-approval.py")
     if not os.path.isfile(script):
         return 0

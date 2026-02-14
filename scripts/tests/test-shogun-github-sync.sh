@@ -17,7 +17,7 @@ require_cmd() {
 
 require_cmd git
 require_cmd python3
-require_cmd rg
+require_cmd grep
 require_cmd shasum
 require_cmd bash
 
@@ -153,22 +153,22 @@ log_path="$tmpdir/gh.log"
 PATH="$stub_bin:$PATH" GH_STUB_LOG="$log_path" GH_STUB_AUTH_OK=1 \
   "$BASH_BIN" "$sync_sh" --issue 25 --repo ToaruPen/Agentic-SDD --dry-run >"$tmpdir/dry.out"
 
-cat "$tmpdir/dry.out" | rg -q '^issue=25$'
-cat "$tmpdir/dry.out" | rg -q '^repo=ToaruPen/Agentic-SDD$'
-cat "$tmpdir/dry.out" | rg -q '^next_action=/impl 25$'
+cat "$tmpdir/dry.out" | grep -qE '^issue=25$'
+cat "$tmpdir/dry.out" | grep -qE '^repo=ToaruPen/Agentic-SDD$'
+cat "$tmpdir/dry.out" | grep -qE '^next_action=/impl 25$'
 
 # --repo omitted should be derived from ssh://git@github.com/OWNER/REPO.git origin.
 PATH="$stub_bin:$PATH" GH_STUB_LOG="$log_path" GH_STUB_AUTH_OK=1 \
   "$BASH_BIN" "$sync_sh" --issue 25 --dry-run >"$tmpdir/dry-origin.out"
-cat "$tmpdir/dry-origin.out" | rg -q '^repo=ToaruPen/Agentic-SDD$'
+cat "$tmpdir/dry-origin.out" | grep -qE '^repo=ToaruPen/Agentic-SDD$'
 
 PATH="$stub_bin:$PATH" GH_STUB_LOG="$log_path" GH_STUB_AUTH_OK=1 \
   "$BASH_BIN" "$sync_sh" --issue 25 --repo ToaruPen/Agentic-SDD >/dev/null
 
-cat "$log_path" | rg -q 'gh auth status'
-cat "$log_path" | rg -q 'gh issue view 25'
-cat "$log_path" | rg -q 'gh issue edit 25'
-cat "$log_path" | rg -q 'gh issue comment 25'
+cat "$log_path" | grep -qE 'gh auth status'
+cat "$log_path" | grep -qE 'gh issue view 25'
+cat "$log_path" | grep -qE 'gh issue edit 25'
+cat "$log_path" | grep -qE 'gh issue comment 25'
 
 # impl_mode=tdd should suggest /tdd.
 python3 - "$state_path" <<'PY'
@@ -185,7 +185,7 @@ PY
 PATH="$stub_bin:$PATH" GH_STUB_LOG="$log_path" GH_STUB_AUTH_OK=1 \
   "$BASH_BIN" "$sync_sh" --issue 25 --repo ToaruPen/Agentic-SDD --dry-run >"$tmpdir/dry2.out"
 
-cat "$tmpdir/dry2.out" | rg -q '^next_action=/tdd 25$'
+cat "$tmpdir/dry2.out" | grep -qE '^next_action=/tdd 25$'
 
 # AC2: auth failure => non-zero and no edits/comments.
 : >"$log_path"
@@ -200,13 +200,13 @@ if [[ "$code" -eq 0 ]]; then
   exit 1
 fi
 
-cat "$log_path" | rg -q 'gh auth status'
-if cat "$log_path" | rg -q 'gh issue edit|gh issue comment'; then
+cat "$log_path" | grep -qE 'gh auth status'
+if cat "$log_path" | grep -qE 'gh issue (edit|comment)'; then
   eprint "expected no issue update calls when auth fails"
   cat "$log_path" >&2
   exit 1
 fi
 
-cat "$tmpdir/auth.err" | rg -q 'auth|login|Not authenticated|not logged in'
+cat "$tmpdir/auth.err" | grep -qE 'auth|login|Not authenticated|not logged in'
 
 eprint "OK: scripts/tests/test-shogun-github-sync.sh"

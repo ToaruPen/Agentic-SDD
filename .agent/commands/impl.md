@@ -18,13 +18,13 @@ User-facing output and artifacts remain in Japanese.
 1. Read the specified Issue
 2. Identify the related Epic and PRD
 3. Extract AC
-4. Check work status (required)
+4. Check work status (required; worktree mandatory)
    - List linked branches (SoT): `gh issue develop --list <issue-number>`
-   - If any linked branch exists and you are not on it, report and stop
+   - If any linked branch exists and you are not on it, report and stop (switch into the linked worktree)
    - (Optional) For each linked branch, check PRs: `gh pr list --head "<branch>" --state all`
-   - If no linked branch exists, create one *before* starting estimation/implementation
-     - Recommended: `/worktree new --issue <issue-number> --desc "<ascii short desc>"` and re-run `/impl` inside that worktree
-     - Alternative (no worktree): `gh issue develop <issue-number> --name "<branch>" --checkout`
+   - If no linked branch exists, STOP and create one *before* estimation/implementation:
+     - Required: `/worktree new --issue <issue-number> --desc "<ascii short desc>"`
+     - Then re-run `/impl` inside that worktree
 
 ### Phase 2: Run `/estimation` (required)
 
@@ -39,6 +39,10 @@ Stop conditions:
 - If the estimate is not approved: stop.
 - If section 10 has open questions: stop and wait for answers (then re-run `/estimation`).
 - If the user chose strict TDD mode: stop and run `/tdd [issue-number]` instead.
+
+Note:
+
+- If an approved estimate already exists for this Issue (and the approval gate passes), you can skip rewriting it and proceed to implementation.
 
 ### Phase 3: Implement
 
@@ -72,7 +76,7 @@ Example (Japanese):
 - 実際の工数: [3h]（見積もり: 3-6h → 範囲内）
 
 次のステップ:
-1. /review を実行して最終セルフレビュー
+1. /final-review を実行して最終セルフレビュー
 2. /create-pr を実行して push + PR作成
 ```
 
@@ -81,7 +85,7 @@ Example (Japanese):
 - `.agent/commands/estimation.md` - create a Full estimate + approval gate
 - `.agent/commands/tdd.md` - strict TDD execution loop
 - `.agent/commands/review-cycle.md` - local review loop
-- `.agent/commands/review.md` - final review gate
+- `.agent/commands/final-review.md` - final review gate
 - `.agent/rules/branch.md` - branch rules
 - `.agent/rules/commit.md` - commit rules
 - `.agent/rules/dod.md` - Definition of Done
@@ -90,4 +94,4 @@ Example (Japanese):
 
 ## Next command
 
-After implementation, run `/review`.
+After implementation, run `/final-review`.

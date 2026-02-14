@@ -41,7 +41,7 @@ flowchart TB
 
   IMPL --> RC[/review-cycle (local loop)
   review.json生成→検証→修正\n1-3サイクルで収束]
-  RC --> REVIEW[/review (最終ゲート)
+RC --> REVIEW[/final-review (最終ゲート)
   DoD + /sync-docs]
   REVIEW --> PR[/create-pr
   review.json(Approved)を要求]
@@ -91,6 +91,7 @@ flowchart TB
 - 入力解決の fail-fast: `.agent/commands/sync-docs.md:23-51`
 - ローカル反復(1-3サイクル目安): `.agent/commands/review-cycle.md:36-46`
 - 承認ゲート(estimate.md の hash 凍結): `scripts/validate-approval.py:88-91`, `scripts/validate-approval.py:226-239`
+- worktree ゲート(issueブランチは linked worktree 必須): `scripts/validate-worktree.py`
 - PR作成ゲート(review.json Approved必須): `scripts/create-pr.sh:163-208`
 - 外部ハーネスとの責務分離(オーケストレーションSoTと混在しない): `README.md:38-49`
 

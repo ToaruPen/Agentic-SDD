@@ -39,7 +39,7 @@ Supported command tokens:
 - /impl
 - /tdd
 - /review-cycle
-- /review
+- /final-review
 - /sync-docs
 - /create-pr
 - /worktree
@@ -90,8 +90,8 @@ Formatting rules:
 - One line per key (no multi-line lists). If you need multiple items, separate them with `; `.
 - Do not use ASCII parentheses `()` anywhere except the final evidence pointer.
   - If you need to clarify or enumerate, use `:` and `; ` instead of parentheses.
-  - Bad: `3必須リスト(外部サービス/コンポーネント/新技術)`
-  - Good: `3必須リスト: 外部サービス; コンポーネント; 新技術`
+  - Bad: `three required lists(external services/components/new tech)`
+  - Good: `three required lists: external services; components; new tech`
   - Bad: `/review-cycle must pass (review.json status: Approved)`
   - Good: `/review-cycle must pass; review.json status: Approved`
 - Each key line must end with exactly one evidence pointer in ASCII parentheses, e.g. `(.agent/commands/estimation.md)`.
@@ -99,4 +99,4 @@ Formatting rules:
   - No `:line`, no line ranges, no extra words.
   - The path must exist in the repository.
   - Do not shorten to a basename (e.g. use `.agent/commands/init.md`, not `init.md`).
-- `skills_to_load`: list skill IDs when known (e.g. `sdd-rule-impl-gate`, `tdd-protocol`); otherwise write `なし`.
+- `skills_to_load`: list skill IDs when known (e.g. `sdd-rule-impl-gate`, `tdd-protocol`); otherwise write `none`.

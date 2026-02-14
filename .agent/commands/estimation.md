@@ -13,6 +13,28 @@ User-facing output and artifacts remain in Japanese.
 
 ## Flow
 
+### Phase 0: Worktree/branch precondition (required)
+
+Before writing an estimate, you MUST work on a per-Issue branch created via `/worktree`.
+
+Rationale:
+
+- Branch/worktree state is part of the deterministic SoT for in-progress work.
+- It prevents estimating against an ambiguous or wrong branch.
+
+Steps:
+
+1. List linked branches (SoT): `gh issue develop --list <issue-number>`
+2. If no linked branch exists, STOP and create one via:
+
+```
+/worktree new --issue <issue-number> --desc "<ascii short desc>"
+```
+
+Then re-run `/estimation` inside that worktree.
+
+3. If linked branches exist but you are not on the linked branch/worktree, STOP and switch into it.
+
 ### Phase 1: Read the Issue
 
 1. Read the specified Issue

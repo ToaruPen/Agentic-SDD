@@ -1,8 +1,8 @@
 # /collect
 
-Shogun Ops の checkin（`queue/checkins/**.yaml`）を取り込み、`state.yaml` と `dashboard.md` を更新します。
+Ingest Shogun Ops checkins (`queue/checkins/**.yaml`) and update `state.yaml` and `dashboard.md`.
 
-多重実行は単一ライターロックで防ぎます（`locks/collect.lock`）。
+Concurrent executions are prevented via a single-writer lock (`locks/collect.lock`).
 
 ## Usage
 
@@ -15,4 +15,3 @@ Shogun Ops の checkin（`queue/checkins/**.yaml`）を取り込み、`state.yam
 ```bash
 python3 scripts/shogun-ops.py collect
 ```
-

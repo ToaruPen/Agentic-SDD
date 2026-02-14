@@ -1,8 +1,8 @@
 # /status
 
-Shogun Ops のダッシュボード（`dashboard.md`）を表示します。
+Show the Shogun Ops dashboard (`dashboard.md`).
 
-初回実行時、`git rev-parse --git-common-dir` 配下に `agentic-sdd-ops/` を初期化します。
+On first run, initialize `agentic-sdd-ops/` under `git rev-parse --git-common-dir`.
 
 ## Usage
 
@@ -20,4 +20,3 @@ python3 scripts/shogun-ops.py status
 
 - `.agent/commands/review-cycle.md`
 - `scripts/worktree.sh`
-

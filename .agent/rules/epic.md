@@ -65,8 +65,8 @@ Exceed limits only when the PRD explicitly requires it.
 
 Examples:
 
-- PRD: "リアルタイム通知が必須" -> allow WebSocket/async
-- PRD: "認証は既存IdPを使用" -> allow external IdP
+- PRD (Japanese requirement text): "リアルタイム通知が必須" -> allow WebSocket/async
+- PRD (Japanese requirement text): "認証は既存IdPを使用" -> allow external IdP
 
 ---
 
@@ -92,7 +92,7 @@ Checklist:
 
 ## Required artifacts (3 lists)
 
-Every Epic must include these lists (write "なし" if not applicable):
+Every Epic must include these lists (write `なし` (Japanese for "none") if not applicable):
 
 - External services list
 - Components list
@@ -118,27 +118,27 @@ Every Epic must include these lists (write "なし" if not applicable):
 
 ## Q6 → Epic section mapping
 
-PRD Q6の回答に応じて、Epicに必須セクションが追加される。
+Based on PRD Q6 answers, additional Epic sections become required.
 
-<!-- grepキーワード: EPIC_Q6_MAPPING -->
+<!-- grep keyword: EPIC_Q6_MAPPING -->
 
-| PRD Q6項目 | 回答 | Epic必須セクション | ルールファイル |
+| PRD Q6 item | Answer | Required Epic section | Rule file |
 |-----------|------|-------------------|---------------|
-| Q6-5: 個人情報/機密データ | Yes | 5.2 セキュリティ設計 | `.agent/rules/security.md` |
-| Q6-6: 監査ログ要件 | Yes | 5.3 観測性設計 | `.agent/rules/observability.md` |
-| Q6-7: パフォーマンス要件 | Yes | 5.1 パフォーマンス設計 | `.agent/rules/performance.md` |
-| Q6-8: 可用性要件 | Yes | 5.4 可用性設計 | `.agent/rules/availability.md` |
+| `Q6-5: 個人情報/機密データ` | Yes | 5.2 セキュリティ設計 | `.agent/rules/security.md` |
+| `Q6-6: 監査ログ要件` | Yes | 5.3 観測性設計 | `.agent/rules/observability.md` |
+| `Q6-7: パフォーマンス要件` | Yes | 5.1 パフォーマンス設計 | `.agent/rules/performance.md` |
+| `Q6-8: 可用性要件` | Yes | 5.4 可用性設計 | `.agent/rules/availability.md` |
 
-適用ルール:
+Apply rules:
 
-- Q6が「Yes」の場合: 該当セクションを必須で記載
-- Q6が「No」の場合: 該当セクションに「N/A（理由）」と記載
-- Q6が「Unknown」の場合: Unknownを解消してからセクションを記載
+- If Q6 is `Yes`: fill the mapped section with specific details (required)
+- If Q6 is `No`: write `N/A（理由）` (Japanese; "N/A (reason)") in the mapped section
+- If Q6 is `Unknown`: resolve Unknown first, then fill the section
 
-DoD連動:
+DoD linkage:
 
-- Q6が「Yes」の場合、対応するDoD項目がOptional→Requiredに昇格
-- 詳細は `.agent/rules/dod.md` を参照
+- If Q6 is `Yes`, the corresponding DoD items are promoted from Optional to Required.
+- See `.agent/rules/dod.md` for details.
 
 ---
 

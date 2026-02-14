@@ -18,7 +18,7 @@ COMMANDS = [
     "/impl",
     "/tdd",
     "/review-cycle",
-    "/review",
+    "/final-review",
     "/sync-docs",
     "/create-pr",
     "/worktree",

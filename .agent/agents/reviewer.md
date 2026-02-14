@@ -55,7 +55,7 @@ Note: Review outputs are user-facing; write them in Japanese.
 
 ## Review taxonomy and outputs (SoT)
 
-- Follow `.agent/commands/review.md` for canonical P0-P3 and status rules.
+- Follow `.agent/commands/final-review.md` for canonical P0-P3 and status rules.
 - Always include evidence (`file:line`) for findings.
 - Always run `/sync-docs` during review (rules: `.agent/rules/docs-sync.md`).
 - For DoD expectations, follow `.agent/rules/dod.md`.
@@ -64,7 +64,7 @@ Note: Review outputs are user-facing; write them in Japanese.
 
 ## Related
 
-- `.agent/commands/review.md` - review command
+- `.agent/commands/final-review.md` - final review command
 - `.agent/rules/dod.md` - Definition of Done
 - `.agent/rules/docs-sync.md` - documentation sync rules
 - `skills/testing.md` - testing skill
