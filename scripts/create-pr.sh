@@ -330,14 +330,7 @@ if [[ -z "$TITLE" ]]; then
     eprint "Failed to read Issue via gh: #$ISSUE"
     exit 2
   fi
-  TITLE="$(python3 - <<'PY'
-import json
-import sys
-
-data = json.loads(sys.stdin.read() or '{}')
-print((data.get('title') or '').strip())
-PY
-<<<"$issue_json")"
+  TITLE="$(python3 -c 'import json,sys; data=json.loads(sys.argv[1] or "{}"); print((data.get("title") or "").strip())' "$issue_json")"
   if [[ -z "$TITLE" ]]; then
     TITLE="Issue #${ISSUE}"
   fi
@@ -366,18 +359,7 @@ git -C "$repo_root" push -u origin HEAD >&2
 # 2) If PR exists, show it and stop
 pr_list_json="$(gh pr list --head "$branch" --state all --json number,url,state 2>/dev/null || true)"
 if [[ -n "$pr_list_json" ]]; then
-  pr_url="$(python3 - <<'PY'
-import json
-import sys
-
-data = json.loads(sys.stdin.read() or '[]')
-if not isinstance(data, list):
-    data = []
-open_pr = next((x for x in data if isinstance(x, dict) and x.get('state') == 'OPEN'), None)
-pick = open_pr or (data[0] if data else None)
-print((pick or {}).get('url') or '')
-PY
-<<<"$pr_list_json")"
+  pr_url="$(python3 -c 'import json,sys; data=json.loads(sys.argv[1] or "[]"); data=data if isinstance(data,list) else []; open_pr=next((x for x in data if isinstance(x,dict) and x.get("state")=="OPEN"), None); pick=open_pr or (data[0] if data else None); print(((pick or {}).get("url") or ""))' "$pr_list_json")"
   if [[ -n "$pr_url" ]]; then
     printf '%s\n' "$pr_url"
     exit 0

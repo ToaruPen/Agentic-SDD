@@ -6,7 +6,6 @@ import os
 import sys
 from typing import Any, Dict, List, Optional
 
-
 STATUS_ALLOWED = {"Approved", "Approved with nits", "Blocked", "Question"}
 PRIORITY_ALLOWED = {"P0", "P1", "P2", "P3"}
 

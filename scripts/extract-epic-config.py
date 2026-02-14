@@ -68,7 +68,7 @@ def extract_tech_stack(text: str) -> Dict[str, Any]:
 
     tech_items = extract_key_value_block(section, "技術選定")
 
-    result = {
+    result: Dict[str, Any] = {
         "language": None,
         "framework": None,
         "database": None,
@@ -95,7 +95,7 @@ def extract_tech_stack(text: str) -> Dict[str, Any]:
 
 def extract_q6_requirements(text: str) -> Dict[str, Any]:
     """Q6要件（セクション5のプロダクション品質設計）を抽出"""
-    result = {
+    result: Dict[str, Any] = {
         "security": False,
         "performance": False,
         "observability": False,
@@ -153,8 +153,9 @@ def extract_q6_requirements(text: str) -> Dict[str, Any]:
 
 def extract_security_details(section: str) -> Dict[str, Any]:
     """セキュリティセクションの詳細を抽出"""
-    details = {
+    details: Dict[str, Any] = {
         "auth_method": None,
+        "authz_model": None,
         "auth_expiry": None,
         "password_hash": None,
         "pii_list": [],
@@ -209,7 +210,7 @@ def extract_security_details(section: str) -> Dict[str, Any]:
 
 def extract_performance_details(section: str) -> Dict[str, Any]:
     """パフォーマンスセクションの詳細を抽出"""
-    details = {"targets": [], "measurement": {}, "bottlenecks": []}
+    details: Dict[str, Any] = {"targets": [], "measurement": {}, "bottlenecks": []}
 
     # 対象操作
     target_section = re.search(r"対象操作:\n((?:- [^\n]+\n?)+)", section)
@@ -236,7 +237,7 @@ def extract_performance_details(section: str) -> Dict[str, Any]:
 
 def extract_observability_details(section: str) -> Dict[str, Any]:
     """観測性セクションの詳細を抽出"""
-    details = {"logging": {}, "metrics": [], "alerts": []}
+    details: Dict[str, Any] = {"logging": {}, "metrics": [], "alerts": []}
 
     # ログ設定
     output_match = re.search(r"出力先:\s*\[?([^\]\n]+)\]?", section)
@@ -256,7 +257,7 @@ def extract_observability_details(section: str) -> Dict[str, Any]:
 
 def extract_availability_details(section: str) -> Dict[str, Any]:
     """可用性セクションの詳細を抽出"""
-    details = {"slo": {}, "recovery": {}, "rollback": {}}
+    details: Dict[str, Any] = {"slo": {}, "recovery": {}, "rollback": {}}
 
     # SLO
     uptime_match = re.search(r"稼働率:\s*\[?([^\]\n]+)\]?", section)
@@ -298,9 +299,13 @@ def extract_api_design(text: str) -> List[Dict[str, str]]:
     return apis
 
 
-def extract_meta_info(text: str) -> Dict[str, str]:
+def extract_meta_info(text: str) -> Dict[str, Optional[str]]:
     """メタ情報を抽出"""
-    meta = {"prd_path": None, "created_date": None, "status": None}
+    meta: Dict[str, Optional[str]] = {
+        "prd_path": None,
+        "created_date": None,
+        "status": None,
+    }
 
     # 参照PRD
     prd_match = re.search(r"参照PRD:\s*`?([^`\n]+)`?", text)

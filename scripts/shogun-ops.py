@@ -18,6 +18,15 @@ def eprint(msg: str) -> None:
     print(msg, file=sys.stderr)
 
 
+def as_int(value: Any, *, context: str) -> int:
+    if value is None:
+        raise RuntimeError(f"missing integer value: {context}")
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        raise RuntimeError(f"invalid integer value: {context}={value!r}")
+
+
 def run_git(args: List[str]) -> str:
     try:
         out = subprocess.check_output(["git", *args], stderr=subprocess.STDOUT)
@@ -236,8 +245,8 @@ def render_dashboard_md(state: Dict[str, Any]) -> str:
         for item in blocked_list[:20]:
             if not isinstance(item, dict):
                 continue
-            issue = item.get("issue")
-            reason = item.get("reason") or ""
+            issue = str(item.get("issue") or "").strip()
+            reason = str(item.get("reason") or "")
             lines.append(f"- #{issue} {reason}".rstrip())
     else:
         lines.append("- (none)")
@@ -673,23 +682,24 @@ def emit_decisions_from_checkin(
         if k in existing_keys:
             continue
         is_research_request = blocker.strip().startswith("調査依頼:")
-        decision = {
+        request_obj: Dict[str, Any] = {
+            "worker": worker,
+            "reason": blocker,
+            "checkin_id": checkin.get("checkin_id") or "",
+        }
+        decision_obj: Dict[str, Any] = {
             "version": 1,
             "created_at": utc_now_iso(),
             "issue": issue,
             "type": "blocker",
             "dedupe_key": k,
-            "request": {
-                "worker": worker,
-                "reason": blocker,
-                "checkin_id": checkin.get("checkin_id") or "",
-            },
+            "request": request_obj,
         }
         if is_research_request:
-            decision["request"]["category"] = "research"
+            request_obj["category"] = "research"
             if issue_context is not None:
-                decision["issue_context"] = issue_context
-        write_decision(ops_root, decision)
+                decision_obj["issue_context"] = issue_context
+        write_decision(ops_root, decision_obj)
         existing_keys.add(k)
         created += 1
 
@@ -1008,10 +1018,7 @@ def cmd_collect(_args: argparse.Namespace) -> int:
         for path in checkin_paths:
             checkin = read_yaml_file(path)
             issue_raw = checkin.get("issue")
-            try:
-                issue = int(issue_raw)
-            except Exception:
-                raise RuntimeError(f"invalid checkin issue: {path}")
+            issue = as_int(issue_raw, context=f"checkin.issue path={path}")
 
             # Do not trust worker id inside YAML (may be tampered). Use the queue directory name as SoT.
             worker_from_dir = os.path.basename(os.path.dirname(path))
@@ -1639,7 +1646,7 @@ def cmd_supervise(args: argparse.Namespace) -> int:
     for item in candidates:
         if len(assignable) >= max_workers:
             break
-        n = int(item.get("number"))
+        n = as_int(item.get("number"), context="candidate.number")
         try:
             allowed_files = extract_allowed_files(toplevel, gh_repo, n)
         except RuntimeError as exc:
@@ -1690,7 +1697,10 @@ def cmd_supervise(args: argparse.Namespace) -> int:
     overlap_candidates = (
         assignable if effective_max_workers <= 0 else assignable[:effective_max_workers]
     )
-    issue_numbers = [int(item.get("number")) for (item, _files) in overlap_candidates]
+    issue_numbers = [
+        as_int(item.get("number"), context="overlap_candidates.number")
+        for (item, _files) in overlap_candidates
+    ]
     if len(issue_numbers) >= 2:
         rc, check_out = run_worktree_check(toplevel, gh_repo, issue_numbers)
         if rc == 3:
@@ -1727,7 +1737,7 @@ def cmd_supervise(args: argparse.Namespace) -> int:
         return 0
 
     for idx, (item, allowed_files) in enumerate(assignable[:effective_max_workers]):
-        n = int(item.get("number"))
+        n = as_int(item.get("number"), context="assignable.number")
         title = str(item.get("title") or "")
         worker = idle_workers[idx]
 
