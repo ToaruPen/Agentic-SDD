@@ -664,6 +664,98 @@ if ! grep -q "Missing '捨て条件:' in 候補-1" "$r11/stderr"; then
   exit 1
 fi
 
+r11b="$(new_repo case-research-field-label-not-anchored)"
+write_base_docs "$r11b"
+mkdir -p "$r11b/docs/research/prd/proj"
+cat > "$r11b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 候補（必須: >= 5）
+
+候補-1
+メモ: 概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r11b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r11b/stderr"
+code_research_anchored=$?
+set -e
+
+if [[ "$code_research_anchored" -eq 0 ]]; then
+  eprint "Expected lint-sot failure when a candidate label is present only in free text"
+  cat "$r11b/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "Missing '概要:' in 候補-1" "$r11b/stderr"; then
+  eprint "Expected anchored label missing message, got:"
+  cat "$r11b/stderr" >&2 || true
+  exit 1
+fi
+
 r14="$(new_repo case-research-missing-evidence-url)"
 write_base_docs "$r14"
 mkdir -p "$r14/docs/research/prd/proj"
@@ -1105,6 +1197,115 @@ EOF
 
 if ! (cd "$r13" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
   eprint "Expected lint-sot OK when novelty triggers are Yes and adjacent exploration is filled"
+  exit 1
+fi
+
+r13b="$(new_repo case-research-adjacent-outside-section)"
+write_base_docs "$r13b"
+mkdir -p "$r13b/docs/research/prd/proj"
+cat > "$r13b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: Yes
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索（新規性が高い場合は必須）
+
+(intentionally empty)
+
+## 5. 止め時（必須）
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+
+## Notes
+
+隣接領域-1
+概要: a
+根拠リンク:
+- https://example.com
+
+隣接領域-2
+概要: a
+根拠リンク:
+- https://example.com
+
+適用マッピング
+- PRD: a
+- Epic: a
+- Estimation: a
+EOF
+
+set +e
+(cd "$r13b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r13b/stderr"
+code_adjacent_scope=$?
+set -e
+
+if [[ "$code_adjacent_scope" -eq 0 ]]; then
+  eprint "Expected lint-sot failure when adjacent domains appear outside adjacent section"
+  cat "$r13b/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q ">= 2 adjacent domains" "$r13b/stderr"; then
+  eprint "Expected adjacent scope failure message, got:"
+  cat "$r13b/stderr" >&2 || true
   exit 1
 fi
 

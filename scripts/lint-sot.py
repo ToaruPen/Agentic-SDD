@@ -87,6 +87,9 @@ _RESEARCH_NOVELTY_YES_BULLET_RE = re.compile(
 _RESEARCH_NOVELTY_H2_RE = re.compile(
     r"^\s*##\s*(?:\d+\.\s*)?新規性判定（発火条件）\s*$", re.MULTILINE
 )
+_RESEARCH_ADJACENT_H2_RE = re.compile(
+    r"^\s*##\s*(?:\d+\.\s*)?隣接領域探索.*$", re.MULTILINE
+)
 _RESEARCH_ANY_H2_RE = re.compile(r"^\s*##\s+", re.MULTILINE)
 _RESEARCH_EVIDENCE_URL_RE = re.compile(r"^\s*-\s*https?://\S+", re.MULTILINE)
 _RESEARCH_NOVELTY_REQUIRED_SUBSTRINGS = [
@@ -228,7 +231,7 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
         block = m.group(0)
         cand = f"候補-{n_raw}"
         for label in required_field_labels:
-            if label not in block:
+            if re.search(rf"^\s*{re.escape(label)}", block, re.MULTILINE) is None:
                 errs.append(
                     LintError(
                         path=rel_path,
@@ -239,7 +242,9 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                     )
                 )
 
-        if "根拠リンク:" in block and not has_candidate_evidence_url(block):
+        if re.search(
+            r"^\s*根拠リンク:", block, re.MULTILINE
+        ) is not None and not has_candidate_evidence_url(block):
             errs.append(
                 LintError(
                     path=rel_path,
@@ -305,12 +310,14 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                     )
                 )
 
+    adjacent_section = extract_h2_section(text, _RESEARCH_ADJACENT_H2_RE)
     has_adjacent_na = (
-        re.search(r"^\s*隣接領域探索\s*:\s*N/A", text, re.MULTILINE) is not None
+        re.search(r"^\s*隣接領域探索\s*:\s*N/A", adjacent_section, re.MULTILINE)
+        is not None
     )
-    adjacent_required = False
-    if not is_template:
-        adjacent_required = is_research_adjacent_exploration_required(text)
+    adjacent_required = (
+        is_research_adjacent_exploration_required(text) if not is_template else False
+    )
 
     if adjacent_required:
         if has_adjacent_na:
@@ -324,7 +331,7 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                 )
             )
 
-        adjacent = _unique_ints(_RESEARCH_ADJACENT_RE.finditer(text))
+        adjacent = _unique_ints(_RESEARCH_ADJACENT_RE.finditer(adjacent_section))
         if len(adjacent) < 2:
             errs.append(
                 LintError(
@@ -336,7 +343,7 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                 )
             )
 
-        abstractions = _unique_ints(_RESEARCH_ABSTRACTION_RE.finditer(text))
+        abstractions = _unique_ints(_RESEARCH_ABSTRACTION_RE.finditer(adjacent_section))
         if len(abstractions) > 3:
             errs.append(
                 LintError(
@@ -348,7 +355,7 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                 )
             )
 
-        if "適用マッピング" not in text:
+        if "適用マッピング" not in adjacent_section:
             errs.append(
                 LintError(
                     path=rel_path,
