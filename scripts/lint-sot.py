@@ -191,7 +191,11 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
     if base == "README.md":
         return []
 
-    is_template = base == "_template.md"
+    is_template = rel_path in {
+        "docs/research/prd/_template.md",
+        "docs/research/epic/_template.md",
+        "docs/research/estimation/_template.md",
+    }
     is_date_artifact = re.match(r"^\d{4}-\d{2}-\d{2}\.md$", base) is not None
 
     if not is_template and not is_date_artifact:
@@ -199,8 +203,10 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
             LintError(
                 path=rel_path,
                 message=(
-                    "Research artifact filename must be '_template.md' or date-based 'YYYY-MM-DD.md'. "
-                    "If this is a helper doc, rename it to 'README.md'."
+                    "Research doc must be a date-based artifact ('YYYY-MM-DD.md'). "
+                    "Helper docs must be 'README.md'. Canonical templates are: "
+                    "docs/research/prd/_template.md, docs/research/epic/_template.md, "
+                    "docs/research/estimation/_template.md."
                 ),
             )
         ]

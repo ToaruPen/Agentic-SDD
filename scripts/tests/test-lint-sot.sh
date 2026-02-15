@@ -384,9 +384,35 @@ if [[ "$code_research_name" -eq 0 ]]; then
   exit 1
 fi
 
-if ! grep -q "date-based 'YYYY-MM-DD.md'" "$r9b/stderr"; then
+if ! grep -q "date-based artifact ('YYYY-MM-DD.md')" "$r9b/stderr"; then
   eprint "Expected filename constraint message, got:"
   cat "$r9b/stderr" >&2 || true
+  exit 1
+fi
+
+r9d="$(new_repo case-research-misplaced-template)"
+write_base_docs "$r9d"
+mkdir -p "$r9d/docs/research/prd/proj"
+cat > "$r9d/docs/research/prd/proj/_template.md" <<'EOF'
+# Research
+
+This file should be rejected; only canonical templates are allowed.
+EOF
+
+set +e
+(cd "$r9d" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r9d/stderr"
+code_research_misplaced_tpl=$?
+set -e
+
+if [[ "$code_research_misplaced_tpl" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for misplaced research template"
+  cat "$r9d/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "Canonical templates" "$r9d/stderr"; then
+  eprint "Expected canonical template guidance message, got:"
+  cat "$r9d/stderr" >&2 || true
   exit 1
 fi
 
