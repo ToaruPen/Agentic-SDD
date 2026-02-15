@@ -278,4 +278,834 @@ if [[ "$code_bt" -eq 0 ]]; then
   exit 1
 fi
 
+r9="$(new_repo case-research-valid)"
+write_base_docs "$r9"
+mkdir -p "$r9/docs/research"
+cat > "$r9/docs/research/README.md" <<'EOF'
+# Research Index
+
+This is a helper doc. It should not be forced to include 候補-1.. or 止め時.
+EOF
+mkdir -p "$r9/docs/research/prd/proj"
+cat > "$r9/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+if ! (cd "$r9" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+  eprint "Expected lint-sot OK for valid research doc"
+  exit 1
+fi
+
+r9b="$(new_repo case-research-non-date-filename)"
+write_base_docs "$r9b"
+mkdir -p "$r9b/docs/research/prd/proj"
+cat > "$r9b/docs/research/prd/proj/latest.md" <<'EOF'
+# Research
+
+This should be rejected because research artifacts must be date-based.
+EOF
+
+set +e
+(cd "$r9b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r9b/stderr"
+code_research_name=$?
+set -e
+
+if [[ "$code_research_name" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for non-date research artifact filename"
+  cat "$r9b/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "date-based 'YYYY-MM-DD.md'" "$r9b/stderr"; then
+  eprint "Expected filename constraint message, got:"
+  cat "$r9b/stderr" >&2 || true
+  exit 1
+fi
+
+r9c="$(new_repo case-research-missing-novelty-trigger)"
+write_base_docs "$r9c"
+mkdir -p "$r9c/docs/research/prd/proj"
+cat > "$r9c/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+
+## 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r9c" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r9c/stderr"
+code_research_trigger=$?
+set -e
+
+if [[ "$code_research_trigger" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for research doc missing a required novelty trigger"
+  cat "$r9c/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "missing a required trigger" "$r9c/stderr"; then
+  eprint "Expected missing novelty trigger message, got:"
+  cat "$r9c/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "Q6-5" "$r9c/stderr"; then
+  eprint "Expected missing novelty trigger to mention Q6-5, got:"
+  cat "$r9c/stderr" >&2 || true
+  exit 1
+fi
+
+r10="$(new_repo case-research-missing-stop)"
+write_base_docs "$r10"
+mkdir -p "$r10/docs/research/prd/proj"
+cat > "$r10/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 隣接領域探索
+
+隣接領域探索: N/A（理由）
+EOF
+
+set +e
+(cd "$r10" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r10/stderr"
+code_research=$?
+set -e
+
+if [[ "$code_research" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for research doc missing stop conditions"
+  cat "$r10/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "タイムボックス" "$r10/stderr"; then
+  eprint "Expected missing timebox message, got:"
+  cat "$r10/stderr" >&2 || true
+  exit 1
+fi
+
+r11="$(new_repo case-research-missing-field-per-candidate)"
+write_base_docs "$r11"
+mkdir -p "$r11/docs/research/prd/proj"
+cat > "$r11/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 止め時
+
+タイムボックス: 30min
+捨て条件: (this is not a candidate field)
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r11" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r11/stderr"
+code_research_field=$?
+set -e
+
+if [[ "$code_research_field" -eq 0 ]]; then
+  eprint "Expected lint-sot failure when a candidate is missing a required field"
+  cat "$r11/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "Missing '捨て条件:' in 候補-1" "$r11/stderr"; then
+  eprint "Expected per-candidate missing field message, got:"
+  cat "$r11/stderr" >&2 || true
+  exit 1
+fi
+
+r14="$(new_repo case-research-missing-evidence-url)"
+write_base_docs "$r14"
+mkdir -p "$r14/docs/research/prd/proj"
+cat > "$r14/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+根拠リンク:
+- not-a-url
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- not-a-url
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+根拠リンク:
+- not-a-url
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+根拠リンク:
+- not-a-url
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- not-a-url
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r14" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r14/stderr"
+code_evidence=$?
+set -e
+
+if [[ "$code_evidence" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for research doc missing evidence URL"
+  cat "$r14/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "Missing URL(s) under '根拠リンク:'" "$r14/stderr"; then
+  eprint "Expected missing evidence URL message, got:"
+  cat "$r14/stderr" >&2 || true
+  exit 1
+fi
+
+r16="$(new_repo case-research-evidence-url-with-description)"
+write_base_docs "$r16"
+mkdir -p "$r16/docs/research/prd/proj"
+cat > "$r16/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com (docs)
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com (docs)
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com (docs)
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com (docs)
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com (docs)
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+if ! (cd "$r16" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+  eprint "Expected lint-sot OK for evidence URL with description"
+  exit 1
+fi
+
+r15="$(new_repo case-research-novelty-scope)"
+write_base_docs "$r15"
+mkdir -p "$r15/docs/research/epic/proj"
+cat > "$r15/docs/research/epic/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+
+## Notes
+
+- Unknown: Yes
+EOF
+
+if ! (cd "$r15" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+  eprint "Expected lint-sot OK when novelty Yes bullets appear outside novelty section"
+  exit 1
+fi
+
+r12="$(new_repo case-research-novelty-yes-requires-adjacent)"
+write_base_docs "$r12"
+mkdir -p "$r12/docs/research/prd/proj"
+cat > "$r12/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: Yes
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索（新規性が高い場合は必須）
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時（必須）
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r12" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r12/stderr"
+code_novelty_yes=$?
+set -e
+
+if [[ "$code_novelty_yes" -eq 0 ]]; then
+  eprint "Expected lint-sot failure when novelty trigger is Yes but adjacent exploration is marked N/A"
+  cat "$r12/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "Adjacent exploration is required" "$r12/stderr"; then
+  eprint "Expected adjacent-required message, got:"
+  cat "$r12/stderr" >&2 || true
+  exit 1
+fi
+
+r13="$(new_repo case-research-novelty-yes-with-adjacent)"
+write_base_docs "$r13"
+mkdir -p "$r13/docs/research/prd/proj"
+cat > "$r13/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: Yes
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索（新規性が高い場合は必須）
+
+隣接領域-1
+概要: a
+根拠リンク:
+- https://example.com
+
+隣接領域-2
+概要: a
+根拠リンク:
+- https://example.com
+
+抽象化-1
+原理/パターン: x
+
+適用マッピング
+- PRD: a
+- Epic: a
+- Estimation: a
+
+## 5. 止め時（必須）
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+if ! (cd "$r13" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+  eprint "Expected lint-sot OK when novelty triggers are Yes and adjacent exploration is filled"
+  exit 1
+fi
+
 printf '%s\n' "OK"
