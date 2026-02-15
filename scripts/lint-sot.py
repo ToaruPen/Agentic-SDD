@@ -203,24 +203,27 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
             LintError(
                 path=rel_path,
                 message=(
-                    "Research doc must be a date-based artifact ('YYYY-MM-DD.md'). "
-                    "Helper docs must be 'README.md'. Canonical templates are: "
+                    "docs/research 配下の調査成果物は日付ファイル（YYYY-MM-DD.md）で保存してください。"
+                    "補助ドキュメントは README.md を使用してください。"
+                    "テンプレートは次の3つのみ許可します: "
                     "docs/research/prd/_template.md, docs/research/epic/_template.md, "
-                    "docs/research/estimation/_template.md."
+                    "docs/research/estimation/_template.md"
                 ),
             )
         ]
 
     errs: List[LintError] = []
 
-    candidate_blocks = list(_RESEARCH_CANDIDATE_BLOCK_RE.finditer(text))
+    contract_text = strip_inline_code_spans(strip_fenced_code_blocks(text))
+
+    candidate_blocks = list(_RESEARCH_CANDIDATE_BLOCK_RE.finditer(contract_text))
     if len(candidate_blocks) < 5:
         errs.append(
             LintError(
                 path=rel_path,
                 message=(
-                    "Research doc must include >= 5 candidates (候補-1..). "
-                    f"Found: {len(candidate_blocks)}"
+                    "調査ドキュメントには候補（候補-1..）を 5件以上含めてください。 "
+                    f"検出件数: {len(candidate_blocks)}"
                 ),
             )
         )
@@ -242,8 +245,8 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                     LintError(
                         path=rel_path,
                         message=(
-                            "Research doc candidate format is incomplete. "
-                            f"Missing '{label}' in {cand}"
+                            "調査ドキュメントの候補フォーマットが不完全です。 "
+                            f"{cand} に '{label}' がありません"
                         ),
                     )
                 )
@@ -255,33 +258,35 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                 LintError(
                     path=rel_path,
                     message=(
-                        "Research doc candidate evidence is incomplete. "
-                        f"Missing URL(s) under '根拠リンク:' in {cand}"
+                        "調査ドキュメントの根拠リンクが不完全です。 "
+                        f"{cand} の '根拠リンク:' 配下に URL（- https://...）がありません"
                     ),
                 )
             )
 
-    if "タイムボックス:" not in text:
+    if "タイムボックス:" not in contract_text:
         errs.append(
             LintError(
-                path=rel_path, message="Research doc must include 'タイムボックス:'"
+                path=rel_path,
+                message="調査ドキュメントには 'タイムボックス:' を含めてください",
             ),
         )
-    if "打ち切り条件:" not in text:
+    if "打ち切り条件:" not in contract_text:
         errs.append(
             LintError(
-                path=rel_path, message="Research doc must include '打ち切り条件:'"
+                path=rel_path,
+                message="調査ドキュメントには '打ち切り条件:' を含めてください",
             ),
         )
 
-    novelty = extract_h2_section(text, _RESEARCH_NOVELTY_H2_RE)
+    novelty = extract_h2_section(contract_text, _RESEARCH_NOVELTY_H2_RE)
     if not novelty.strip():
         if not is_template:
             errs.append(
                 LintError(
                     path=rel_path,
                     message=(
-                        "Research doc must include novelty section heading: '## 新規性判定（発火条件）' (number optional)"
+                        "調査ドキュメントには見出し '## 新規性判定（発火条件）'（番号は任意）を含めてください"
                     ),
                 )
             )
@@ -291,7 +296,7 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
             LintError(
                 path=rel_path,
                 message=(
-                    "Research doc novelty section must be filled with 'Yes' or 'No' (not 'Yes / No')."
+                    "新規性判定（発火条件）は 'Yes' または 'No' で埋めてください（'Yes / No' のまま残さないでください）"
                 ),
             )
         )
@@ -310,19 +315,21 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                     LintError(
                         path=rel_path,
                         message=(
-                            "Research doc novelty section is missing a required trigger line with 'Yes' or 'No': "
+                            "新規性判定（発火条件）に必須トリガがありません（'Yes' または 'No' で記載してください）: "
                             f"{s}"
                         ),
                     )
                 )
 
-    adjacent_section = extract_h2_section(text, _RESEARCH_ADJACENT_H2_RE)
+    adjacent_section = extract_h2_section(contract_text, _RESEARCH_ADJACENT_H2_RE)
     has_adjacent_na = (
         re.search(r"^\s*隣接領域探索\s*:\s*N/A", adjacent_section, re.MULTILINE)
         is not None
     )
     adjacent_required = (
-        is_research_adjacent_exploration_required(text) if not is_template else False
+        is_research_adjacent_exploration_required(contract_text)
+        if not is_template
+        else False
     )
 
     if adjacent_required:
@@ -331,8 +338,7 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                 LintError(
                     path=rel_path,
                     message=(
-                        "Adjacent exploration is required (novelty triggers: Yes) but document is marked N/A via "
-                        "'隣接領域探索: N/A（理由）'"
+                        "新規性判定の結果、隣接領域探索が必須ですが、'隣接領域探索: N/A（理由）' になっています"
                     ),
                 )
             )
@@ -343,8 +349,7 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                 LintError(
                     path=rel_path,
                     message=(
-                        "Research doc must include >= 2 adjacent domains (隣接領域-1..) "
-                        "or mark N/A via '隣接領域探索: N/A（理由）'"
+                        "調査ドキュメントには隣接領域（隣接領域-1..）を 2件以上含めるか、'隣接領域探索: N/A（理由）' と記載してください"
                     ),
                 )
             )
@@ -355,8 +360,8 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                 LintError(
                     path=rel_path,
                     message=(
-                        "Research doc must include <= 3 abstractions (抽象化-1..). "
-                        f"Found: {len(abstractions)}"
+                        "調査ドキュメントの抽象化（抽象化-1..）は 3件以下にしてください。 "
+                        f"検出件数: {len(abstractions)}"
                     ),
                 )
             )
@@ -365,7 +370,7 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
             errs.append(
                 LintError(
                     path=rel_path,
-                    message="Research doc must include '適用マッピング' or mark adjacent exploration as N/A",
+                    message="調査ドキュメントには '適用マッピング' を含めるか、隣接領域探索を N/A としてください",
                 )
             )
     else:
@@ -374,7 +379,7 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                 LintError(
                     path=rel_path,
                     message=(
-                        "Research doc must include '隣接領域探索: N/A（理由）' when novelty triggers are not Yes"
+                        "新規性が高くない場合は、'隣接領域探索: N/A（理由）' を隣接領域探索セクションに記載してください"
                     ),
                 )
             )

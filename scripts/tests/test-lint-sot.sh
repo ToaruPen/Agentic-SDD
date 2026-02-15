@@ -364,6 +364,100 @@ if ! (cd "$r9" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
   exit 1
 fi
 
+r9a="$(new_repo case-research-codeblock-bypass)"
+write_base_docs "$r9a"
+mkdir -p "$r9a/docs/research/prd/proj"
+cat > "$r9a/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+```md
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+```
+EOF
+
+set +e
+(cd "$r9a" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r9a/stderr"
+code_research_codeblock=$?
+set -e
+
+if [[ "$code_research_codeblock" -eq 0 ]]; then
+  eprint "Expected lint-sot failure when contract markers appear only in code blocks"
+  cat "$r9a/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "候補（候補-1..）を 5件以上" "$r9a/stderr"; then
+  eprint "Expected codeblock bypass to fail candidate count, got:"
+  cat "$r9a/stderr" >&2 || true
+  exit 1
+fi
+
 r9b="$(new_repo case-research-non-date-filename)"
 write_base_docs "$r9b"
 mkdir -p "$r9b/docs/research/prd/proj"
@@ -384,7 +478,7 @@ if [[ "$code_research_name" -eq 0 ]]; then
   exit 1
 fi
 
-if ! grep -q "date-based artifact ('YYYY-MM-DD.md')" "$r9b/stderr"; then
+if ! grep -q "日付ファイル（YYYY-MM-DD.md）" "$r9b/stderr"; then
   eprint "Expected filename constraint message, got:"
   cat "$r9b/stderr" >&2 || true
   exit 1
@@ -410,7 +504,7 @@ if [[ "$code_research_misplaced_tpl" -eq 0 ]]; then
   exit 1
 fi
 
-if ! grep -q "Canonical templates" "$r9d/stderr"; then
+if ! grep -q "テンプレートは次の3つのみ許可します" "$r9d/stderr"; then
   eprint "Expected canonical template guidance message, got:"
   cat "$r9d/stderr" >&2 || true
   exit 1
@@ -501,7 +595,7 @@ if [[ "$code_research_trigger" -eq 0 ]]; then
   exit 1
 fi
 
-if ! grep -q "missing a required trigger" "$r9c/stderr"; then
+if ! grep -q "必須トリガ" "$r9c/stderr"; then
   eprint "Expected missing novelty trigger message, got:"
   cat "$r9c/stderr" >&2 || true
   exit 1
@@ -684,7 +778,7 @@ if [[ "$code_research_field" -eq 0 ]]; then
   exit 1
 fi
 
-if ! grep -q "Missing '捨て条件:' in 候補-1" "$r11/stderr"; then
+if ! grep -q "候補-1 に '捨て条件:' がありません" "$r11/stderr"; then
   eprint "Expected per-candidate missing field message, got:"
   cat "$r11/stderr" >&2 || true
   exit 1
@@ -776,7 +870,7 @@ if [[ "$code_research_anchored" -eq 0 ]]; then
   exit 1
 fi
 
-if ! grep -q "Missing '概要:' in 候補-1" "$r11b/stderr"; then
+if ! grep -q "候補-1 に '概要:' がありません" "$r11b/stderr"; then
   eprint "Expected anchored label missing message, got:"
   cat "$r11b/stderr" >&2 || true
   exit 1
@@ -868,7 +962,7 @@ if [[ "$code_evidence" -eq 0 ]]; then
   exit 1
 fi
 
-if ! grep -q "Missing URL(s) under '根拠リンク:'" "$r14/stderr"; then
+if ! grep -q "'根拠リンク:' 配下に URL" "$r14/stderr"; then
   eprint "Expected missing evidence URL message, got:"
   cat "$r14/stderr" >&2 || true
   exit 1
@@ -1124,7 +1218,7 @@ if [[ "$code_novelty_yes" -eq 0 ]]; then
   exit 1
 fi
 
-if ! grep -q "Adjacent exploration is required" "$r12/stderr"; then
+if ! grep -q "隣接領域探索が必須" "$r12/stderr"; then
   eprint "Expected adjacent-required message, got:"
   cat "$r12/stderr" >&2 || true
   exit 1
@@ -1329,7 +1423,7 @@ if [[ "$code_adjacent_scope" -eq 0 ]]; then
   exit 1
 fi
 
-if ! grep -q ">= 2 adjacent domains" "$r13b/stderr"; then
+if ! grep -q "隣接領域（隣接領域-1..）を 2件以上" "$r13b/stderr"; then
   eprint "Expected adjacent scope failure message, got:"
   cat "$r13b/stderr" >&2 || true
   exit 1
