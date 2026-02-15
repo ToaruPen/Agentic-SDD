@@ -20,6 +20,10 @@ Fail-fast (no fallback in implementation)
   If a required input/assumption is missing or ambiguous, fail fast with an explicit error,
   and ask a human (with PRD/Epic/code references) instead of guessing.
 
+Questions (user interaction)
+- When you need to ask the user a question, you MUST use the QuestionTool (the `question` tool).
+  Do not ask questions in free-form text.
+
 Static analysis (required)
 - You must introduce and keep running static analysis: lint, format, and typecheck.
 - If the repository has no lint/format/typecheck yet, treat it as a blocker and introduce the minimal viable checks before proceeding.
