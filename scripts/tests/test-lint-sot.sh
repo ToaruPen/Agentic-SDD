@@ -644,6 +644,99 @@ if ! grep -q "候補（候補-1..）を 5件以上" "$r9ab/stderr"; then
   exit 1
 fi
 
+r9ac="$(new_repo case-research-dangling-html-comment-bypass)"
+write_base_docs "$r9ac"
+mkdir -p "$r9ac/docs/research/prd/proj"
+cat > "$r9ac/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+<!--
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r9ac" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r9ac/stderr"
+code_research_dangling_comment=$?
+set -e
+
+if [[ "$code_research_dangling_comment" -eq 0 ]]; then
+  eprint "Expected lint-sot failure when contract markers appear after a dangling HTML comment opener"
+  cat "$r9ac/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "候補（候補-1..）を 5件以上" "$r9ac/stderr"; then
+  eprint "Expected dangling HTML comment bypass to fail candidate count, got:"
+  cat "$r9ac/stderr" >&2 || true
+  exit 1
+fi
+
 r9b="$(new_repo case-research-non-date-filename)"
 write_base_docs "$r9b"
 mkdir -p "$r9b/docs/research/prd/proj"

@@ -496,7 +496,11 @@ _HTML_COMMENT_BLOCK_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 
 
 def strip_html_comment_blocks(text: str) -> str:
-    return _HTML_COMMENT_BLOCK_RE.sub("", text)
+    out = _HTML_COMMENT_BLOCK_RE.sub("", text)
+    i = out.find("<!--")
+    if i == -1:
+        return out
+    return out[:i]
 
 
 def parse_md_link_targets(text: str) -> List[str]:
