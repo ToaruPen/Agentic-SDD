@@ -41,6 +41,28 @@ Then re-run `/estimation` inside that worktree.
 2. Identify the related Epic and PRD
 3. Extract AC
 
+### Phase 1.5: Run `/research estimation` (conditional)
+
+If uncertainty/novelty is high, you must run `/research estimation` and stop until the research artifact exists.
+
+Run:
+
+```
+/research estimation [issue-number]
+```
+
+High-novelty triggers (any):
+
+- Fewer than 2 direct precedents exist
+- PRD/Epic/Issue still has `Unknown` / ambiguous assumptions
+- Any of PRD Q6-5..8 is `Yes` (PII / audit / performance / availability)
+
+Requirements:
+
+- Save the research output under `docs/research/estimation/issue-<n>/<YYYY-MM-DD>.md`
+- Use the template: `docs/research/estimation/_template.md`
+- The output must be in Japanese
+
 ### Phase 2: Create the Full estimate (required)
 
 Write all 11 sections. If a section is not applicable, write `N/A (reason)`.

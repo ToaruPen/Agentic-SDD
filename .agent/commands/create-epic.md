@@ -12,6 +12,26 @@ The generated Epic document remains in Japanese (use `docs/epics/_template.md`).
 
 ## Flow
 
+### Phase 0: Run `/research epic` (required)
+
+Before creating the Epic, you must run research and persist it as a reusable artifact.
+
+Run:
+
+```
+/research epic [prd-file]
+```
+
+Requirements:
+
+- Save the research output under `docs/research/epic/<prd-name>/<YYYY-MM-DD>.md`
+- Use the template: `docs/research/epic/_template.md`
+- The output must be in Japanese
+
+Stop condition:
+
+- If the research artifact does not exist yet, stop and create it first.
+
 ### Phase 1: Read the PRD
 
 1. Read the specified PRD file
@@ -105,7 +125,8 @@ Split Issues following `.agent/rules/issue.md`:
 
 1. Copy `docs/epics/_template.md`
 2. Fill in the collected information
-3. Save as `docs/epics/[prd-name]-epic.md`
+3. Add a reference to the research artifact in the Epic (recommended location: `## メタ情報`)
+4. Save as `docs/epics/[prd-name]-epic.md`
 
 ## Output
 
@@ -125,6 +146,7 @@ docs/epics/[prd-name]-epic.md
 - `.agent/rules/epic.md` - epic generation rules
 - `.agent/rules/issue.md` - issue granularity rules
 - `.agent/rules/docs-sync.md` - documentation sync rules
+- `.agent/commands/research.md` - research artifact generation
 
 ## Next command
 
