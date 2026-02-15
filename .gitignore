@@ -18,6 +18,10 @@
 .codex/
 .opencode/
 
+# Local-only PRD/Epic (sync-docs helper)
+docs/prd/*.local.md
+docs/epics/*.local-epic.md
+
 # Python
 __pycache__/
 *.pyc
