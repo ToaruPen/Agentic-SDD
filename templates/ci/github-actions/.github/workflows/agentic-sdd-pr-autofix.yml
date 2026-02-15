@@ -1,0 +1,45 @@
+name: agentic-sdd-pr-autofix
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: agentic-sdd-pr-autofix-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  autofix:
+    if: ${{ github.event.issue.pull_request != null }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: PR autofix (opt-in)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AGENTIC_SDD_AUTOFIX_CMD: ${{ vars.AGENTIC_SDD_AUTOFIX_CMD }}
+          AGENTIC_SDD_AUTOFIX_TEST_CMD: ${{ vars.AGENTIC_SDD_AUTOFIX_TEST_CMD }}
+          AGENTIC_SDD_AUTOFIX_BOT_LOGINS: ${{ vars.AGENTIC_SDD_AUTOFIX_BOT_LOGINS }}
+          AGENTIC_SDD_AUTOFIX_OPTIN_LABEL: ${{ vars.AGENTIC_SDD_AUTOFIX_OPTIN_LABEL }}
+          AGENTIC_SDD_AUTOFIX_MAX_ITERS: ${{ vars.AGENTIC_SDD_AUTOFIX_MAX_ITERS }}
+        run: |
+          set -euo pipefail
+          bash ./scripts/agentic-sdd-pr-autofix.sh
+
+      - name: Upload autofix patch (if any)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentic-sdd-autofix-${{ github.event.issue.number }}
+          path: .agentic-sdd-autofix.patch
+          if-no-files-found: ignore
