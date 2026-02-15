@@ -214,7 +214,9 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
 
     errs: List[LintError] = []
 
-    contract_text = strip_inline_code_spans(strip_fenced_code_blocks(text))
+    contract_text = strip_inline_code_spans(
+        strip_indented_code_blocks(strip_fenced_code_blocks(text))
+    )
 
     candidate_blocks = list(_RESEARCH_CANDIDATE_BLOCK_RE.finditer(contract_text))
     if len(candidate_blocks) < 5:
@@ -440,6 +442,24 @@ def strip_fenced_code_blocks(text: str) -> str:
         if not in_fence:
             out_lines.append(line)
 
+    return "".join(out_lines)
+
+
+_INDENTED_CODE_RE = re.compile(r"^(?:\t| {4,})")
+
+
+def strip_indented_code_blocks(text: str) -> str:
+    out_lines: List[str] = []
+    in_code = False
+    for line in text.splitlines(keepends=True):
+        if _INDENTED_CODE_RE.match(line):
+            in_code = True
+            continue
+
+        if in_code:
+            in_code = False
+
+        out_lines.append(line)
     return "".join(out_lines)
 
 
