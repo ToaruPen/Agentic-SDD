@@ -4,6 +4,21 @@ on:
   issue_comment:
     types: [created]
 
+# Opt-in PR autofix template (deny-by-default).
+#
+# Required repository variables (Settings -> Secrets and variables -> Actions -> Variables):
+# - AGENTIC_SDD_AUTOFIX_CMD: repo-local executable path only (example: ./scripts/autofix.sh)
+# - AGENTIC_SDD_AUTOFIX_BOT_LOGINS: comma-separated allowlist (example: coderabbitai,chatgpt-codex-connector[bot])
+#
+# Optional variables:
+# - AGENTIC_SDD_AUTOFIX_TEST_CMD: verification command (example: npm test)
+# - AGENTIC_SDD_AUTOFIX_OPTIN_LABEL: opt-in label name (default: autofix-enabled)
+# - AGENTIC_SDD_AUTOFIX_MAX_ITERS: stop after N prior runs (default: 3)
+#
+# Notes:
+# - The workflow posts marker comments; to avoid noisy self-triggered runs, marker comments are skipped at job-level.
+# - When push fails, a patch is uploaded as a workflow artifact: .agentic-sdd-autofix.patch
+
 permissions:
   contents: write
   issues: write
@@ -15,7 +30,7 @@ concurrency:
 
 jobs:
   autofix:
-    if: ${{ github.event.issue.pull_request != null }}
+    if: ${{ github.event.issue.pull_request != null && !contains(github.event.comment.body, '<!-- agentic-sdd:autofix v1 -->') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
