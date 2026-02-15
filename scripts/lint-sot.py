@@ -214,8 +214,10 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
 
     errs: List[LintError] = []
 
-    contract_text = strip_inline_code_spans(
-        strip_indented_code_blocks(strip_fenced_code_blocks(text))
+    contract_text = strip_html_comment_blocks(
+        strip_inline_code_spans(
+            strip_indented_code_blocks(strip_fenced_code_blocks(text))
+        )
     )
 
     candidate_blocks = list(_RESEARCH_CANDIDATE_BLOCK_RE.finditer(contract_text))
@@ -488,6 +490,13 @@ def strip_inline_code_spans(text: str) -> str:
         i = k + len(delim)
 
     return "".join(out)
+
+
+_HTML_COMMENT_BLOCK_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+def strip_html_comment_blocks(text: str) -> str:
+    return _HTML_COMMENT_BLOCK_RE.sub("", text)
 
 
 def parse_md_link_targets(text: str) -> List[str]:
