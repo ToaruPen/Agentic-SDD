@@ -22,12 +22,13 @@
 
 ### Gate 1: SoT の解決が決定的であること
 
-- Pass: PRD/Epic/差分の参照元が一意に解決できる
-- Fail: 参照が曖昧 / 参照が空 / プレースホルダが残っている
+- Pass: PRD/Epic/差分の参照元が一意に解決できる（`docs/research/**/<YYYY-MM-DD>.md` が存在する場合は契約（必須項目/止め時）も満たしている）
+- Fail: 参照が曖昧 / 参照が空 / プレースホルダが残っている / `docs/research/**/<YYYY-MM-DD>.md` の必須項目が欠落している
 
 根拠（実装/仕様）:
 - `/sync-docs`: `.agent/commands/sync-docs.md`
 - 入力解決: `scripts/resolve-sync-docs-inputs.py`
+- /research の契約lint: `scripts/lint-sot.py`, `.agent/commands/research.md`
 
 ### Gate 2: 変更の証跡（diff）が明確であること
 
