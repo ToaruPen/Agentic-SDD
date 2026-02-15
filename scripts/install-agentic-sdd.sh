@@ -357,6 +357,7 @@ if [ "$DRY_RUN" = false ] && [ "$FORCE" = false ]; then
     if [ "$CI" = "github-actions" ]; then
         scan_conflict_dir "$SOURCE_ROOT/templates/ci/github-actions/.github/workflows" "$TARGET_DIR/.github/workflows"
         scan_conflict_file "$SOURCE_ROOT/templates/ci/github-actions/scripts/agentic-sdd-ci.sh" "$TARGET_DIR/scripts/agentic-sdd-ci.sh"
+        scan_conflict_file "$SOURCE_ROOT/templates/ci/github-actions/scripts/agentic-sdd-pr-autofix.sh" "$TARGET_DIR/scripts/agentic-sdd-pr-autofix.sh"
     fi
 
     # AGENTS.md (do not overwrite; use append file when target already has AGENTS.md)
@@ -428,6 +429,7 @@ fi
 if [ "$CI" = "github-actions" ]; then
     copy_dir "$SOURCE_ROOT/templates/ci/github-actions/.github/workflows" "$TARGET_DIR/.github/workflows"
     copy_file "$SOURCE_ROOT/templates/ci/github-actions/scripts/agentic-sdd-ci.sh" "$TARGET_DIR/scripts/agentic-sdd-ci.sh"
+    copy_file "$SOURCE_ROOT/templates/ci/github-actions/scripts/agentic-sdd-pr-autofix.sh" "$TARGET_DIR/scripts/agentic-sdd-pr-autofix.sh"
 fi
 
 # AGENTS.md
