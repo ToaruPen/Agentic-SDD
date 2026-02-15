@@ -240,13 +240,19 @@ main() {
   fi
   validate_path_only_cmd "$autofix_cmd"
 
-  local pinned_autofix input_file
-  pinned_autofix="$(mktemp)"
-  cp -p "$autofix_cmd" "$pinned_autofix"
-  chmod +x "$pinned_autofix"
+  # Fail-closed: record the base version of the autofix script, then require the
+  # checked-out PR branch to contain the exact same script contents.
+  # This avoids executing a PR-modified script while still preserving $0/BASH_SOURCE
+  # semantics for scripts that locate resources relative to their own path.
+  local base_autofix_hash
+  base_autofix_hash="$(git hash-object -- "$autofix_cmd" 2>/dev/null || true)"
+  if [[ -z "$base_autofix_hash" ]]; then
+    die "Failed to hash AGENTIC_SDD_AUTOFIX_CMD on base checkout: $autofix_cmd"
+  fi
+
+  local input_file
   input_file=""
   cleanup() {
-    [[ -n "$pinned_autofix" ]] && rm -f "$pinned_autofix"
     [[ -n "$input_file" ]] && rm -f "$input_file"
   }
   trap cleanup EXIT
@@ -255,6 +261,18 @@ main() {
   git check-ref-format --branch "$head_ref" >/dev/null 2>&1 || die "Invalid PR head ref: $head_ref"
   git fetch --no-tags -- origin "$head_ref"
   git checkout -B "$head_ref" "FETCH_HEAD"
+
+  local pr_autofix_hash
+  pr_autofix_hash="$(git hash-object -- "$autofix_cmd" 2>/dev/null || true)"
+  if [[ -z "$pr_autofix_hash" ]]; then
+    die "AGENTIC_SDD_AUTOFIX_CMD not found on PR checkout: $autofix_cmd"
+  fi
+  if [[ "$pr_autofix_hash" != "$base_autofix_hash" ]]; then
+    die "AGENTIC_SDD_AUTOFIX_CMD differs from base checkout; refusing to run: $autofix_cmd"
+  fi
+  if [[ ! -x "$autofix_cmd" ]]; then
+    die "AGENTIC_SDD_AUTOFIX_CMD is not executable on PR checkout: $autofix_cmd"
+  fi
 
   input_file="$(mktemp)"
   printf '%s' "$comment_body" >"$input_file"
@@ -265,7 +283,7 @@ main() {
   export AGENTIC_SDD_AUTOFIX_COMMENT_URL="$comment_url"
 
   eprint "[AUTOFIX] Running autofix command: $autofix_cmd"
-  "$pinned_autofix"
+  "$autofix_cmd"
 
   local test_cmd
   test_cmd="${AGENTIC_SDD_AUTOFIX_TEST_CMD:-}"
