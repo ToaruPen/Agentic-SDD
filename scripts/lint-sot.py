@@ -75,12 +75,320 @@ _STATUS_APPROVED_RE = re.compile(r"^\s*-\s*ステータス\s*:\s*Approved\s*$", 
 _ALLOW_HTML_COMMENTS_RE = re.compile(r"<!--\s*lint-sot:\s*allow-html-comments\s*-->")
 
 
+_RESEARCH_CANDIDATE_BLOCK_RE = re.compile(
+    r"^\s*候補-(\d+)\s*$.*?(?=^\s*候補-\d+\s*$|^\s*#{1,6}\s|^\s*---\s*$|\Z)",
+    re.MULTILINE | re.DOTALL,
+)
+_RESEARCH_ADJACENT_RE = re.compile(r"^\s*隣接領域-(\d+)\s*$", re.MULTILINE)
+_RESEARCH_ABSTRACTION_RE = re.compile(r"^\s*抽象化-(\d+)\s*$", re.MULTILINE)
+_RESEARCH_NOVELTY_YES_BULLET_RE = re.compile(
+    r"^\s*-\s*(.+?)\s*:\s*Yes\s*$", re.MULTILINE
+)
+_RESEARCH_NOVELTY_H2_RE = re.compile(
+    r"^\s*##\s*(?:\d+\.\s*)?新規性判定（発火条件）\s*$", re.MULTILINE
+)
+_RESEARCH_ADJACENT_H2_RE = re.compile(
+    r"^\s*##\s*(?:\d+\.\s*)?隣接領域探索.*$", re.MULTILINE
+)
+_RESEARCH_ANY_H2_RE = re.compile(r"^\s*##\s+", re.MULTILINE)
+_RESEARCH_EVIDENCE_URL_RE = re.compile(r"^\s*-\s*https?://\S+", re.MULTILINE)
+_RESEARCH_NOVELTY_REQUIRED_SUBSTRINGS = [
+    "直接の先行事例が2件未満",
+    "Unknown",
+    "Q6-5",
+    "PII",
+    "監査",
+    "性能",
+    "可用性",
+]
+
+_RESEARCH_NOVELTY_REQUIRED_TRIGGER_SUBSTRINGS = [
+    "直接の先行事例が2件未満",
+    "Unknown",
+    "Q6-5",
+]
+
+
+def _unique_ints(ms: Iterable[re.Match[str]]) -> List[int]:
+    out: List[int] = []
+    seen = set()
+    for m in ms:
+        try:
+            v = int(m.group(1))
+        except Exception:
+            continue
+        if v in seen:
+            continue
+        seen.add(v)
+        out.append(v)
+    out.sort()
+    return out
+
+
+def extract_h2_section(text: str, heading_re: re.Pattern[str]) -> str:
+    m = heading_re.search(text)
+    if not m:
+        return ""
+    start = m.end()
+    m_next = _RESEARCH_ANY_H2_RE.search(text, start)
+    end = m_next.start() if m_next else len(text)
+    return text[start:end]
+
+
+def is_research_adjacent_exploration_required(text: str) -> bool:
+    novelty = extract_h2_section(text, _RESEARCH_NOVELTY_H2_RE)
+    for m in _RESEARCH_NOVELTY_YES_BULLET_RE.finditer(novelty):
+        item = m.group(1)
+        if any(s in item for s in _RESEARCH_NOVELTY_REQUIRED_SUBSTRINGS):
+            return True
+    return False
+
+
+def has_candidate_evidence_url(block: str) -> bool:
+    in_evidence = False
+    for line in block.splitlines():
+        s = line.strip()
+        if not in_evidence:
+            if s.startswith("根拠リンク:"):
+                in_evidence = True
+            continue
+
+        if any(
+            s.startswith(x)
+            for x in (
+                "概要:",
+                "適用可否:",
+                "根拠リンク:",
+                "捨て条件:",
+                "リスク/検証:",
+            )
+        ):
+            if not s.startswith("根拠リンク:"):
+                break
+
+        if _RESEARCH_EVIDENCE_URL_RE.search(line):
+            return True
+    return False
+
+
 def is_approved_prd_or_epic(rel_path: str, text: str) -> bool:
     if rel_path.startswith("docs/prd/") or rel_path.startswith("docs/epics/"):
         if os.path.basename(rel_path) == "_template.md":
             return False
         return _STATUS_APPROVED_RE.search(text) is not None
     return False
+
+
+def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
+    if not rel_path.startswith("docs/research/"):
+        return []
+
+    if not rel_path.endswith(".md"):
+        return []
+
+    base = os.path.basename(rel_path)
+
+    if base == "README.md":
+        return []
+
+    is_template = rel_path in {
+        "docs/research/prd/_template.md",
+        "docs/research/epic/_template.md",
+        "docs/research/estimation/_template.md",
+    }
+    is_date_artifact = re.match(r"^\d{4}-\d{2}-\d{2}\.md$", base) is not None
+
+    if not is_template and not is_date_artifact:
+        return [
+            LintError(
+                path=rel_path,
+                message=(
+                    "docs/research 配下の調査成果物は日付ファイル（YYYY-MM-DD.md）で保存してください。"
+                    "補助ドキュメントは README.md を使用してください。"
+                    "テンプレートは次の3つのみ許可します: "
+                    "docs/research/prd/_template.md, docs/research/epic/_template.md, "
+                    "docs/research/estimation/_template.md"
+                ),
+            )
+        ]
+
+    errs: List[LintError] = []
+
+    contract_text = strip_html_comment_blocks(
+        strip_inline_code_spans(
+            strip_indented_code_blocks(strip_fenced_code_blocks(text))
+        )
+    )
+
+    candidate_blocks = list(_RESEARCH_CANDIDATE_BLOCK_RE.finditer(contract_text))
+    if len(candidate_blocks) < 5:
+        errs.append(
+            LintError(
+                path=rel_path,
+                message=(
+                    "調査ドキュメントには候補（候補-1..）を 5件以上含めてください。 "
+                    f"検出件数: {len(candidate_blocks)}"
+                ),
+            )
+        )
+
+    required_field_labels = [
+        "概要:",
+        "適用可否:",
+        "根拠リンク:",
+        "捨て条件:",
+        "リスク/検証:",
+    ]
+    for m in candidate_blocks:
+        n_raw = m.group(1)
+        block = m.group(0)
+        cand = f"候補-{n_raw}"
+        for label in required_field_labels:
+            if re.search(rf"^\s*{re.escape(label)}", block, re.MULTILINE) is None:
+                errs.append(
+                    LintError(
+                        path=rel_path,
+                        message=(
+                            "調査ドキュメントの候補フォーマットが不完全です。 "
+                            f"{cand} に '{label}' がありません"
+                        ),
+                    )
+                )
+
+        if re.search(
+            r"^\s*根拠リンク:", block, re.MULTILINE
+        ) is not None and not has_candidate_evidence_url(block):
+            errs.append(
+                LintError(
+                    path=rel_path,
+                    message=(
+                        "調査ドキュメントの根拠リンクが不完全です。 "
+                        f"{cand} の '根拠リンク:' 配下に URL（- https://...）がありません"
+                    ),
+                )
+            )
+
+    if "タイムボックス:" not in contract_text:
+        errs.append(
+            LintError(
+                path=rel_path,
+                message="調査ドキュメントには 'タイムボックス:' を含めてください",
+            ),
+        )
+    if "打ち切り条件:" not in contract_text:
+        errs.append(
+            LintError(
+                path=rel_path,
+                message="調査ドキュメントには '打ち切り条件:' を含めてください",
+            ),
+        )
+
+    novelty = extract_h2_section(contract_text, _RESEARCH_NOVELTY_H2_RE)
+    if not novelty.strip():
+        if not is_template:
+            errs.append(
+                LintError(
+                    path=rel_path,
+                    message=(
+                        "調査ドキュメントには見出し '## 新規性判定（発火条件）'（番号は任意）を含めてください"
+                    ),
+                )
+            )
+
+    if (not is_template) and re.search(r":\s*Yes\s*/\s*No\s*$", novelty, re.MULTILINE):
+        errs.append(
+            LintError(
+                path=rel_path,
+                message=(
+                    "新規性判定（発火条件）は 'Yes' または 'No' で埋めてください（'Yes / No' のまま残さないでください）"
+                ),
+            )
+        )
+
+    if (not is_template) and novelty.strip():
+        for s in _RESEARCH_NOVELTY_REQUIRED_TRIGGER_SUBSTRINGS:
+            if (
+                re.search(
+                    rf"^\s*-\s*.*{re.escape(s)}.*:\s*(Yes|No)\s*$",
+                    novelty,
+                    re.MULTILINE,
+                )
+                is None
+            ):
+                errs.append(
+                    LintError(
+                        path=rel_path,
+                        message=(
+                            "新規性判定（発火条件）に必須トリガがありません（'Yes' または 'No' で記載してください）: "
+                            f"{s}"
+                        ),
+                    )
+                )
+
+    adjacent_section = extract_h2_section(contract_text, _RESEARCH_ADJACENT_H2_RE)
+    has_adjacent_na = (
+        re.search(r"^\s*隣接領域探索\s*:\s*N/A", adjacent_section, re.MULTILINE)
+        is not None
+    )
+    adjacent_required = (
+        is_research_adjacent_exploration_required(contract_text)
+        if not is_template
+        else False
+    )
+
+    if adjacent_required:
+        if has_adjacent_na:
+            errs.append(
+                LintError(
+                    path=rel_path,
+                    message=(
+                        "新規性判定の結果、隣接領域探索が必須ですが、'隣接領域探索: N/A（理由）' になっています"
+                    ),
+                )
+            )
+
+        adjacent = _unique_ints(_RESEARCH_ADJACENT_RE.finditer(adjacent_section))
+        if len(adjacent) < 2:
+            errs.append(
+                LintError(
+                    path=rel_path,
+                    message=(
+                        "調査ドキュメントには隣接領域（隣接領域-1..）を 2件以上含めるか、'隣接領域探索: N/A（理由）' と記載してください"
+                    ),
+                )
+            )
+
+        abstractions = _unique_ints(_RESEARCH_ABSTRACTION_RE.finditer(adjacent_section))
+        if len(abstractions) > 3:
+            errs.append(
+                LintError(
+                    path=rel_path,
+                    message=(
+                        "調査ドキュメントの抽象化（抽象化-1..）は 3件以下にしてください。 "
+                        f"検出件数: {len(abstractions)}"
+                    ),
+                )
+            )
+
+        if "適用マッピング" not in adjacent_section:
+            errs.append(
+                LintError(
+                    path=rel_path,
+                    message="調査ドキュメントには '適用マッピング' を含めるか、隣接領域探索を N/A としてください",
+                )
+            )
+    else:
+        if not has_adjacent_na:
+            errs.append(
+                LintError(
+                    path=rel_path,
+                    message=(
+                        "新規性が高くない場合は、'隣接領域探索: N/A（理由）' を隣接領域探索セクションに記載してください"
+                    ),
+                )
+            )
+
+    return errs
 
 
 def lint_placeholders(_repo: str, rel_path: str, text: str) -> List[LintError]:
@@ -139,6 +447,24 @@ def strip_fenced_code_blocks(text: str) -> str:
     return "".join(out_lines)
 
 
+_INDENTED_CODE_RE = re.compile(r"^(?:\t| {4,})")
+
+
+def strip_indented_code_blocks(text: str) -> str:
+    out_lines: List[str] = []
+    in_code = False
+    for line in text.splitlines(keepends=True):
+        if _INDENTED_CODE_RE.match(line):
+            in_code = True
+            continue
+
+        if in_code:
+            in_code = False
+
+        out_lines.append(line)
+    return "".join(out_lines)
+
+
 def strip_inline_code_spans(text: str) -> str:
     out: List[str] = []
     i = 0
@@ -164,6 +490,17 @@ def strip_inline_code_spans(text: str) -> str:
         i = k + len(delim)
 
     return "".join(out)
+
+
+_HTML_COMMENT_BLOCK_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
+def strip_html_comment_blocks(text: str) -> str:
+    out = _HTML_COMMENT_BLOCK_RE.sub("", text)
+    i = out.find("<!--")
+    if i == -1:
+        return out
+    return out[:i]
 
 
 def parse_md_link_targets(text: str) -> List[str]:
@@ -281,6 +618,7 @@ def lint_paths(repo: str, roots: List[str]) -> List[LintError]:
             rel_path = os.path.relpath(path_abs, repo).replace(os.sep, "/")
             text = read_text(path_abs)
             errs.extend(lint_placeholders(repo, rel_path, text))
+            errs.extend(lint_research_contract(rel_path, text))
             errs.extend(lint_relative_links(repo, rel_path, text))
     return errs
 

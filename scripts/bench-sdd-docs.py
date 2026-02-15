@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 COMMANDS = [
     "/sdd-init",
+    "/research",
     "/create-prd",
     "/create-epic",
     "/create-issues",

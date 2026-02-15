@@ -12,6 +12,26 @@ User-facing interactions and the resulting PRD must be in Japanese.
 
 ## Flow
 
+### Phase 0: Run `/research prd` (required)
+
+Before asking the 7 PRD questions, you must run research and persist it as a reusable artifact.
+
+Run:
+
+```
+/research prd [project-name]
+```
+
+Requirements:
+
+- Save the research output under `docs/research/prd/<project>/<YYYY-MM-DD>.md`
+- Use the template: `docs/research/prd/_template.md`
+- The output must be in Japanese
+
+Stop condition:
+
+- If the research artifact does not exist yet, stop and create it first.
+
 ### Phase 1: Ask 7 questions (in Japanese)
 
 Ask the user the following questions in order. Provide a good/bad example for each question.
@@ -66,7 +86,8 @@ Unknown policy:
 
 1. Copy `docs/prd/_template.md`
 2. Fill in the collected answers
-3. Save as `docs/prd/[project-name].md`
+3. Add a reference to the research artifact in the PRD (recommended location: `## メタ情報`)
+4. Save as `docs/prd/[project-name].md`
 
 ### Phase 4: Banned vague words check
 
@@ -116,6 +137,7 @@ docs/prd/[project-name].md
 
 - `.agent/rules/docs-sync.md` - documentation sync rules
 - `.agent/rules/dod.md` - Definition of Done
+- `.agent/commands/research.md` - research artifact generation
 
 ## Next command
 

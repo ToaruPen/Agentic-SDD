@@ -20,6 +20,10 @@
 
 - PRDテンプレ: [`docs/prd/_template.md`](../prd/_template.md)
 - Epicテンプレ: [`docs/epics/_template.md`](../epics/_template.md)
+- /research テンプレ:
+  - PRD調査: [`docs/research/prd/_template.md`](../research/prd/_template.md)
+  - Epic調査: [`docs/research/epic/_template.md`](../research/epic/_template.md)
+  - 見積もり前調査: [`docs/research/estimation/_template.md`](../research/estimation/_template.md)
 
 ### 評価（quality gates）
 
