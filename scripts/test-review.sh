@@ -102,7 +102,7 @@ base_ref="${TEST_REVIEW_BASE_REF:-origin/main}"
 collect_diff_files() {
   case "$diff_mode" in
     worktree)
-      git diff --name-only
+      git diff --name-only HEAD
       ;;
     staged)
       git diff --staged --name-only

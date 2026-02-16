@@ -75,6 +75,22 @@ if [[ "$status_no_tests" != "Blocked" ]]; then
   exit 1
 fi
 
+git -C "$tmpdir" add hello.sh
+set +e
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=worktree "$script_src" issue-1 run-no-tests-staged-worktree) >/dev/null 2>"$tmpdir/stderr-no-tests-staged-worktree"
+code_no_tests_staged_worktree=$?
+set -e
+if [[ "$code_no_tests_staged_worktree" -eq 0 ]]; then
+  eprint "Expected staged no-test-change case to block in worktree mode"
+  exit 1
+fi
+no_tests_staged_worktree_json="$tmpdir/.agentic-sdd/test-reviews/issue-1/run-no-tests-staged-worktree/test-review.json"
+status_no_tests_staged_worktree="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1],encoding="utf-8")).get("status",""))' "$no_tests_staged_worktree_json")"
+if [[ "$status_no_tests_staged_worktree" != "Blocked" ]]; then
+  eprint "Expected Blocked status for staged no test changes in worktree mode, got: $status_no_tests_staged_worktree"
+  exit 1
+fi
+
 mkdir -p "$tmpdir/scripts/tests"
 cat > "$tmpdir/scripts/tests/test-sample.sh" <<'EOF'
 #!/usr/bin/env bash
