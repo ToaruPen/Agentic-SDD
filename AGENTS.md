@@ -19,6 +19,13 @@ Fail-fast (no fallback in implementation)
 - During implementation, do not add "fallback" behavior that silently changes outcomes.
   If a required input/assumption is missing or ambiguous, fail fast with an explicit error,
   and ask a human (with PRD/Epic/code references) instead of guessing.
+- Backward-compat shims or fallback paths are allowed only when they are behavior-preserving,
+  do not hide errors, and add no cyclomatic complexity.
+
+Agent Guidelines (simplicity-first)
+- Always prefer simplicity over pathological correctness.
+- YAGNI, KISS, DRY.
+- Prefer explicit failure over compatibility shims when requirements or inputs are missing.
 
 Static analysis (required)
 - You must introduce and keep running static analysis: lint, format, and typecheck.
