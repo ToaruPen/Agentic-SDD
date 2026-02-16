@@ -160,7 +160,7 @@ fi
 if [[ ${1:-} == "issue" && ${2:-} == "develop" && ${3:-} == "--list" ]]; then
   issue="${4:-}"
   if [[ "$issue" == "1" ]]; then
-    printf '%s\n' "feature/issue-1-test"
+    printf '%b\n' "feature/issue-1-test\thttps://example.invalid/tree/feature/issue-1-test"
     exit 0
   fi
   exit 0
