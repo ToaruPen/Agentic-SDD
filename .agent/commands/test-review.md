@@ -26,7 +26,7 @@
 
 ## Optional environment
 
-- `TEST_REVIEW_DIFF_MODE` = `worktree|staged|range`（default: `worktree`）
+- `TEST_REVIEW_DIFF_MODE` = `auto|worktree|staged|range`（default: `auto`）
 - `TEST_REVIEW_BASE_REF`（`range` 用。default: `origin/main`）
 - `OUTPUT_ROOT`（default: `<repo>/.agentic-sdd/test-reviews`）
 
