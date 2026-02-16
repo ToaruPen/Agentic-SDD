@@ -81,6 +81,10 @@ fi
 if [[ -z "$run_id" ]]; then
   run_id="$(date +"%Y%m%d_%H%M%S")"
 fi
+if [[ ! "$run_id" =~ ^[A-Za-z0-9._-]+$ || "$run_id" == "." || "$run_id" == ".." ]]; then
+  eprint "Invalid run-id: $run_id"
+  exit 2
+fi
 
 run_dir="${scope_root}/${run_id}"
 out_json="${run_dir}/test-review.json"
@@ -104,13 +108,12 @@ collect_diff_files() {
   case "$configured_diff_mode" in
     auto)
       local worktree_files staged_files
-      worktree_files="$(git diff --name-status HEAD)"
+      worktree_files="$(git diff --name-status)"
       staged_files="$(git diff --staged --name-status)"
 
       if [[ -n "$worktree_files" && -n "$staged_files" ]]; then
-        diff_mode="worktree"
-        printf '%s\n' "$worktree_files"
-        printf '%s\n' "$staged_files"
+        eprint "TEST_REVIEW_DIFF_MODE=auto detected both staged and unstaged diffs. Choose TEST_REVIEW_DIFF_MODE=staged or worktree explicitly."
+        return 2
       elif [[ -n "$worktree_files" ]]; then
         diff_mode="worktree"
         printf '%s\n' "$worktree_files"

@@ -47,6 +47,20 @@ if ! grep -q "TEST_REVIEW_PREFLIGHT_COMMAND is required" "$tmpdir/stderr-missing
   exit 1
 fi
 
+set +e
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' "$script_src" issue-1 '../run-escape') >/dev/null 2>"$tmpdir/stderr-invalid-run-id"
+code_invalid_run_id=$?
+set -e
+if [[ "$code_invalid_run_id" -eq 0 ]]; then
+  eprint "Expected invalid run-id to fail"
+  exit 1
+fi
+if ! grep -q "Invalid run-id" "$tmpdir/stderr-invalid-run-id"; then
+  eprint "Expected invalid run-id error message"
+  cat "$tmpdir/stderr-invalid-run-id" >&2
+  exit 1
+fi
+
 echo "code-change" >> "$tmpdir/hello.sh"
 set +e
 (cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 7"' TEST_REVIEW_DIFF_MODE=worktree "$script_src" issue-1 run-preflight-fail) >/dev/null 2>"$tmpdir/stderr-prefail"
@@ -97,6 +111,23 @@ if [[ "$status_no_tests_auto" != "Blocked" ]]; then
   eprint "Expected Blocked status for auto no-test changes, got: $status_no_tests_auto"
   exit 1
 fi
+
+echo "extra-unstaged" >> "$tmpdir/hello.sh"
+set +e
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' "$script_src" issue-1 run-auto-mixed-diff) >/dev/null 2>"$tmpdir/stderr-auto-mixed"
+code_auto_mixed=$?
+set -e
+if [[ "$code_auto_mixed" -eq 0 ]]; then
+  eprint "Expected auto mode to fail when staged and unstaged diffs coexist"
+  exit 1
+fi
+if ! grep -q "TEST_REVIEW_DIFF_MODE=auto detected both staged and unstaged diffs" "$tmpdir/stderr-auto-mixed"; then
+  eprint "Expected auto mixed diff error message"
+  cat "$tmpdir/stderr-auto-mixed" >&2
+  exit 1
+fi
+
+git -C "$tmpdir" add hello.sh
 
 git -C "$tmpdir" add hello.sh
 set +e
