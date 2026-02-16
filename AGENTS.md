@@ -27,6 +27,10 @@ Agent Guidelines (simplicity-first)
 - YAGNI, KISS, DRY.
 - Prefer explicit failure over compatibility shims when requirements or inputs are missing.
 
+Questions (user interaction)
+- When you need to ask the user a question, you MUST use the QuestionTool (the `question` tool).
+  Do not ask questions in free-form text.
+
 Static analysis (required)
 - You must introduce and keep running static analysis: lint, format, and typecheck.
 - If the repository has no lint/format/typecheck yet, treat it as a blocker and introduce the minimal viable checks before proceeding.

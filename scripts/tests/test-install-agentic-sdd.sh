@@ -194,8 +194,18 @@ if [[ ! -f "$proj4/.github/workflows/agentic-sdd-ci.yml" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$proj4/.github/workflows/agentic-sdd-pr-autofix.yml" ]]; then
+  eprint "Expected PR autofix workflow to be installed: .github/workflows/agentic-sdd-pr-autofix.yml"
+  exit 1
+fi
+
 if [[ ! -f "$proj4/scripts/agentic-sdd-ci.sh" ]]; then
   eprint "Expected CI script to be installed: scripts/agentic-sdd-ci.sh"
+  exit 1
+fi
+
+if [[ ! -f "$proj4/scripts/agentic-sdd-pr-autofix.sh" ]]; then
+  eprint "Expected PR autofix script to be installed: scripts/agentic-sdd-pr-autofix.sh"
   exit 1
 fi
 
