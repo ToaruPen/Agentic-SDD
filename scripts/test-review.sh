@@ -193,6 +193,32 @@ should_scan_focused_marker() {
   esac
 }
 
+is_test_file_path() {
+  local path="$1"
+
+  case "$path" in
+    scripts/tests/test-*.sh|test_*.py|*/test_*.py|*_test.py|*/*_test.py)
+      return 0
+      ;;
+    docs/*|*.md)
+      return 1
+      ;;
+  esac
+
+  if [[ "$path" =~ \.(spec|test)(\.[^.]+)*\.([A-Za-z0-9]+)$ ]]; then
+    local ext_lower
+    ext_lower="$(printf '%s' "${BASH_REMATCH[3]}" | tr '[:upper:]' '[:lower:]')"
+    case "$ext_lower" in
+      md|markdown|txt|rst|adoc|yaml|yml|json|toml|lock|csv)
+        return 1
+        ;;
+    esac
+    return 0
+  fi
+
+  return 1
+}
+
 if [[ "$DRY_RUN" -eq 1 ]]; then
   eprint "Plan:"
   eprint "- scope_id: $scope_id"
@@ -221,9 +247,11 @@ fi
 has_code_changes=0
 has_test_changes=0
 has_focused_tests=0
+has_diff_entries=0
 
 while IFS=$'\t' read -r status path1 path2; do
   [[ -n "$status" ]] || continue
+  has_diff_entries=1
   f="$path1"
   if [[ "$status" == R* || "$status" == C* ]]; then
     f="$path2"
@@ -235,21 +263,18 @@ while IFS=$'\t' read -r status path1 path2; do
     is_deleted=1
   fi
 
-  case "$f" in
-    .agentic-sdd/*)
-      ;;
-    scripts/tests/test-*.sh|*/*.test.*|*/*.spec.*|test_*.py|*/test_*.py|*_test.py|*/*_test.py)
-      is_test_file=1
-      if [[ "$is_deleted" -eq 0 ]]; then
-        has_test_changes=1
-      fi
-      ;;
-    docs/*|*.md)
-      ;;
-    *)
-      has_code_changes=1
-      ;;
-  esac
+  if [[ "$f" == .agentic-sdd/* ]]; then
+    :
+  elif is_test_file_path "$f"; then
+    is_test_file=1
+    if [[ "$is_deleted" -eq 0 ]]; then
+      has_test_changes=1
+    fi
+  elif [[ "$f" == docs/* || "$f" == *.md ]]; then
+    :
+  else
+    has_code_changes=1
+  fi
 
   if [[ "$is_deleted" -eq 0 && "$is_test_file" -eq 1 ]] && should_scan_focused_marker "$f" && contains_focused_marker "$f"; then
     has_focused_tests=1
@@ -276,6 +301,12 @@ if [[ "$status" != "Blocked" && "$has_code_changes" -eq 1 && "$has_test_changes"
   status="Blocked"
   overall="Code changes detected without corresponding test changes."
   findings_json='[{"title":"Missing test updates","body":"Code changes exist but no test files changed.","priority":"P1"}]'
+fi
+
+if [[ "$status" != "Blocked" && "$has_diff_entries" -eq 0 ]]; then
+  status="Blocked"
+  overall="No diff entries found for test review scope."
+  findings_json='[{"title":"No diff entries to review","body":"test-review produced no changed files for the selected diff mode/scope.","priority":"P1"}]'
 fi
 
 head_sha="$(git rev-parse HEAD 2>/dev/null || true)"

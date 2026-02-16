@@ -34,6 +34,21 @@ git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "ini
 git -C "$tmpdir" branch -M main
 
 set +e
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=worktree "$script_src" issue-1 run-empty-diff) >/dev/null 2>"$tmpdir/stderr-empty-diff"
+code_empty_diff=$?
+set -e
+if [[ "$code_empty_diff" -eq 0 ]]; then
+  eprint "Expected empty diff to block"
+  exit 1
+fi
+empty_diff_json="$tmpdir/.agentic-sdd/test-reviews/issue-1/run-empty-diff/test-review.json"
+status_empty_diff="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1],encoding="utf-8")).get("status",""))' "$empty_diff_json")"
+if [[ "$status_empty_diff" != "Blocked" ]]; then
+  eprint "Expected Blocked status for empty diff, got: $status_empty_diff"
+  exit 1
+fi
+
+set +e
 (cd "$tmpdir" && env -u TEST_REVIEW_PREFLIGHT_COMMAND "$script_src" issue-1 run-missing-pref) >/dev/null 2>"$tmpdir/stderr-missing"
 code_missing=$?
 set -e
@@ -217,6 +232,97 @@ fi
 status_approved="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1],encoding="utf-8")).get("status",""))' "$approved_json")"
 if [[ "$status_approved" != "Approved" ]]; then
   eprint "Expected Approved status, got: $status_approved"
+  exit 1
+fi
+
+tmpdir_root_js="$(mktemp -d 2>/dev/null || mktemp -d -t agentic-sdd-test-review-root-js)"
+cleanup_root_js() { rm -rf "$tmpdir_root_js"; }
+trap 'cleanup_root_js; cleanup' EXIT
+
+git -C "$tmpdir_root_js" init -q
+cat > "$tmpdir_root_js/hello.sh" <<'EOF'
+#!/usr/bin/env bash
+echo hello
+EOF
+cat > "$tmpdir_root_js/root.spec.ts" <<'EOF'
+describe('root level test', () => {
+  it('passes', () => {})
+})
+EOF
+cat > "$tmpdir_root_js/root.spec.unit.ts" <<'EOF'
+describe('root level test', () => {
+  it('passes', () => {})
+})
+EOF
+cat > "$tmpdir_root_js/root.spec.e2e.browser.ts" <<'EOF'
+describe('root level test', () => {
+  it('passes', () => {})
+})
+EOF
+git -C "$tmpdir_root_js" add hello.sh root.spec.ts root.spec.unit.ts root.spec.e2e.browser.ts
+git -C "$tmpdir_root_js" -c user.name=test -c user.email=test@example.com commit -m "init" -q
+git -C "$tmpdir_root_js" branch -M main
+
+echo "code-change" >> "$tmpdir_root_js/hello.sh"
+echo "// tweak" >> "$tmpdir_root_js/root.spec.ts"
+echo "// tweak" >> "$tmpdir_root_js/root.spec.unit.ts"
+echo "// tweak" >> "$tmpdir_root_js/root.spec.e2e.browser.ts"
+git -C "$tmpdir_root_js" add hello.sh root.spec.ts root.spec.unit.ts root.spec.e2e.browser.ts
+
+set +e
+(cd "$tmpdir_root_js" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=staged "$script_src" issue-1 run-root-level-js-tests) >/dev/null 2>"$tmpdir_root_js/stderr-root-js"
+code_root_js=$?
+set -e
+if [[ "$code_root_js" -ne 0 ]]; then
+  eprint "Expected root-level JS/TS test changes to satisfy test update gate"
+  cat "$tmpdir_root_js/stderr-root-js" >&2
+  exit 1
+fi
+
+root_js_json="$tmpdir_root_js/.agentic-sdd/test-reviews/issue-1/run-root-level-js-tests/test-review.json"
+status_root_js="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1],encoding="utf-8")).get("status",""))' "$root_js_json")"
+if [[ "$status_root_js" != "Approved" ]]; then
+  eprint "Expected Approved status for root-level JS/TS tests, got: $status_root_js"
+  exit 1
+fi
+
+tmpdir_root_non_test="$(mktemp -d 2>/dev/null || mktemp -d -t agentic-sdd-test-review-root-non-test)"
+cleanup_root_non_test() { rm -rf "$tmpdir_root_non_test"; }
+trap 'cleanup_root_non_test; cleanup_root_js; cleanup' EXIT
+
+git -C "$tmpdir_root_non_test" init -q
+cat > "$tmpdir_root_non_test/hello.sh" <<'EOF'
+#!/usr/bin/env bash
+echo hello
+EOF
+cat > "$tmpdir_root_non_test/notes.test.md" <<'EOF'
+this is not an executable test file
+EOF
+cat > "$tmpdir_root_non_test/openapi.spec.yaml" <<'EOF'
+openapi: 3.1.0
+EOF
+git -C "$tmpdir_root_non_test" add hello.sh notes.test.md openapi.spec.yaml
+git -C "$tmpdir_root_non_test" -c user.name=test -c user.email=test@example.com commit -m "init" -q
+git -C "$tmpdir_root_non_test" branch -M main
+
+echo "code-change" >> "$tmpdir_root_non_test/hello.sh"
+echo "note-change" >> "$tmpdir_root_non_test/notes.test.md"
+echo "yaml-change" >> "$tmpdir_root_non_test/openapi.spec.yaml"
+git -C "$tmpdir_root_non_test" add hello.sh notes.test.md openapi.spec.yaml
+
+set +e
+(cd "$tmpdir_root_non_test" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=staged "$script_src" issue-1 run-root-level-non-test-file) >/dev/null 2>"$tmpdir_root_non_test/stderr-root-non-test"
+code_root_non_test=$?
+set -e
+if [[ "$code_root_non_test" -eq 0 ]]; then
+  eprint "Expected root-level non-test file pattern not to satisfy test update gate"
+  exit 1
+fi
+
+root_non_test_json="$tmpdir_root_non_test/.agentic-sdd/test-reviews/issue-1/run-root-level-non-test-file/test-review.json"
+status_root_non_test="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1],encoding="utf-8")).get("status",""))' "$root_non_test_json")"
+if [[ "$status_root_non_test" != "Blocked" ]]; then
+  eprint "Expected Blocked status for root-level non-test file pattern, got: $status_root_non_test"
   exit 1
 fi
 
