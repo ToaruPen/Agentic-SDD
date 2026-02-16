@@ -55,7 +55,8 @@ PY
 
 trim() {
   local s="$1"
-  s="$(printf '%s' "$s" | sed -e 's/^[[:space:]]\+//' -e 's/[[:space:]]\+$//')"
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
   printf '%s' "$s"
 }
 
