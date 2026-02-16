@@ -181,6 +181,18 @@ contains_focused_marker() {
   esac
 }
 
+should_scan_focused_marker() {
+  local path="$1"
+  case "$path" in
+    *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 if [[ "$DRY_RUN" -eq 1 ]]; then
   eprint "Plan:"
   eprint "- scope_id: $scope_id"
@@ -218,6 +230,7 @@ while IFS=$'\t' read -r status path1 path2; do
   fi
   [[ -n "$f" ]] || continue
   is_deleted=0
+  is_test_file=0
   if [[ "$status" == D* ]]; then
     is_deleted=1
   fi
@@ -225,7 +238,8 @@ while IFS=$'\t' read -r status path1 path2; do
   case "$f" in
     .agentic-sdd/*)
       ;;
-    scripts/tests/test-*.sh|*/*.test.*|*/*.spec.*|test_*.py|*_test.py)
+    scripts/tests/test-*.sh|*/*.test.*|*/*.spec.*|test_*.py|*/test_*.py|*_test.py|*/*_test.py)
+      is_test_file=1
       if [[ "$is_deleted" -eq 0 ]]; then
         has_test_changes=1
       fi
@@ -237,7 +251,7 @@ while IFS=$'\t' read -r status path1 path2; do
       ;;
   esac
 
-  if [[ "$is_deleted" -eq 0 ]] && contains_focused_marker "$f"; then
+  if [[ "$is_deleted" -eq 0 && "$is_test_file" -eq 1 ]] && should_scan_focused_marker "$f" && contains_focused_marker "$f"; then
     has_focused_tests=1
   fi
 done < "$out_files"

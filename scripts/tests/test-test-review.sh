@@ -161,13 +161,13 @@ if [[ "$status_no_tests_deleted_test" != "Blocked" ]]; then
   exit 1
 fi
 
-cat > "$tmpdir/scripts/tests/test-focused.sh" <<'EOF'
+cat > "$tmpdir/scripts/tests/focused.spec.ts" <<'EOF'
 describe.only('focused', () => {
   it('runs one test', () => {})
 })
 EOF
-git -C "$tmpdir" add scripts/tests/test-focused.sh
-cat > "$tmpdir/scripts/tests/test-focused.sh" <<'EOF'
+git -C "$tmpdir" add scripts/tests/focused.spec.ts
+cat > "$tmpdir/scripts/tests/focused.spec.ts" <<'EOF'
 describe('focused', () => {
   it('runs one test', () => {})
 })
@@ -186,16 +186,17 @@ if [[ "$status_focused_staged" != "Blocked" ]]; then
   eprint "Expected Blocked status for staged focused marker, got: $status_focused_staged"
   exit 1
 fi
-git -C "$tmpdir" add scripts/tests/test-focused.sh
+git -C "$tmpdir" add scripts/tests/focused.spec.ts
 
-mkdir -p "$tmpdir/scripts/tests"
-cat > "$tmpdir/scripts/tests/test-sample.sh" <<'EOF'
-#!/usr/bin/env bash
-set -euo pipefail
-[[ 1 -eq 1 ]]
+mkdir -p "$tmpdir/tests" "$tmpdir/docs"
+cat > "$tmpdir/tests/test_py_sample.py" <<'EOF'
+def test_sample():
+    assert True
 EOF
-chmod +x "$tmpdir/scripts/tests/test-sample.sh"
-git -C "$tmpdir" add hello.sh scripts/tests/test-sample.sh
+cat > "$tmpdir/docs/notes.md" <<'EOF'
+example: describe.only('snippet')
+EOF
+git -C "$tmpdir" add hello.sh tests/test_py_sample.py docs/notes.md
 
 set +e
 (cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=staged "$script_src" issue-1 run-approved) >/dev/null 2>"$tmpdir/stderr-approved"
