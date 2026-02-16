@@ -12,7 +12,7 @@ Run two-stage test review:
 
 Environment:
   TEST_REVIEW_PREFLIGHT_COMMAND   Required command for preflight checks
-  TEST_REVIEW_DIFF_MODE           worktree|staged|range (default: worktree)
+  TEST_REVIEW_DIFF_MODE           auto|worktree|staged|range (default: auto)
   TEST_REVIEW_BASE_REF            Base ref when diff mode is range (default: origin/main)
   OUTPUT_ROOT                     Output root (default: <repo_root>/.agentic-sdd/test-reviews)
 
@@ -96,18 +96,50 @@ if [[ -z "$pref_cmd" ]]; then
   exit 2
 fi
 
-diff_mode="${TEST_REVIEW_DIFF_MODE:-worktree}"
+configured_diff_mode="${TEST_REVIEW_DIFF_MODE:-auto}"
+diff_mode="$configured_diff_mode"
 base_ref="${TEST_REVIEW_BASE_REF:-origin/main}"
 
 collect_diff_files() {
-  case "$diff_mode" in
+  case "$configured_diff_mode" in
+    auto)
+      local worktree_files staged_files
+      worktree_files="$(git diff --name-status HEAD)"
+      staged_files="$(git diff --staged --name-status)"
+
+      if [[ -n "$worktree_files" && -n "$staged_files" ]]; then
+        diff_mode="worktree"
+        printf '%s\n' "$worktree_files"
+        printf '%s\n' "$staged_files"
+      elif [[ -n "$worktree_files" ]]; then
+        diff_mode="worktree"
+        printf '%s\n' "$worktree_files"
+      elif [[ -n "$staged_files" ]]; then
+        diff_mode="staged"
+        printf '%s\n' "$staged_files"
+      else
+        diff_mode="range"
+        if ! git rev-parse --verify "$base_ref" >/dev/null 2>&1; then
+          if [[ "$base_ref" == "origin/main" ]] && git rev-parse --verify main >/dev/null 2>&1; then
+            base_ref="main"
+          else
+            eprint "Base ref not found for range mode: $base_ref"
+            return 2
+          fi
+        fi
+        git diff --name-status "$base_ref...HEAD"
+      fi
+      ;;
     worktree)
-      git diff --name-only HEAD
+      diff_mode="worktree"
+      git diff --name-status HEAD
       ;;
     staged)
-      git diff --staged --name-only
+      diff_mode="staged"
+      git diff --staged --name-status
       ;;
     range)
+      diff_mode="range"
       if ! git rev-parse --verify "$base_ref" >/dev/null 2>&1; then
         if [[ "$base_ref" == "origin/main" ]] && git rev-parse --verify main >/dev/null 2>&1; then
           base_ref="main"
@@ -116,11 +148,32 @@ collect_diff_files() {
           return 2
         fi
       fi
-      git diff --name-only "$base_ref...HEAD"
+      git diff --name-status "$base_ref...HEAD"
       ;;
     *)
-      eprint "Invalid TEST_REVIEW_DIFF_MODE: $diff_mode (use worktree|staged|range)"
+      eprint "Invalid TEST_REVIEW_DIFF_MODE: $configured_diff_mode (use auto|worktree|staged|range)"
       return 2
+      ;;
+  esac
+}
+
+contains_focused_marker() {
+  local path="$1"
+  case "$diff_mode" in
+    worktree)
+      [[ -f "$repo_root/$path" ]] || return 1
+      grep -Eq '(^|[^[:alnum:]_])(it|describe|test)\.only\(|\bfit\(|\bfdescribe\(' "$repo_root/$path"
+      ;;
+    staged)
+      git cat-file -e ":$path" >/dev/null 2>&1 || return 1
+      git show ":$path" | grep -Eq '(^|[^[:alnum:]_])(it|describe|test)\.only\(|\bfit\(|\bfdescribe\('
+      ;;
+    range)
+      git cat-file -e "HEAD:$path" >/dev/null 2>&1 || return 1
+      git show "HEAD:$path" | grep -Eq '(^|[^[:alnum:]_])(it|describe|test)\.only\(|\bfit\(|\bfdescribe\('
+      ;;
+    *)
+      return 1
       ;;
   esac
 }
@@ -129,7 +182,7 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   eprint "Plan:"
   eprint "- scope_id: $scope_id"
   eprint "- run_id: $run_id"
-  eprint "- diff_mode: $diff_mode"
+  eprint "- diff_mode: $configured_diff_mode"
   eprint "- base_ref: $base_ref"
   eprint "- preflight_command: $pref_cmd"
   eprint "- out_json: $out_json"
@@ -154,13 +207,25 @@ has_code_changes=0
 has_test_changes=0
 has_focused_tests=0
 
-while IFS= read -r f; do
+while IFS=$'\t' read -r status path1 path2; do
+  [[ -n "$status" ]] || continue
+  f="$path1"
+  if [[ "$status" == R* || "$status" == C* ]]; then
+    f="$path2"
+  fi
   [[ -n "$f" ]] || continue
+  is_deleted=0
+  if [[ "$status" == D* ]]; then
+    is_deleted=1
+  fi
+
   case "$f" in
     .agentic-sdd/*)
       ;;
     scripts/tests/test-*.sh|*/*.test.*|*/*.spec.*|test_*.py|*_test.py)
-      has_test_changes=1
+      if [[ "$is_deleted" -eq 0 ]]; then
+        has_test_changes=1
+      fi
       ;;
     docs/*|*.md)
       ;;
@@ -169,10 +234,8 @@ while IFS= read -r f; do
       ;;
   esac
 
-  if [[ -f "$repo_root/$f" ]]; then
-    if grep -Eq '(^|[^[:alnum:]_])(it|describe|test)\.only\(|\bfit\(|\bfdescribe\(' "$repo_root/$f"; then
-      has_focused_tests=1
-    fi
+  if [[ "$is_deleted" -eq 0 ]] && contains_focused_marker "$f"; then
+    has_focused_tests=1
   fi
 done < "$out_files"
 
