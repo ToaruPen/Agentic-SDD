@@ -258,10 +258,10 @@ main() {
 
   local input_file
   input_file=""
-  cleanup() {
+  cleanup_input_file_on_exit() {
     [[ -n "$input_file" ]] && rm -f "$input_file"
   }
-  trap cleanup EXIT
+  trap cleanup_input_file_on_exit EXIT
 
   eprint "[AUTOFIX] Fetching branch: $head_ref"
   git check-ref-format --branch "$head_ref" >/dev/null 2>&1 || die "Invalid PR head ref: $head_ref"
