@@ -4,6 +4,11 @@ set -euo pipefail
 
 eprint() { printf '%s\n' "$*" >&2; }
 warn() { eprint "[AUTOFIX] WARN: $*"; }
+
+issue_number=""
+marker=""
+comment_url=""
+
 die() {
   local msg="$*"
   eprint "[AUTOFIX] ERROR: $msg"
@@ -154,7 +159,7 @@ main() {
   event_path="${GITHUB_EVENT_PATH:-}"
   [[ -n "$event_path" && -f "$event_path" ]] || die "Missing GITHUB_EVENT_PATH"
 
-  local issue_number is_pr comment_body comment_login comment_url
+  local is_pr comment_body comment_login
 
   issue_number="$(json_get "$event_path" "print(ev.get('issue', {}).get('number', ''))")"
   is_pr="$(json_get "$event_path" "print('pull_request' in ev.get('issue', {}) and ev.get('issue', {}).get('pull_request') is not None)")"
@@ -171,7 +176,6 @@ main() {
     die "Failed to detect PR number from event payload"
   fi
 
-  local marker
   marker="${AGENTIC_SDD_AUTOFIX_MARKER:-<!-- agentic-sdd:autofix v1 -->}"
   if [[ "$comment_body" == *"$marker"* ]]; then
     eprint "[AUTOFIX] Marker comment; skipping"
