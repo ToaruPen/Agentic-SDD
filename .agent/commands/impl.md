@@ -52,7 +52,7 @@ Note:
 
 ### Phase 4: Local review (required)
 
-After implementation is complete, run `/review-cycle` automatically before committing.
+After implementation is complete, run `/test-review` then `/review-cycle` automatically before committing.
 If the change is lightweight (e.g. documentation-only updates), ask the user whether to run `/review-cycle` (skipping requires explicit approval and a recorded reason).
 
 1. Execute review checks
@@ -84,6 +84,7 @@ Example (Japanese):
 
 - `.agent/commands/estimation.md` - create a Full estimate + approval gate
 - `.agent/commands/tdd.md` - strict TDD execution loop
+- `.agent/commands/test-review.md` - test review preflight gate
 - `.agent/commands/review-cycle.md` - local review loop
 - `.agent/commands/final-review.md` - final review gate
 - `.agent/rules/branch.md` - branch rules

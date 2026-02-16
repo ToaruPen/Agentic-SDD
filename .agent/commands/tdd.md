@@ -72,7 +72,7 @@ Summarize briefly:
 
 Before committing:
 
-- After implementation is complete, run `/review-cycle` automatically before committing and fix findings until it passes.
+- After implementation is complete, run `/test-review` and then `/review-cycle` automatically before committing and fix findings until it passes.
   If the change is lightweight (e.g. documentation-only updates), ask the user whether to run `/review-cycle` (skipping requires explicit approval and a recorded reason).
 - Then run `/final-review` (final DoD + `/sync-docs` gate).
 
@@ -84,6 +84,7 @@ After `/final-review` is approved:
 
 - `skills/tdd-protocol.md` - TDD execution protocol
 - `skills/testing.md` - test design
+- `.agent/commands/test-review.md` - test review preflight gate
 - `.agent/rules/dod.md` - Definition of Done
 - `.agent/rules/impl-gate.md` - mandatory gates (estimate/test/quality)
 - `.agent/commands/estimation.md` - Full estimate + approval gate

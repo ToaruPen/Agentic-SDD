@@ -65,6 +65,32 @@ fetch_remote_tracking_ref() {
   return 0
 }
 
+normalize_base_branch_for_compare() {
+  local repo_root="$1"
+  local raw_ref="$2"
+  local normalized="$raw_ref"
+  local remote_name=""
+  local remote_prefix=""
+  local candidate_branch=""
+
+  if ! git -C "$repo_root" show-ref --verify --quiet "refs/heads/$normalized"; then
+    while IFS= read -r remote_name; do
+      [[ -n "$remote_name" ]] || continue
+      remote_prefix="${remote_name}/"
+      if [[ "$normalized" != "$remote_prefix"* ]]; then
+        continue
+      fi
+      candidate_branch="${normalized#"$remote_prefix"}"
+      if git -C "$repo_root" show-ref --verify --quiet "refs/remotes/${remote_name}/${candidate_branch}"; then
+        normalized="$candidate_branch"
+      fi
+      break
+    done < <(git -C "$repo_root" remote)
+  fi
+
+  printf '%s\n' "$normalized"
+}
+
 DRY_RUN=0
 ISSUE=""
 TITLE=""
@@ -190,6 +216,39 @@ if [[ ! -f "$review_meta" ]]; then
   exit 2
 fi
 
+test_review_root="$repo_root/.agentic-sdd/test-reviews/$scope_id"
+test_current_run_file="$test_review_root/.current_run"
+if [[ ! -f "$test_current_run_file" ]]; then
+  eprint "Missing /test-review output (no .current_run): $test_current_run_file"
+  eprint "Run /test-review ${scope_id} and ensure status is Approved/Approved with nits."
+  exit 2
+fi
+
+test_run_id="$(cat "$test_current_run_file" 2>/dev/null || true)"
+if [[ -z "$test_run_id" ]]; then
+  eprint "Invalid test-review .current_run (empty): $test_current_run_file"
+  exit 2
+fi
+if [[ ! "$test_run_id" =~ ^[A-Za-z0-9._-]+$ || "$test_run_id" == "." || "$test_run_id" == ".." ]]; then
+  eprint "Invalid test-review .current_run (unsafe run id): $test_current_run_file"
+  eprint "Run /test-review ${scope_id} again."
+  exit 2
+fi
+
+test_review_json="$test_review_root/$test_run_id/test-review.json"
+if [[ ! -f "$test_review_json" ]]; then
+  eprint "Missing test-review.json: $test_review_json"
+  eprint "Run /test-review ${scope_id} again."
+  exit 2
+fi
+
+test_review_meta="$test_review_root/$test_run_id/test-review-metadata.json"
+if [[ ! -f "$test_review_meta" ]]; then
+  eprint "Missing test-review metadata: $test_review_meta"
+  eprint "Run /test-review ${scope_id} again to generate test-review-metadata.json."
+  exit 2
+fi
+
 status="$(python3 - "$review_json" <<'PY'
 import json
 import sys
@@ -204,6 +263,23 @@ PY
 if [[ "$status" != "Approved" && "$status" != "Approved with nits" ]]; then
   eprint "review.json is not passing: status='$status' (${review_json})"
   eprint "Fix findings/questions, then re-run /review-cycle ${scope_id}."
+  exit 2
+fi
+
+test_status="$(python3 - "$test_review_json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, 'r', encoding='utf-8') as fh:
+    data = json.load(fh)
+print(str(data.get('status') or ''))
+PY
+)"
+
+if [[ "$test_status" != "Approved" && "$test_status" != "Approved with nits" ]]; then
+  eprint "test-review.json is not passing: status='$test_status' (${test_review_json})"
+  eprint "Fix findings, then re-run /test-review ${scope_id}."
   exit 2
 fi
 
@@ -248,6 +324,72 @@ if [[ "$current_head_sha" != "$meta_head_sha" ]]; then
   eprint "- reviewed: $meta_head_sha"
   eprint "Run /review-cycle ${scope_id} again on the current branch state."
   exit 2
+fi
+
+test_meta_values="$(python3 - "$test_review_meta" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, 'r', encoding='utf-8') as fh:
+    data = json.load(fh)
+print(str(data.get('head_sha') or ''))
+print(str(data.get('base_ref') or ''))
+print(str(data.get('base_sha') or ''))
+print(str(data.get('diff_mode') or ''))
+PY
+)"
+test_meta_head_sha=""
+test_meta_base_ref=""
+test_meta_base_sha=""
+test_meta_diff_mode=""
+{
+  IFS= read -r test_meta_head_sha || true
+  IFS= read -r test_meta_base_ref || true
+  IFS= read -r test_meta_base_sha || true
+  IFS= read -r test_meta_diff_mode || true
+} <<< "$test_meta_values"
+
+if [[ -z "$test_meta_head_sha" ]]; then
+  eprint "Invalid test-review metadata (missing head_sha): $test_review_meta"
+  eprint "Run /test-review ${scope_id} again."
+  exit 2
+fi
+if [[ "$test_meta_diff_mode" != "worktree" && "$test_meta_diff_mode" != "staged" && "$test_meta_diff_mode" != "range" ]]; then
+  eprint "Invalid test-review metadata (unexpected diff_mode='$test_meta_diff_mode'): $test_review_meta"
+  eprint "Run /test-review ${scope_id} again."
+  exit 2
+fi
+if [[ "$current_head_sha" != "$test_meta_head_sha" ]]; then
+  eprint "Current HEAD differs from test-reviewed HEAD."
+  eprint "- current:       $current_head_sha"
+  eprint "- test-reviewed: $test_meta_head_sha"
+  eprint "Run /test-review ${scope_id} again on the current branch state."
+  exit 2
+fi
+
+if [[ "$test_meta_diff_mode" == "range" && -z "$test_meta_base_sha" ]]; then
+  eprint "Invalid test-review metadata (diff_mode=range requires base_sha): $test_review_meta"
+  eprint "Run /test-review ${scope_id} again."
+  exit 2
+fi
+
+if [[ "$test_meta_diff_mode" == "range" && -n "$test_meta_base_sha" ]]; then
+  effective_test_base_ref="${test_meta_base_ref:-main}"
+  fetch_remote_tracking_ref "$repo_root" "$effective_test_base_ref"
+  if ! git -C "$repo_root" rev-parse --verify "$effective_test_base_ref" >/dev/null 2>&1; then
+    eprint "Base ref '$effective_test_base_ref' from test-review metadata was not found."
+    eprint "Run /test-review ${scope_id} again."
+    exit 2
+  fi
+  current_test_base_sha="$(git -C "$repo_root" rev-parse "$effective_test_base_ref")"
+  if [[ "$current_test_base_sha" != "$test_meta_base_sha" ]]; then
+    eprint "Base ref '$effective_test_base_ref' moved since /test-review."
+    eprint "- current:       $current_test_base_sha"
+    eprint "- test-reviewed: $test_meta_base_sha"
+    eprint "Run /test-review ${scope_id} again against the latest base."
+    exit 2
+  fi
 fi
 
 if [[ -n "$meta_base_sha" ]]; then
@@ -301,22 +443,17 @@ if [[ -z "$BASE" ]]; then
   fi
 fi
 
-if [[ -n "$meta_base_sha" ]]; then
-  reviewed_base_branch="${meta_base_ref:-main}"
-  if ! git -C "$repo_root" show-ref --verify --quiet "refs/heads/$reviewed_base_branch"; then
-    while IFS= read -r remote_name; do
-      [[ -n "$remote_name" ]] || continue
-      remote_prefix="${remote_name}/"
-      if [[ "$reviewed_base_branch" != "$remote_prefix"* ]]; then
-        continue
-      fi
-      candidate_branch="${reviewed_base_branch#"$remote_prefix"}"
-      if git -C "$repo_root" show-ref --verify --quiet "refs/remotes/${remote_name}/${candidate_branch}"; then
-        reviewed_base_branch="$candidate_branch"
-      fi
-      break
-    done < <(git -C "$repo_root" remote)
+if [[ "$test_meta_diff_mode" == "range" && -n "$test_meta_base_sha" ]]; then
+  test_reviewed_base_branch="$(normalize_base_branch_for_compare "$repo_root" "${test_meta_base_ref:-main}")"
+  if [[ "$BASE" != "$test_reviewed_base_branch" ]]; then
+    eprint "PR base '$BASE' differs from test-reviewed base '$test_reviewed_base_branch'."
+    eprint "Re-run /test-review for the target base, or use --base '$test_reviewed_base_branch'."
+    exit 2
   fi
+fi
+
+if [[ -n "$meta_base_sha" ]]; then
+  reviewed_base_branch="$(normalize_base_branch_for_compare "$repo_root" "${meta_base_ref:-main}")"
   if [[ "$BASE" != "$reviewed_base_branch" ]]; then
     eprint "PR base '$BASE' differs from reviewed base '$reviewed_base_branch'."
     eprint "Re-run /review-cycle for the target base, or use --base '$reviewed_base_branch'."
@@ -347,6 +484,8 @@ eprint "- issue: #$ISSUE"
 eprint "- base: $BASE"
 eprint "- review: $review_json (status=$status)"
 eprint "- review_meta: $review_meta (diff_source=${meta_diff_source:-unknown})"
+eprint "- test_review: $test_review_json (status=$test_status)"
+eprint "- test_review_meta: $test_review_meta"
 eprint "- origin: $origin_url"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then

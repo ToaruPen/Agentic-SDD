@@ -1,0 +1,251 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: test-review.sh <scope-id> [run-id] [--dry-run]
+
+Run two-stage test review:
+1) Preflight filter (deterministic command execution)
+2) Post-filter quality checks (deterministic heuristics)
+
+Environment:
+  TEST_REVIEW_PREFLIGHT_COMMAND   Required command for preflight checks
+  TEST_REVIEW_DIFF_MODE           worktree|staged|range (default: worktree)
+  TEST_REVIEW_BASE_REF            Base ref when diff mode is range (default: origin/main)
+  OUTPUT_ROOT                     Output root (default: <repo_root>/.agentic-sdd/test-reviews)
+
+Output:
+  <OUTPUT_ROOT>/<scope-id>/<run-id>/test-review.json
+  <OUTPUT_ROOT>/<scope-id>/<run-id>/test-review-metadata.json
+  <OUTPUT_ROOT>/<scope-id>/<run-id>/preflight.txt
+  <OUTPUT_ROOT>/<scope-id>/<run-id>/diff-files.txt
+EOF
+}
+
+eprint() { printf '%s\n' "$*" >&2; }
+
+DRY_RUN=0
+args=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run)
+      DRY_RUN=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -*)
+      eprint "Unknown option: $1"
+      usage
+      exit 2
+      ;;
+    *)
+      args+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [[ ${#args[@]} -lt 1 || ${#args[@]} -gt 2 ]]; then
+  usage
+  exit 2
+fi
+
+scope_id="${args[0]}"
+run_id="${args[1]:-}"
+if [[ ! "$scope_id" =~ ^[A-Za-z0-9._-]+$ || "$scope_id" == "." || "$scope_id" == ".." ]]; then
+  eprint "Invalid scope-id: $scope_id"
+  exit 2
+fi
+
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -z "$repo_root" ]]; then
+  eprint "Not in a git repository."
+  exit 1
+fi
+
+output_root="${OUTPUT_ROOT:-${repo_root}/.agentic-sdd/test-reviews}"
+scope_root="${output_root}/${scope_id}"
+current_run_file="${scope_root}/.current_run"
+
+if [[ -z "$run_id" && -f "$current_run_file" ]]; then
+  candidate="$(cat "$current_run_file" 2>/dev/null || true)"
+  if [[ "$candidate" =~ ^[A-Za-z0-9._-]+$ && "$candidate" != "." && "$candidate" != ".." ]]; then
+    run_id="$candidate"
+  fi
+fi
+if [[ -z "$run_id" ]]; then
+  run_id="$(date +"%Y%m%d_%H%M%S")"
+fi
+
+run_dir="${scope_root}/${run_id}"
+out_json="${run_dir}/test-review.json"
+out_meta="${run_dir}/test-review-metadata.json"
+out_preflight="${run_dir}/preflight.txt"
+out_files="${run_dir}/diff-files.txt"
+
+mkdir -p "$run_dir"
+
+pref_cmd="${TEST_REVIEW_PREFLIGHT_COMMAND:-}"
+if [[ -z "$pref_cmd" ]]; then
+  eprint "TEST_REVIEW_PREFLIGHT_COMMAND is required."
+  exit 2
+fi
+
+diff_mode="${TEST_REVIEW_DIFF_MODE:-worktree}"
+base_ref="${TEST_REVIEW_BASE_REF:-origin/main}"
+
+collect_diff_files() {
+  case "$diff_mode" in
+    worktree)
+      git diff --name-only
+      ;;
+    staged)
+      git diff --staged --name-only
+      ;;
+    range)
+      if ! git rev-parse --verify "$base_ref" >/dev/null 2>&1; then
+        if [[ "$base_ref" == "origin/main" ]] && git rev-parse --verify main >/dev/null 2>&1; then
+          base_ref="main"
+        else
+          eprint "Base ref not found for range mode: $base_ref"
+          return 2
+        fi
+      fi
+      git diff --name-only "$base_ref...HEAD"
+      ;;
+    *)
+      eprint "Invalid TEST_REVIEW_DIFF_MODE: $diff_mode (use worktree|staged|range)"
+      return 2
+      ;;
+  esac
+}
+
+if [[ "$DRY_RUN" -eq 1 ]]; then
+  eprint "Plan:"
+  eprint "- scope_id: $scope_id"
+  eprint "- run_id: $run_id"
+  eprint "- diff_mode: $diff_mode"
+  eprint "- base_ref: $base_ref"
+  eprint "- preflight_command: $pref_cmd"
+  eprint "- out_json: $out_json"
+  exit 0
+fi
+
+set +e
+bash -lc "$pref_cmd" >"$out_preflight" 2>&1
+pref_exit=$?
+set -e
+
+set +e
+collect_diff_files >"$out_files"
+diff_exit=$?
+set -e
+if [[ "$diff_exit" -ne 0 ]]; then
+  eprint "Failed to collect diff files."
+  exit 2
+fi
+
+has_code_changes=0
+has_test_changes=0
+has_focused_tests=0
+
+while IFS= read -r f; do
+  [[ -n "$f" ]] || continue
+  case "$f" in
+    .agentic-sdd/*)
+      ;;
+    scripts/tests/test-*.sh|*/*.test.*|*/*.spec.*|test_*.py|*_test.py)
+      has_test_changes=1
+      ;;
+    docs/*|*.md)
+      ;;
+    *)
+      has_code_changes=1
+      ;;
+  esac
+
+  if [[ -f "$repo_root/$f" ]]; then
+    if grep -Eq '(^|[^[:alnum:]_])(it|describe|test)\.only\(|\bfit\(|\bfdescribe\(' "$repo_root/$f"; then
+      has_focused_tests=1
+    fi
+  fi
+done < "$out_files"
+
+status="Approved"
+overall="Preflight and deterministic test quality checks passed."
+findings_json="[]"
+
+if [[ "$pref_exit" -ne 0 ]]; then
+  status="Blocked"
+  overall="Preflight command failed."
+  findings_json='[{"title":"Preflight failed","body":"TEST_REVIEW_PREFLIGHT_COMMAND returned non-zero.","priority":"P0"}]'
+fi
+
+if [[ "$status" != "Blocked" && "$has_focused_tests" -eq 1 ]]; then
+  status="Blocked"
+  overall="Focused/isolated test marker detected."
+  findings_json='[{"title":"Focused test marker detected","body":"Remove .only/fit/fdescribe before proceeding.","priority":"P1"}]'
+fi
+
+if [[ "$status" != "Blocked" && "$has_code_changes" -eq 1 && "$has_test_changes" -eq 0 ]]; then
+  status="Blocked"
+  overall="Code changes detected without corresponding test changes."
+  findings_json='[{"title":"Missing test updates","body":"Code changes exist but no test files changed.","priority":"P1"}]'
+fi
+
+head_sha="$(git rev-parse HEAD 2>/dev/null || true)"
+base_sha=""
+if git rev-parse --verify "$base_ref" >/dev/null 2>&1; then
+  base_sha="$(git rev-parse "$base_ref")"
+fi
+
+python3 - "$out_json" "$scope_id" "$status" "$overall" "$findings_json" <<'PY'
+import json
+import sys
+
+path, scope_id, status, overall, findings_json = sys.argv[1:6]
+findings = json.loads(findings_json)
+obj = {
+    "schema_version": 1,
+    "scope_id": scope_id,
+    "status": status,
+    "findings": findings,
+    "overall_explanation": overall,
+}
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(obj, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+python3 - "$out_meta" "$scope_id" "$run_id" "$head_sha" "$base_ref" "$base_sha" "$diff_mode" <<'PY'
+import json
+import sys
+
+path, scope_id, run_id, head_sha, base_ref, base_sha, diff_mode = sys.argv[1:8]
+obj = {
+    "schema_version": 1,
+    "scope_id": scope_id,
+    "run_id": run_id,
+    "head_sha": head_sha,
+    "base_ref": base_ref,
+    "base_sha": base_sha,
+    "diff_mode": diff_mode,
+}
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(obj, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+printf '%s' "$run_id" > "$current_run_file"
+
+eprint "Wrote: $out_json"
+eprint "Wrote: $out_meta"
+
+if [[ "$status" == "Blocked" ]]; then
+  exit 3
+fi
