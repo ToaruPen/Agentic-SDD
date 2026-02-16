@@ -140,9 +140,11 @@ has_label() {
 count_marker_comments() {
   local issue_number="$1"
   local marker="$2"
+  local marker_author
+  marker_author="github-actions[bot]"
 
   local bodies
-  bodies="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq '.[].body')" || die "Failed to list issue comments via gh api"
+  bodies="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq ".[] | select(.user.login == \"${marker_author}\") | .body")" || die "Failed to list issue comments via gh api"
   if [[ -z "$bodies" ]]; then
     printf '0'
     return 0
