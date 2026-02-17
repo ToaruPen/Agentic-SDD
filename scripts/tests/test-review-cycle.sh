@@ -583,6 +583,53 @@ PY
 set +e
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
   REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-cache-review-completed-invalid) >/dev/null 2>"$tmpdir/stderr-cache-review-completed-invalid"
+code_cache_review_completed_invalid=$?
+set -e
+if [[ "$code_cache_review_completed_invalid" -eq 0 ]]; then
+  eprint "Expected invalid review_completed to force non-reuse"
+  exit 1
+fi
+if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-review-completed-invalid"; then
+  eprint "Expected cache miss to execute engine when review_completed is invalid"
+  cat "$tmpdir/stderr-cache-review-completed-invalid" >&2
+  exit 1
+fi
+
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"
+python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+data["tests_exit_code"] = 0
+data["review_completed"] = "false"
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-cache-review-completed-string) >/dev/null 2>"$tmpdir/stderr-cache-review-completed-string"
+code_cache_review_completed_string=$?
+set -e
+if [[ "$code_cache_review_completed_string" -eq 0 ]]; then
+  eprint "Expected non-boolean review_completed to force non-reuse"
+  exit 1
+fi
+if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-review-completed-string"; then
+  eprint "Expected cache miss to execute engine when review_completed is non-boolean"
+  cat "$tmpdir/stderr-cache-review-completed-string" >&2
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
   "$review_cycle_sh" issue-1 run-cache-tests-failed) >/dev/null 2>"$tmpdir/stderr-cache-tests-failed"
 code_cache_tests_failed=$?
 set -e

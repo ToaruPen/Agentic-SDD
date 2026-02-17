@@ -269,6 +269,7 @@ diff_source=""
 diff_detail=""
 diff_base_sha=""
 tests_exit_code=""
+tests_fingerprint_input_sha256=""
 
 review_cycle_incremental="${REVIEW_CYCLE_INCREMENTAL:-0}"
 if [[ "$review_cycle_incremental" != "0" && "$review_cycle_incremental" != "1" ]]; then
@@ -369,6 +370,35 @@ fetch_remote_tracking_ref() {
 	    set -e
 	    tests_exit_code="$exit_code"
 
+	    tests_fingerprint_input_sha256="$(python3 - "$tmp_tests_stdout" "$out_tests_stderr" "$test_command" "$exit_code" "$test_stderr_policy" <<'PY'
+import hashlib
+import json
+import sys
+
+stdout_path = sys.argv[1]
+stderr_path = sys.argv[2]
+test_command = sys.argv[3]
+exit_code = sys.argv[4]
+stderr_policy = sys.argv[5]
+
+with open(stdout_path, "rb") as fh:
+    stdout_sha256 = hashlib.sha256(fh.read()).hexdigest()
+
+with open(stderr_path, "rb") as fh:
+    stderr_sha256 = hashlib.sha256(fh.read()).hexdigest()
+
+payload = {
+    "test_command": test_command,
+    "exit_code": exit_code,
+    "stderr_policy": stderr_policy,
+    "stdout_sha256": stdout_sha256,
+    "stderr_sha256": stderr_sha256,
+}
+encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
+print(hashlib.sha256(encoded).hexdigest())
+PY
+)"
+
 	    if grep -qE '^[[:space:]]*stderr [|]' "$tmp_tests_stdout"; then
 	      reported_stderr=1
 	      tests_stderr_present=1
@@ -460,6 +490,14 @@ fetch_remote_tracking_ref() {
     } > "$out_tests"
     tests_exit_code=""
     tests_stderr_summary="not checked (no TEST_COMMAND)"
+    tests_fingerprint_input_sha256="$(python3 - "$tests_summary" <<'PY'
+import hashlib
+import sys
+
+summary = sys.argv[1]
+print(hashlib.sha256(summary.encode("utf-8")).hexdigest())
+PY
+)"
   fi
 }
 
@@ -787,34 +825,24 @@ fi
 
 diff_sha256="$(sha256_file "$out_diff")"
 sot_fingerprint="$(sha256_file "$out_sot")"
-tests_fingerprint="$(python3 - "$out_tests" "$tests_summary" "$tests_stderr_summary" "$test_stderr_policy" "$tests_exit_code" <<'PY'
+tests_fingerprint="$(python3 - "$out_tests" "$tests_summary" "$tests_stderr_summary" "$test_stderr_policy" "$tests_exit_code" "$tests_fingerprint_input_sha256" <<'PY'
 import hashlib
 import json
 import sys
 
-tests_path = sys.argv[1]
+_tests_path = sys.argv[1]
 tests_summary = sys.argv[2]
 tests_stderr_summary = sys.argv[3]
 tests_stderr_policy = sys.argv[4]
 tests_exit_code = sys.argv[5]
-
-sanitized_lines = []
-with open(tests_path, "rb") as fh:
-    for line in fh:
-        if line.startswith(b"Started:"):
-            continue
-        if line.startswith(b"Finished:"):
-            continue
-        if line.startswith(b"Recorded:"):
-            continue
-        sanitized_lines.append(line)
+tests_input_sha256 = sys.argv[6]
 
 payload = {
     "tests_summary": tests_summary,
     "tests_stderr_summary": tests_stderr_summary,
     "tests_stderr_policy": tests_stderr_policy,
     "tests_exit_code": tests_exit_code,
-    "sanitized_tests_sha256": hashlib.sha256(b"".join(sanitized_lines)).hexdigest(),
+    "tests_input_sha256": tests_input_sha256,
 }
 encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
 print(hashlib.sha256(encoded).hexdigest())
@@ -1034,7 +1062,7 @@ if str(meta.get("tests_fingerprint")) != curr_tests_fp:
     out(False, "tests-fingerprint-mismatch")
     raise SystemExit(0)
 
-if not meta.get("review_completed", False):
+if meta.get("review_completed") is not True:
     out(False, "review-not-completed")
     raise SystemExit(0)
 
