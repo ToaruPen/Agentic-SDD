@@ -30,6 +30,10 @@ mkdir -p "$repo"
 git -C "$repo" init -q
 mkdir -p "$repo/.agentic-sdd"
 
+repo_no_prefix="$tmpdir/repo-no-prefix"
+mkdir -p "$repo_no_prefix"
+git -C "$repo_no_prefix" init -q
+
 set +e
 (cd "$repo" && "$updater") >/dev/null 2>"$tmpdir/stderr-missing-ref"
 code=$?
@@ -43,6 +47,37 @@ fi
 if ! grep -Fq -- "--ref is required" "$tmpdir/stderr-missing-ref"; then
   eprint "Expected missing --ref error message"
   cat "$tmpdir/stderr-missing-ref" >&2
+  exit 1
+fi
+
+set +e
+(cd "$repo_no_prefix" && "$updater" --ref v0.2.39) >/dev/null 2>"$tmpdir/stderr-no-prefix"
+code=$?
+set -e
+if [[ "$code" -eq 0 ]]; then
+  eprint "Expected failure when prefix directory does not exist"
+  exit 1
+fi
+
+if ! grep -Fq "Prefix directory does not exist" "$tmpdir/stderr-no-prefix"; then
+  eprint "Expected prefix directory error message"
+  cat "$tmpdir/stderr-no-prefix" >&2
+  exit 1
+fi
+
+set +e
+(cd "$repo" && "$updater" --prefix --ref v0.2.39) >/dev/null 2>"$tmpdir/stderr-missing-prefix-value"
+code=$?
+set -e
+if [[ "$code" -ne 1 ]]; then
+  eprint "Expected exit code 1 when --prefix value is missing, got: $code"
+  cat "$tmpdir/stderr-missing-prefix-value" >&2
+  exit 1
+fi
+
+if ! grep -Fq "Missing value for --prefix" "$tmpdir/stderr-missing-prefix-value"; then
+  eprint "Expected missing --prefix value error message"
+  cat "$tmpdir/stderr-missing-prefix-value" >&2
   exit 1
 fi
 

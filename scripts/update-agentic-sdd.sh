@@ -38,14 +38,29 @@ DRY_RUN=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --prefix)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        log_error "Missing value for --prefix"
+        usage
+        exit 1
+      fi
       PREFIX="$2"
       shift 2
       ;;
     --repo)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        log_error "Missing value for --repo"
+        usage
+        exit 1
+      fi
       REPO="$2"
       shift 2
       ;;
     --ref)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        log_error "Missing value for --ref"
+        usage
+        exit 1
+      fi
       REF="$2"
       shift 2
       ;;
@@ -92,16 +107,16 @@ log_info "prefix=$PREFIX"
 log_info "repo=$REPO"
 log_info "ref=$REF"
 
+if [[ ! -x "$(git --exec-path)/git-subtree" ]]; then
+  log_error "git subtree is not available in this environment"
+  exit 1
+fi
+
 if [[ "$DRY_RUN" == true ]]; then
   printf '[DRY-RUN]'
   printf ' %q' "${cmd[@]}"
   printf '\n'
   exit 0
-fi
-
-if ! git help -a | grep -q '^\s*subtree$'; then
-  log_error "git subtree is not available in this environment"
-  exit 1
 fi
 
 "${cmd[@]}"
