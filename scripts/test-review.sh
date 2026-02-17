@@ -108,7 +108,14 @@ collect_diff_files() {
   case "$configured_diff_mode" in
     auto)
       local worktree_files staged_files
-      worktree_files="$(git diff --name-status)"
+      worktree_files="$(
+        git diff --name-status
+        git ls-files --others --exclude-standard | while IFS= read -r path; do
+          [[ -n "$path" ]] || continue
+          [[ "$path" == .agentic-sdd/* ]] && continue
+          printf 'A\t%s\n' "$path"
+        done
+      )"
       staged_files="$(git diff --staged --name-status)"
 
       if [[ -n "$worktree_files" && -n "$staged_files" ]]; then
@@ -135,7 +142,14 @@ collect_diff_files() {
       ;;
     worktree)
       diff_mode="worktree"
-      git diff --name-status HEAD
+      {
+        git diff --name-status HEAD
+        git ls-files --others --exclude-standard | while IFS= read -r path; do
+          [[ -n "$path" ]] || continue
+          [[ "$path" == .agentic-sdd/* ]] && continue
+          printf 'A\t%s\n' "$path"
+        done
+      }
       ;;
     staged)
       diff_mode="staged"

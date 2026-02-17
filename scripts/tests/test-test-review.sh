@@ -112,8 +112,9 @@ if [[ "$status_no_tests" != "Blocked" ]]; then
 fi
 
 git -C "$tmpdir" add hello.sh
+rm -f "$tmpdir"/stderr-*
 set +e
-(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=auto "$script_src" issue-1 run-no-tests-auto) >/dev/null 2>"$tmpdir/stderr-no-tests-auto"
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=auto "$script_src" issue-1 run-no-tests-auto) >/dev/null 2>/dev/null
 code_no_tests_auto=$?
 set -e
 if [[ "$code_no_tests_auto" -eq 0 ]]; then
@@ -349,6 +350,47 @@ root_non_test_json="$tmpdir_root_non_test/.agentic-sdd/test-reviews/issue-1/run-
 status_root_non_test="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1],encoding="utf-8")).get("status",""))' "$root_non_test_json")"
 if [[ "$status_root_non_test" != "Blocked" ]]; then
   eprint "Expected Blocked status for root-level non-test file pattern, got: $status_root_non_test"
+  exit 1
+fi
+
+tmpdir_untracked_auto="$(mktemp -d 2>/dev/null || mktemp -d -t agentic-sdd-test-review-untracked-auto)"
+cleanup_untracked_auto() { rm -rf "$tmpdir_untracked_auto"; }
+trap 'cleanup_untracked_auto; cleanup_root_non_test; cleanup_root_js; cleanup' EXIT
+
+git -C "$tmpdir_untracked_auto" init -q
+cat > "$tmpdir_untracked_auto/hello.sh" <<'EOF'
+#!/usr/bin/env bash
+echo hello
+EOF
+git -C "$tmpdir_untracked_auto" add hello.sh
+git -C "$tmpdir_untracked_auto" -c user.name=test -c user.email=test@example.com commit -m "init" -q
+git -C "$tmpdir_untracked_auto" branch -M main
+
+cat > "$tmpdir_untracked_auto/new-feature.sh" <<'EOF'
+#!/usr/bin/env bash
+echo feature
+EOF
+mkdir -p "$tmpdir_untracked_auto/scripts/tests"
+cat > "$tmpdir_untracked_auto/scripts/tests/test-new-feature.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+[[ 1 -eq 1 ]]
+EOF
+
+set +e
+(cd "$tmpdir_untracked_auto" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=auto "$script_src" issue-1 run-untracked-auto) >/dev/null 2>"$tmpdir_untracked_auto/stderr-untracked-auto"
+code_untracked_auto=$?
+set -e
+if [[ "$code_untracked_auto" -ne 0 ]]; then
+  eprint "Expected auto mode to include untracked files"
+  cat "$tmpdir_untracked_auto/stderr-untracked-auto" >&2
+  exit 1
+fi
+
+untracked_auto_json="$tmpdir_untracked_auto/.agentic-sdd/test-reviews/issue-1/run-untracked-auto/test-review.json"
+status_untracked_auto="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1],encoding="utf-8")).get("status",""))' "$untracked_auto_json")"
+if [[ "$status_untracked_auto" != "Approved" ]]; then
+  eprint "Expected Approved status for untracked auto mode case, got: $status_untracked_auto"
   exit 1
 fi
 
