@@ -355,9 +355,9 @@ if [[ -z "$test_meta_head_sha" ]]; then
   eprint "Run /test-review ${scope_id} again."
   exit 2
 fi
-if [[ "$test_meta_diff_mode" != "range" ]]; then
-  eprint "Invalid test-review metadata (diff_mode must be 'range', got '$test_meta_diff_mode'): $test_review_meta"
-  eprint "Run /test-review ${scope_id} with TEST_REVIEW_DIFF_MODE=range."
+if [[ "$test_meta_diff_mode" != "worktree" && "$test_meta_diff_mode" != "staged" && "$test_meta_diff_mode" != "range" ]]; then
+  eprint "Invalid test-review metadata (unexpected diff_mode='$test_meta_diff_mode'): $test_review_meta"
+  eprint "Run /test-review ${scope_id} again."
   exit 2
 fi
 if [[ "$current_head_sha" != "$test_meta_head_sha" ]]; then
@@ -368,13 +368,13 @@ if [[ "$current_head_sha" != "$test_meta_head_sha" ]]; then
   exit 2
 fi
 
-if [[ -z "$test_meta_base_sha" ]]; then
+if [[ "$test_meta_diff_mode" == "range" && -z "$test_meta_base_sha" ]]; then
   eprint "Invalid test-review metadata (diff_mode=range requires base_sha): $test_review_meta"
   eprint "Run /test-review ${scope_id} again."
   exit 2
 fi
 
-if [[ -n "$test_meta_base_sha" ]]; then
+if [[ "$test_meta_diff_mode" == "range" && -n "$test_meta_base_sha" ]]; then
   effective_test_base_ref="${test_meta_base_ref:-main}"
   fetch_remote_tracking_ref "$repo_root" "$effective_test_base_ref"
   if ! git -C "$repo_root" rev-parse --verify "$effective_test_base_ref" >/dev/null 2>&1; then
@@ -444,7 +444,7 @@ if [[ -z "$BASE" ]]; then
   fi
 fi
 
-if [[ -n "$test_meta_base_sha" ]]; then
+if [[ "$test_meta_diff_mode" == "range" && -n "$test_meta_base_sha" ]]; then
   test_reviewed_base_branch="$(normalize_base_branch_for_compare "$repo_root" "${test_meta_base_ref:-main}")"
   if [[ "$BASE" != "$test_reviewed_base_branch" ]]; then
     eprint "PR base '$BASE' differs from test-reviewed base '$test_reviewed_base_branch'."

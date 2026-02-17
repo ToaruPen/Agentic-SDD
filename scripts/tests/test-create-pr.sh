@@ -303,19 +303,7 @@ if ! grep -q "PR base 'main' differs from test-reviewed base 'develop'" "$tmpdir
 fi
 
 write_test_review_metadata "$head_sha" "develop" "$develop_sha" "worktree"
-set +e
-(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base main) >/dev/null 2>"$tmpdir/stderr_test_worktree_diff_mode"
-code_test_worktree_diff_mode=$?
-set -e
-if [[ "$code_test_worktree_diff_mode" -eq 0 ]]; then
-  eprint "Expected non-range test-review diff_mode to fail"
-  exit 1
-fi
-if ! grep -q "diff_mode must be 'range'" "$tmpdir/stderr_test_worktree_diff_mode"; then
-  eprint "Expected non-range test-review diff_mode error message, got:"
-  cat "$tmpdir/stderr_test_worktree_diff_mode" >&2
-  exit 1
-fi
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base main) >/dev/null 2>/dev/null
 
 write_test_review_metadata "$head_sha" "origin/main" "$base_sha" "unknown"
 set +e
@@ -326,7 +314,7 @@ if [[ "$code_test_invalid_diff_mode" -eq 0 ]]; then
   eprint "Expected invalid test-review diff_mode to fail"
   exit 1
 fi
-if ! grep -q "diff_mode must be 'range'" "$tmpdir/stderr_test_invalid_diff_mode"; then
+if ! grep -q "unexpected diff_mode='unknown'" "$tmpdir/stderr_test_invalid_diff_mode"; then
   eprint "Expected invalid test-review diff_mode error message, got:"
   cat "$tmpdir/stderr_test_invalid_diff_mode" >&2
   exit 1
