@@ -284,6 +284,12 @@ During development (and before committing, per `/impl`), iterate locally with:
 By default, it reviews the branch diff against `origin/main...HEAD` (fallback: `main...HEAD`).
 In this default (`DIFF_MODE=range`), the working tree must be clean; for pre-commit local changes, use `DIFF_MODE=staged` or `DIFF_MODE=worktree`.
 
+Recommended incremental operation:
+
+- First run in an Issue/branch: keep `REVIEW_CYCLE_INCREMENTAL=0` (fresh full baseline).
+- Subsequent reruns in the same Issue loop: set `REVIEW_CYCLE_INCREMENTAL=1`.
+- Force a fresh full run again when base/HEAD context changed materially (for example rebase/base update) and right before `/final-review`.
+
 Note: the review engine invocation (`codex exec` by default) has no timeout by default. If you need one, set `EXEC_TIMEOUT_SEC` (uses `timeout`/`gtimeout` when available).
 
 If you set `GH_ISSUE=123`, it reads the Issue body and `- PRD:` / `- Epic:` references
