@@ -9,7 +9,7 @@ Usage: update-agentic-sdd.sh [options]
 Update Agentic-SDD files managed via git subtree.
 
 Options:
-  --prefix <path>      Subtree prefix in the target repo (default: .agentic-sdd)
+  --prefix <path>      Subtree prefix in the target repo (default: .agentic-sdd-upstream)
   --repo <url>         Upstream repository URL
                        (default: https://github.com/ToaruPen/Agentic-SDD.git)
   --ref <ref>          Upstream ref to pull (tag/branch/sha). Required unless AGENTIC_SDD_SUBTREE_REF is set.
@@ -23,14 +23,14 @@ Environment:
 
 Examples:
   ./scripts/update-agentic-sdd.sh --ref v0.2.39
-  ./scripts/update-agentic-sdd.sh --prefix .agentic-sdd --repo https://github.com/ToaruPen/Agentic-SDD.git --ref main
+  ./scripts/update-agentic-sdd.sh --prefix .agentic-sdd-upstream --repo https://github.com/ToaruPen/Agentic-SDD.git --ref main
 EOF
 }
 
 log_info() { printf '[INFO] %s\n' "$*"; }
 log_error() { printf '[ERROR] %s\n' "$*" >&2; }
 
-PREFIX="${AGENTIC_SDD_SUBTREE_PREFIX:-.agentic-sdd}"
+PREFIX="${AGENTIC_SDD_SUBTREE_PREFIX:-.agentic-sdd-upstream}"
 REPO="${AGENTIC_SDD_SUBTREE_REPO:-https://github.com/ToaruPen/Agentic-SDD.git}"
 REF="${AGENTIC_SDD_SUBTREE_REF:-}"
 DRY_RUN=false
@@ -115,9 +115,12 @@ log_info "prefix=$PREFIX"
 log_info "repo=$REPO"
 log_info "ref=$REF"
 
-if [[ ! -x "$(git --exec-path)/git-subtree" ]]; then
-  log_error "git subtree is not available in this environment"
-  exit 1
+subtree_probe="$(git subtree --version 2>&1 || true)"
+if [[ "$subtree_probe" == *"is not a git command"* ]]; then
+  if ! git help -a 2>/dev/null | grep -qE '^[[:space:]]*subtree([[:space:]]|$)'; then
+    log_error "git subtree is not available in this environment"
+    exit 1
+  fi
 fi
 
 if [[ "$DRY_RUN" == true ]]; then

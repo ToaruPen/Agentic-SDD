@@ -28,7 +28,7 @@ fi
 repo="$tmpdir/repo"
 mkdir -p "$repo"
 git -C "$repo" init -q
-mkdir -p "$repo/.agentic-sdd"
+mkdir -p "$repo/.agentic-sdd-upstream"
 
 repo_no_prefix="$tmpdir/repo-no-prefix"
 mkdir -p "$repo_no_prefix"
@@ -81,10 +81,42 @@ if ! grep -Fq "Missing value for --prefix" "$tmpdir/stderr-missing-prefix-value"
   exit 1
 fi
 
+set +e
+(cd "$repo" && "$updater" --repo --ref v0.2.39) >/dev/null 2>"$tmpdir/stderr-missing-repo-value"
+code=$?
+set -e
+if [[ "$code" -ne 1 ]]; then
+  eprint "Expected exit code 1 when --repo value is missing, got: $code"
+  cat "$tmpdir/stderr-missing-repo-value" >&2
+  exit 1
+fi
+
+if ! grep -Fq "Missing value for --repo" "$tmpdir/stderr-missing-repo-value"; then
+  eprint "Expected missing --repo value error message"
+  cat "$tmpdir/stderr-missing-repo-value" >&2
+  exit 1
+fi
+
+set +e
+(cd "$repo" && "$updater" --ref) >/dev/null 2>"$tmpdir/stderr-missing-ref-value"
+code=$?
+set -e
+if [[ "$code" -ne 1 ]]; then
+  eprint "Expected exit code 1 when --ref value is missing, got: $code"
+  cat "$tmpdir/stderr-missing-ref-value" >&2
+  exit 1
+fi
+
+if ! grep -Fq "Missing value for --ref" "$tmpdir/stderr-missing-ref-value"; then
+  eprint "Expected missing --ref value error message"
+  cat "$tmpdir/stderr-missing-ref-value" >&2
+  exit 1
+fi
+
 out_file="$tmpdir/stdout-dry-run"
 (cd "$repo" && "$updater" --ref v0.2.39 --dry-run >"$out_file")
 
-if ! grep -Fq "git subtree pull --prefix .agentic-sdd https://github.com/ToaruPen/Agentic-SDD.git v0.2.39 --squash" "$out_file"; then
+if ! grep -Fq "git subtree pull --prefix .agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.2.39 --squash" "$out_file"; then
   eprint "Expected dry-run subtree command output"
   cat "$out_file" >&2
   exit 1
@@ -94,7 +126,7 @@ mkdir -p "$repo/subdir/nested"
 out_nested="$tmpdir/stdout-dry-run-subdir"
 (cd "$repo/subdir/nested" && "$updater" --ref v0.2.39 --dry-run >"$out_nested")
 
-if ! grep -Fq "git subtree pull --prefix .agentic-sdd https://github.com/ToaruPen/Agentic-SDD.git v0.2.39 --squash" "$out_nested"; then
+if ! grep -Fq "git subtree pull --prefix .agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.2.39 --squash" "$out_nested"; then
   eprint "Expected dry-run subtree command output from nested directory"
   cat "$out_nested" >&2
   exit 1
