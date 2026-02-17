@@ -17,8 +17,6 @@ Installs:
   - Codex skill: ~/.codex/skills/agentic-sdd/SKILL.md
   - Codex skill changelog: ~/.codex/skills/agentic-sdd/CHANGELOG.md
   - Claude skill: ~/.claude/skills/agentic-sdd/SKILL.md
-  - Clawdbot shared skill: ~/.clawdbot/skills/agentic-sdd/SKILL.md
-    - If a workspace skill is detected, it is replaced by a symlink to the shared skill.
 
 Options:
   --dry-run    Show planned changes only
@@ -35,19 +33,6 @@ timestamp() { date +%Y%m%d_%H%M%S; }
 backup_path() {
     local path="$1"
     echo "${path}.bak.$(timestamp)"
-}
-
-clawdbot_workspace_backup_dir() {
-    local workspace_skill_dir="$1"
-    local workspace_skills_root
-    workspace_skills_root="$(dirname "$workspace_skill_dir")"
-    local workspace_root
-    workspace_root="$(dirname "$workspace_skills_root")"
-
-    local backup_root="$workspace_root/.agentic-sdd-backups/clawdbot-skills"
-    mkdir -p "$backup_root"
-
-    echo "$backup_root/agentic-sdd.$(timestamp)"
 }
 
 require_cmd() {
@@ -185,34 +170,6 @@ ensure_executable() {
     chmod +x "$path"
 }
 
-detect_clawdbot_workspace_skill_dir() {
-    if ! command -v clawdbot >/dev/null 2>&1; then
-        return 0
-    fi
-
-    local out
-    out="$(clawdbot skills info agentic-sdd 2>/dev/null || true)"
-    [ -n "$out" ] || return 0
-
-    local p
-    p="$(printf '%s\n' "$out" | sed -n 's/^  Path: //p' | head -n 1)"
-    [ -n "$p" ] || return 0
-
-    local reported_dir
-    reported_dir="$(dirname "$p")"
-
-    local skills_root
-    skills_root="$(dirname "$reported_dir")"
-
-    local canonical_dir="$skills_root/agentic-sdd"
-    if [ -d "$canonical_dir" ]; then
-        printf '%s\n' "$canonical_dir"
-        return 0
-    fi
-
-    printf '%s\n' "$reported_dir"
-}
-
 detect_remote_default_ref() {
     local url="$1"
     local symref
@@ -311,55 +268,5 @@ copy_with_backup \
     "$SOURCE_ROOT/templates/claude/skills/agentic-sdd/SKILL.md" \
     "$home/.claude/skills/agentic-sdd/SKILL.md" \
     "$DRY_RUN"
-
-# 6) Clawdbot shared skill
-copy_with_backup \
-    "$SOURCE_ROOT/templates/clawdbot/skills/agentic-sdd/SKILL.md" \
-    "$home/.clawdbot/skills/agentic-sdd/SKILL.md" \
-    "$DRY_RUN"
-
-# 7) Clawdbot workspace skill migration (replace by symlink)
-workspace_skill_dir="$(detect_clawdbot_workspace_skill_dir || true)"
-shared_skill_dir="$home/.clawdbot/skills/agentic-sdd"
-
-if [ -n "$workspace_skill_dir" ] \
-    && [ "$workspace_skill_dir" != "$shared_skill_dir" ] \
-    && [ -d "$workspace_skill_dir" ]; then
-
-    if [ -L "$workspace_skill_dir" ]; then
-        log_info "Clawdbot workspace skill already symlinked: $workspace_skill_dir"
-    else
-        backup_dir="$(clawdbot_workspace_backup_dir "$workspace_skill_dir")"
-        if [ "$DRY_RUN" = true ]; then
-            log_info "[DRY-RUN] mv: $workspace_skill_dir -> $backup_dir"
-            log_info "[DRY-RUN] ln -s: $shared_skill_dir -> $workspace_skill_dir"
-        else
-            mv "$workspace_skill_dir" "$backup_dir"
-            ln -s "$shared_skill_dir" "$workspace_skill_dir"
-        fi
-    fi
-
-    # If older backups exist inside <workspace>/skills, move them out of the skills directory
-    # to avoid being picked up as duplicate skills.
-    workspace_skills_root="$(dirname "$workspace_skill_dir")"
-    workspace_backup_root="$(dirname "$workspace_skills_root")/.agentic-sdd-backups/clawdbot-skills"
-
-    if [ "$DRY_RUN" = true ]; then
-        log_info "[DRY-RUN] scan for stray backups in: $workspace_skills_root"
-    else
-        mkdir -p "$workspace_backup_root"
-    fi
-
-    shopt -s nullglob
-    for d in "$workspace_skills_root"/agentic-sdd.bak.*; do
-        [ -d "$d" ] || continue
-        if [ "$DRY_RUN" = true ]; then
-            log_info "[DRY-RUN] mv: $d -> $workspace_backup_root/$(basename "$d")"
-        else
-            mv "$d" "$workspace_backup_root/$(basename "$d")"
-        fi
-    done
-    shopt -u nullglob
-fi
 
 log_info "Done."
