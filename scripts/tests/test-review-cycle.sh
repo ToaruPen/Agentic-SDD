@@ -265,6 +265,22 @@ if ! grep -q "Both staged and worktree diffs are non-empty" "$tmpdir/stderr"; th
   exit 1
 fi
 
+
+# Worktree diff mode should succeed even when staged changes also exist
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" DIFF_MODE=worktree \
+  "$review_cycle_sh" issue-1 --dry-run) >/dev/null 2>"$tmpdir/stderr_worktree"
+if [[ $? -ne 0 ]]; then
+  eprint "Expected DIFF_MODE=worktree to succeed when worktree has diff"
+  cat "$tmpdir/stderr_worktree" >&2
+  exit 1
+fi
+if ! grep -q "diff_source: worktree" "$tmpdir/stderr_worktree"; then
+  eprint "Expected worktree diff source for DIFF_MODE=worktree"
+  cat "$tmpdir/stderr_worktree" >&2
+  exit 1
+fi
+
+
 # Full run (no real codex; use stub)
 cat > "$tmpdir/codex" <<'EOF'
 #!/usr/bin/env bash
@@ -425,6 +441,16 @@ fi
 if ! grep -q '"diff_source": "staged"' "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
   eprint "Expected diff_source=staged in review metadata"
   cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" >&2
+  exit 1
+fi
+
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=worktree \
+  CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-worktree) >/dev/null
+
+if ! grep -q '"diff_source": "worktree"' "$tmpdir/.agentic-sdd/reviews/issue-1/run-worktree/review-metadata.json"; then
+  eprint "Expected diff_source=worktree in review metadata"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/run-worktree/review-metadata.json" >&2
   exit 1
 fi
 
