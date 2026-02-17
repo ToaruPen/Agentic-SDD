@@ -12,7 +12,7 @@ Run two-stage test review:
 
 Environment:
   TEST_REVIEW_PREFLIGHT_COMMAND   Required command for preflight checks
-  TEST_REVIEW_DIFF_MODE           auto|worktree|staged|range (default: auto)
+  TEST_REVIEW_DIFF_MODE           auto|worktree|staged|range (default: range)
   TEST_REVIEW_BASE_REF            Base ref when diff mode is range (default: origin/main)
   OUTPUT_ROOT                     Output root (default: <repo_root>/.agentic-sdd/test-reviews)
 
@@ -100,7 +100,7 @@ if [[ -z "$pref_cmd" ]]; then
   exit 2
 fi
 
-configured_diff_mode="${TEST_REVIEW_DIFF_MODE:-auto}"
+configured_diff_mode="${TEST_REVIEW_DIFF_MODE:-range}"
 diff_mode="$configured_diff_mode"
 base_ref="${TEST_REVIEW_BASE_REF:-origin/main}"
 

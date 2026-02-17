@@ -113,7 +113,7 @@ fi
 
 git -C "$tmpdir" add hello.sh
 set +e
-(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' "$script_src" issue-1 run-no-tests-auto) >/dev/null 2>"$tmpdir/stderr-no-tests-auto"
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=auto "$script_src" issue-1 run-no-tests-auto) >/dev/null 2>"$tmpdir/stderr-no-tests-auto"
 code_no_tests_auto=$?
 set -e
 if [[ "$code_no_tests_auto" -eq 0 ]]; then
@@ -129,7 +129,7 @@ fi
 
 echo "extra-unstaged" >> "$tmpdir/hello.sh"
 set +e
-(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' "$script_src" issue-1 run-auto-mixed-diff) >/dev/null 2>"$tmpdir/stderr-auto-mixed"
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=auto "$script_src" issue-1 run-auto-mixed-diff) >/dev/null 2>"$tmpdir/stderr-auto-mixed"
 code_auto_mixed=$?
 set -e
 if [[ "$code_auto_mixed" -eq 0 ]]; then
