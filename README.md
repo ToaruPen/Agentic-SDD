@@ -183,6 +183,36 @@ Use `full` instead of `minimal` if you want GitHub issue/PR templates.
 
 After installation, OpenCode exposes Agentic-SDD's init checklist as `/sdd-init` (because `/init` is built-in).
 
+### 0.5) Update existing installs with git subtree (recommended)
+
+If Agentic-SDD is already installed in your repository and you want repeatable updates without manual re-import,
+use `git subtree` with a fixed prefix (for example `.agentic-sdd-upstream`).
+
+One-time setup in each target repository:
+
+```bash
+git subtree add --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.2.39 --squash
+```
+
+Then update by tag/branch:
+
+```bash
+git subtree pull --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.2.39 --squash
+```
+
+This repository also includes a helper script for the pull step:
+
+```bash
+./.agentic-sdd-upstream/scripts/update-agentic-sdd.sh --ref v0.2.39
+```
+
+Notes:
+
+- Prefer pinned tags for deterministic updates.
+- Avoid chained subtree setups (`subtree -> subtree`); each consumer repo should pull directly from this repo.
+- Keep local customizations outside the subtree prefix (for example `.agentic-sdd.local/`) to reduce merge friction.
+- Avoid using `.agentic-sdd/` as subtree prefix because it is used for runtime artifacts.
+
 ### 1) Create a PRD
 
 ```
@@ -396,6 +426,7 @@ scripts/
 ├── setup-global-agentic-sdd.sh
 ├── sot_refs.py
 ├── sync-agent-config.sh
+├── update-agentic-sdd.sh
 ├── ui-iterate.sh
 ├── validate-approval.py
 ├── validate-review-json.py
@@ -408,6 +439,7 @@ scripts/
     ├── test-review-cycle.sh
     ├── test-setup-global-agentic-sdd.sh
     ├── test-sync-docs-inputs.sh
+    ├── test-update-agentic-sdd.sh
     ├── test-ui-iterate.sh
     └── test-worktree.sh
 
