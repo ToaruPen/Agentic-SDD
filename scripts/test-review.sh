@@ -212,7 +212,7 @@ is_test_file_path() {
   local path="$1"
 
   case "$path" in
-    scripts/tests/test-*.sh|test_*.py|*/test_*.py|*_test.py|*/*_test.py)
+    scripts/tests/test-*.sh|test_*.py|*_test.py)
       return 0
       ;;
     docs/*|*.md)
