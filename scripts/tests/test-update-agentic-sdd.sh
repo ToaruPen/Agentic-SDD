@@ -90,4 +90,14 @@ if ! grep -Fq "git subtree pull --prefix .agentic-sdd https://github.com/ToaruPe
   exit 1
 fi
 
+mkdir -p "$repo/subdir/nested"
+out_nested="$tmpdir/stdout-dry-run-subdir"
+(cd "$repo/subdir/nested" && "$updater" --ref v0.2.39 --dry-run >"$out_nested")
+
+if ! grep -Fq "git subtree pull --prefix .agentic-sdd https://github.com/ToaruPen/Agentic-SDD.git v0.2.39 --squash" "$out_nested"; then
+  eprint "Expected dry-run subtree command output from nested directory"
+  cat "$out_nested" >&2
+  exit 1
+fi
+
 eprint "OK: scripts/tests/test-update-agentic-sdd.sh"

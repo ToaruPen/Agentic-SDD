@@ -95,7 +95,15 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   exit 1
 fi
 
-if [[ ! -d "$PREFIX" ]]; then
+repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -z "$repo_root" ]]; then
+  log_error "Failed to resolve git repository root"
+  exit 1
+fi
+
+prefix_dir="${repo_root%/}/$PREFIX"
+
+if [[ ! -d "$prefix_dir" ]]; then
   log_error "Prefix directory does not exist: $PREFIX"
   log_error "Run initial import first: git subtree add --prefix=$PREFIX $REPO $REF --squash"
   exit 1
@@ -119,5 +127,5 @@ if [[ "$DRY_RUN" == true ]]; then
   exit 0
 fi
 
-"${cmd[@]}"
+(cd "$repo_root" && "${cmd[@]}")
 log_info "Subtree update completed"
