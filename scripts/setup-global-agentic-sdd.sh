@@ -213,26 +213,6 @@ detect_clawdbot_workspace_skill_dir() {
     printf '%s\n' "$reported_dir"
 }
 
-detect_local_default_ref() {
-    local root="$1"
-    local remote_head
-    if remote_head="$(git -C "$root" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
-        remote_head="${remote_head#origin/}"
-        if [ -n "$remote_head" ]; then
-            printf '%s\n' "$remote_head"
-            return 0
-        fi
-    fi
-
-    local current_branch
-    if current_branch="$(git -C "$root" branch --show-current 2>/dev/null)" && [ -n "$current_branch" ]; then
-        printf '%s\n' "$current_branch"
-        return 0
-    fi
-
-    git -C "$root" rev-parse HEAD 2>/dev/null || printf '%s\n' "main"
-}
-
 detect_remote_default_ref() {
     local url="$1"
     local symref
@@ -280,13 +260,11 @@ repo_sha="$(git -C "$SOURCE_ROOT" rev-parse HEAD)"
 repo_url="${AGENTIC_SDD_REPO:-https://github.com/ToaruPen/Agentic-SDD.git}"
 if [ -n "${AGENTIC_SDD_DEFAULT_REF:-}" ]; then
     default_ref="$AGENTIC_SDD_DEFAULT_REF"
-elif [ -n "${AGENTIC_SDD_REPO:-}" ]; then
+else
     if ! default_ref="$(detect_remote_default_ref "$repo_url")"; then
-        log_warn "Could not detect default branch from AGENTIC_SDD_REPO. Falling back to 'main'."
+        log_warn "Could not detect default branch from repo URL. Falling back to 'main'."
         default_ref="main"
     fi
-else
-    default_ref="$(detect_local_default_ref "$SOURCE_ROOT")"
 fi
 
 log_info "Installing global Agentic-SDD entrypoints"
