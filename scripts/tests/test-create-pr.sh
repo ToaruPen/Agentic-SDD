@@ -52,6 +52,18 @@ cat > "$work/.agentic-sdd/reviews/issue-1/run1/review.json" <<'EOF'
 }
 EOF
 
+mkdir -p "$work/.agentic-sdd/test-reviews/issue-1/run1"
+printf '%s' 'run1' > "$work/.agentic-sdd/test-reviews/issue-1/.current_run"
+cat > "$work/.agentic-sdd/test-reviews/issue-1/run1/test-review.json" <<'EOF'
+{
+  "schema_version": 1,
+  "scope_id": "issue-1",
+  "status": "Approved",
+  "findings": [],
+  "overall_explanation": "ok"
+}
+EOF
+
 write_review_metadata() {
   local head_sha="$1"
   local base_ref="$2"
@@ -70,9 +82,67 @@ write_review_metadata() {
 EOF
 }
 
+write_test_review_metadata() {
+  local head_sha="$1"
+  local base_ref="$2"
+  local base_sha="$3"
+  local diff_mode="${4:-range}"
+  cat > "$work/.agentic-sdd/test-reviews/issue-1/run1/test-review-metadata.json" <<EOF
+{
+  "schema_version": 1,
+  "scope_id": "issue-1",
+  "run_id": "run1",
+  "head_sha": "${head_sha}",
+  "base_ref": "${base_ref}",
+  "base_sha": "${base_sha}",
+  "diff_mode": "${diff_mode}"
+}
+EOF
+}
 base_sha="$(git -C "$work" rev-parse origin/main)"
 head_sha="$(git -C "$work" rev-parse HEAD)"
 write_review_metadata "$head_sha" "origin/main" "$base_sha"
+write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
+
+mkdir -p "$tmpdir/bin"
+cat > "$tmpdir/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+EOF
+chmod +x "$tmpdir/bin/gh"
+
+rm -f "$work/.agentic-sdd/test-reviews/issue-1/.current_run"
+set +e
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>"$tmpdir/stderr_missing_test_review"
+code_missing_test_review=$?
+set -e
+if [[ "$code_missing_test_review" -eq 0 ]]; then
+  eprint "Expected missing test-review output to fail"
+  exit 1
+fi
+if ! grep -q "Missing /test-review output" "$tmpdir/stderr_missing_test_review"; then
+  eprint "Expected missing test-review error message, got:"
+  cat "$tmpdir/stderr_missing_test_review" >&2
+  exit 1
+fi
+
+printf '%s' '../issue-2/run1' > "$work/.agentic-sdd/test-reviews/issue-1/.current_run"
+set +e
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>"$tmpdir/stderr_invalid_test_review_run_id"
+code_invalid_test_review_run_id=$?
+set -e
+if [[ "$code_invalid_test_review_run_id" -eq 0 ]]; then
+  eprint "Expected unsafe test-review run id to fail"
+  exit 1
+fi
+if ! grep -q "Invalid test-review .current_run (unsafe run id)" "$tmpdir/stderr_invalid_test_review_run_id"; then
+  eprint "Expected unsafe test-review run id error message, got:"
+  cat "$tmpdir/stderr_invalid_test_review_run_id" >&2
+  exit 1
+fi
+
+printf '%s' 'run1' > "$work/.agentic-sdd/test-reviews/issue-1/.current_run"
 
 # Stub gh (no network/auth)
 mkdir -p "$tmpdir/bin"
@@ -90,7 +160,7 @@ fi
 if [[ ${1:-} == "issue" && ${2:-} == "develop" && ${3:-} == "--list" ]]; then
   issue="${4:-}"
   if [[ "$issue" == "1" ]]; then
-    printf '%s\n' "feature/issue-1-test"
+    printf '%b\n' "feature/issue-1-test\thttps://example.invalid/tree/feature/issue-1-test"
     exit 0
   fi
   exit 0
@@ -151,6 +221,7 @@ fi
 # Refresh metadata for current head.
 head_sha="$(git -C "$work" rev-parse HEAD)"
 write_review_metadata "$head_sha" "origin/main" "$base_sha"
+write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
 
 # Stale base should fail and require re-review.
 git -C "$work" checkout main -q
@@ -169,7 +240,7 @@ if [[ "$code_stale_base" -eq 0 ]]; then
   eprint "Expected moved base ref to fail"
   exit 1
 fi
-if ! grep -q "Base ref 'origin/main' moved since /review-cycle" "$tmpdir/stderr_stale_base"; then
+if ! grep -q "Base ref 'origin/main' moved since /test-review" "$tmpdir/stderr_stale_base"; then
   eprint "Expected stale base error message, got:"
   cat "$tmpdir/stderr_stale_base" >&2
   exit 1
@@ -179,6 +250,7 @@ fi
 base_sha="$(git -C "$work" rev-parse origin/main)"
 head_sha="$(git -C "$work" rev-parse HEAD)"
 write_review_metadata "$head_sha" "origin/main" "$base_sha"
+write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
 
 # Local base branch names that include "/" must not be treated as remote refs,
 # even when a same-prefix remote exists.
@@ -189,12 +261,17 @@ git -C "$work" branch release/v1 "$base_sha"
 release_base_sha="$(git -C "$work" rev-parse release/v1)"
 git -C "$work" update-ref refs/remotes/release/v1 "$release_base_sha"
 write_review_metadata "$head_sha" "release/v1" "$release_base_sha"
+write_test_review_metadata "$head_sha" "release/v1" "$release_base_sha"
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base release/v1) >/dev/null 2>"$tmpdir/stderr_local_slash_base"
 
 # Restore metadata for origin/main scenarios below.
 write_review_metadata "$head_sha" "origin/main" "$base_sha"
+write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
+git -C "$work" branch develop "$base_sha"
+develop_sha="$(git -C "$work" rev-parse develop)"
 
 # PR base override must match reviewed base branch.
+write_test_review_metadata "$head_sha" "develop" "$develop_sha"
 set +e
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base develop) >/dev/null 2>"$tmpdir/stderr_base_branch_mismatch"
 code_base_branch_mismatch=$?
@@ -208,6 +285,69 @@ if ! grep -q "PR base 'develop' differs from reviewed base 'main'" "$tmpdir/stde
   cat "$tmpdir/stderr_base_branch_mismatch" >&2
   exit 1
 fi
+
+write_review_metadata "$head_sha" "origin/main" "$base_sha"
+write_test_review_metadata "$head_sha" "develop" "$develop_sha"
+set +e
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base main) >/dev/null 2>"$tmpdir/stderr_test_base_branch_mismatch"
+code_test_base_branch_mismatch=$?
+set -e
+if [[ "$code_test_base_branch_mismatch" -eq 0 ]]; then
+  eprint "Expected test-reviewed base branch mismatch to fail"
+  exit 1
+fi
+if ! grep -q "PR base 'main' differs from test-reviewed base 'develop'" "$tmpdir/stderr_test_base_branch_mismatch"; then
+  eprint "Expected test-reviewed base branch mismatch error message, got:"
+  cat "$tmpdir/stderr_test_base_branch_mismatch" >&2
+  exit 1
+fi
+
+write_test_review_metadata "$head_sha" "develop" "$develop_sha" "worktree"
+set +e
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base main) >/dev/null 2>"$tmpdir/stderr_test_worktree_diff_mode"
+code_test_worktree_diff_mode=$?
+set -e
+if [[ "$code_test_worktree_diff_mode" -eq 0 ]]; then
+  eprint "Expected non-range test-review diff_mode to fail"
+  exit 1
+fi
+if ! grep -q "diff_mode must be 'range'" "$tmpdir/stderr_test_worktree_diff_mode"; then
+  eprint "Expected non-range test-review diff_mode error message, got:"
+  cat "$tmpdir/stderr_test_worktree_diff_mode" >&2
+  exit 1
+fi
+
+write_test_review_metadata "$head_sha" "origin/main" "$base_sha" "unknown"
+set +e
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base main) >/dev/null 2>"$tmpdir/stderr_test_invalid_diff_mode"
+code_test_invalid_diff_mode=$?
+set -e
+if [[ "$code_test_invalid_diff_mode" -eq 0 ]]; then
+  eprint "Expected invalid test-review diff_mode to fail"
+  exit 1
+fi
+if ! grep -q "diff_mode must be 'range'" "$tmpdir/stderr_test_invalid_diff_mode"; then
+  eprint "Expected invalid test-review diff_mode error message, got:"
+  cat "$tmpdir/stderr_test_invalid_diff_mode" >&2
+  exit 1
+fi
+
+write_test_review_metadata "$head_sha" "origin/main" "" "range"
+set +e
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base main) >/dev/null 2>"$tmpdir/stderr_test_range_missing_base_sha"
+code_test_range_missing_base_sha=$?
+set -e
+if [[ "$code_test_range_missing_base_sha" -eq 0 ]]; then
+  eprint "Expected missing test-review base_sha for range mode to fail"
+  exit 1
+fi
+if ! grep -q "Invalid test-review metadata (diff_mode=range requires base_sha)" "$tmpdir/stderr_test_range_missing_base_sha"; then
+  eprint "Expected missing test-review base_sha error message, got:"
+  cat "$tmpdir/stderr_test_range_missing_base_sha" >&2
+  exit 1
+fi
+
+write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
 
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
 
