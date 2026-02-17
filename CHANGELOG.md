@@ -8,6 +8,8 @@ All notable changes to this project will be documented in this file.
 - Make `/create-prd` and `/create-epic` require `/research` as Phase 0, and document conditional `/research estimation` usage.
 - Extend `scripts/lint-sot.py` (and tests) to lint `docs/research/**` contract requirements.
 - Add a GitHub Actions template for PR comment-driven autofix loops (opt-in) and wire it into the installer.
+- Add subtree-based update guidance to `README.md` and add `scripts/update-agentic-sdd.sh` for deterministic `git subtree pull` updates.
+- Add deterministic coverage for subtree updater behavior in `scripts/tests/test-update-agentic-sdd.sh`, and verify installer includes the helper script.
 - Change `/review-cycle` default diff source to base-branch range (`origin/main...HEAD`, fallback `main...HEAD`) via `DIFF_MODE=range`.
 - Add `BASE_REF` support to `/review-cycle` and extend `DIFF_MODE` with `range`.
 - Add `/review-cycle` metadata output (`review-metadata.json`) with `head_sha`/`base_ref`/`base_sha`/`diff_sha256`.
