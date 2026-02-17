@@ -10,7 +10,7 @@ Install global entrypoints for Agentic-SDD (safe, with backups).
 
 Installs:
   - ~/.local/bin/agentic-sdd
-  - ~/.config/agentic-sdd/default-ref (pinned to this repo's HEAD)
+  - ~/.config/agentic-sdd/default-ref (auto-detected)
   - ~/.config/agentic-sdd/repo
   - OpenCode command: ~/.config/opencode/commands/agentic-sdd.md
   - OpenCode skill: ~/.config/opencode/skills/agentic-sdd (symlink to ~/.codex/skills/agentic-sdd)
@@ -213,6 +213,32 @@ detect_clawdbot_workspace_skill_dir() {
     printf '%s\n' "$reported_dir"
 }
 
+detect_local_default_ref() {
+    local root="$1"
+    local remote_head
+    if remote_head="$(git -C "$root" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)"; then
+        remote_head="${remote_head#origin/}"
+        if [ -n "$remote_head" ]; then
+            printf '%s\n' "$remote_head"
+            return 0
+        fi
+    fi
+    printf '%s\n' "main"
+}
+
+detect_remote_default_ref() {
+    local url="$1"
+    local symref
+    if ! symref="$(git ls-remote --symref "$url" HEAD 2>/dev/null | awk '/^ref:/ {print $2; exit}')"; then
+        return 1
+    fi
+    if [[ "$symref" =~ ^refs/heads/(.+)$ ]]; then
+        printf '%s\n' "${BASH_REMATCH[1]}"
+        return 0
+    fi
+    return 1
+}
+
 DRY_RUN=false
 
 while [[ $# -gt 0 ]]; do
@@ -245,10 +271,21 @@ fi
 
 repo_sha="$(git -C "$SOURCE_ROOT" rev-parse HEAD)"
 repo_url="${AGENTIC_SDD_REPO:-https://github.com/ToaruPen/Agentic-SDD.git}"
+if [ -n "${AGENTIC_SDD_DEFAULT_REF:-}" ]; then
+    default_ref="$AGENTIC_SDD_DEFAULT_REF"
+elif [ -n "${AGENTIC_SDD_REPO:-}" ]; then
+    if ! default_ref="$(detect_remote_default_ref "$repo_url")"; then
+        log_warn "Could not detect default branch from AGENTIC_SDD_REPO. Falling back to 'main'."
+        default_ref="main"
+    fi
+else
+    default_ref="$(detect_local_default_ref "$SOURCE_ROOT")"
+fi
 
 log_info "Installing global Agentic-SDD entrypoints"
 log_info "Repo SHA: $repo_sha"
 log_info "Repo URL: $repo_url"
+log_info "Default ref: $default_ref"
 
 home="$HOME"
 
@@ -257,7 +294,7 @@ copy_with_backup "$SOURCE_ROOT/scripts/agentic-sdd" "$home/.local/bin/agentic-sd
 ensure_executable "$home/.local/bin/agentic-sdd" "$DRY_RUN"
 
 # 2) Pinned defaults
-write_file "$home/.config/agentic-sdd/default-ref" "$repo_sha" "$DRY_RUN"
+write_file "$home/.config/agentic-sdd/default-ref" "$default_ref" "$DRY_RUN"
 write_file "$home/.config/agentic-sdd/repo" "$repo_url" "$DRY_RUN"
 
 # 3) OpenCode command
