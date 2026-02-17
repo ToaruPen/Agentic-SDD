@@ -462,7 +462,7 @@ Generated under `.opencode/` (gitignored):
 
 ##### Global `/agentic-sdd` command
 
-This repo provides global definitions (OpenCode/Codex/Claude/Clawdbot) and a helper CLI `agentic-sdd`
+This repo provides global definitions (OpenCode/Codex/Claude) and a helper CLI `agentic-sdd`
 to install Agentic-SDD into new projects.
 
 Setup:
