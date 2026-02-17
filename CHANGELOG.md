@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 - Fetch remote-tracking base refs (`origin/*`) before `/review-cycle` range diff and `/create-pr` base-SHA freshness checks (while preserving fallback to local `main` when `origin/main` is unavailable).
 - Make `DIFF_MODE=range` fail fast when staged/unstaged local changes exist, to avoid reviewing a stale `base...HEAD` patch against a different working-tree state.
 - Add deterministic tests for default range diff behavior, empty-range fail-fast, review metadata generation, and `/create-pr` freshness checks.
+- Add optional `/review-cycle` incremental reuse (`REVIEW_CYCLE_INCREMENTAL=1`) guarded by strict fingerprint/base/head/diff parity checks, with fail-closed fallback to full execution and reuse observability metadata.
 - Add `/ui-iterate` command documentation for iterative UI redesign loops (`capture -> patch -> verify`) with required gate alignment (`/estimation`, `/review-cycle`, `/final-review`).
 - Add `skills/ui-redesign.md` and register it in `skills/README.md`.
 - Add `scripts/ui-iterate.sh` helper to create round folders, run configurable checks, and capture desktop/mobile screenshots.
