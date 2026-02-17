@@ -4,8 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Make global setup write `~/.config/agentic-sdd/default-ref` as `main` (instead of repo HEAD SHA) for always-main installs.
-- Change Codex/OpenCode/Claude/Clawdbot `agentic-sdd` templates to use `--ref main` by default.
+- Make global setup write `~/.config/agentic-sdd/default-ref` using remote default-branch detection (with `main` fallback) instead of repo HEAD SHA.
+- Remove hardcoded `--ref main` from Codex/OpenCode/Claude/Clawdbot `agentic-sdd` templates and rely on configured defaults.
 - Add `/research` command docs and `docs/research/**` templates to persist reusable research artifacts for PRD/Epic/estimation.
 - Make `/create-prd` and `/create-epic` require `/research` as Phase 0, and document conditional `/research estimation` usage.
 - Extend `scripts/lint-sot.py` (and tests) to lint `docs/research/**` contract requirements.
