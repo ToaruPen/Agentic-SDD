@@ -32,6 +32,7 @@ Underlying script:
 2. Run tests (optional) and record results
 3. Generate `review.json` via selected engine (`codex exec` or `claude -p`)
 4. Validate JSON and save under `.agentic-sdd/`
+5. For local pre-commit changes, prefer `DIFF_MODE=staged` or `DIFF_MODE=worktree`.
 
 ## Iteration protocol (how far/how to loop)
 
