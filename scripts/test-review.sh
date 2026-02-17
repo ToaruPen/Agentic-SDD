@@ -162,18 +162,19 @@ collect_diff_files() {
 
 contains_focused_marker() {
   local path="$1"
+  local focused_pattern='(^|[^[:alnum:]_])((it|describe|test)\.only|fit|fdescribe)\('
   case "$diff_mode" in
     worktree)
       [[ -f "$repo_root/$path" ]] || return 1
-      grep -Eq '(^|[^[:alnum:]_])(it|describe|test)\.only\(|\bfit\(|\bfdescribe\(' "$repo_root/$path"
+      grep -Eq "$focused_pattern" "$repo_root/$path"
       ;;
     staged)
       git cat-file -e ":$path" >/dev/null 2>&1 || return 1
-      git show ":$path" | grep -Eq '(^|[^[:alnum:]_])(it|describe|test)\.only\(|\bfit\(|\bfdescribe\('
+      git show ":$path" | grep -Eq "$focused_pattern"
       ;;
     range)
       git cat-file -e "HEAD:$path" >/dev/null 2>&1 || return 1
-      git show "HEAD:$path" | grep -Eq '(^|[^[:alnum:]_])(it|describe|test)\.only\(|\bfit\(|\bfdescribe\('
+      git show "HEAD:$path" | grep -Eq "$focused_pattern"
       ;;
     *)
       return 1

@@ -201,6 +201,32 @@ if [[ "$status_focused_staged" != "Blocked" ]]; then
   eprint "Expected Blocked status for staged focused marker, got: $status_focused_staged"
   exit 1
 fi
+
+cat > "$tmpdir/scripts/tests/focused.spec.ts" <<'EOF'
+describe('focused', () => {
+  fit('runs one test', () => {})
+})
+EOF
+set +e
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=staged "$script_src" issue-1 run-focused-fit-staged) >/dev/null 2>"$tmpdir/stderr-focused-fit-staged"
+code_focused_fit_staged=$?
+set -e
+if [[ "$code_focused_fit_staged" -eq 0 ]]; then
+  eprint "Expected staged fit marker to block"
+  exit 1
+fi
+focused_fit_staged_json="$tmpdir/.agentic-sdd/test-reviews/issue-1/run-focused-fit-staged/test-review.json"
+status_focused_fit_staged="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1],encoding="utf-8")).get("status",""))' "$focused_fit_staged_json")"
+if [[ "$status_focused_fit_staged" != "Blocked" ]]; then
+  eprint "Expected Blocked status for staged fit marker, got: $status_focused_fit_staged"
+  exit 1
+fi
+
+cat > "$tmpdir/scripts/tests/focused.spec.ts" <<'EOF'
+describe('focused', () => {
+  it('runs one test', () => {})
+})
+EOF
 git -C "$tmpdir" add scripts/tests/focused.spec.ts
 
 mkdir -p "$tmpdir/tests" "$tmpdir/docs"
