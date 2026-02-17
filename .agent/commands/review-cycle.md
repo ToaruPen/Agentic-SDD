@@ -79,6 +79,9 @@ Underlying script:
   - If both staged and worktree diffs exist in `auto`, fail-fast and ask you to choose.
 - `BASE_REF`: base ref for `range` mode (default: `origin/main`; fallback to `main`)
 - `CONSTRAINTS`: additional constraints (default: `none`)
+- `REVIEW_CYCLE_INCREMENTAL`: `1` enables conditional reuse of the latest approved `review.json` when strict fingerprints match; default `0` (full execution)
+  - Reuse is fail-closed. Any missing/mismatched metadata field forces full execution.
+  - Reuse is allowed only when the latest review status is `Approved` or `Approved with nits`.
 
 ### Timeout (review engine execution)
 
@@ -107,6 +110,11 @@ Underlying script:
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/review.json`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/review-metadata.json`
   - In `DIFF_MODE=range`, `base_sha` is pinned to the SHA resolved when `diff.patch` is collected.
+  - Includes strict comparison keys for conditional reuse:
+    - `head_sha`, `base_ref`, `base_sha`, `diff_source`, `diff_sha256`, `schema_version`
+    - `engine_fingerprint`, `sot_fingerprint`, `tests_fingerprint`
+  - Includes reuse observability fields:
+    - `incremental_enabled`, `reuse_eligible`, `reused`, `reuse_reason`, `reused_from_run`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/diff.patch`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.txt`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.stderr`

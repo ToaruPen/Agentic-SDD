@@ -207,7 +207,7 @@ fi
 # Range mode should fail-fast when uncommitted local changes exist.
 echo "range-local-change" >> "$tmpdir/hello.txt"
 set +e
-(cd "$tmpdir" && SOT="test" TESTS="not run: reason" \
+(cd "$tmpdir" && SOT="test" TESTS="not run: reason" REVIEW_CYCLE_INCREMENTAL=1 \
   "$review_cycle_sh" issue-range-dirty --dry-run) >/dev/null 2>"$tmpdir/stderr_range_dirty"
 code_range_dirty=$?
 set -e
@@ -269,6 +269,11 @@ fi
 cat > "$tmpdir/codex" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+
+if [[ ${1:-} == "--version" ]]; then
+  printf '%s\n' "codex-stub 1.0.0"
+  exit 0
+fi
 
 if [[ ${1:-} != "exec" ]]; then
   echo "unsupported" >&2
@@ -429,6 +434,214 @@ if ! grep -q '"head_sha": "' "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-m
   exit 1
 fi
 
+for required_key in engine_fingerprint sot_fingerprint tests_fingerprint; do
+  if ! grep -q "\"${required_key}\":" "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
+    eprint "Expected ${required_key} in review metadata"
+    cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" >&2
+    exit 1
+  fi
+done
+if ! grep -q '"engine_version_available": true' "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
+  eprint "Expected engine_version_available=true in review metadata"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" >&2
+  exit 1
+fi
+
+seed_run="run-cache-seed"
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  CODEX_BIN="$tmpdir/codex" MODEL=seed-model REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 "$seed_run") >/dev/null
+
+cat > "$tmpdir/codex-no-call" <<'EOF'
+#!/usr/bin/env bash
+if [[ ${1:-} == "--version" ]]; then
+  printf '%s\n' "codex-stub 1.0.0"
+  exit 0
+fi
+echo "engine should not be called on cache hit" >&2
+exit 70
+EOF
+chmod +x "$tmpdir/codex-no-call"
+
+hit_run="run-cache-hit"
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 "$hit_run") >/dev/null 2>"$tmpdir/stderr-cache-hit"
+code_cache_hit=$?
+set -e
+if [[ "$code_cache_hit" -ne 0 ]]; then
+  eprint "Expected cache hit to reuse artifacts without calling engine"
+  cat "$tmpdir/stderr-cache-hit" >&2
+  exit 1
+fi
+
+if ! cmp -s "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"; then
+  eprint "Expected cache-hit review.json to be reused from seed run"
+  exit 1
+fi
+
+if ! grep -q '"reused": true' "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"; then
+  eprint "Expected reused=true in cache-hit metadata"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" >&2
+  exit 1
+fi
+
+if ! grep -q '"reused_from_run": "run-cache-seed"' "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"; then
+  eprint "Expected reused_from_run in cache-hit metadata"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" >&2
+  exit 1
+fi
+
+cat > "$tmpdir/codex-no-version" <<'EOF'
+#!/usr/bin/env bash
+if [[ ${1:-} == "--version" ]]; then
+  echo "no version" >&2
+  exit 2
+fi
+echo "engine called due version unavailable" >&2
+exit 71
+EOF
+chmod +x "$tmpdir/codex-no-version"
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-version" MODEL=seed-model REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-cache-no-version) >/dev/null 2>"$tmpdir/stderr-cache-no-version"
+code_cache_no_version=$?
+set -e
+if [[ "$code_cache_no_version" -eq 0 ]]; then
+  eprint "Expected missing engine version to force non-reuse"
+  exit 1
+fi
+if ! grep -q "engine called due version unavailable" "$tmpdir/stderr-cache-no-version"; then
+  eprint "Expected cache miss to execute engine when version is unavailable"
+  cat "$tmpdir/stderr-cache-no-version" >&2
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged CONSTRAINTS="tight" \
+  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-cache-constraints-miss) >/dev/null 2>"$tmpdir/stderr-cache-constraints-miss"
+code_cache_constraints_miss=$?
+set -e
+if [[ "$code_cache_constraints_miss" -eq 0 ]]; then
+  eprint "Expected constraints change to force non-reuse"
+  exit 1
+fi
+if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-constraints-miss"; then
+  eprint "Expected cache miss to execute engine when constraints changed"
+  cat "$tmpdir/stderr-cache-constraints-miss" >&2
+  exit 1
+fi
+
+python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+data["status"] = "Blocked"
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-cache-blocked) >/dev/null 2>"$tmpdir/stderr-cache-blocked"
+code_cache_blocked=$?
+set -e
+if [[ "$code_cache_blocked" -eq 0 ]]; then
+  eprint "Expected blocked cached review to be non-reusable"
+  exit 1
+fi
+if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-blocked"; then
+  eprint "Expected cache miss to execute engine when cached status is blocked"
+  cat "$tmpdir/stderr-cache-blocked" >&2
+  exit 1
+fi
+
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"
+python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+data["tests_exit_code"] = 1
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-cache-review-completed-invalid) >/dev/null 2>"$tmpdir/stderr-cache-review-completed-invalid"
+code_cache_review_completed_invalid=$?
+set -e
+if [[ "$code_cache_review_completed_invalid" -eq 0 ]]; then
+  eprint "Expected invalid review_completed to force non-reuse"
+  exit 1
+fi
+if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-review-completed-invalid"; then
+  eprint "Expected cache miss to execute engine when review_completed is invalid"
+  cat "$tmpdir/stderr-cache-review-completed-invalid" >&2
+  exit 1
+fi
+
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"
+python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+data["tests_exit_code"] = 0
+data["review_completed"] = "false"
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-cache-review-completed-string) >/dev/null 2>"$tmpdir/stderr-cache-review-completed-string"
+code_cache_review_completed_string=$?
+set -e
+if [[ "$code_cache_review_completed_string" -eq 0 ]]; then
+  eprint "Expected non-boolean review_completed to force non-reuse"
+  exit 1
+fi
+if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-review-completed-string"; then
+  eprint "Expected cache miss to execute engine when review_completed is non-boolean"
+  cat "$tmpdir/stderr-cache-review-completed-string" >&2
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-cache-tests-failed) >/dev/null 2>"$tmpdir/stderr-cache-tests-failed"
+code_cache_tests_failed=$?
+set -e
+if [[ "$code_cache_tests_failed" -eq 0 ]]; then
+  eprint "Expected tests-failed cached review to be non-reusable"
+  exit 1
+fi
+if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-tests-failed"; then
+  eprint "Expected cache miss to execute engine when cached tests_exit_code is nonzero"
+  cat "$tmpdir/stderr-cache-tests-failed" >&2
+  exit 1
+fi
+
 # CLI --model should override env MODEL
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
   CODEX_BIN="$tmpdir/codex" MODEL=envstub REASONING_EFFORT=low \
@@ -574,6 +787,24 @@ if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-stderr-fail/tests.stderr" ]
 fi
 if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-stderr-fail/review.json" ]]; then
   eprint "Did not expect review.json to be created when failing on stderr"
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" DIFF_MODE=staged \
+  TEST_COMMAND='python3 -c "import sys; sys.stdout.buffer.write(b\"ok\\xff\\n\")"' TESTS="" \
+  CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-tests-nonutf8) >/dev/null 2>"$tmpdir/stderr-tests-nonutf8"
+code_tests_nonutf8=$?
+set -e
+if [[ "$code_tests_nonutf8" -ne 0 ]]; then
+  eprint "Expected success when tests output contains non-UTF-8 bytes"
+  cat "$tmpdir/stderr-tests-nonutf8" >&2
+  exit 1
+fi
+if ! grep -q '"tests_fingerprint":' "$tmpdir/.agentic-sdd/reviews/issue-1/run-tests-nonutf8/review-metadata.json"; then
+  eprint "Expected tests_fingerprint in metadata for non-UTF-8 test output"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/run-tests-nonutf8/review-metadata.json" >&2
   exit 1
 fi
 
