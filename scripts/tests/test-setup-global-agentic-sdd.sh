@@ -86,4 +86,25 @@ if [[ "$(tr -d '\n' < "$home_custom/.config/agentic-sdd/default-ref")" != "trunk
   exit 1
 fi
 
+home_fail="$tmpdir/home-fail"
+mkdir -p "$home_fail"
+if HOME="$home_fail" AGENTIC_SDD_REPO="$tmpdir/nonexistent-remote.git" bash "$setup" >"$home_fail/stdout" 2>"$home_fail/stderr"; then
+  eprint "Expected setup to fail when remote default branch cannot be detected"
+  exit 1
+fi
+
+if ! grep -Fq "Set AGENTIC_SDD_DEFAULT_REF explicitly" "$home_fail/stderr"; then
+  eprint "Expected guidance to set AGENTIC_SDD_DEFAULT_REF on detection failure"
+  exit 1
+fi
+
+home_override="$tmpdir/home-override"
+mkdir -p "$home_override"
+HOME="$home_override" AGENTIC_SDD_REPO="$tmpdir/nonexistent-remote.git" AGENTIC_SDD_DEFAULT_REF="main" bash "$setup" >/dev/null
+
+if [[ "$(tr -d '\n' < "$home_override/.config/agentic-sdd/default-ref")" != "main" ]]; then
+  eprint "Expected explicit AGENTIC_SDD_DEFAULT_REF to bypass remote detection"
+  exit 1
+fi
+
 eprint "OK: scripts/tests/test-setup-global-agentic-sdd.sh"

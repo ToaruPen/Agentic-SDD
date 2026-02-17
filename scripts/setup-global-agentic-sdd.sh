@@ -173,7 +173,7 @@ ensure_executable() {
 detect_remote_default_ref() {
     local url="$1"
     local symref
-    if ! symref="$(git ls-remote --symref "$url" HEAD 2>/dev/null | awk '/^ref:/ {print $2; exit}')"; then
+    if ! symref="$(GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=5" git -c http.lowSpeedLimit=1 -c http.lowSpeedTime=5 ls-remote --symref "$url" HEAD 2>/dev/null | awk '/^ref:/ {print $2; exit}')"; then
         return 1
     fi
     if [[ "$symref" =~ ^refs/heads/(.+)$ ]]; then
@@ -219,8 +219,9 @@ if [ -n "${AGENTIC_SDD_DEFAULT_REF:-}" ]; then
     default_ref="$AGENTIC_SDD_DEFAULT_REF"
 else
     if ! default_ref="$(detect_remote_default_ref "$repo_url")"; then
-        log_warn "Could not detect default branch from repo URL. Falling back to 'main'."
-        default_ref="main"
+        log_error "Could not detect default branch from repo URL: $repo_url"
+        log_error "Set AGENTIC_SDD_DEFAULT_REF explicitly and rerun setup-global-agentic-sdd.sh"
+        exit 1
     fi
 fi
 
