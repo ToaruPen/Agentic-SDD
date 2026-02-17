@@ -223,7 +223,14 @@ detect_local_default_ref() {
             return 0
         fi
     fi
-    printf '%s\n' "main"
+
+    local current_branch
+    if current_branch="$(git -C "$root" branch --show-current 2>/dev/null)" && [ -n "$current_branch" ]; then
+        printf '%s\n' "$current_branch"
+        return 0
+    fi
+
+    git -C "$root" rev-parse HEAD 2>/dev/null || printf '%s\n' "main"
 }
 
 detect_remote_default_ref() {
