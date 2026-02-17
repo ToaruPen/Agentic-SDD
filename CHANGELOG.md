@@ -26,6 +26,7 @@ All notable changes to this project will be documented in this file.
 - Add `scripts/ui-iterate.sh` helper to create round folders, run configurable checks, and capture desktop/mobile screenshots.
 - Add GitHub Issue template `.github/ISSUE_TEMPLATE/ui-iteration.md` for UI iteration Issues.
 - Update command/workflow docs (`AGENTS.md`, `README.md`) to include `/ui-iterate`.
+- Remove the obsolete optional orchestration subsystem scripts, command docs, tests, installer flags, and user-facing references from this repository.
 
 ## [0.2.39] - 2026-02-11
 
@@ -36,7 +37,6 @@ All notable changes to this project will be documented in this file.
 - Clarify that Issue/PR titles and bodies must be written in Japanese (allowing Conventional Commit-style prefixes like `feat:` to remain in English).
 - Clarify that `/impl` and `/tdd` run `/review-cycle` automatically after implementation; for lightweight changes (e.g. documentation-only updates), ask the user before running it.
 - Add `/debug` command documentation for structured debugging/investigation notes (Issue comment or a new Investigation Issue), including performance/reliability evidence fields.
-- Clarify language requirements for Shogun Ops refactor drafts/issues and Codex PR review comments.
 - Add optional, language-agnostic Property-Based Testing (PBT) guidance (recommended for invariant-heavy logic; must be deterministic via fixed randomness/seed).
 
 ## [0.2.37] - 2026-02-07
@@ -65,11 +65,6 @@ All notable changes to this project will be documented in this file.
 
 ## [0.2.32] - 2026-02-04
 
-- Add optional tmux shim to open Shogun Ops tmux layout via `tmux --shogun-ops` (opt-in; requires putting `scripts/` first in `PATH`).
-  - `scripts/tmux`: Intercepts `--shogun-ops` and runs `scripts/shogun-tmux.sh init` + `attach`; forwards all other calls to the real tmux binary.
-  - `scripts/install-agentic-sdd.sh`: Exclude `scripts/tmux` unless `--shogun-ops` is enabled.
-  - `scripts/tests/test-tmux-shogun-ops.sh`: Deterministic tests for `--shogun-ops` dry-run and forwarding behavior.
-  - `scripts/tests/test-install-agentic-sdd.sh`: Ensure the shim is installed only with `--shogun-ops`.
 - Add `TEST_STDERR_POLICY` to `/review-cycle` to detect stderr output during `TEST_COMMAND` runs and optionally fail fast; writes `tests.stderr` alongside `tests.txt`.
 
 ## [0.2.31] - 2026-01-31
@@ -80,82 +75,14 @@ All notable changes to this project will be documented in this file.
 
 - Document the recommended approach for using Agentic-SDD with external multi-agent harnesses (treat the harness as the orchestration layer and tailor project `AGENTS.md`/`skills/` accordingly).
 
-## [0.2.29] - 2026-01-31
-
-- Make Shogun Ops installation opt-in via `--shogun-ops`.
-  - `scripts/install-agentic-sdd.sh`: Exclude Shogun Ops commands/scripts unless explicitly enabled.
-  - `scripts/agentic-sdd`: Forward `--shogun-ops` to the installer.
-  - `scripts/tests/test-install-agentic-sdd.sh`: Add deterministic coverage for default-off and opt-in installs.
-  - README / `.agent/commands/init.md`: Document the new opt-in flag and external harness warning.
-- Add Shogun Ops (research loop) decision-centric research request/response flow.
-  - `scripts/shogun-ops.py`: Extend `/checkin` with `--respond-to-decision` to link a research response deterministically to a decision.
-  - `scripts/shogun-ops.py`: Treat `blocker` reasons prefixed with `調査依頼:` as research requests (`request.category=research`) and attach minimal `issue_context` (repo/number/title/url/labels).
-  - `scripts/shogun-ops.py`: During `/collect`, apply research responses to the referenced decision, auto-archive resolved decisions to `archive/decisions/`, and avoid mutating Issue progress/assignee from response checkins.
-  - `scripts/shogun-ops.py`: Add `decision --id DEC-...` to show decision YAML from `queue/decisions` or `archive/decisions`.
-  - `scripts/tests/test-shogun-ops.sh`: Add deterministic integration tests for research request decision creation, response application, and auto-archiving.
-  - `.agent/commands/checkin.md`: Document research request/response usage.
-
 ## [0.2.28] - 2026-01-30
 
-- Add Shogun Ops `/refactor-draft` (Lower-only) to write refactor candidate drafts under `queue/refactor-drafts/` for Middle to turn into Issues.
-  - `scripts/shogun-ops.py`: Add `refactor-draft` subcommand and ops layout directory.
-  - `scripts/tests/test-shogun-ops.sh`: Deterministic integration test for draft creation and append-only behavior.
-  - `.agent/commands/refactor-draft.md`: Command documentation.
-- Add Shogun Ops `/refactor-issue` (Middle-only) to create GitHub Issues from `queue/refactor-drafts/` and archive drafts after success.
-  - `scripts/shogun-ops.py`: Add `refactor-issue` subcommand (label bootstrap + issue create + archive).
-  - `scripts/tests/test-shogun-refactor-issue.sh`: Offline deterministic test with `gh` stub.
-  - `.agent/commands/refactor-issue.md`: Command documentation.
-- Add Shogun Ops (auto) watcher to run `collect` automatically on checkin events.
-  - `scripts/shogun-watcher.sh`: Watch `queue/checkins/` and run `shogun-ops.py collect` with retry and `--once` support.
-  - `scripts/tests/test-shogun-watcher.sh`: Deterministic tests for retries and watchexec `--once` capability checks.
 - Clarify that TDD work still requires running `/review-cycle` after implementation (same as `/impl`).
 - Document a practical parent/child Issue pattern for `git worktree`: implement via a single parent Issue while keeping child Issues as tracking-only status observation points.
-- Add Shogun Ops `/skill --approve <decision-id>` to generate `skills/<name>.md`, update `skills/README.md`, and archive the approved `skill_candidate` decision.
-- Add Shogun Ops (core) action-required queue derived from decisions generated at collect time.
-  - `scripts/shogun-ops.py`: Extend `/checkin` to capture `needs.*` (approval/contract-expansion/blockers), emit `queue/decisions/*.yaml` (SoT) during `/collect`, and derive `state.yaml.action_required` + dashboard section.
-  - `scripts/tests/test-shogun-ops.sh`: Deterministic integration tests for decision generation and de-duplication.
-  - `.agent/commands/checkin.md`: Document new `/checkin` flags.
-- Add Shogun Ops (core) contract drift detection and state-based supervision policy.
-  - `scripts/shogun-ops.py`: During `/collect`, compare `changes.files_changed` vs `contract.allowed_files/forbidden_files` and emit a decision + block on drift.
-  - `scripts/shogun-ops.py`: During `/supervise --once`, assign orders only to idle workers based on `state.yaml` (busy phases: estimating/implementing/reviewing); treat `max_workers` as an upper bound.
-  - `scripts/tests/test-shogun-ops.sh`: Deterministic integration tests for the above behaviors.
-- Add Shogun Ops skill candidates (checkin → collect → decisions).
-  - `scripts/shogun-ops.py`: Allow `/checkin` to include `candidates.skills[]` and emit `type=skill_candidate` decisions during `/collect` with de-duplication.
-  - `scripts/tests/test-shogun-ops.sh`: Deterministic integration tests for `skill_candidate` decision generation and de-duplication.
-  - `.agent/commands/checkin.md`: Document `/checkin` flags for skill candidates.
 - Make `/review-cycle` require running tests via `TEST_COMMAND` (allow `TESTS="not run: <reason>"` only).
-- Add Shogun Ops (skill candidates) dashboard section to list pending `decision(type=skill_candidate)` items (name/summary).
-  - `scripts/shogun-ops.py`: Derive `state.yaml.skill_candidates_pending` from decisions and render it in `dashboard.md`.
-  - `scripts/tests/test-shogun-ops.sh`: Deterministic integration test for decisions-only refresh + dashboard listing.
-- Add Shogun Ops (auto) tmux launcher for deterministic session/pane layout and order injection.
-  - `scripts/shogun-tmux.sh`: Create tmux session with fixed pane titles (`upper`, `middle`, `ashigaru1`, `ashigaru2`, `ashigaru3`), send-order via pane title lookup (independent of `pane-base-index`), and dry-run support.
-  - `scripts/shogun-tmux.sh`: Add `--send-keys-mode single|two-step` to reduce send-keys injection flakiness by splitting cmd and Enter into separate tmux calls.
-  - `scripts/tests/test-shogun-tmux.sh`: Deterministic tests for dry-run output and missing-tmux fail-fast behavior.
-  - README: Add "Shogun Ops: tmux launcher" section with usage examples.
-- Add Shogun Ops (auto) GitHub sync to reflect local ops state to an Issue (Middle-only).
-  - `scripts/shogun-github-sync.sh`: Add a status comment and update labels (`ops-phase:*`, `ops-blocked`).
-  - `scripts/tests/test-shogun-github-sync.sh`: Offline deterministic test with `gh` stub (success + auth failure).
-  - README: Add "Shogun Ops: GitHub sync" section with usage examples.
 - Improve `/cleanup` to delete local branches even when no worktree exists (branch match `issue-<n>`).
   - `scripts/cleanup.sh`: Parse `git worktree list --porcelain` for branch detection (supports stale worktrees).
   - `scripts/tests/test-cleanup.sh`: Regression tests for branch-only cleanup and stale worktree cleanup.
-
-## [0.2.27] - 2026-01-29
-
-- Add Shogun Ops (core Phase 1) initializer under `git-common-dir` and `/status` dashboard command.
-  - `scripts/shogun-ops.py`: Initialize `agentic-sdd-ops/` and render `dashboard.md`.
-  - `.agent/commands/status.md`: `/status` command documentation.
-  - `scripts/tests/test-shogun-ops.sh`: Deterministic integration test (temp git repo).
-- Add Shogun Ops (core Phase 2) `/checkin` command to create append-only checkin YAML files.
-  - `.agent/commands/checkin.md`: `/checkin` command documentation.
-- Add Shogun Ops (core Phase 2) `/collect` command to update `state.yaml` and `dashboard.md` from checkins with a single-writer lock.
-  - `.agent/commands/collect.md`: `/collect` command documentation.
-- Add Shogun Ops (core Phase 3) `/supervise --once` to select targets from GitHub Issues, detect overlaps via `worktree.sh check`, and emit orders/decisions.
-  - `.agent/commands/supervise.md`: `/supervise` command documentation.
-- Expand deterministic tests for Shogun Ops core (Phase 1–3) including `gh` stubs and overlap detection.
-- Prevent queue corruption under fast/multi-target supervise runs:
-  - Avoid per-worker order overwrites by writing orders under `queue/orders/<worker>/` with per-order filenames.
-  - Ensure decision IDs are unique even when multiple decisions are emitted in quick succession.
 
 ## [0.2.26] - 2026-01-29
 

@@ -45,7 +45,6 @@ In other words:
 
 - External harness = orchestration SoT (state/progress)
 - Agentic-SDD = spec-driven workflow + quality gates
-- Avoid mixing orchestration layers (do not enable `--shogun-ops` in this case)
 
 ---
 
@@ -76,75 +75,6 @@ Note: worktrees share the same `.git` database. Merge incrementally (finish one,
 
 ---
 
-## Shogun Ops: tmux launcher (experimental)
-
-Shogun Ops(auto) can be operated with a deterministic tmux layout.
-
-- Session: `shogun-ops`
-- Window: `ops`
-- Pane titles: `upper`, `middle`, `ashigaru1`, `ashigaru2`, `ashigaru3`
-
-```bash
-# Show the tmux command sequence (no tmux required)
-./scripts/shogun-tmux.sh --dry-run init
-
-# Create the session (requires tmux)
-./scripts/shogun-tmux.sh init
-
-# Send order-injection command to the middle pane
-./scripts/shogun-tmux.sh send-order
-
-# More robust injection (send command and Enter separately)
-./scripts/shogun-tmux.sh send-order --send-keys-mode two-step
-
-# Attach
-./scripts/shogun-tmux.sh attach
-```
-
-Optional: install the tmux shim (opt-in via `--shogun-ops`) and put `scripts/` first in `PATH`
-to allow opening the Shogun Ops layout with:
-
-```bash
-PATH="$(pwd)/scripts:$PATH" tmux --shogun-ops
-```
-
-## Shogun Ops: GitHub sync (experimental)
-
-Sync the local ops status to a GitHub Issue by adding a comment and updating labels.
-
-Notes:
-
-- Intended to be executed by **Middle only** (single writer policy).
-- Labels are created/updated automatically: `ops-phase:*`, `ops-blocked`.
-
-```bash
-# Preview the action (no gh write operations)
-./scripts/shogun-github-sync.sh --issue 25 --repo OWNER/REPO --dry-run
-
-# Apply (requires gh auth)
-./scripts/shogun-github-sync.sh --issue 25 --repo OWNER/REPO
-```
-
-## Shogun Ops: watcher (experimental)
-
-Watch the local checkin queue and run `/collect` automatically (useful for the auto/multi-agent loop).
-
-Notes:
-
-- Requires a file watch tool: `fswatch` | `watchexec` | `inotifywait`.
-- Ops data lives under `<git-common-dir>/agentic-sdd-ops/`.
-
-```bash
-# Show selected watch tool + commands (no watcher required)
-./scripts/shogun-watcher.sh --dry-run
-
-# Run continuously: collect on checkin events
-./scripts/shogun-watcher.sh
-
-# Test-friendly mode: exit after first event triggers collect
-./scripts/shogun-watcher.sh --once
-```
-
 ## Quick Start
 
 ### 0) Install (one-time per repo)
@@ -159,15 +89,6 @@ Optional (opt-in): install a GitHub Actions CI template (tests + lint + typechec
 
 ```
 /agentic-sdd --ci github-actions opencode minimal
-```
-
-Optional (opt-in): enable Shogun Ops (checkin/collect/supervise + ops scripts).
-Do NOT enable this when you are using an external multi-agent harness (e.g. Oh My OpenCode).
-
-See "External multi-agent harnesses" above for the recommended responsibility split and adaptation guidance.
-
-```
-/agentic-sdd --shogun-ops opencode minimal
 ```
 
 After install, edit `.github/workflows/agentic-sdd-ci.yml` and set the 3 env vars to your project's commands.

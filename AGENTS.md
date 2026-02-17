@@ -143,8 +143,6 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/impl`: implement an Issue (Full estimate required)
 - `/tdd`: implement via TDD (Red -> Green -> Refactor)
 - `/ui-iterate`: iterate UI redesign in short loops (capture -> patch -> verify)
-- `/refactor-draft`: create a refactor draft YAML (Lower-only; no GitHub writes) (Shogun Ops opt-in; requires `--shogun-ops`)
-- `/refactor-issue`: create a GitHub Issue from a refactor draft (Middle-only) (Shogun Ops opt-in; requires `--shogun-ops`)
 - `/review-cycle`: local review loop (codex exec -> review.json)
 - `/final-review`: review (DoD check)
 - `/create-pr`: push branch and create a PR (gh)
