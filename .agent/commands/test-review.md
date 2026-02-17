@@ -42,6 +42,11 @@
 - `Approved`: 通過
 - `Blocked`: fail-fast（前段コマンド失敗、focused test marker、コード変更に対するテスト変更不足）
 
+## PR gate note
+
+- コミット前（`/impl`・`/tdd` のローカル確認）では `auto` / `worktree` / `staged` を使ってよい。
+- `/create-pr` 前には、コミット済み `HEAD` に対して `TEST_REVIEW_DIFF_MODE=range` で `/test-review` を再実行する。
+
 ## Related
 
 - `.agent/commands/review-cycle.md` - ローカルレビュー本体

@@ -78,6 +78,7 @@ Before committing:
 
 After `/final-review` is approved:
 
+- Re-run `/test-review` on committed `HEAD` with `TEST_REVIEW_DIFF_MODE=range`.
 - Run `/create-pr` to push and create the PR.
 
 ## Related

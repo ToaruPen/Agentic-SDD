@@ -62,6 +62,7 @@ If the change is lightweight (e.g. documentation-only updates), ask the user whe
 ### Phase 5: Commit
 
 1. Commit in a working state (see `.agent/rules/commit.md`)
+2. Before `/create-pr`, re-run `/test-review` on committed `HEAD` with `TEST_REVIEW_DIFF_MODE=range`
 
 ### Phase 6: Finish
 
