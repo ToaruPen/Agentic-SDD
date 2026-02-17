@@ -451,7 +451,6 @@ seed_run="run-cache-seed"
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
   CODEX_BIN="$tmpdir/codex" MODEL=seed-model REASONING_EFFORT=low \
   "$review_cycle_sh" issue-1 "$seed_run") >/dev/null
-sleep 1
 
 cat > "$tmpdir/codex-no-call" <<'EOF'
 #!/usr/bin/env bash

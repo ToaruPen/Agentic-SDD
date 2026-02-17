@@ -1108,25 +1108,6 @@ fi
 if [[ "$reused" -eq 0 ]]; then
   case "$review_engine" in
     codex)
-      if ! command -v "$codex_bin" >/dev/null 2>&1; then
-        eprint "codex not found: $codex_bin"
-        exit 1
-      fi
-      ;;
-    claude)
-      if ! command -v "$claude_bin" >/dev/null 2>&1; then
-        eprint "claude not found: $claude_bin"
-        exit 1
-      fi
-      ;;
-    *)
-      eprint "Invalid REVIEW_ENGINE: $review_engine (use codex|claude)"
-      exit 2
-      ;;
-  esac
-
-  case "$review_engine" in
-    codex)
       cmd=(
         "$codex_bin" exec
         --sandbox read-only
