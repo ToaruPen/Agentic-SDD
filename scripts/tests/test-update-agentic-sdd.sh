@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+eprint() { printf '%s\n' "$*" >&2; }
+
+repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+updater="$repo_root/scripts/update-agentic-sdd.sh"
+
+if [[ ! -x "$updater" ]]; then
+  eprint "Missing script or not executable: $updater"
+  exit 1
+fi
+
+tmpdir="$(mktemp -d 2>/dev/null || mktemp -d -t agentic-sdd-subtree-update-test)"
+cleanup() { rm -rf "$tmpdir"; }
+trap cleanup EXIT
+
+set +e
+(cd "$tmpdir" && "$updater" --ref v0.2.39) >/dev/null 2>"$tmpdir/stderr-not-git"
+code=$?
+set -e
+if [[ "$code" -eq 0 ]]; then
+  eprint "Expected failure outside a git repository"
+  exit 1
+fi
+
+repo="$tmpdir/repo"
+mkdir -p "$repo"
+git -C "$repo" init -q
+mkdir -p "$repo/.agentic-sdd"
+
+set +e
+(cd "$repo" && "$updater") >/dev/null 2>"$tmpdir/stderr-missing-ref"
+code=$?
+set -e
+if [[ "$code" -ne 1 ]]; then
+  eprint "Expected exit code 1 when --ref is missing, got: $code"
+  cat "$tmpdir/stderr-missing-ref" >&2
+  exit 1
+fi
+
+if ! grep -Fq -- "--ref is required" "$tmpdir/stderr-missing-ref"; then
+  eprint "Expected missing --ref error message"
+  cat "$tmpdir/stderr-missing-ref" >&2
+  exit 1
+fi
+
+out_file="$tmpdir/stdout-dry-run"
+(cd "$repo" && "$updater" --ref v0.2.39 --dry-run >"$out_file")
+
+if ! grep -Fq "git subtree pull --prefix .agentic-sdd https://github.com/ToaruPen/Agentic-SDD.git v0.2.39 --squash" "$out_file"; then
+  eprint "Expected dry-run subtree command output"
+  cat "$out_file" >&2
+  exit 1
+fi
+
+eprint "OK: scripts/tests/test-update-agentic-sdd.sh"

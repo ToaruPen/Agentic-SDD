@@ -88,6 +88,11 @@ if [[ ! -f "$proj2/scripts/ui-iterate.sh" ]]; then
   exit 1
 fi
 
+if [[ ! -f "$proj2/scripts/update-agentic-sdd.sh" ]]; then
+  eprint "Expected subtree update helper script to be installed: scripts/update-agentic-sdd.sh"
+  exit 1
+fi
+
 if [[ -f "$proj2/.agent/commands/checkin.md" ]]; then
   eprint "Did not expect Shogun Ops command doc to be installed by default: .agent/commands/checkin.md"
   exit 1
