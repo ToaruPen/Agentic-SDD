@@ -1092,13 +1092,20 @@ PY
 fi
 
 if [[ "$review_cycle_incremental" == "1" && "$reuse_eligible" -eq 1 ]]; then
-  ensure_run_dir
-  if [[ "$reuse_candidate_json" != "$out_json" ]]; then
-    cp -p "$reuse_candidate_json" "$out_json"
+  if python3 "$script_dir/validate-review-json.py" "$reuse_candidate_json" --scope-id "$scope_id" >/dev/null 2>&1; then
+    ensure_run_dir
+    if [[ "$reuse_candidate_json" != "$out_json" ]]; then
+      cp -p "$reuse_candidate_json" "$out_json"
+    fi
+    reused=1
+    reused_from_run="$reuse_candidate_run"
+  else
+    reuse_eligible=0
+    reuse_reason="candidate-review-invalid"
   fi
-  reused=1
-  reused_from_run="$reuse_candidate_run"
-else
+fi
+
+if [[ "$reused" -eq 0 ]]; then
   case "$review_engine" in
     codex)
       if ! command -v "$codex_bin" >/dev/null 2>&1; then
