@@ -12,12 +12,26 @@ User-facing output remains in Japanese.
 ## Usage
 
 ```text
-/final-review [PR-number | Issue-number]
+/final-review <PR-number | Issue-number>
 ```
 
-If omitted, review the PR associated with the current branch.
+Target is mandatory. Do not infer from the current branch.
 
 ## Flow
+
+### Phase 0: Preconditions (fail-fast)
+
+1. Target must be explicitly provided (`PR-number` or `Issue-number`).
+   - If omitted, STOP and ask the user to specify the target.
+2. Validate branch/worktree context explicitly before review.
+   - If target is an Issue:
+     - List linked branches (SoT): `gh issue develop --list <issue-number>`
+     - If no linked branch exists, STOP and create one via `/worktree new --issue <issue-number> --desc "<ascii short desc>"`, then re-run `/final-review` in that worktree.
+     - If linked branches exist and you are not on one of them, STOP and switch into the linked branch/worktree.
+   - If target is a PR:
+     - Read PR head branch: `gh pr view <pr-number> --json headRefName`
+     - If current branch does not match `headRefName`, STOP and switch to the PR head branch/worktree.
+3. Only after 1-2 pass, continue to review phases.
 
 ### Phase 1: Identify the target
 
@@ -84,6 +98,7 @@ Keep it concise; include "how verified" and evidence.
 ### Phase 6: Review focus areas
 
 - Correctness: does it satisfy AC / PRD / Epic?
+- Decisions: if the diff contains new/changed "why", verify Decision Snapshot (`docs/decisions/`) exists and `docs/decisions.md` index is updated
 - Readability: names, structure, consistency
 - Testing: meaningful assertions, enough coverage
 - Security: input validation, auth, secret handling

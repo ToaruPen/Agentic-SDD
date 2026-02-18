@@ -41,7 +41,9 @@
 
 ### 意思決定 / 用語
 
-- 意思決定ログ: [`docs/decisions.md`](../decisions.md)
+- 意思決定ログ（index）: [`docs/decisions.md`](../decisions.md)
+- 意思決定本文の運用: [`docs/decisions/README.md`](../decisions/README.md)
+- 意思決定テンプレート: [`docs/decisions/_template.md`](../decisions/_template.md)
 - 用語集: [`docs/glossary.md`](../glossary.md)
 
 ### メモ（背景/検討）

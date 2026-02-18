@@ -1,114 +1,21 @@
-# 意思決定記録（ADR）
+# 意思決定ログ（Decision Snapshot）
 
-プロジェクトの技術的・設計的意思決定を記録するドキュメント。
-
----
-
-## テンプレート
-
-```markdown
-## ADR-[番号]: [タイトル]
-
-### ステータス
-
-提案 / 承認 / 却下 / 廃止
-
-### 日付
-
-YYYY-MM-DD
-
-### コンテキスト
-
-[なぜこの決定が必要になったか]
-
-### 選択肢
-
-#### 案A: [名前]
-
-- 説明: [説明]
-- メリット: [メリット]
-- デメリット: [デメリット]
-
-#### 案B: [名前]
-
-- 説明: [説明]
-- メリット: [メリット]
-- デメリット: [デメリット]
-
-### 決定
-
-[どの案を採用したか]
-
-### 理由
-
-[なぜその案を選んだか]
-
-### 影響
-
-[この決定による影響]
-
-### 参照
-
-- PRD: [関連PRD]
-- Epic: [関連Epic]
-- Issue: [関連Issue]
-```
+意思決定の本文は `docs/decisions/` 配下に「1決定 = 1ファイル」で保存します。
+このファイルは索引（index）だけを担い、本文を直接持ちません。
 
 ---
 
-## 意思決定一覧
+## 運用ルール
 
-ADR-1
-タイトル: [例: データベース選定]
-ステータス: [承認]
-日付: [YYYY-MM-DD]
+- append-only: 既存のDecision本文ファイルは上書きしない
+- supersede方式: 変更は新規Decisionファイルを追加し、`Supersedes` で置換関係を明示する
+- 1決定 = 1ファイル: 1つのファイルに複数Decisionを混在させない
+- 必須フォーマット: `Decision-ID / Context / Rationale / Alternatives / Impact / Verification / Supersedes / Inputs Fingerprint`
+
+詳細は `docs/decisions/README.md` と `docs/decisions/_template.md` を参照してください。
 
 ---
 
-## ADR-1: [例: データベース選定]
+## Decision Index
 
-### ステータス
-
-承認
-
-### 日付
-
-YYYY-MM-DD
-
-### コンテキスト
-
-[プロジェクトでデータ永続化が必要。RDBかNoSQLかを決定する必要がある]
-
-### 選択肢
-
-#### 案A: PostgreSQL
-
-- 説明: オープンソースのRDB
-- メリット: ACID準拠、豊富なエコシステム、JSON対応
-- デメリット: スケールアウトが難しい
-
-#### 案B: MongoDB
-
-- 説明: ドキュメント指向NoSQL
-- メリット: スキーマレス、スケールアウト容易
-- デメリット: 複雑なクエリが苦手、トランザクション制限
-
-### 決定
-
-案A: PostgreSQL を採用
-
-### 理由
-
-- PRDの要件はリレーショナルデータが中心
-- トランザクションが必要な処理がある
-- 技術方針「シンプル優先」に合致
-
-### 影響
-
-- マイグレーションツールの選定が必要
-- ORM/クエリビルダーの選定が必要
-
-### 参照
-
-- PRD: docs/prd/example.md セクション6
-- Epic: docs/epics/example-epic.md セクション3.2
+- D-2026-02-18-RUFF_S_RULE_ROLLOUT: [`docs/decisions/d-2026-02-18-ruff-s-rule-rollout.md`](./decisions/d-2026-02-18-ruff-s-rule-rollout.md)
