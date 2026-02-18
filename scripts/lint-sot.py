@@ -3,6 +3,7 @@
 import argparse
 import os
 import re
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -20,13 +21,17 @@ def eprint(msg: str) -> None:
 
 
 def repo_root() -> str:
+    git_bin = shutil.which("git")
+    if not git_bin:
+        return os.path.realpath(os.getcwd())
+
     try:
-        p = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
+        p = subprocess.run(  # noqa: S603
+            [git_bin, "rev-parse", "--show-toplevel"],
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            check=False,
+            check=False,  # noqa: S603
         )
     except Exception:
         return os.path.realpath(os.getcwd())
@@ -113,9 +118,12 @@ def _unique_ints(ms: Iterable[re.Match[str]]) -> List[int]:
     out: List[int] = []
     seen = set()
     for m in ms:
+        v = None
         try:
             v = int(m.group(1))
-        except Exception:
+        except (TypeError, ValueError, IndexError):
+            v = None
+        if v is None:
             continue
         if v in seen:
             continue

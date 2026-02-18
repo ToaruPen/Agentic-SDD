@@ -23,7 +23,7 @@ def run(
     cwd: Optional[str] = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return subprocess.run(  # noqa: S603
         cmd,
         cwd=cwd,
         text=True,
@@ -240,10 +240,10 @@ def main() -> int:
             )
     except KeyError as exc:
         return gate_blocked(f"Invalid approval.json: {exc}")
-    except ValueError as exc:
-        return gate_blocked(f"Invalid approval.json: {exc}")
     except json.JSONDecodeError as exc:
         return gate_blocked(f"Invalid JSON in approval.json: {exc}")
+    except ValueError as exc:
+        return gate_blocked(f"Invalid approval.json: {exc}")
 
     return 0
 

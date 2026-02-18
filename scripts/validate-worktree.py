@@ -18,7 +18,7 @@ def run(
     cwd: Optional[str] = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return subprocess.run(  # noqa: S603
         cmd,
         cwd=cwd,
         text=True,

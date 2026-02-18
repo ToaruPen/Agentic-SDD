@@ -88,7 +88,7 @@ def gh_issue_body(issue: str, gh_repo: str) -> str:
     cmd.extend(["issue", "view", issue, "--json", "body"])
 
     try:
-        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)  # noqa: S603
     except FileNotFoundError:
         raise RuntimeError("gh not found (required for --issue)")
     except subprocess.CalledProcessError as exc:
@@ -140,20 +140,26 @@ def extract_paths(repo_root: str, lines: Sequence[str]) -> List[str]:
 
     for line in lines:
         for raw in BACKTICK_RE.findall(line):
+            resolved = None
             try:
-                out.add(resolve_ref_to_repo_path(repo_root, raw))
-            except Exception:
-                continue
+                resolved = resolve_ref_to_repo_path(repo_root, raw)
+            except ValueError:
+                resolved = None
+            if resolved is not None:
+                out.add(resolved)
 
         if "`" in line:
             continue
 
         m = BULLET_PATH_RE.match(line)
         if m:
+            resolved = None
             try:
-                out.add(resolve_ref_to_repo_path(repo_root, m.group("path")))
-            except Exception:
-                continue
+                resolved = resolve_ref_to_repo_path(repo_root, m.group("path"))
+            except ValueError:
+                resolved = None
+            if resolved is not None:
+                out.add(resolved)
 
     return sorted(out)
 
@@ -209,12 +215,13 @@ def main() -> int:
             raw = read_text(args.issue_body_file)
             body = raw
             # Convenience: allow passing `gh issue view --json body` output.
+            parsed = None
             try:
-                data = json.loads(raw)
-                if isinstance(data, dict) and isinstance(data.get("body"), str):
-                    body = data["body"]
-            except Exception:
-                pass
+                parsed = json.loads(raw)
+            except json.JSONDecodeError:
+                parsed = None
+            if isinstance(parsed, dict) and isinstance(parsed.get("body"), str):
+                body = parsed["body"]
         elif args.issue_json_file:
             data = json.loads(read_text(args.issue_json_file))
             if not isinstance(data, dict):
