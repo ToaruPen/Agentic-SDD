@@ -24,14 +24,22 @@ Target is mandatory. Do not infer from the current branch.
 1. Target must be explicitly provided (`PR-number` or `Issue-number`).
    - If omitted, STOP and ask the user to specify the target.
 2. Validate branch/worktree context explicitly before review.
-   - If target is an Issue:
-     - List linked branches (SoT): `gh issue develop --list <issue-number>`
-     - If no linked branch exists, STOP and create one via `/worktree new --issue <issue-number> --desc "<ascii short desc>"`.
-     - `/worktree new` prints the new worktree directory path, but does not change the current shell directory. Run `cd <output-path>` manually, then re-run `/final-review` in that worktree.
-     - If linked branches already exist, use `gh issue develop --list <issue-number>` to identify the linked branch, switch into that branch/worktree manually, then run `/final-review`.
-   - If target is a PR:
-     - Read PR head branch: `gh pr view <pr-number> --json headRefName`
-     - If current branch does not match `headRefName`, STOP and switch to the PR head branch/worktree.
+
+#### If target is an Issue
+
+1. List linked branches (SoT): `gh issue develop --list <issue-number>`.
+2. If no linked branch exists, STOP and run `/worktree new --issue <issue-number> --desc "<ascii short desc>"`.
+3. `/worktree new` prints the new worktree directory path, but does not change the current shell directory.
+4. Run `cd <output-path>` manually.
+5. Re-run `/final-review` in that worktree.
+6. If linked branches already exist, use `gh issue develop --list <issue-number>` to identify the linked branch; if you are not on it, STOP and switch into that branch/worktree, then run `/final-review`.
+
+#### If target is a PR
+
+1. Read PR head branch: `gh pr view <pr-number> --json headRefName`.
+2. If current branch does not match `headRefName`, STOP and switch to the PR head branch/worktree.
+3. Run `/final-review` on the PR head branch/worktree.
+
 3. Only after 1-2 pass, continue to review phases.
 
 ### Phase 1: Identify the target
@@ -99,7 +107,10 @@ Keep it concise; include "how verified" and evidence.
 ### Phase 6: Review focus areas
 
 - Correctness: does it satisfy AC / PRD / Epic?
-- Decisions: if the diff contains new/changed "why", verify Decision Snapshot (`docs/decisions/`) exists and `docs/decisions.md` index is updated
+- Decisions: classify whether the diff changes decision-level constraints or only wording-level documentation.
+  - Decision Snapshot is required when the diff introduces or changes architecture/major design choices, tooling or vendor selections, security or compliance decisions, or operational/runbook policies that change behavior/constraints.
+  - Decision Snapshot is not required for wording/clarity/example-only edits that do not change behavior or constraints.
+  - Decision rule mapping: apply `.agent/rules/dod.md` (Decision checkbox) and `.agent/rules/docs-sync.md` (Decision sync rules) together; when required, add/update `docs/decisions/<decision-file>.md` and keep `docs/decisions.md` index consistent.
 - Readability: names, structure, consistency
 - Testing: meaningful assertions, enough coverage
 - Security: input validation, auth, secret handling
