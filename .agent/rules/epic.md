@@ -86,6 +86,9 @@ Checklist:
 [] Simpler alternative(s) are presented when applicable
 [] No item is justified only by "for future extensibility"
 [] The 3 required lists are present
+[] Project-optimized folder structure design is present
+[] Scoped `AGENTS.md` map placement plan is present
+[] Modern fast lint/format/typecheck toolchain choice is present with rationale and local/CI integration points
 ```
 
 ---
@@ -97,6 +100,21 @@ Every Epic must include these lists (write `なし` (Japanese for "none") if not
 - External services list
 - Components list
 - New tech list
+
+## Required architecture and quality addenda (mandatory)
+
+Every Epic must also include the following mandatory addenda:
+
+- Folder structure design
+  - Design an explicit, project-optimized directory layout.
+  - Explain the role and ownership boundary of each top-level directory.
+- Scoped `AGENTS.md` map plan
+  - Define where root/scoped `AGENTS.md` files live.
+  - Use `AGENTS.md` as a concise map with links to deeper docs (progressive disclosure).
+- Lint/format/typecheck toolchain decision
+  - Select modern, fast, maintained tools suitable for the target language stack.
+  - Record rationale (speed, maintenance, adoption, compatibility), one simpler alternative,
+    and local/CI integration plan.
 
 ---
 

@@ -91,6 +91,27 @@ Rules:
 - If Q6 is "No": write `N/A（理由）` (Japanese; "N/A (reason)") in the section
 - If Q6 is "Unknown": resolve Unknown first (Phase 2)
 
+### Phase 4.7: Repository legibility baseline (required)
+
+Based on Harness Engineering principles (map-first, progressive disclosure, mechanical enforcement),
+every Epic must define the following as mandatory design artifacts:
+
+1. **Project-optimized folder structure**
+   - Design a folder structure that matches the target project's domains and development workflow.
+   - Explain why each top-level directory exists and what belongs there.
+2. **Per-folder `AGENTS.md` map placement plan**
+   - Define where scoped `AGENTS.md` files are placed (for example: root + domain subdirectories).
+   - For each scoped `AGENTS.md`, define purpose/ownership/scope and links to deeper source-of-truth docs.
+   - Keep each `AGENTS.md` concise and map-like (table-of-contents style), not a monolithic manual.
+3. **Modern fast lint/format/typecheck toolchain selection**
+   - Select tools that are currently maintained, performant, and widely adopted in the target ecosystem.
+   - Record concrete selection reasons (speed/maintenance/adoption/CI compatibility) and at least one simpler alternative.
+   - Define integration points for local and CI execution (where and how checks run).
+
+Fail-fast rule:
+
+- If any of the 3 artifacts above is missing or unspecified, do not finalize the Epic.
+
 ### Phase 5: Apply counting definitions
 
 - External services: each SaaS / managed DB / identity provider / external API counts as 1
@@ -119,6 +140,9 @@ Split Issues following `.agent/rules/issue.md`:
 [] Simpler alternative(s) are presented when applicable
 [] No item is justified only by "for future extensibility"
 [] The 3 required lists are present
+[] A project-optimized folder structure is explicitly designed
+[] Scoped `AGENTS.md` placement is defined for relevant folders
+[] A modern fast lint/format/typecheck toolchain is selected with rationale and CI/local integration points
 ```
 
 ### Phase 9: Generate the Epic
