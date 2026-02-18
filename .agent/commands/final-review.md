@@ -12,12 +12,35 @@ User-facing output remains in Japanese.
 ## Usage
 
 ```text
-/final-review [PR-number | Issue-number]
+/final-review <PR-number | Issue-number>
 ```
 
-If omitted, review the PR associated with the current branch.
+Target is mandatory. Do not infer from the current branch.
 
 ## Flow
+
+### Phase 0: Preconditions (fail-fast)
+
+1. Target must be explicitly provided (`PR-number` or `Issue-number`).
+   - If omitted, STOP and ask the user to specify the target.
+2. Validate branch/worktree context explicitly before review.
+
+#### If target is an Issue
+
+1. List linked branches (SoT): `gh issue develop --list <issue-number>`.
+2. If no linked branch exists, STOP and run `/worktree new --issue <issue-number> --desc "<ascii short desc>"`.
+3. `/worktree new` prints the new worktree directory path, but does not change the current shell directory.
+4. Run `cd <output-path>` manually.
+5. Re-run `/final-review` in that worktree.
+6. If linked branches already exist, use `gh issue develop --list <issue-number>` to identify the linked branch; if you are not on it, STOP and switch into that branch/worktree, then run `/final-review`.
+
+#### If target is a PR
+
+1. Read PR head branch: `gh pr view <pr-number> --json headRefName`.
+2. If current branch does not match `headRefName`, STOP and switch to the PR head branch/worktree.
+3. Run `/final-review` on the PR head branch/worktree.
+
+**Proceed to review phases only after passing all checks above.**
 
 ### Phase 1: Identify the target
 
@@ -84,6 +107,24 @@ Keep it concise; include "how verified" and evidence.
 ### Phase 6: Review focus areas
 
 - Correctness: does it satisfy AC / PRD / Epic?
+- Decisions:
+  - Use the **Decision Necessity Checklist** below to classify whether the diff changes decision-level constraints or only wording-level documentation.
+  - Decision Snapshot is required when the diff introduces or changes:
+    - architecture/major design choices (for example: service boundaries, component ownership, data model boundaries)
+    - tooling or vendor selections (for example: new CI/review engine/toolchain vendor choice)
+    - security or compliance decisions (for example: auth flow changes, retention/compliance constraints)
+    - operational/runbook policies that alter behavior or constraints (for example: deployment topology, release/rollback policy, incident response steps)
+  - Decision Snapshot is not required for wording/clarity/example-only edits that do not change behavior or constraints.
+  - Decision Necessity Checklist:
+    - [ ] Trigger found in this diff (any item above)
+    - [ ] Checked `.agent/rules/dod.md` -> section `## Issue done` -> item `重要な判断（why）...Decision Snapshot...index が更新`
+    - [ ] Checked `.agent/rules/docs-sync.md` -> section `## Diff classification rules` -> subsection `Decision sync (when "why" changed)`
+    - [ ] Checked `.agent/rules/docs-sync.md` -> section `## When a diff is found` for required references and confirmation flow
+  - Decision file creation procedure (when checklist result is required):
+    - Create `docs/decisions/<decision-file>.md` using naming convention in `docs/decisions/README.md` section `## 命名規約` (`d-YYYY-MM-DD-short-kebab.md`).
+    - Start from `docs/decisions/_template.md` and fill required frontmatter/header fields: `Decision-ID`, `Context`, `Rationale`, `Alternatives`, `Impact`, `Verification`, `Supersedes`, `Inputs Fingerprint`.
+    - Add/update the decision entry in `docs/decisions.md` under `## Decision Index`.
+    - Keep `docs/decisions.md` index and Decision body file references consistent.
 - Readability: names, structure, consistency
 - Testing: meaningful assertions, enough coverage
 - Security: input validation, auth, secret handling

@@ -104,6 +104,12 @@ Implementation-driven (fix code or record reason):
 - Workaround due to library constraints
 - Bug fix
 
+Decision sync (when "why" changed):
+
+- 新しい判断を導入した場合は `docs/decisions/` に1決定1ファイルで記録する
+- 既存判断を置換する場合は上書きせず、新規Decisionで `Supersedes` を記録する
+- `docs/decisions.md` の index と本文ファイルの参照を一致させる
+
 ---
 
 ## When a diff is found
@@ -112,6 +118,12 @@ Implementation-driven (fix code or record reason):
 2. Provide explicit references (PRD/Epic/code)
 3. Provide recommended actions
 4. Ask the user to confirm
+
+If a Decision diff exists, include these references explicitly:
+
+- Decision index: `docs/decisions.md`
+- Decision body: `docs/decisions/<decision-file>.md`
+- Inputs fingerprint source: PRD/Epic/Issue/code reference used in the decision
 
 Forbidden:
 
