@@ -30,7 +30,6 @@ Positional arguments (optional):
 		  --tool <tool>         Tool selection (default: $AGENTIC_SDD_DEFAULT_TOOL or none)
 		  --mode <mode>         Install mode (default: $AGENTIC_SDD_DEFAULT_MODE or minimal)
 		  --ci <ci>             Optional CI template (default: none)
-		  --shogun-ops          Optional: install Shogun Ops (checkin/collect/supervise + ops scripts)
 		  --ref <sha|ref>       Agentic-SDD ref to fetch (default: config or latest)
 		  --repo <url>          Agentic-SDD git repo URL (default: config or GitHub)
 		  --force               Overwrite conflicting files (backs up first)
@@ -173,7 +172,6 @@ fetch_repo_at_sha() {
 	TOOL=""
 	MODE=""
 	CI="none"
-	SHOGUN_OPS=false
 	TARGET_DIR=""
 	REF=""
 	REF_EXPLICIT=false
@@ -202,10 +200,6 @@ while [[ $# -gt 0 ]]; do
 		        --ci)
 		            CI="$2"
 		            shift 2
-		            ;;
-		        --shogun-ops)
-		            SHOGUN_OPS=true
-		            shift
 		            ;;
 		        --ref)
 		            REF="$2"
@@ -419,10 +413,6 @@ install_args=(
 
 if [ "$CI" != "none" ]; then
     install_args+=(--ci "$CI")
-fi
-
-if [ "$SHOGUN_OPS" = true ]; then
-    install_args+=(--shogun-ops)
 fi
 
 if [ "$FORCE" = true ]; then

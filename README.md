@@ -45,7 +45,6 @@ In other words:
 
 - External harness = orchestration SoT (state/progress)
 - Agentic-SDD = spec-driven workflow + quality gates
-- Avoid mixing orchestration layers (do not enable `--shogun-ops` in this case)
 
 ---
 
@@ -76,75 +75,6 @@ Note: worktrees share the same `.git` database. Merge incrementally (finish one,
 
 ---
 
-## Shogun Ops: tmux launcher (experimental)
-
-Shogun Ops(auto) can be operated with a deterministic tmux layout.
-
-- Session: `shogun-ops`
-- Window: `ops`
-- Pane titles: `upper`, `middle`, `ashigaru1`, `ashigaru2`, `ashigaru3`
-
-```bash
-# Show the tmux command sequence (no tmux required)
-./scripts/shogun-tmux.sh --dry-run init
-
-# Create the session (requires tmux)
-./scripts/shogun-tmux.sh init
-
-# Send order-injection command to the middle pane
-./scripts/shogun-tmux.sh send-order
-
-# More robust injection (send command and Enter separately)
-./scripts/shogun-tmux.sh send-order --send-keys-mode two-step
-
-# Attach
-./scripts/shogun-tmux.sh attach
-```
-
-Optional: install the tmux shim (opt-in via `--shogun-ops`) and put `scripts/` first in `PATH`
-to allow opening the Shogun Ops layout with:
-
-```bash
-PATH="$(pwd)/scripts:$PATH" tmux --shogun-ops
-```
-
-## Shogun Ops: GitHub sync (experimental)
-
-Sync the local ops status to a GitHub Issue by adding a comment and updating labels.
-
-Notes:
-
-- Intended to be executed by **Middle only** (single writer policy).
-- Labels are created/updated automatically: `ops-phase:*`, `ops-blocked`.
-
-```bash
-# Preview the action (no gh write operations)
-./scripts/shogun-github-sync.sh --issue 25 --repo OWNER/REPO --dry-run
-
-# Apply (requires gh auth)
-./scripts/shogun-github-sync.sh --issue 25 --repo OWNER/REPO
-```
-
-## Shogun Ops: watcher (experimental)
-
-Watch the local checkin queue and run `/collect` automatically (useful for the auto/multi-agent loop).
-
-Notes:
-
-- Requires a file watch tool: `fswatch` | `watchexec` | `inotifywait`.
-- Ops data lives under `<git-common-dir>/agentic-sdd-ops/`.
-
-```bash
-# Show selected watch tool + commands (no watcher required)
-./scripts/shogun-watcher.sh --dry-run
-
-# Run continuously: collect on checkin events
-./scripts/shogun-watcher.sh
-
-# Test-friendly mode: exit after first event triggers collect
-./scripts/shogun-watcher.sh --once
-```
-
 ## Quick Start
 
 ### 0) Install (one-time per repo)
@@ -161,15 +91,6 @@ Optional (opt-in): install a GitHub Actions CI template (tests + lint + typechec
 /agentic-sdd --ci github-actions opencode minimal
 ```
 
-Optional (opt-in): enable Shogun Ops (checkin/collect/supervise + ops scripts).
-Do NOT enable this when you are using an external multi-agent harness (e.g. Oh My OpenCode).
-
-See "External multi-agent harnesses" above for the recommended responsibility split and adaptation guidance.
-
-```
-/agentic-sdd --shogun-ops opencode minimal
-```
-
 After install, edit `.github/workflows/agentic-sdd-ci.yml` and set the 3 env vars to your project's commands.
 To enforce in GitHub, require the check `agentic-sdd-ci / ci` via branch protection rules.
 
@@ -182,6 +103,36 @@ If you do not have `/agentic-sdd` yet, set it up once by cloning this repo and r
 Use `full` instead of `minimal` if you want GitHub issue/PR templates.
 
 After installation, OpenCode exposes Agentic-SDD's init checklist as `/sdd-init` (because `/init` is built-in).
+
+### 0.5) Update existing installs with git subtree (recommended)
+
+If Agentic-SDD is already installed in your repository and you want repeatable updates without manual re-import,
+use `git subtree` with a fixed prefix (for example `.agentic-sdd-upstream`).
+
+One-time setup in each target repository:
+
+```bash
+git subtree add --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.2.39 --squash
+```
+
+Then update by tag/branch:
+
+```bash
+git subtree pull --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.2.39 --squash
+```
+
+This repository also includes a helper script for the pull step:
+
+```bash
+./.agentic-sdd-upstream/scripts/update-agentic-sdd.sh --ref v0.2.39
+```
+
+Notes:
+
+- Prefer pinned tags for deterministic updates.
+- Avoid chained subtree setups (`subtree -> subtree`); each consumer repo should pull directly from this repo.
+- Keep local customizations outside the subtree prefix (for example `.agentic-sdd.local/`) to reduce merge friction.
+- Avoid using `.agentic-sdd/` as subtree prefix because it is used for runtime artifacts.
 
 ### 1) Create a PRD
 
@@ -283,6 +234,12 @@ During development (and before committing, per `/impl`), iterate locally with:
 `/review-cycle` generates `review.json` and is meant to be used in a fix -> re-review loop.
 By default, it reviews the branch diff against `origin/main...HEAD` (fallback: `main...HEAD`).
 In this default (`DIFF_MODE=range`), the working tree must be clean; for pre-commit local changes, use `DIFF_MODE=staged` or `DIFF_MODE=worktree`.
+
+Recommended incremental operation:
+
+- First run in an Issue/branch: keep `REVIEW_CYCLE_INCREMENTAL=0` (fresh full baseline).
+- Subsequent reruns in the same Issue loop: set `REVIEW_CYCLE_INCREMENTAL=1`.
+- Force a fresh full run again when base/HEAD context changed materially (for example rebase/base update) and right before `/final-review`.
 
 Note: the review engine invocation (`codex exec` by default) has no timeout by default. If you need one, set `EXEC_TIMEOUT_SEC` (uses `timeout`/`gtimeout` when available).
 
@@ -390,6 +347,7 @@ scripts/
 ├── setup-global-agentic-sdd.sh
 ├── sot_refs.py
 ├── sync-agent-config.sh
+├── update-agentic-sdd.sh
 ├── ui-iterate.sh
 ├── validate-approval.py
 ├── validate-review-json.py
@@ -402,6 +360,7 @@ scripts/
     ├── test-review-cycle.sh
     ├── test-setup-global-agentic-sdd.sh
     ├── test-sync-docs-inputs.sh
+    ├── test-update-agentic-sdd.sh
     ├── test-ui-iterate.sh
     └── test-worktree.sh
 
@@ -503,7 +462,7 @@ Generated under `.opencode/` (gitignored):
 
 ##### Global `/agentic-sdd` command
 
-This repo provides global definitions (OpenCode/Codex/Claude/Clawdbot) and a helper CLI `agentic-sdd`
+This repo provides global definitions (OpenCode/Codex/Claude) and a helper CLI `agentic-sdd`
 to install Agentic-SDD into new projects.
 
 Setup:

@@ -32,6 +32,7 @@ Underlying script:
 2. Run tests (optional) and record results
 3. Generate `review.json` via selected engine (`codex exec` or `claude -p`)
 4. Validate JSON and save under `.agentic-sdd/`
+5. For local pre-commit changes, prefer `DIFF_MODE=staged` or `DIFF_MODE=worktree`.
 
 ## Iteration protocol (how far/how to loop)
 
@@ -79,6 +80,13 @@ Underlying script:
   - If both staged and worktree diffs exist in `auto`, fail-fast and ask you to choose.
 - `BASE_REF`: base ref for `range` mode (default: `origin/main`; fallback to `main`)
 - `CONSTRAINTS`: additional constraints (default: `none`)
+- `REVIEW_CYCLE_INCREMENTAL`: `1` enables conditional reuse of the latest approved `review.json` when strict fingerprints match; default `0` (full execution)
+  - Reuse is fail-closed. Any missing/mismatched metadata field forces full execution.
+  - Reuse is allowed only when the latest review status is `Approved` or `Approved with nits`.
+  - Recommended operation:
+    - First run in an Issue/branch: keep `REVIEW_CYCLE_INCREMENTAL=0` (establish a fresh full baseline).
+    - Subsequent reruns in the same Issue loop: set `REVIEW_CYCLE_INCREMENTAL=1`.
+    - Force a fresh full run again when base/HEAD context changed materially (for example rebase/base update) and right before `/final-review`.
 
 ### Timeout (review engine execution)
 
@@ -86,6 +94,14 @@ Underlying script:
   - Default: unset (no timeout is enforced; the review engine may run indefinitely).
   - Applies to both `codex exec` and `claude -p`.
   - If `timeout`/`gtimeout` is not available, it runs without a timeout even when set.
+- `MAX_DIFF_BYTES`: hard byte budget for collected `diff.patch`.
+  - Default: unset/`0` (disabled)
+  - Enabled value must be an integer `>= 1`.
+  - Exceeding budget fails fast before engine execution.
+- `MAX_PROMPT_BYTES`: hard byte budget for generated `prompt.txt`.
+  - Default: unset/`0` (disabled)
+  - Enabled value must be an integer `>= 1`.
+  - Exceeding budget fails fast before engine execution.
 
 ### Engine selection
 
@@ -107,6 +123,13 @@ Underlying script:
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/review.json`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/review-metadata.json`
   - In `DIFF_MODE=range`, `base_sha` is pinned to the SHA resolved when `diff.patch` is collected.
+  - Includes strict comparison keys for conditional reuse:
+    - `head_sha`, `base_ref`, `base_sha`, `diff_source`, `diff_sha256`, `schema_version`
+    - `engine_fingerprint`, `sot_fingerprint`, `tests_fingerprint`
+  - Includes budget/latency observability keys:
+    - `diff_bytes`, `sot_bytes`, `prompt_bytes`, `engine_runtime_ms`
+  - Includes reuse observability fields:
+    - `incremental_enabled`, `reuse_eligible`, `reused`, `reuse_reason`, `non_reuse_reason`, `reused_from_run`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/diff.patch`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.txt`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.stderr`

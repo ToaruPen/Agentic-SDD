@@ -380,7 +380,6 @@ Agentic-SDD/
 │   ├── opencode/
 │   ├── codex/
 │   ├── claude/
-│   ├── clawdbot/
 │   └── ci/                       # opt-in CI templates (e.g. GitHub Actions)
 ├── scripts/
 │   ├── agentic-sdd

@@ -22,7 +22,7 @@ Arguments (optional): $ARGUMENTS
 2) Run the installer via the helper:
 
 ```bash
-AGENTIC_SDD_DEFAULT_TOOL=opencode agentic-sdd --ref latest $ARGUMENTS
+AGENTIC_SDD_DEFAULT_TOOL=opencode agentic-sdd $ARGUMENTS
 ```
 
 To install a specific released version (for reproducibility):
@@ -34,7 +34,7 @@ AGENTIC_SDD_DEFAULT_TOOL=opencode agentic-sdd --ref <tag> $ARGUMENTS
 If you are installing for Codex instead:
 
 ```bash
-AGENTIC_SDD_DEFAULT_TOOL=codex agentic-sdd --ref latest $ARGUMENTS
+AGENTIC_SDD_DEFAULT_TOOL=codex agentic-sdd $ARGUMENTS
 ```
 
 3) If the command exits with code 2, conflicts were found. Summarize conflicts and ask whether to re-run with `--force`.

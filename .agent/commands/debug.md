@@ -128,4 +128,3 @@ Template (comment or Issue body; Japanese):
 
 - `skills/debugging.md` - debugging principles and checklists
 - `skills/data-driven.md` - metrics-driven investigations
-- `.agent/commands/checkin.md` - (Shogun Ops) record progress/evidence

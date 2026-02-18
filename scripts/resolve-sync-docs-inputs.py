@@ -4,8 +4,10 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from sot_refs import find_issue_ref, resolve_ref_to_repo_path
@@ -25,7 +27,7 @@ def run(
     cwd: Optional[str] = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return subprocess.run(  # noqa: S603
         cmd,
         cwd=cwd,
         text=True,
@@ -36,8 +38,11 @@ def run(
 
 
 def git_repo_root() -> str:
+    git_bin = shutil.which("git")
+    if not git_bin:
+        raise RuntimeError("git not found on PATH")
     try:
-        p = run(["git", "rev-parse", "--show-toplevel"], check=True)
+        p = run([git_bin, "rev-parse", "--show-toplevel"], check=True)
     except subprocess.CalledProcessError:
         raise RuntimeError("Not in a git repository; cannot locate repo root.")
     root = p.stdout.strip()
@@ -47,8 +52,11 @@ def git_repo_root() -> str:
 
 
 def current_branch(repo_root: str) -> str:
+    git_bin = shutil.which("git")
+    if not git_bin:
+        return ""
     try:
-        p = run(["git", "branch", "--show-current"], cwd=repo_root)
+        p = run([git_bin, "branch", "--show-current"], cwd=repo_root)
     except subprocess.CalledProcessError:
         return ""
     return p.stdout.strip()
@@ -152,9 +160,12 @@ def find_epic_by_prd(repo_root: str, prd_path: str) -> str:
                 ref = m.group(1).strip()
                 if is_placeholder_ref(ref):
                     continue
+                resolved = None
                 try:
                     resolved = resolve_ref_to_repo_path(repo_root, ref)
-                except Exception:
+                except ValueError:
+                    resolved = None
+                if resolved is None:
                     continue
                 if resolved == prd_path:
                     candidates.append(rel)
@@ -209,26 +220,33 @@ def shutil_which(cmd: str) -> Optional[str]:
 
 
 def git_has_diff(repo_root: str, args: List[str]) -> bool:
-    cp = subprocess.run(
-        ["git", "diff", "--quiet"] + args,
+    git_bin = shutil.which("git")
+    if not git_bin:
+        raise RuntimeError("git not found on PATH")
+    cp = run(
+        [git_bin, "diff", "--quiet"] + args,
         cwd=repo_root,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        check=False,
     )
     return cp.returncode != 0
 
 
 def git_diff_text(repo_root: str, args: List[str]) -> str:
-    p = run(["git", "diff", "--no-color"] + args, cwd=repo_root, check=True)
+    git_bin = shutil.which("git")
+    if not git_bin:
+        raise RuntimeError("git not found on PATH")
+    p = run([git_bin, "diff", "--no-color"] + args, cwd=repo_root, check=True)
     return p.stdout
 
 
 def git_ref_exists(repo_root: str, ref: str) -> bool:
-    cp = subprocess.run(
-        ["git", "rev-parse", "--verify", ref],
+    git_bin = shutil.which("git")
+    if not git_bin:
+        return False
+    cp = run(
+        [git_bin, "rev-parse", "--verify", ref],
         cwd=repo_root,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        check=False,
     )
     return cp.returncode == 0
 
@@ -426,9 +444,7 @@ def main() -> int:
 
         run_id = args.run_id.strip() if args.run_id else ""
         if not run_id:
-            run_id = subprocess.check_output(
-                ["date", "+%Y%m%d_%H%M%S"], text=True
-            ).strip()
+            run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         output_root = (
             os.path.realpath(args.output_root)

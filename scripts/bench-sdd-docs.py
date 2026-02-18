@@ -167,7 +167,7 @@ def run_one(
 
     start = time.monotonic()
     try:
-        proc = subprocess.run(
+        proc = subprocess.run(  # noqa: S603
             cmd,
             text=True,
             stdout=subprocess.PIPE,
