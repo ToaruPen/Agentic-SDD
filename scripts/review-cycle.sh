@@ -278,6 +278,7 @@ diff_bytes=0
 sot_bytes=0
 prompt_bytes=0
 engine_runtime_ms=0
+script_semantics_version="v2"
 
 review_cycle_incremental="${REVIEW_CYCLE_INCREMENTAL:-0}"
 if [[ "$review_cycle_incremental" != "0" && "$review_cycle_incremental" != "1" ]]; then
@@ -880,9 +881,199 @@ schema_sha256="$(sha256_file "$schema_path")"
 tmp_json="${out_json}.tmp.$$"
 tmp_prompt="${run_dir}/prompt.txt"
 
-# Build prompt
-{
-  cat <<'PROMPT'
+engine_version_output=""
+case "$review_engine" in
+  codex)
+    engine_version_output="$("$codex_bin" --version 2>/dev/null || true)"
+    ;;
+  claude)
+    engine_version_output="$("$claude_bin" --version 2>/dev/null || true)"
+    ;;
+esac
+engine_version_available=0
+if [[ -n "$engine_version_output" ]]; then
+  engine_version_available=1
+fi
+
+engine_fingerprint=""
+
+reuse_candidate_run=""
+reuse_candidate_meta=""
+reuse_candidate_json=""
+reuse_eligible=0
+reuse_reason="no-previous-run"
+reused=0
+reused_from_run=""
+
+if [[ -f "$current_run_file" ]]; then
+  candidate_run="$(cat "$current_run_file" 2>/dev/null || true)"
+  if [[ "$candidate_run" =~ ^[A-Za-z0-9._-]+$ && "$candidate_run" != "." && "$candidate_run" != ".." ]]; then
+    candidate_meta="$scope_root/$candidate_run/review-metadata.json"
+    candidate_json="$scope_root/$candidate_run/review.json"
+    if [[ -f "$candidate_meta" && -f "$candidate_json" ]]; then
+      reuse_candidate_run="$candidate_run"
+      reuse_candidate_meta="$candidate_meta"
+      reuse_candidate_json="$candidate_json"
+    else
+      reuse_reason="candidate-artifacts-missing"
+    fi
+  else
+    reuse_reason="candidate-run-invalid"
+  fi
+fi
+
+if [[ "$review_cycle_incremental" == "1" && -n "$reuse_candidate_meta" ]]; then
+  reuse_state_fast="$(python3 - "$reuse_candidate_meta" "$reuse_candidate_json" "$head_sha" "$meta_base_ref" "$meta_base_sha" "$diff_source" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_version_available" "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$script_semantics_version" <<'PY'
+import json
+import sys
+
+meta_path = sys.argv[1]
+review_path = sys.argv[2]
+curr_head = sys.argv[3]
+curr_base_ref = sys.argv[4]
+curr_base_sha = sys.argv[5]
+curr_diff_source = sys.argv[6]
+curr_diff_sha256 = sys.argv[7]
+curr_sot_fp = sys.argv[8]
+curr_tests_fp = sys.argv[9]
+curr_engine_version_available = sys.argv[10] == "1"
+curr_review_engine = sys.argv[11]
+curr_codex_model = sys.argv[12]
+curr_reasoning_effort = sys.argv[13]
+curr_claude_model = sys.argv[14]
+curr_schema_sha256 = sys.argv[15]
+curr_constraints = sys.argv[16]
+curr_engine_version_output = sys.argv[17]
+curr_script_semantics_version = sys.argv[18]
+
+def out(eligible: bool, reason: str, engine_fingerprint: str = "") -> None:
+    print("eligible=1" if eligible else "eligible=0")
+    print(f"reason={reason}")
+    if engine_fingerprint:
+        print(f"engine_fingerprint={engine_fingerprint}")
+
+try:
+    with open(meta_path, "r", encoding="utf-8") as fh:
+        meta = json.load(fh)
+except Exception:
+    out(False, "metadata-unreadable")
+    raise SystemExit(0)
+
+try:
+    with open(review_path, "r", encoding="utf-8") as fh:
+        review = json.load(fh)
+except Exception:
+    out(False, "review-unreadable")
+    raise SystemExit(0)
+
+required = [
+    "head_sha",
+    "base_ref",
+    "base_sha",
+    "diff_source",
+    "diff_sha256",
+    "sot_fingerprint",
+    "tests_fingerprint",
+    "engine_fingerprint",
+    "review_engine",
+    "codex_model",
+    "reasoning_effort",
+    "claude_model",
+    "schema_sha256",
+    "constraints",
+    "engine_version_output",
+    "script_semantics_version",
+]
+for key in required:
+    value = meta.get(key)
+    if not isinstance(value, str):
+        out(False, f"missing-{key}")
+        raise SystemExit(0)
+
+if meta.get("schema_version") != 1:
+    out(False, "schema-version-mismatch")
+    raise SystemExit(0)
+
+if not curr_engine_version_available:
+    out(False, "engine-version-unavailable")
+    raise SystemExit(0)
+
+if meta.get("engine_version_available") is not True:
+    out(False, "cached-engine-version-unavailable")
+    raise SystemExit(0)
+
+status = str(review.get("status") or "")
+if status not in {"Approved", "Approved with nits"}:
+    out(False, "status-not-reusable")
+    raise SystemExit(0)
+
+if meta.get("review_completed") is not True:
+    out(False, "review-not-completed")
+    raise SystemExit(0)
+
+tests_exit_code = meta.get("tests_exit_code")
+if tests_exit_code is not None and tests_exit_code != 0:
+    out(False, "tests-exit-nonzero")
+    raise SystemExit(0)
+
+checks = [
+    ("head_sha", curr_head),
+    ("base_ref", curr_base_ref),
+    ("base_sha", curr_base_sha),
+    ("diff_source", curr_diff_source),
+    ("diff_sha256", curr_diff_sha256),
+    ("sot_fingerprint", curr_sot_fp),
+    ("tests_fingerprint", curr_tests_fp),
+    ("review_engine", curr_review_engine),
+    ("codex_model", curr_codex_model if curr_review_engine == "codex" else ""),
+    ("reasoning_effort", curr_reasoning_effort if curr_review_engine == "codex" else ""),
+    ("claude_model", curr_claude_model if curr_review_engine == "claude" else ""),
+    ("schema_sha256", curr_schema_sha256),
+    ("constraints", curr_constraints),
+    ("engine_version_output", curr_engine_version_output),
+    ("script_semantics_version", curr_script_semantics_version),
+]
+
+for key, expected in checks:
+    if str(meta.get(key)) != expected:
+        out(False, f"{key}-mismatch")
+        raise SystemExit(0)
+
+out(True, "cache-hit-fast", str(meta.get("engine_fingerprint")))
+PY
+)"
+  reuse_eligible=0
+  reuse_reason="unknown"
+  cached_engine_fingerprint=""
+  while IFS= read -r line; do
+    case "$line" in
+      eligible=1) reuse_eligible=1 ;;
+      eligible=0) reuse_eligible=0 ;;
+      reason=*) reuse_reason="${line#reason=}" ;;
+      engine_fingerprint=*) cached_engine_fingerprint="${line#engine_fingerprint=}" ;;
+    esac
+  done <<< "$reuse_state_fast"
+
+  if [[ "$reuse_eligible" -eq 1 ]]; then
+    if python3 "$script_dir/validate-review-json.py" "$reuse_candidate_json" --scope-id "$scope_id" >/dev/null 2>&1; then
+      ensure_run_dir
+      if [[ "$reuse_candidate_json" != "$out_json" ]]; then
+        cp -p "$reuse_candidate_json" "$out_json"
+      fi
+      reused=1
+      reused_from_run="$reuse_candidate_run"
+      engine_fingerprint="$cached_engine_fingerprint"
+    else
+      reuse_eligible=0
+      reuse_reason="candidate-review-invalid"
+    fi
+  fi
+fi
+
+if [[ "$reused" -eq 0 ]]; then
+  # Build prompt
+  {
+    cat <<'PROMPT'
 You are a code reviewer.
 
 Output JSON only. Your output MUST validate against the provided JSON schema.
@@ -924,62 +1115,47 @@ Output requirements:
 - questions must be an array (use [] when none)
 - No markdown fences, no extra prose.
 PROMPT
-  printf 'Schema-Version: 3\n'
-  printf 'Scope-ID: %s\n' "$scope_id"
-  printf 'SoT:\n'
-  cat "$out_sot"
-  printf '\n'
-  printf 'Tests: %s\n' "$tests_summary"
-  printf 'Tests-Stderr: %s\n' "$tests_stderr_summary"
-  printf 'Tests-Stderr-Policy: %s\n' "$test_stderr_policy"
-  printf 'Constraints: %s\n' "$constraints"
-  printf 'Diff:\n'
-  cat "$out_diff"
-} > "$tmp_prompt"
+    printf 'Schema-Version: 3\n'
+    printf 'Scope-ID: %s\n' "$scope_id"
+    printf 'SoT:\n'
+    cat "$out_sot"
+    printf '\n'
+    printf 'Tests: %s\n' "$tests_summary"
+    printf 'Tests-Stderr: %s\n' "$tests_stderr_summary"
+    printf 'Tests-Stderr-Policy: %s\n' "$test_stderr_policy"
+    printf 'Constraints: %s\n' "$constraints"
+    printf 'Diff:\n'
+    cat "$out_diff"
+  } > "$tmp_prompt"
 
-prompt_bytes="$(wc -c < "$tmp_prompt" | tr -d ' ')"
-if (( max_prompt_bytes > 0 && prompt_bytes > max_prompt_bytes )); then
-  eprint "Prompt bytes exceeded MAX_PROMPT_BYTES: prompt_bytes=$prompt_bytes max=$max_prompt_bytes"
-  eprint "Reduce SoT/diff input size and retry."
-  exit 2
-fi
-
-# Validate engine selection and check binary availability
-case "$review_engine" in
-  codex)
-    if ! command -v "$codex_bin" >/dev/null 2>&1; then
-      eprint "codex not found: $codex_bin"
-      exit 1
-    fi
-    ;;
-  claude)
-    if ! command -v "$claude_bin" >/dev/null 2>&1; then
-      eprint "claude not found: $claude_bin"
-      exit 1
-    fi
-    ;;
-  *)
-    eprint "Invalid REVIEW_ENGINE: $review_engine (use codex|claude)"
+  prompt_bytes="$(wc -c < "$tmp_prompt" | tr -d ' ')"
+  if (( max_prompt_bytes > 0 && prompt_bytes > max_prompt_bytes )); then
+    eprint "Prompt bytes exceeded MAX_PROMPT_BYTES: prompt_bytes=$prompt_bytes max=$max_prompt_bytes"
+    eprint "Reduce SoT/diff input size and retry."
     exit 2
-    ;;
-esac
+  fi
 
-engine_version_output=""
-case "$review_engine" in
-  codex)
-    engine_version_output="$("$codex_bin" --version 2>/dev/null || true)"
-    ;;
-  claude)
-    engine_version_output="$("$claude_bin" --version 2>/dev/null || true)"
-    ;;
-esac
-engine_version_available=0
-if [[ -n "$engine_version_output" ]]; then
-  engine_version_available=1
-fi
+  case "$review_engine" in
+    codex)
+      if ! command -v "$codex_bin" >/dev/null 2>&1; then
+        eprint "codex not found: $codex_bin"
+        exit 1
+      fi
+      ;;
+    claude)
+      if ! command -v "$claude_bin" >/dev/null 2>&1; then
+        eprint "claude not found: $claude_bin"
+        exit 1
+      fi
+      ;;
+    *)
+      eprint "Invalid REVIEW_ENGINE: $review_engine (use codex|claude)"
+      exit 2
+      ;;
+  esac
 
-prompt_sha256="$(sha256_file "$tmp_prompt")"
-engine_fingerprint="$(python3 - "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$prompt_sha256" <<'PY'
+  prompt_sha256="$(sha256_file "$tmp_prompt")"
+  engine_fingerprint="$(python3 - "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$prompt_sha256" "$script_semantics_version" <<'PY'
 import hashlib
 import json
 import sys
@@ -992,6 +1168,7 @@ schema_sha256 = sys.argv[5]
 constraints = sys.argv[6]
 engine_version_output = sys.argv[7]
 prompt_sha256 = sys.argv[8]
+script_semantics_version = sys.argv[9]
 material = {
     "review_engine": engine,
     "codex_model": codex_model if engine == "codex" else "",
@@ -1001,31 +1178,15 @@ material = {
     "constraints": constraints,
     "engine_version_output": engine_version_output,
     "prompt_sha256": prompt_sha256,
-    "script_semantics_version": "v1",
+    "script_semantics_version": script_semantics_version,
 }
 encoded = json.dumps(material, ensure_ascii=False, sort_keys=True).encode("utf-8")
 print(hashlib.sha256(encoded).hexdigest())
 PY
 )"
 
-reuse_candidate_run=""
-reuse_candidate_meta=""
-reuse_candidate_json=""
-reuse_eligible=0
-reuse_reason="no-previous-run"
-reused=0
-reused_from_run=""
-
-if [[ -f "$current_run_file" ]]; then
-  candidate_run="$(cat "$current_run_file" 2>/dev/null || true)"
-  if [[ "$candidate_run" =~ ^[A-Za-z0-9._-]+$ && "$candidate_run" != "." && "$candidate_run" != ".." ]]; then
-    candidate_meta="$scope_root/$candidate_run/review-metadata.json"
-    candidate_json="$scope_root/$candidate_run/review.json"
-    if [[ -f "$candidate_meta" && -f "$candidate_json" ]]; then
-      reuse_candidate_run="$candidate_run"
-      reuse_candidate_meta="$candidate_meta"
-      reuse_candidate_json="$candidate_json"
-      reuse_state="$(python3 - "$reuse_candidate_meta" "$reuse_candidate_json" "$head_sha" "$meta_base_ref" "$meta_base_sha" "$diff_source" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_version_available" "$engine_fingerprint" <<'PY'
+  if [[ "$review_cycle_incremental" == "1" && -n "$reuse_candidate_meta" ]]; then
+    reuse_state="$(python3 - "$reuse_candidate_meta" "$reuse_candidate_json" "$head_sha" "$meta_base_ref" "$meta_base_sha" "$diff_source" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_version_available" "$engine_fingerprint" <<'PY'
 import json
 import sys
 
@@ -1129,34 +1290,29 @@ if tests_exit_code is not None and tests_exit_code != 0:
 out(True, "cache-hit")
 PY
 )"
-      reuse_eligible=0
-      reuse_reason="unknown"
-      while IFS= read -r line; do
-        case "$line" in
-          eligible=1) reuse_eligible=1 ;;
-          eligible=0) reuse_eligible=0 ;;
-          reason=*) reuse_reason="${line#reason=}" ;;
-        esac
-      done <<< "$reuse_state"
-    else
-      reuse_reason="candidate-artifacts-missing"
-    fi
-  else
-    reuse_reason="candidate-run-invalid"
-  fi
-fi
-
-if [[ "$review_cycle_incremental" == "1" && "$reuse_eligible" -eq 1 ]]; then
-  if python3 "$script_dir/validate-review-json.py" "$reuse_candidate_json" --scope-id "$scope_id" >/dev/null 2>&1; then
-    ensure_run_dir
-    if [[ "$reuse_candidate_json" != "$out_json" ]]; then
-      cp -p "$reuse_candidate_json" "$out_json"
-    fi
-    reused=1
-    reused_from_run="$reuse_candidate_run"
-  else
     reuse_eligible=0
-    reuse_reason="candidate-review-invalid"
+    reuse_reason="unknown"
+    while IFS= read -r line; do
+      case "$line" in
+        eligible=1) reuse_eligible=1 ;;
+        eligible=0) reuse_eligible=0 ;;
+        reason=*) reuse_reason="${line#reason=}" ;;
+      esac
+    done <<< "$reuse_state"
+
+    if [[ "$reuse_eligible" -eq 1 ]]; then
+      if python3 "$script_dir/validate-review-json.py" "$reuse_candidate_json" --scope-id "$scope_id" >/dev/null 2>&1; then
+        ensure_run_dir
+        if [[ "$reuse_candidate_json" != "$out_json" ]]; then
+          cp -p "$reuse_candidate_json" "$out_json"
+        fi
+        reused=1
+        reused_from_run="$reuse_candidate_run"
+      else
+        reuse_eligible=0
+        reuse_reason="candidate-review-invalid"
+      fi
+    fi
   fi
 fi
 
@@ -1293,7 +1449,7 @@ if [[ "$reused" -eq 0 ]]; then
   fi
 fi
 
-python3 - "$out_meta" "$scope_id" "$run_id" "$diff_source" "$meta_base_ref" "$meta_base_sha" "$head_sha" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_fingerprint" "$engine_version_available" "$review_cycle_incremental" "$reuse_eligible" "$reused" "$reuse_reason" "$non_reuse_reason" "$reused_from_run" "$tests_exit_code" "$prompt_bytes" "$sot_bytes" "$diff_bytes" "$engine_runtime_ms" <<'PY'
+python3 - "$out_meta" "$scope_id" "$run_id" "$diff_source" "$meta_base_ref" "$meta_base_sha" "$head_sha" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_fingerprint" "$engine_version_available" "$review_cycle_incremental" "$reuse_eligible" "$reused" "$reuse_reason" "$non_reuse_reason" "$reused_from_run" "$tests_exit_code" "$prompt_bytes" "$sot_bytes" "$diff_bytes" "$engine_runtime_ms" "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$script_semantics_version" <<'PY'
 import datetime
 import json
 import os
@@ -1322,6 +1478,14 @@ prompt_bytes_raw = sys.argv[20]
 sot_bytes_raw = sys.argv[21]
 diff_bytes_raw = sys.argv[22]
 engine_runtime_ms_raw = sys.argv[23]
+review_engine = sys.argv[24]
+model = sys.argv[25]
+reasoning_effort = sys.argv[26]
+claude_model = sys.argv[27]
+schema_sha256 = sys.argv[28]
+constraints = sys.argv[29]
+engine_version_output = sys.argv[30]
+script_semantics_version = sys.argv[31]
 
 tests_exit_code = None
 if tests_exit_code_raw:
@@ -1349,6 +1513,14 @@ payload = {
     "sot_fingerprint": sot_fingerprint,
     "tests_fingerprint": tests_fingerprint,
     "engine_fingerprint": engine_fingerprint,
+    "review_engine": review_engine,
+    "codex_model": model if review_engine == "codex" else "",
+    "reasoning_effort": reasoning_effort if review_engine == "codex" else "",
+    "claude_model": claude_model if review_engine == "claude" else "",
+    "schema_sha256": schema_sha256,
+    "constraints": constraints,
+    "engine_version_output": engine_version_output,
+    "script_semantics_version": script_semantics_version,
     "engine_version_available": engine_version_available,
     "incremental_enabled": incremental_enabled,
     "reuse_eligible": reuse_eligible,

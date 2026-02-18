@@ -460,7 +460,7 @@ if ! grep -q '"head_sha": "' "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-m
   exit 1
 fi
 
-for required_key in engine_fingerprint sot_fingerprint tests_fingerprint; do
+for required_key in engine_fingerprint sot_fingerprint tests_fingerprint script_semantics_version; do
   if ! grep -q "\"${required_key}\":" "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
     eprint "Expected ${required_key} in review metadata"
     cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" >&2
@@ -588,6 +588,11 @@ fi
 if ! grep -q '"reused_from_run": "run-cache-seed"' "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"; then
   eprint "Expected reused_from_run in cache-hit metadata"
   cat "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" >&2
+  exit 1
+fi
+
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/prompt.txt" ]]; then
+  eprint "Expected cache-hit path to skip prompt generation"
   exit 1
 fi
 
