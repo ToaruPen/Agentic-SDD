@@ -21,6 +21,11 @@ mkdir -p "$home"
 
 HOME="$home" bash "$setup" >/dev/null
 
+if [[ "$(tr -d '\n' < "$home/.config/agentic-sdd/default-ref")" != "main" ]]; then
+  eprint "Expected default ref to be 'main'"
+  exit 1
+fi
+
 if [[ ! -x "$home/.local/bin/agentic-sdd" ]]; then
   eprint "Expected helper CLI to be installed: $home/.local/bin/agentic-sdd"
   exit 1
@@ -58,6 +63,47 @@ fi
 if compgen -G "$home/.config/agentic-sdd/repo.bak.*" >/dev/null; then
   eprint "Did not expect a backup for repo on a second identical run"
   ls -1 "$home/.config/agentic-sdd/repo.bak."* >&2
+  exit 1
+fi
+
+custom_src="$tmpdir/custom-src"
+custom_remote="$tmpdir/custom-remote.git"
+mkdir -p "$custom_src"
+git init -q -b trunk "$custom_src"
+git -C "$custom_src" config user.name test
+git -C "$custom_src" config user.email test@example.com
+printf 'x\n' > "$custom_src/README.md"
+git -C "$custom_src" add README.md
+git -C "$custom_src" commit -q -m "init"
+git clone -q --bare "$custom_src" "$custom_remote"
+
+home_custom="$tmpdir/home-custom"
+mkdir -p "$home_custom"
+HOME="$home_custom" AGENTIC_SDD_REPO="$custom_remote" bash "$setup" >/dev/null
+
+if [[ "$(tr -d '\n' < "$home_custom/.config/agentic-sdd/default-ref")" != "trunk" ]]; then
+  eprint "Expected default ref to follow AGENTIC_SDD_REPO HEAD ('trunk')"
+  exit 1
+fi
+
+home_fail="$tmpdir/home-fail"
+mkdir -p "$home_fail"
+if HOME="$home_fail" AGENTIC_SDD_REPO="$tmpdir/nonexistent-remote.git" bash "$setup" >"$home_fail/stdout" 2>"$home_fail/stderr"; then
+  eprint "Expected setup to fail when remote default branch cannot be detected"
+  exit 1
+fi
+
+if ! grep -Fq "Set AGENTIC_SDD_DEFAULT_REF explicitly" "$home_fail/stderr"; then
+  eprint "Expected guidance to set AGENTIC_SDD_DEFAULT_REF on detection failure"
+  exit 1
+fi
+
+home_override="$tmpdir/home-override"
+mkdir -p "$home_override"
+HOME="$home_override" AGENTIC_SDD_REPO="$tmpdir/nonexistent-remote.git" AGENTIC_SDD_DEFAULT_REF="main" bash "$setup" >/dev/null
+
+if [[ "$(tr -d '\n' < "$home_override/.config/agentic-sdd/default-ref")" != "main" ]]; then
+  eprint "Expected explicit AGENTIC_SDD_DEFAULT_REF to bypass remote detection"
   exit 1
 fi
 
