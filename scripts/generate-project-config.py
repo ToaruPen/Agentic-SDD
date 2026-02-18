@@ -322,7 +322,7 @@ def main() -> int:
             eprint(f"Error: extract-epic-config.py not found at {extract_script}")
             return 1
 
-        proc = subprocess.run(
+        proc = subprocess.run(  # noqa: S603
             [sys.executable, str(extract_script), str(config_path)],
             capture_output=True,
             text=True,
