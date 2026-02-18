@@ -40,7 +40,7 @@ Target is mandatory. Do not infer from the current branch.
 2. If current branch does not match `headRefName`, STOP and switch to the PR head branch/worktree.
 3. Run `/final-review` on the PR head branch/worktree.
 
-3. Only after 1-2 pass, continue to review phases.
+3. Only after passing all checks in Phase 0, continue to review phases.
 
 ### Phase 1: Identify the target
 
@@ -108,9 +108,17 @@ Keep it concise; include "how verified" and evidence.
 
 - Correctness: does it satisfy AC / PRD / Epic?
 - Decisions: classify whether the diff changes decision-level constraints or only wording-level documentation.
-  - Decision Snapshot is required when the diff introduces or changes architecture/major design choices, tooling or vendor selections, security or compliance decisions, or operational/runbook policies that change behavior/constraints.
+  - Decision Snapshot is required when the diff introduces or changes:
+    - architecture or major design choices
+    - tooling or vendor selections
+    - security or compliance decisions
+    - operational/runbook policies that alter behavior or constraints
   - Decision Snapshot is not required for wording/clarity/example-only edits that do not change behavior or constraints.
-  - Decision rule mapping: apply `.agent/rules/dod.md` (Decision checkbox) and `.agent/rules/docs-sync.md` (Decision sync rules) together; when required, add/update `docs/decisions/<decision-file>.md` and keep `docs/decisions.md` index consistent.
+  - Decision rule mapping:
+    - Apply `.agent/rules/dod.md` to decide whether the Decision checkbox must be satisfied.
+    - Apply `.agent/rules/docs-sync.md` to decide whether Decision sync references are required.
+    - When required, add/update `docs/decisions/<decision-file>.md`.
+    - Keep `docs/decisions.md` index consistent with the Decision body files.
 - Readability: names, structure, consistency
 - Testing: meaningful assertions, enough coverage
 - Security: input validation, auth, secret handling
