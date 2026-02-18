@@ -63,6 +63,8 @@ Required environment:
 
   Common options:
   EXEC_TIMEOUT_SEC Optional timeout in seconds (unset/empty => no timeout; uses timeout/gtimeout if available)
+  MAX_DIFF_BYTES   Optional hard limit for diff.patch bytes (0/empty disables; min 1 when enabled)
+  MAX_PROMPT_BYTES Optional hard limit for prompt.txt bytes (0/empty disables; min 1 when enabled)
   FORMAT_JSON      1 to pretty-format output JSON (default: 1)
 
 Notes:
@@ -201,6 +203,8 @@ claude_model="${claude_model_cli:-${CLAUDE_MODEL:-claude-opus-4-5-20250929}}"
 # Common options
 exec_timeout_sec="${EXEC_TIMEOUT_SEC:-}"
 format_json="${FORMAT_JSON:-1}"
+max_diff_bytes_raw="${MAX_DIFF_BYTES:-}"
+max_prompt_bytes_raw="${MAX_PROMPT_BYTES:-}"
 
 sot="${SOT:-}"
 tests_summary="${TESTS:-}"
@@ -270,6 +274,10 @@ diff_detail=""
 diff_base_sha=""
 tests_exit_code=""
 tests_fingerprint_input_sha256=""
+diff_bytes=0
+sot_bytes=0
+prompt_bytes=0
+engine_runtime_ms=0
 
 review_cycle_incremental="${REVIEW_CYCLE_INCREMENTAL:-0}"
 if [[ "$review_cycle_incremental" != "0" && "$review_cycle_incremental" != "1" ]]; then
@@ -302,6 +310,34 @@ fi
 ensure_run_dir() {
   mkdir -p "$run_dir"
 }
+
+parse_optional_byte_limit() {
+  local name="$1"
+  local raw="$2"
+  local min_value="$3"
+  local parsed=0
+  if [[ -z "$raw" ]]; then
+    printf '0\n'
+    return 0
+  fi
+  if [[ ! "$raw" =~ ^[0-9]+$ ]]; then
+    eprint "Invalid ${name}: ${raw} (expected integer; use 0 to disable)"
+    exit 2
+  fi
+  parsed=$((10#$raw))
+  if (( parsed == 0 )); then
+    printf '0\n'
+    return 0
+  fi
+  if (( parsed < min_value )); then
+    eprint "Invalid ${name}: ${raw} (minimum ${min_value} bytes when enabled; use 0 to disable)"
+    exit 2
+  fi
+  printf '%s\n' "$parsed"
+}
+
+max_diff_bytes="$(parse_optional_byte_limit "MAX_DIFF_BYTES" "$max_diff_bytes_raw" 1)"
+max_prompt_bytes="$(parse_optional_byte_limit "MAX_PROMPT_BYTES" "$max_prompt_bytes_raw" 1)"
 
 git_ref_exists() {
   local ref="$1"
@@ -674,6 +710,8 @@ print_plan() {
     eprint "- exec_timeout_sec: $exec_timeout_sec"
   fi
   eprint "- constraints: $constraints"
+  eprint "- max_diff_bytes: $max_diff_bytes"
+  eprint "- max_prompt_bytes: $max_prompt_bytes"
   eprint "- review_cycle_incremental: $review_cycle_incremental"
   if [[ -n "$gh_issue" ]]; then
     eprint "- gh_issue: $gh_issue"
@@ -769,6 +807,15 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   exit 0
 fi
 
+diff_bytes="$(wc -c < "$out_diff" | tr -d ' ')"
+sot_bytes="$(wc -c < "$out_sot" | tr -d ' ')"
+
+if (( max_diff_bytes > 0 && diff_bytes > max_diff_bytes )); then
+  eprint "Diff bytes exceeded MAX_DIFF_BYTES: diff_bytes=$diff_bytes max=$max_diff_bytes"
+  eprint "Narrow the review input scope (DIFF_FILE/DIFF_MODE/include/exclude) and retry."
+  exit 2
+fi
+
 if [[ "$tests_stderr_violation" -eq 1 ]]; then
   eprint "TEST_STDERR_POLICY=fail: failing due to stderr output from test command."
   eprint "See: $out_tests_stderr"
@@ -780,26 +827,6 @@ if [[ ! -f "$schema_path" ]]; then
   eprint "Expected this repo to have .agent/schemas/review.json installed."
   exit 1
 fi
-
-# Validate engine selection and check binary availability
-case "$review_engine" in
-  codex)
-    if ! command -v "$codex_bin" >/dev/null 2>&1; then
-      eprint "codex not found: $codex_bin"
-      exit 1
-    fi
-    ;;
-  claude)
-    if ! command -v "$claude_bin" >/dev/null 2>&1; then
-      eprint "claude not found: $claude_bin"
-      exit 1
-    fi
-    ;;
-  *)
-    eprint "Invalid REVIEW_ENGINE: $review_engine (use codex|claude)"
-    exit 2
-    ;;
-esac
 
 if ! command -v python3 >/dev/null 2>&1; then
   eprint "python3 not found (required for validation)."
@@ -849,19 +876,6 @@ print(hashlib.sha256(encoded).hexdigest())
 PY
 )"
 schema_sha256="$(sha256_file "$schema_path")"
-engine_version_output=""
-case "$review_engine" in
-  codex)
-    engine_version_output="$("$codex_bin" --version 2>/dev/null || true)"
-    ;;
-  claude)
-    engine_version_output="$("$claude_bin" --version 2>/dev/null || true)"
-    ;;
-esac
-engine_version_available=0
-if [[ -n "$engine_version_output" ]]; then
-  engine_version_available=1
-fi
 
 tmp_json="${out_json}.tmp.$$"
 tmp_prompt="${run_dir}/prompt.txt"
@@ -922,6 +936,47 @@ PROMPT
   printf 'Diff:\n'
   cat "$out_diff"
 } > "$tmp_prompt"
+
+prompt_bytes="$(wc -c < "$tmp_prompt" | tr -d ' ')"
+if (( max_prompt_bytes > 0 && prompt_bytes > max_prompt_bytes )); then
+  eprint "Prompt bytes exceeded MAX_PROMPT_BYTES: prompt_bytes=$prompt_bytes max=$max_prompt_bytes"
+  eprint "Reduce SoT/diff input size and retry."
+  exit 2
+fi
+
+# Validate engine selection and check binary availability
+case "$review_engine" in
+  codex)
+    if ! command -v "$codex_bin" >/dev/null 2>&1; then
+      eprint "codex not found: $codex_bin"
+      exit 1
+    fi
+    ;;
+  claude)
+    if ! command -v "$claude_bin" >/dev/null 2>&1; then
+      eprint "claude not found: $claude_bin"
+      exit 1
+    fi
+    ;;
+  *)
+    eprint "Invalid REVIEW_ENGINE: $review_engine (use codex|claude)"
+    exit 2
+    ;;
+esac
+
+engine_version_output=""
+case "$review_engine" in
+  codex)
+    engine_version_output="$("$codex_bin" --version 2>/dev/null || true)"
+    ;;
+  claude)
+    engine_version_output="$("$claude_bin" --version 2>/dev/null || true)"
+    ;;
+esac
+engine_version_available=0
+if [[ -n "$engine_version_output" ]]; then
+  engine_version_available=1
+fi
 
 prompt_sha256="$(sha256_file "$tmp_prompt")"
 engine_fingerprint="$(python3 - "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$prompt_sha256" <<'PY'
@@ -1106,6 +1161,12 @@ if [[ "$review_cycle_incremental" == "1" && "$reuse_eligible" -eq 1 ]]; then
 fi
 
 if [[ "$reused" -eq 0 ]]; then
+  engine_start_ms="$(python3 - <<'PY'
+import time
+print(time.time_ns() // 1_000_000)
+PY
+)"
+
   case "$review_engine" in
     codex)
       cmd=(
@@ -1199,6 +1260,16 @@ with open('$tmp_json', 'w', encoding='utf-8') as f:
       ;;
   esac
 
+  engine_end_ms="$(python3 - <<'PY'
+import time
+print(time.time_ns() // 1_000_000)
+PY
+)"
+  engine_runtime_ms="$((engine_end_ms - engine_start_ms))"
+  if [[ "$engine_runtime_ms" -lt 0 ]]; then
+    engine_runtime_ms=0
+  fi
+
   if [[ ! -f "$tmp_json" || ! -s "$tmp_json" ]]; then
     eprint "$review_engine did not produce output: $tmp_json"
     exit 1
@@ -1213,7 +1284,16 @@ if [[ "$format_json" != "0" ]]; then
 fi
 python3 "$script_dir/validate-review-json.py" "${validate_args[@]}"
 
-python3 - "$out_meta" "$scope_id" "$run_id" "$diff_source" "$meta_base_ref" "$meta_base_sha" "$head_sha" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_fingerprint" "$engine_version_available" "$review_cycle_incremental" "$reuse_eligible" "$reused" "$reuse_reason" "$reused_from_run" "$tests_exit_code" <<'PY'
+non_reuse_reason=""
+if [[ "$reused" -eq 0 ]]; then
+  if [[ "$review_cycle_incremental" != "1" ]]; then
+    non_reuse_reason="incremental-disabled"
+  else
+    non_reuse_reason="$reuse_reason"
+  fi
+fi
+
+python3 - "$out_meta" "$scope_id" "$run_id" "$diff_source" "$meta_base_ref" "$meta_base_sha" "$head_sha" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_fingerprint" "$engine_version_available" "$review_cycle_incremental" "$reuse_eligible" "$reused" "$reuse_reason" "$non_reuse_reason" "$reused_from_run" "$tests_exit_code" "$prompt_bytes" "$sot_bytes" "$diff_bytes" "$engine_runtime_ms" <<'PY'
 import datetime
 import json
 import os
@@ -1235,8 +1315,13 @@ incremental_enabled = sys.argv[13] == "1"
 reuse_eligible = sys.argv[14] == "1"
 reused = sys.argv[15] == "1"
 reuse_reason = sys.argv[16]
-reused_from_run = sys.argv[17]
-tests_exit_code_raw = sys.argv[18]
+non_reuse_reason = sys.argv[17]
+reused_from_run = sys.argv[18]
+tests_exit_code_raw = sys.argv[19]
+prompt_bytes_raw = sys.argv[20]
+sot_bytes_raw = sys.argv[21]
+diff_bytes_raw = sys.argv[22]
+engine_runtime_ms_raw = sys.argv[23]
 
 tests_exit_code = None
 if tests_exit_code_raw:
@@ -1244,6 +1329,12 @@ if tests_exit_code_raw:
         tests_exit_code = int(tests_exit_code_raw)
     except ValueError:
         tests_exit_code = None
+
+def parse_int(raw: str, default: int = 0) -> int:
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return default
 
 payload = {
     "schema_version": 1,
@@ -1263,9 +1354,14 @@ payload = {
     "reuse_eligible": reuse_eligible,
     "reused": reused,
     "reuse_reason": reuse_reason,
+    "non_reuse_reason": non_reuse_reason,
     "reused_from_run": reused_from_run,
     "review_completed": True,
     "tests_exit_code": tests_exit_code,
+    "prompt_bytes": parse_int(prompt_bytes_raw),
+    "sot_bytes": parse_int(sot_bytes_raw),
+    "diff_bytes": parse_int(diff_bytes_raw),
+    "engine_runtime_ms": parse_int(engine_runtime_ms_raw),
 }
 
 os.makedirs(os.path.dirname(out_meta), exist_ok=True)
