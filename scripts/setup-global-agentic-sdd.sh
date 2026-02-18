@@ -173,7 +173,8 @@ ensure_executable() {
 detect_remote_default_ref() {
     local url="$1"
     local symref
-    if ! symref="$(GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=5" git -c http.lowSpeedLimit=1 -c http.lowSpeedTime=5 ls-remote --symref "$url" HEAD 2>/dev/null | awk '/^ref:/ {print $2; exit}')"; then
+    local ssh_cmd="${GIT_SSH_COMMAND:-ssh -o BatchMode=yes -o ConnectTimeout=5}"
+    if ! symref="$(GIT_SSH_COMMAND="$ssh_cmd" git -c http.lowSpeedLimit=1 -c http.lowSpeedTime=5 ls-remote --symref "$url" HEAD 2>/dev/null | awk '/^ref:/ {print $2; exit}')"; then
         return 1
     fi
     if [[ "$symref" =~ ^refs/heads/(.+)$ ]]; then
