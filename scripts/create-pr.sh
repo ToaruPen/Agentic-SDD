@@ -312,6 +312,16 @@ if [[ -z "$meta_head_sha" ]]; then
   eprint "Run /review-cycle ${scope_id} again."
   exit 2
 fi
+if [[ "$meta_diff_source" != "range" ]]; then
+  eprint "Invalid review metadata (diff_source must be 'range', got '$meta_diff_source'): $review_meta"
+  eprint "Run /review-cycle ${scope_id} with DIFF_MODE=range on committed HEAD."
+  exit 2
+fi
+if [[ -z "$meta_base_sha" ]]; then
+  eprint "Invalid review metadata (diff_source=range requires base_sha): $review_meta"
+  eprint "Run /review-cycle ${scope_id} again with DIFF_MODE=range."
+  exit 2
+fi
 
 current_head_sha="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || true)"
 if [[ -z "$current_head_sha" ]]; then

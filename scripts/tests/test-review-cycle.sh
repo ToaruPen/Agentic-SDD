@@ -467,9 +467,81 @@ for required_key in engine_fingerprint sot_fingerprint tests_fingerprint; do
     exit 1
   fi
 done
+
+for required_key in prompt_bytes sot_bytes diff_bytes engine_runtime_ms reuse_reason non_reuse_reason; do
+  if ! grep -q "\"${required_key}\":" "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
+    eprint "Expected ${required_key} in review metadata"
+    cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" >&2
+    exit 1
+  fi
+done
+
+if ! grep -q '"non_reuse_reason": "incremental-disabled"' "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
+  eprint "Expected non_reuse_reason=incremental-disabled when incremental mode is off"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" >&2
+  exit 1
+fi
+
 if ! grep -q '"engine_version_available": true' "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
   eprint "Expected engine_version_available=true in review metadata"
   cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" >&2
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  MAX_DIFF_BYTES=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=stub REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-over-diff-budget) >/dev/null 2>"$tmpdir/stderr-diff-budget"
+code_diff_budget=$?
+set -e
+if [[ "$code_diff_budget" -eq 0 ]]; then
+  eprint "Expected failure when diff bytes exceed MAX_DIFF_BYTES"
+  exit 1
+fi
+if ! grep -q "Diff bytes exceeded MAX_DIFF_BYTES" "$tmpdir/stderr-diff-budget"; then
+  eprint "Expected diff budget error message, got:"
+  cat "$tmpdir/stderr-diff-budget" >&2
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" SOT_MAX_CHARS=0 SOT="$(python3 - <<'PY'
+print('S' * 12000)
+PY
+)" TESTS="not run: reason" DIFF_MODE=staged \
+  MAX_PROMPT_BYTES=500 CODEX_BIN="$tmpdir/codex-no-call" MODEL=stub REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-over-prompt-budget) >/dev/null 2>"$tmpdir/stderr-prompt-budget"
+code_prompt_budget=$?
+set -e
+if [[ "$code_prompt_budget" -eq 0 ]]; then
+  eprint "Expected failure when prompt bytes exceed MAX_PROMPT_BYTES"
+  exit 1
+fi
+if ! grep -q "Prompt bytes exceeded MAX_PROMPT_BYTES" "$tmpdir/stderr-prompt-budget"; then
+  eprint "Expected prompt budget error message, got:"
+  cat "$tmpdir/stderr-prompt-budget" >&2
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  MAX_DIFF_BYTES=08 CODEX_BIN="$tmpdir/codex-no-call" MODEL=stub REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-invalid-leading-zero-limit) >/dev/null 2>"$tmpdir/stderr-invalid-leading-zero-limit"
+code_invalid_leading_zero_limit=$?
+set -e
+if [[ "$code_invalid_leading_zero_limit" -eq 0 ]]; then
+  eprint "Expected MAX_DIFF_BYTES=08 run to fail on diff budget"
+  cat "$tmpdir/stderr-invalid-leading-zero-limit" >&2
+  exit 1
+fi
+if ! grep -q "Diff bytes exceeded MAX_DIFF_BYTES" "$tmpdir/stderr-invalid-leading-zero-limit"; then
+  eprint "Expected diff budget message for MAX_DIFF_BYTES=08"
+  cat "$tmpdir/stderr-invalid-leading-zero-limit" >&2
+  exit 1
+fi
+if grep -q "value too great for base" "$tmpdir/stderr-invalid-leading-zero-limit"; then
+  eprint "Did not expect bash octal parse error for MAX_DIFF_BYTES=08"
+  cat "$tmpdir/stderr-invalid-leading-zero-limit" >&2
   exit 1
 fi
 

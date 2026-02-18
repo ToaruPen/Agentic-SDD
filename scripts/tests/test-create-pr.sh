@@ -68,12 +68,13 @@ write_review_metadata() {
   local head_sha="$1"
   local base_ref="$2"
   local base_sha="$3"
+  local diff_source="${4:-range}"
   cat > "$work/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" <<EOF
 {
   "schema_version": 1,
   "scope_id": "issue-1",
   "run_id": "run1",
-  "diff_source": "range",
+  "diff_source": "${diff_source}",
   "base_ref": "${base_ref}",
   "base_sha": "${base_sha}",
   "head_sha": "${head_sha}",
@@ -348,6 +349,37 @@ if ! grep -q "Invalid test-review metadata (diff_mode=range requires base_sha)" 
 fi
 
 write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
+write_review_metadata "$head_sha" "origin/main" "$base_sha" "staged"
+set +e
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base main) >/dev/null 2>"$tmpdir/stderr_review_diff_source_not_range"
+code_review_diff_source_not_range=$?
+set -e
+if [[ "$code_review_diff_source_not_range" -eq 0 ]]; then
+  eprint "Expected non-range review diff_source to fail"
+  exit 1
+fi
+if ! grep -q "diff_source must be 'range'" "$tmpdir/stderr_review_diff_source_not_range"; then
+  eprint "Expected non-range review diff_source error message, got:"
+  cat "$tmpdir/stderr_review_diff_source_not_range" >&2
+  exit 1
+fi
+
+write_review_metadata "$head_sha" "origin/main" "" "range"
+set +e
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1 --base main) >/dev/null 2>"$tmpdir/stderr_review_range_missing_base_sha"
+code_review_range_missing_base_sha=$?
+set -e
+if [[ "$code_review_range_missing_base_sha" -eq 0 ]]; then
+  eprint "Expected missing review base_sha for range diff_source to fail"
+  exit 1
+fi
+if ! grep -q "Invalid review metadata (diff_source=range requires base_sha)" "$tmpdir/stderr_review_range_missing_base_sha"; then
+  eprint "Expected missing review base_sha error message, got:"
+  cat "$tmpdir/stderr_review_range_missing_base_sha" >&2
+  exit 1
+fi
+
+write_review_metadata "$head_sha" "origin/main" "$base_sha" "range"
 
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
 
