@@ -11,6 +11,7 @@
 - supersede方式: 変更は新規Decisionファイルを追加し、`Supersedes` で置換関係を明示する
 - 1決定 = 1ファイル: 1つのファイルに複数Decisionを混在させない
 - 必須フォーマット: `Decision-ID / Context / Rationale / Alternatives / Impact / Verification / Supersedes / Inputs Fingerprint`
+- index更新必須: `.agent/commands/final-review.md` の `Decision Necessity Checklist` が required の場合、`## Decision Index` に対象Decisionファイルを必ず追記する
 
 詳細は `docs/decisions/README.md` と `docs/decisions/_template.md` を参照してください。
 
