@@ -94,6 +94,14 @@ Underlying script:
   - Default: unset (no timeout is enforced; the review engine may run indefinitely).
   - Applies to both `codex exec` and `claude -p`.
   - If `timeout`/`gtimeout` is not available, it runs without a timeout even when set.
+- `MAX_DIFF_BYTES`: hard byte budget for collected `diff.patch`.
+  - Default: unset/`0` (disabled)
+  - Enabled value must be an integer `>= 1`.
+  - Exceeding budget fails fast before engine execution.
+- `MAX_PROMPT_BYTES`: hard byte budget for generated `prompt.txt`.
+  - Default: unset/`0` (disabled)
+  - Enabled value must be an integer `>= 1`.
+  - Exceeding budget fails fast before engine execution.
 
 ### Engine selection
 
@@ -118,8 +126,10 @@ Underlying script:
   - Includes strict comparison keys for conditional reuse:
     - `head_sha`, `base_ref`, `base_sha`, `diff_source`, `diff_sha256`, `schema_version`
     - `engine_fingerprint`, `sot_fingerprint`, `tests_fingerprint`
+  - Includes budget/latency observability keys:
+    - `diff_bytes`, `sot_bytes`, `prompt_bytes`, `engine_runtime_ms`
   - Includes reuse observability fields:
-    - `incremental_enabled`, `reuse_eligible`, `reused`, `reuse_reason`, `reused_from_run`
+    - `incremental_enabled`, `reuse_eligible`, `reused`, `reuse_reason`, `non_reuse_reason`, `reused_from_run`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/diff.patch`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.txt`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.stderr`
