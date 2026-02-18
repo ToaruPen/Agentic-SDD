@@ -5,6 +5,8 @@ import hashlib
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
 from datetime import datetime, timezone
 
@@ -23,14 +25,16 @@ def now_utc_z() -> str:
 
 
 def git_repo_root() -> str:
-    import subprocess
+    git_bin = shutil.which("git")
+    if not git_bin:
+        raise RuntimeError("git not found on PATH")
 
-    p = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
+    p = subprocess.run(  # noqa: S603
+        [git_bin, "rev-parse", "--show-toplevel"],
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        check=False,
+        check=False,  # noqa: S603
     )
     root = (p.stdout or "").strip()
     if p.returncode != 0 or not root:
