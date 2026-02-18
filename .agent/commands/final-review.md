@@ -24,10 +24,11 @@ Target is mandatory. Do not infer from the current branch.
 1. Target must be explicitly provided (`PR-number` or `Issue-number`).
    - If omitted, STOP and ask the user to specify the target.
 2. Validate branch/worktree context explicitly before review.
-   - If target is an Issue:
-     - List linked branches (SoT): `gh issue develop --list <issue-number>`
-     - If no linked branch exists, STOP and create one via `/worktree new --issue <issue-number> --desc "<ascii short desc>"`, then re-run `/final-review` in that worktree.
-     - If linked branches exist and you are not on one of them, STOP and switch into the linked branch/worktree.
+    - If target is an Issue:
+      - List linked branches (SoT): `gh issue develop --list <issue-number>`
+      - If no linked branch exists, STOP and create one via `/worktree new --issue <issue-number> --desc "<ascii short desc>"`.
+      - `/worktree new` prints the new worktree directory path, but does not change the current shell directory. Run `cd <output-path>` manually, then re-run `/final-review` in that worktree.
+      - If linked branches already exist, use `gh issue develop --list <issue-number>` to identify the linked branch, switch into that branch/worktree manually, then run `/final-review`.
    - If target is a PR:
      - Read PR head branch: `gh pr view <pr-number> --json headRefName`
      - If current branch does not match `headRefName`, STOP and switch to the PR head branch/worktree.
