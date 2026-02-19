@@ -716,6 +716,7 @@ if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-mi
 fi
 
 cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review-metadata.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"
 python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" <<'PY'
 import json
 import sys
@@ -746,6 +747,7 @@ if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-re
 fi
 
 cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review-metadata.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"
 python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" <<'PY'
 import json
 import sys
@@ -755,6 +757,21 @@ with open(path, "r", encoding="utf-8") as fh:
     data = json.load(fh)
 data["tests_exit_code"] = 0
 data["review_completed"] = "false"
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review-metadata.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"
+python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+data["tests_exit_code"] = 1
 with open(path, "w", encoding="utf-8") as fh:
     json.dump(data, fh, ensure_ascii=False, indent=2)
     fh.write("\n")
