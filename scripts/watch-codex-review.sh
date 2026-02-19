@@ -114,11 +114,12 @@ else
   last_seen_key=""
 fi
 
-fetch_latest_event() {
+fetch_latest_event() (
   local tmp_issue tmp_inline tmp_reviews
   tmp_issue="$(mktemp)"
   tmp_inline="$(mktemp)"
   tmp_reviews="$(mktemp)"
+  trap 'rm -f "$tmp_issue" "$tmp_inline" "$tmp_reviews"' EXIT
 
   gh api "repos/$repo/issues/$pr_number/comments" > "$tmp_issue" || printf '[]\n' > "$tmp_issue"
   gh api "repos/$repo/pulls/$pr_number/comments" > "$tmp_inline" || printf '[]\n' > "$tmp_inline"
@@ -187,9 +188,7 @@ if not events:
 events.sort(key=lambda e: (str(e.get("created_at") or ""), int(e.get("id") or 0)))
 print(json.dumps(events[-1], ensure_ascii=False))
 PY
-
-  rm -f "$tmp_issue" "$tmp_inline" "$tmp_reviews"
-}
+)
 
 notify_event() {
   local event_json="$1"
@@ -218,8 +217,15 @@ notify_event() {
 
   if command -v osascript >/dev/null 2>&1; then
     local snippet
-    snippet="$(python3 -c 'import sys; print(sys.argv[1].replace("\n", " ")[:120])' "$event_body")"
-    osascript -e "display notification \"${snippet}\" with title \"Codex PR #${pr_number}\" subtitle \"${event_type}\"" >/dev/null 2>&1 || true
+    snippet="$(python3 -c 'import sys; s=sys.argv[1].replace("\n", " ")[:120]; s=s.replace("\\", "\\\\").replace("\"", "\\\""); print(s)' "$event_body")"
+    osascript - "$snippet" "Codex PR #${pr_number}" "$event_type" <<'APPLESCRIPT' >/dev/null 2>&1 || true
+on run argv
+  set msgText to item 1 of argv
+  set titleText to item 2 of argv
+  set subtitleText to item 3 of argv
+  display notification msgText with title titleText subtitle subtitleText
+end run
+APPLESCRIPT
   fi
 }
 
