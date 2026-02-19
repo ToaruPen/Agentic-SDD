@@ -134,7 +134,9 @@ A workflow template to help non-engineers run AI-driven development while preven
 
 ## Commands
 
+- `/init`: initialize the Agentic-SDD checklist (OpenCode alias: `/sdd-init`)
 - `/create-prd`: create a PRD (7 questions)
+- `/research`: create reusable research artifacts for PRD/Epic/estimation
 - `/create-epic`: create an Epic (requires 3 lists: external services / components / new tech)
 - `/generate-project-config`: generate project-specific skills/rules from Epic
 - `/create-issues`: create Issues (granularity rules)
@@ -143,6 +145,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/impl`: implement an Issue (Full estimate required)
 - `/tdd`: implement via TDD (Red -> Green -> Refactor)
 - `/ui-iterate`: iterate UI redesign in short loops (capture -> patch -> verify)
+- `/test-review`: run fail-fast test review checks before review/PR gates
 - `/review-cycle`: local review loop (codex exec -> review.json)
 - `/final-review`: review (DoD check)
 - `/create-pr`: push branch and create a PR (gh)
@@ -170,4 +173,5 @@ To keep this bootstrap file small, detailed rules live in these files:
 ## References
 
 - Glossary: `docs/glossary.md`
-- Decisions: `docs/decisions.md`
+- Decisions index: `docs/decisions.md`
+- Decisions body rules: `docs/decisions/README.md`

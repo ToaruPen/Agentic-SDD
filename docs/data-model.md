@@ -201,4 +201,5 @@ Column
 
 - `docs/prd/*.md`: PRD（要件）
 - `docs/epics/*.md`: Epic（実装計画）
-- `docs/decisions.md`: 技術的意思決定
+- `docs/decisions.md`: 技術的意思決定の索引（index）
+- `docs/decisions/*.md`: 技術的意思決定の本文（1決定=1ファイル）

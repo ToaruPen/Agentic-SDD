@@ -33,6 +33,13 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues/PRs) r
 \* One-time install of Agentic-SDD workflow files in the repo.
 Optional: enable GitHub-hosted CI (GitHub Actions) via `/agentic-sdd --ci github-actions` and enforce it with branch protection.
 
+Required gate notes:
+
+- `/research prd` is required before `/create-prd`.
+- `/research epic` is required before `/create-epic`.
+- `/research estimation` is required before `/estimation` when estimate preconditions are unknown.
+- `/create-pr` requires passing outputs from both `/review-cycle` and `/test-review` on committed `HEAD` with range diff metadata.
+
 ---
 
 ## External multi-agent harnesses
@@ -136,6 +143,12 @@ Notes:
 
 ### 1) Create a PRD
 
+Run PRD research first (required):
+
+```
+/research prd [project-name]
+```
+
 ```
 /create-prd [project-name]
 ```
@@ -144,12 +157,26 @@ Answer 7 questions to create a PRD. Q6 is choice-based; at least one negative/ab
 
 ### 2) Create an Epic
 
+Run Epic research first (required):
+
+```
+/research epic [prd-file]
+```
+
 ```
 /create-epic [prd-file]
 ```
 
 Create a technical plan and an Issue split proposal. Three lists are required:
 external services / components / new tech.
+
+### 2.5) Generate project-specific config (optional)
+
+If you want project-tailored rules/skills generated from the Epic:
+
+```
+/generate-project-config [epic-file]
+```
 
 ### 3) Create Issues
 
@@ -174,6 +201,12 @@ If an approved estimate does not exist yet, `/impl` and `/tdd` will run `/estima
 
 ```
 /estimation [issue-number]
+```
+
+If estimate assumptions are still unclear, run estimation research first:
+
+```
+/research estimation [issue-number]
 ```
 
 ```
@@ -217,13 +250,27 @@ Helper script example:
 
 ### 5) Review (`/final-review` (`/review-cycle`))
 
+Before `/review-cycle` and `/create-pr`, run fail-fast test review:
+
+```text
+/test-review [scope-id] [run-id]
+```
+
+Use `TEST_REVIEW_DIFF_MODE=range` on committed `HEAD` before `/create-pr`.
+`TEST_REVIEW_PREFLIGHT_COMMAND` is required for `/test-review` execution.
+
 Final gate:
 
 ```
-/final-review
+/final-review <PR-number | Issue-number>
 ```
 
 Run the DoD check and `/sync-docs`.
+
+`/final-review` fail-fast essentials:
+
+- Target is mandatory (`/final-review <PR-number | Issue-number>`).
+- Run on the linked Issue branch/worktree or PR head branch/worktree.
 
 During development (and before committing, per `/impl`), iterate locally with:
 
@@ -234,6 +281,12 @@ During development (and before committing, per `/impl`), iterate locally with:
 `/review-cycle` generates `review.json` and is meant to be used in a fix -> re-review loop.
 By default, it reviews the branch diff against `origin/main...HEAD` (fallback: `main...HEAD`).
 In this default (`DIFF_MODE=range`), the working tree must be clean; for pre-commit local changes, use `DIFF_MODE=staged` or `DIFF_MODE=worktree`.
+
+`/review-cycle` fail-fast essentials:
+
+- `scope-id` is mandatory.
+- One SoT input source is required (`SOT` or `GH_ISSUE` or `GH_ISSUE_BODY_FILE`).
+- One test evidence source is required (`TEST_COMMAND` or `TESTS="not run: <reason>"`).
 
 Recommended incremental operation:
 
@@ -260,6 +313,15 @@ After `/final-review` is approved, push the branch and create a PR:
 `/create-pr` validates that `/review-cycle` metadata still matches the current branch
 (`HEAD`, and base SHA when available). If they differ, re-run `/review-cycle`.
 
+It also validates `/test-review` metadata for the current branch state
+(`HEAD`, `diff_mode=range`, and base SHA alignment when available).
+
+`/create-pr` fail-fast essentials:
+
+- Do not run on `main`/`master`.
+- Working tree must be clean.
+- Run on the Issue-linked branch/worktree.
+
 If you enable CI (optional), wait for CI checks and fix failures before merging.
 
 Optional: watch Codex bot feedback and trigger a local hook on new comments/reviews.
@@ -282,6 +344,28 @@ CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]' \
 scripts/watch-codex-review.sh --pr 96
 ```
 
+### 6.5) Codex PR review loop (optional)
+
+To request and iterate Codex bot review on a PR:
+
+```text
+/codex-pr-review <PR_NUMBER_OR_URL>
+```
+
+### 7) Cleanup after merge
+
+After merge, remove worktree/local branch for the Issue:
+
+```text
+/cleanup [issue-number]
+```
+
+Batch cleanup for merged Issue branches:
+
+```text
+/cleanup --all
+```
+
 ---
 
 ## Directory Structure
@@ -290,6 +374,7 @@ scripts/watch-codex-review.sh --pr 96
 .agent/
 ├── commands/           # command definitions
 │   ├── cleanup.md
+│   ├── codex-pr-review.md
 │   ├── create-prd.md
 │   ├── create-epic.md
 │   ├── generate-project-config.md
@@ -298,7 +383,10 @@ scripts/watch-codex-review.sh --pr 96
 │   ├── debug.md
 │   ├── estimation.md
 │   ├── impl.md
+│   ├── init.md
+│   ├── research.md
 │   ├── tdd.md
+│   ├── test-review.md
 │   ├── ui-iterate.md
 │   ├── review-cycle.md
 │   ├── final-review.md
@@ -328,7 +416,22 @@ docs/
 │   └── _template.md    # PRD template (Japanese output)
 ├── epics/
 │   └── _template.md    # Epic template (Japanese output)
-├── decisions.md        # ADR log
+├── research/            # reusable research artifacts
+│   ├── prd/
+│   ├── epic/
+│   └── estimation/
+├── sot/
+│   └── README.md        # SoT index (map-not-manual)
+├── evaluation/
+│   ├── quality-gates.md # pass/fail gate definitions
+│   └── quality-score.md # optional health scoring
+├── exec-plans/
+│   ├── index.md         # execution plan index
+│   └── _template.md
+├── decisions.md        # Decision index (Decision Snapshot)
+├── decisions/
+│   ├── README.md       # Decision body operation rules
+│   └── _template.md    # Decision body template
 └── glossary.md         # glossary
 
 skills/                 # design skills
@@ -361,23 +464,32 @@ scripts/
 ├── extract-issue-files.py
 ├── generate-project-config.py
 ├── install-agentic-sdd.sh
+├── lint-sot.py
 ├── resolve-sync-docs-inputs.py
 ├── review-cycle.sh
 ├── setup-githooks.sh
 ├── setup-global-agentic-sdd.sh
 ├── sot_refs.py
 ├── sync-agent-config.sh
+├── test-review.sh
 ├── watch-codex-review.sh
 ├── update-agentic-sdd.sh
 ├── ui-iterate.sh
 ├── validate-approval.py
 ├── validate-review-json.py
+├── validate-worktree.py
 ├── worktree.sh
 └── tests/                   # test scripts
     ├── test-agentic-sdd-latest.sh
     ├── test-approval-gate.sh
     ├── test-create-pr.sh
     ├── test-install-agentic-sdd.sh
+    ├── test-lint-sot.sh
+    ├── test-ruff-format-gate.sh
+    ├── test-ruff-gate.sh
+    ├── test-ruff-prepush-new-branch-no-new-commits.sh
+    ├── test-test-review.sh
+    ├── test-cleanup.sh
     ├── test-review-cycle.sh
     ├── test-setup-global-agentic-sdd.sh
     ├── test-sync-docs-inputs.sh
