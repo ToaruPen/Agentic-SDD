@@ -21,6 +21,8 @@ Options:
 
 Environment:
   CODEX_REVIEW_HOOK     Default hook command if --notify-cmd is not provided
+  CODEX_BOT_LOGINS      Comma-separated bot logins to watch
+                        (default: chatgpt-codex-connector[bot])
 
 Hook environment variables:
   CODEX_EVENT_ID
@@ -36,6 +38,7 @@ repo=""
 interval_sec=30
 state_file=""
 notify_cmd="${CODEX_REVIEW_HOOK:-}"
+codex_bot_logins_raw="${CODEX_BOT_LOGINS:-chatgpt-codex-connector[bot]}"
 run_once=0
 
 while [[ $# -gt 0 ]]; do
@@ -102,6 +105,11 @@ if [[ -z "$repo" ]]; then
   exit 1
 fi
 
+if [[ -z "$codex_bot_logins_raw" ]]; then
+  eprint "CODEX_BOT_LOGINS must not be empty"
+  exit 2
+fi
+
 if [[ -z "$state_file" ]]; then
   state_file="$repo_root/.agentic-sdd/codex-watch/pr-${pr_number}.last_id"
 fi
@@ -135,11 +143,12 @@ fetch_latest_event() (
   fetch_endpoint "repos/$repo/pulls/$pr_number/comments" "$tmp_inline"
   fetch_endpoint "repos/$repo/pulls/$pr_number/reviews" "$tmp_reviews"
 
-  python3 - "$tmp_issue" "$tmp_inline" "$tmp_reviews" <<'PY'
+  python3 - "$tmp_issue" "$tmp_inline" "$tmp_reviews" "$codex_bot_logins_raw" <<'PY'
 import json
 import sys
 
-issue_path, inline_path, reviews_path = sys.argv[1], sys.argv[2], sys.argv[3]
+issue_path, inline_path, reviews_path, bot_logins_raw = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+allowed_logins = {x.strip() for x in bot_logins_raw.split(",") if x.strip()}
 
 def load(path):
     try:
@@ -159,7 +168,7 @@ def load(path):
     return []
 
 def from_issue(item):
-    if item.get("user", {}).get("login") != "chatgpt-codex-connector[bot]":
+    if item.get("user", {}).get("login") not in allowed_logins:
         return None
     return {
         "id": int(item.get("id") or 0),
@@ -170,7 +179,7 @@ def from_issue(item):
     }
 
 def from_inline(item):
-    if item.get("user", {}).get("login") != "chatgpt-codex-connector[bot]":
+    if item.get("user", {}).get("login") not in allowed_logins:
         return None
     return {
         "id": int(item.get("id") or 0),
@@ -181,7 +190,7 @@ def from_inline(item):
     }
 
 def from_review(item):
-    if item.get("user", {}).get("login") != "chatgpt-codex-connector[bot]":
+    if item.get("user", {}).get("login") not in allowed_logins:
         return None
     return {
         "id": int(item.get("id") or 0),

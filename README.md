@@ -275,6 +275,13 @@ CODEX_REVIEW_HOOK='osascript -e "display notification \"$CODEX_EVENT_TYPE\" with
 scripts/watch-codex-review.sh --pr 96
 ```
 
+To watch additional bot accounts, set `CODEX_BOT_LOGINS` as a comma-separated list:
+
+```bash
+CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]' \
+scripts/watch-codex-review.sh --pr 96
+```
+
 ---
 
 ## Directory Structure
