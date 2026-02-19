@@ -13,18 +13,18 @@ Generate project-specific skills/rules from an Epic.
 Based on the Epic decisions (tech choices and PRD Q6 requirements), generate project-specific skills/rules.
 
 Generated files:
-- `config.json`: project config (always generated)
-- `skills/tech-stack.md`: tech stack guide (when the Epic includes tech selection)
-- `rules/security.md`: security rules (when Q6-5 = Yes)
-- `rules/performance.md`: performance rules (when Q6-7 = Yes)
-- `rules/api-conventions.md`: API conventions (when the Epic includes API design)
+- `.agentic-sdd/project/config.json`: project config (always generated)
+- `.agentic-sdd/project/skills/tech-stack.md`: tech stack guide (when the Epic includes tech selection)
+- `.agentic-sdd/project/rules/security.md`: security rules (when Q6-5 = Yes)
+- `.agentic-sdd/project/rules/performance.md`: performance rules (when Q6-7 = Yes)
+- `.agentic-sdd/project/rules/api-conventions.md`: API conventions (when the Epic includes API design)
 
 Notes (user-facing artifacts remain Japanese; these files are project-local guidance):
-- `config.json`: project config (always generated)
-- `skills/tech-stack.md`: tech stack guide (when the Epic includes tech selection)
-- `rules/security.md`: security rules (when Q6-5 = Yes)
-- `rules/performance.md`: performance rules (when Q6-7 = Yes)
-- `rules/api-conventions.md`: API conventions (when the Epic includes API design)
+- `.agentic-sdd/project/config.json`: project config (always generated)
+- `.agentic-sdd/project/skills/tech-stack.md`: tech stack guide (when the Epic includes tech selection)
+- `.agentic-sdd/project/rules/security.md`: security rules (when Q6-5 = Yes)
+- `.agentic-sdd/project/rules/performance.md`: performance rules (when Q6-7 = Yes)
+- `.agentic-sdd/project/rules/api-conventions.md`: API conventions (when the Epic includes API design)
 
 ## Flow
 
@@ -53,10 +53,10 @@ Select templates based on extracted inputs:
 
 | Condition | Generated file |
 |------|-------------|
-| Tech selection exists | `skills/tech-stack.md` |
-| Q6-5 = Yes | `rules/security.md` |
-| Q6-7 = Yes | `rules/performance.md` |
-| API design exists | `rules/api-conventions.md` |
+| Tech selection exists | `.agentic-sdd/project/skills/tech-stack.md` |
+| Q6-5 = Yes | `.agentic-sdd/project/rules/security.md` |
+| Q6-7 = Yes | `.agentic-sdd/project/rules/performance.md` |
+| API design exists | `.agentic-sdd/project/rules/api-conventions.md` |
 
 ### Phase 4: Render templates and write files
 
