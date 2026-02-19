@@ -46,6 +46,13 @@ Underlying script:
 - Do not re-run without a code/spec change.
 - Rule of thumb: converge within 1-3 cycles. If you are still `Blocked`/`Question` after ~3 meaningful attempts, stop and escalate (likely missing/contradicting SoT or scope too large).
 
+## Recommended operation policy (default)
+
+- Baseline run (first run for a scope): use `REVIEW_CYCLE_INCREMENTAL=0`.
+- Subsequent runs: keep the same `scope-id` and use `REVIEW_CYCLE_INCREMENTAL=1`.
+- Final gate safety check: run `/final-review` with a fresh full review context (do not rely only on reused local review artifacts).
+- If `/final-review` reports any `P2` or higher finding (`P0/P1/P2`), fix and run `/review-cycle` again before re-running `/final-review`.
+
 ## Required inputs (env vars)
 
 ### SoT (one required)

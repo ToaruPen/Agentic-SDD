@@ -170,6 +170,8 @@ Write a short Japanese review with:
 ## Next steps
 
 - Approved: if no PR exists, run `/create-pr`; otherwise can merge
-- Approved with nits: if no PR exists, run `/create-pr`; otherwise can merge (optionally batch-fix P2/P3)
+- Approved with nits:
+  - If any `P2` exists: fix `P2+` findings -> run `/review-cycle` -> re-run `/final-review`
+  - If findings are `P3` only: if no PR exists, run `/create-pr`; otherwise can merge (optionally batch-fix P3)
 - Blocked: fix P0/P1 -> run `/review-cycle` -> re-run `/final-review`
 - Question: answer questions (do not guess) -> run `/review-cycle` -> re-run `/final-review`
