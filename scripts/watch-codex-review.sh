@@ -121,9 +121,19 @@ fetch_latest_event() (
   tmp_reviews="$(mktemp)"
   trap 'rm -f "$tmp_issue" "$tmp_inline" "$tmp_reviews"' EXIT
 
-  gh api --paginate --slurp "repos/$repo/issues/$pr_number/comments" > "$tmp_issue" || printf '[]\n' > "$tmp_issue"
-  gh api --paginate --slurp "repos/$repo/pulls/$pr_number/comments" > "$tmp_inline" || printf '[]\n' > "$tmp_inline"
-  gh api --paginate --slurp "repos/$repo/pulls/$pr_number/reviews" > "$tmp_reviews" || printf '[]\n' > "$tmp_reviews"
+  fetch_endpoint() {
+    local endpoint="$1"
+    local output_path="$2"
+    if ! gh api --paginate --slurp "$endpoint" > "$output_path"; then
+      eprint "Failed to poll GitHub API endpoint: $endpoint"
+      eprint "Check gh authentication and repository access, then retry."
+      return 1
+    fi
+  }
+
+  fetch_endpoint "repos/$repo/issues/$pr_number/comments" "$tmp_issue"
+  fetch_endpoint "repos/$repo/pulls/$pr_number/comments" "$tmp_inline"
+  fetch_endpoint "repos/$repo/pulls/$pr_number/reviews" "$tmp_reviews"
 
   python3 - "$tmp_issue" "$tmp_inline" "$tmp_reviews" <<'PY'
 import json
