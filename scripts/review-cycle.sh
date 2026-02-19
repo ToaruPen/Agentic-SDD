@@ -904,6 +904,7 @@ reuse_eligible=0
 reuse_reason="no-previous-run"
 reused=0
 reused_from_run=""
+fast_reuse_state_checked=0
 
 if [[ -f "$current_run_file" ]]; then
   candidate_run="$(cat "$current_run_file" 2>/dev/null || true)"
@@ -923,6 +924,7 @@ if [[ -f "$current_run_file" ]]; then
 fi
 
 if [[ "$review_cycle_incremental" == "1" && -n "$reuse_candidate_meta" ]]; then
+  fast_reuse_state_checked=1
   reuse_state_fast="$(python3 - "$reuse_candidate_meta" "$reuse_candidate_json" "$head_sha" "$meta_base_ref" "$meta_base_sha" "$diff_source" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_version_available" "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$script_semantics_version" <<'PY'
 import json
 import sys
@@ -1185,7 +1187,7 @@ print(hashlib.sha256(encoded).hexdigest())
 PY
 )"
 
-  if [[ "$review_cycle_incremental" == "1" && -n "$reuse_candidate_meta" ]]; then
+  if [[ "$review_cycle_incremental" == "1" && -n "$reuse_candidate_meta" && "$fast_reuse_state_checked" != "1" ]]; then
     reuse_state="$(python3 - "$reuse_candidate_meta" "$reuse_candidate_json" "$head_sha" "$meta_base_ref" "$meta_base_sha" "$diff_source" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_version_available" "$engine_fingerprint" <<'PY'
 import json
 import sys
