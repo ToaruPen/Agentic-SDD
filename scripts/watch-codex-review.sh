@@ -121,9 +121,9 @@ fetch_latest_event() (
   tmp_reviews="$(mktemp)"
   trap 'rm -f "$tmp_issue" "$tmp_inline" "$tmp_reviews"' EXIT
 
-  gh api "repos/$repo/issues/$pr_number/comments" > "$tmp_issue" || printf '[]\n' > "$tmp_issue"
-  gh api "repos/$repo/pulls/$pr_number/comments" > "$tmp_inline" || printf '[]\n' > "$tmp_inline"
-  gh api "repos/$repo/pulls/$pr_number/reviews" > "$tmp_reviews" || printf '[]\n' > "$tmp_reviews"
+  gh api --paginate --slurp "repos/$repo/issues/$pr_number/comments" > "$tmp_issue" || printf '[]\n' > "$tmp_issue"
+  gh api --paginate --slurp "repos/$repo/pulls/$pr_number/comments" > "$tmp_inline" || printf '[]\n' > "$tmp_inline"
+  gh api --paginate --slurp "repos/$repo/pulls/$pr_number/reviews" > "$tmp_reviews" || printf '[]\n' > "$tmp_reviews"
 
   python3 - "$tmp_issue" "$tmp_inline" "$tmp_reviews" <<'PY'
 import json
@@ -136,7 +136,14 @@ def load(path):
         with open(path, "r", encoding="utf-8") as fh:
             data = json.load(fh)
             if isinstance(data, list):
-                return data
+                if data and all(isinstance(page, list) for page in data):
+                    merged = []
+                    for page in data:
+                        for item in page:
+                            if isinstance(item, dict):
+                                merged.append(item)
+                    return merged
+                return [item for item in data if isinstance(item, dict)]
     except Exception:
         pass
     return []
