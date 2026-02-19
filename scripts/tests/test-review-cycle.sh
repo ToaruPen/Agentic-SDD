@@ -204,6 +204,41 @@ if ! grep -q "diff_detail: release/v1" "$tmpdir/stderr_range_local_slash"; then
   exit 1
 fi
 
+# SOT_FILES parser should support shell-escaped spaces in paths (without splitting).
+mkdir -p "$tmpdir/docs/sot files"
+cat > "$tmpdir/docs/sot files/extra.md" <<'EOF'
+This is an extra SoT file with a space in the path.
+EOF
+
+(cd "$tmpdir" && SOT_FILES='docs/sot\ files/extra.md' TESTS="not run: reason" \
+  DIFF_MODE=range "$review_cycle_sh" issue-sotfiles --dry-run) >/dev/null 2>"$tmpdir/stderr-sotfiles-escaped"
+if [[ $? -ne 0 ]]; then
+  eprint "Expected shell-escaped SOT_FILES path to be parsed"
+  cat "$tmpdir/stderr-sotfiles-escaped" >&2
+  exit 1
+fi
+if ! grep -q "sot_files: docs/sot files/extra.md" "$tmpdir/stderr-sotfiles-escaped"; then
+  eprint "Expected escaped path to be reported in plan"
+  cat "$tmpdir/stderr-sotfiles-escaped" >&2
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && SOT_FILES='"docs/sot files/extra.md' TESTS="not run: reason" \
+  DIFF_MODE=range "$review_cycle_sh" issue-sotfiles-bad-quote --dry-run) >/dev/null 2>"$tmpdir/stderr-sotfiles-bad-quote"
+code_sotfiles_bad_quote=$?
+set -e
+if [[ "$code_sotfiles_bad_quote" -eq 0 ]]; then
+  eprint "Expected unterminated quote in SOT_FILES to fail"
+  cat "$tmpdir/stderr-sotfiles-bad-quote" >&2
+  exit 1
+fi
+if ! grep -q "Invalid SOT_FILES" "$tmpdir/stderr-sotfiles-bad-quote"; then
+  eprint "Expected shell-like parse error for bad SOT_FILES quoting"
+  cat "$tmpdir/stderr-sotfiles-bad-quote" >&2
+  exit 1
+fi
+
 # Range mode should fail-fast when uncommitted local changes exist.
 echo "range-local-change" >> "$tmpdir/hello.txt"
 set +e
@@ -954,6 +989,29 @@ if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-stderr-fail/tests.stderr" ]
 fi
 if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-stderr-fail/review.json" ]]; then
   eprint "Did not expect review.json to be created when failing on stderr"
+  exit 1
+fi
+
+cat > "$tmpdir/bash-env-inject.sh" <<'EOF'
+echo injected-from-bashenv >&2
+EOF
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" DIFF_MODE=staged \
+  BASH_ENV="$tmpdir/bash-env-inject.sh" \
+  TEST_COMMAND='python3 -c "print(\"ok\")"' TESTS="" TEST_STDERR_POLICY=fail \
+  CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-stderr-bashenv) >/dev/null 2>"$tmpdir/stderr-stderr-bashenv"
+code_stderr_bashenv=$?
+set -e
+if [[ "$code_stderr_bashenv" -ne 0 ]]; then
+  eprint "Expected success when BASH_ENV is ignored for TEST_COMMAND execution"
+  cat "$tmpdir/stderr-stderr-bashenv" >&2
+  exit 1
+fi
+if grep -q "injected-from-bashenv" "$tmpdir/.agentic-sdd/reviews/issue-1/run-stderr-bashenv/tests.stderr"; then
+  eprint "Did not expect BASH_ENV side effects in tests.stderr"
+  cat "$tmpdir/.agentic-sdd/reviews/issue-1/run-stderr-bashenv/tests.stderr" >&2
   exit 1
 fi
 

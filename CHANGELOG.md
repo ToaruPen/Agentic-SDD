@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- fix: Make `/review-cycle` parse `SOT_FILES` without `readarray` so it works on macOS default Bash 3.2 (`/bin/bash`).
+- fix: Run `/review-cycle` `TEST_COMMAND` via `bash -c` with `BASH_ENV` unset to reduce environment-dependent side effects from login/init hooks.
+- fix: Keep local-branch precedence in `/review-cycle` remote-ref fetch helper when base refs contain `/` and overlap with remote names.
+- test: Add regression coverage for `BASH_ENV` side effects in `/review-cycle` test-command execution path.
+
 ## [0.3.00] - 2026-02-19
 
 - Add `/test-review` fail-fast gate documentation and align README PR gate docs with `/create-pr` requirements (`review-metadata` + `test-review-metadata`, range mode on committed HEAD).
