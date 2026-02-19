@@ -54,6 +54,23 @@ The output document must include the following (linted by `scripts/lint-sot.py`)
   - Include the heading: `## 新規性判定（発火条件）`
   - For non-template artifacts, fill each trigger with `Yes` or `No` (do not leave `Yes / No`)
 
+## Additional contract (epic mode)
+
+For `docs/research/epic/**/YYYY-MM-DD.md` artifacts, include `## 外部サービス比較ゲート` and fill one of:
+
+- `外部サービス比較ゲート: Required`
+- `外部サービス比較ゲート: Skip（理由）`
+
+When `Required`, all of the following are mandatory:
+
+- `比較対象サービス:` with >= 3 entries in `- サービス名（ベンダー名）` format
+- `代替系統カバレッジ:` with >= 3 entries (different alternative families)
+- `評価軸（重み）:` with >= 3 entries in `- 評価軸（NN%）` format
+- `定量比較表:` with required columns:
+  - `サービス名 / ベンダー / 初期費用 / 月額費用 / レイテンシ / 可用性SLO / 運用負荷 / 適用判定`
+  - >= 3 data rows
+- `判定理由:` tied to the quantitative table
+
 ## High-novelty triggers (adjacent exploration required)
 
 If any of these applies, adjacent exploration is required:

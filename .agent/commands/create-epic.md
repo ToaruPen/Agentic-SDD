@@ -27,6 +27,10 @@ Requirements:
 - Save the research output under `docs/research/epic/<prd-name>/<YYYY-MM-DD>.md`
 - Use the template: `docs/research/epic/_template.md`
 - The output must be in Japanese
+- Epic research must satisfy the external-service comparison gate:
+  - `## 外部サービス比較ゲート` exists
+  - `外部サービス比較ゲート: Required` or `Skip（理由）`
+  - If `Required`: explicit service names, 3 alternative families, quantitative comparison table, and decision rationale
 
 Stop condition:
 
@@ -122,6 +126,17 @@ Fail-fast rule:
 
 If a simpler alternative exists, present both options and record the chosen option and the reason
 in the Epic (follow the template's `技術選定` section style).
+
+### Phase 6.5: Comparison quality gate (required)
+
+Before finalizing the Epic, verify the referenced `/research epic` artifact includes:
+
+- Concrete external service names (not abstract categories only)
+- At least 3 alternative families
+- Quantitative comparison table with required columns
+- Decision rationale linked to the quantitative criteria
+
+If missing, stop and revise research first.
 
 ### Phase 7: Create an Issue split proposal
 
