@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.02] - 2026-02-20
+
+- feat: Add Epic research external-service comparison gate to `scripts/lint-sot.py` with required structure (`Required` or `Skip(reason)`), concrete service entries, alternative-family coverage, weighted criteria, quantitative table columns, and decision rationale checks.
+- test: Extend `scripts/tests/test-lint-sot.sh` with positive/negative cases for Epic comparison gate behavior (valid required block, missing section, skip-with-reason, required+skip conflict, empty decision rationale).
+- docs: Update Epic research command/template requirements in `.agent/commands/research.md`, `.agent/commands/create-epic.md`, and `docs/research/epic/_template.md` to codify comparison depth expectations.
+- docs: Clarify review loop policy in `.agent/commands/review-cycle.md`, `.agent/commands/final-review.md`, and `README.md` (first full baseline, same `scope-id` incremental reruns, fresh full context before `/final-review`, rerun `/review-cycle` when `/final-review` reports `P2+`).
+
 ## [0.3.01] - 2026-02-20
 
 - fix: Make `/review-cycle` parse `SOT_FILES` without `readarray` so it works on macOS default Bash 3.2 (`/bin/bash`).
