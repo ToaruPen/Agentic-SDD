@@ -122,7 +122,8 @@ else
   last_seen_key=""
 fi
 
-fetch_latest_event() (
+fetch_unseen_events() (
+  local last_seen_key_input="$1"
   local tmp_issue tmp_inline tmp_reviews
   tmp_issue="$(mktemp)"
   tmp_inline="$(mktemp)"
@@ -143,11 +144,11 @@ fetch_latest_event() (
   fetch_endpoint "repos/$repo/pulls/$pr_number/comments" "$tmp_inline"
   fetch_endpoint "repos/$repo/pulls/$pr_number/reviews" "$tmp_reviews"
 
-  python3 - "$tmp_issue" "$tmp_inline" "$tmp_reviews" "$codex_bot_logins_raw" <<'PY'
+  python3 - "$tmp_issue" "$tmp_inline" "$tmp_reviews" "$codex_bot_logins_raw" "$last_seen_key_input" <<'PY'
 import json
 import sys
 
-issue_path, inline_path, reviews_path, bot_logins_raw = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+issue_path, inline_path, reviews_path, bot_logins_raw, last_seen_key = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5]
 allowed_logins = {x.strip() for x in bot_logins_raw.split(",") if x.strip()}
 
 def load(path):
@@ -212,7 +213,26 @@ if not events:
     raise SystemExit(0)
 
 events.sort(key=lambda e: (str(e.get("created_at") or ""), int(e.get("id") or 0)))
-print(json.dumps(events[-1], ensure_ascii=False))
+
+last_created_at = ""
+last_id = 0
+if last_seen_key:
+    if "|" in last_seen_key:
+        created_part, id_part = last_seen_key.rsplit("|", 1)
+        last_created_at = created_part
+        try:
+            last_id = int(id_part)
+        except ValueError:
+            last_created_at = ""
+            last_id = 0
+
+unseen = [
+    event
+    for event in events
+    if (str(event.get("created_at") or ""), int(event.get("id") or 0)) > (last_created_at, last_id)
+]
+
+print(json.dumps(unseen, ensure_ascii=False))
 PY
 )
 
@@ -256,9 +276,13 @@ APPLESCRIPT
 }
 
 while true; do
-  event_json="$(fetch_latest_event)"
-  if [[ "$event_json" != "{}" ]]; then
-    current_key="$(python3 - "$event_json" <<'PY'
+  unseen_events_json="$(fetch_unseen_events "$last_seen_key")"
+  if [[ "$unseen_events_json" != "[]" ]]; then
+    while IFS= read -r event_json; do
+      [[ -n "$event_json" ]] || continue
+      notify_event "$event_json"
+
+      current_key="$(python3 - "$event_json" <<'PY'
 import json
 import sys
 
@@ -266,11 +290,18 @@ x = json.loads(sys.argv[1])
 print(f"{x.get('created_at', '')}|{x.get('id', 0)}")
 PY
 )"
-    if [[ "$current_key" != "$last_seen_key" ]]; then
-      notify_event "$event_json"
+
       printf '%s\n' "$current_key" > "$state_file"
       last_seen_key="$current_key"
-    fi
+    done < <(python3 - "$unseen_events_json" <<'PY'
+import json
+import sys
+
+events = json.loads(sys.argv[1])
+for event in events:
+    print(json.dumps(event, ensure_ascii=False))
+PY
+)
   fi
 
   if [[ "$run_once" -eq 1 ]]; then
