@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Add `/test-review` fail-fast gate documentation and align README PR gate docs with `/create-pr` requirements (`review-metadata` + `test-review-metadata`, range mode on committed HEAD).
+- Sync command inventories in `AGENTS.md`/`README.md` with implemented commands (`/research`, `/test-review`) and script listings (`scripts/test-review.sh`, `scripts/tests/test-test-review.sh`).
+- Sync additional command docs for `/init` (and OpenCode alias `/sdd-init`), `/generate-project-config`, `/codex-pr-review`, and `/cleanup` in README/AGENTS quick reference sections.
+- Add Codex PR watcher utility (`scripts/watch-codex-review.sh`) and document notifier/bot-filter usage in README.
+- Clarify Decision Snapshot documentation as index + body split (`docs/decisions.md` index and `docs/decisions/*.md` body files) in README/AGENTS/data-model references.
+- Expand README structure/gate docs to reflect actual `docs/` map (`research`, `sot`, `evaluation`, `exec-plans`) and full `scripts/`/`scripts/tests/` inventory used by quality gates.
+- Align `/generate-project-config` command docs with actual output paths under `.agentic-sdd/project/`.
 - Make `/create-epic` require repository legibility baselines: project-optimized folder structure design, scoped `AGENTS.md` placement plan, and modern fast lint/format/typecheck toolchain selection with local/CI integration rationale.
 - Make global setup write `~/.config/agentic-sdd/default-ref` using remote default-branch detection, and fail fast when detection fails unless `AGENTIC_SDD_DEFAULT_REF` is explicitly set.
 - Remove hardcoded `--ref main` from Codex/OpenCode/Claude `agentic-sdd` templates and rely on configured defaults.
