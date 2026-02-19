@@ -262,6 +262,26 @@ After `/final-review` is approved, push the branch and create a PR:
 
 If you enable CI (optional), wait for CI checks and fix failures before merging.
 
+Optional: watch Codex bot feedback and trigger a local hook on new comments/reviews.
+
+```bash
+scripts/watch-codex-review.sh --pr 96
+```
+
+To integrate with your own notifier, pass `--notify-cmd` (or `CODEX_REVIEW_HOOK`):
+
+```bash
+CODEX_REVIEW_HOOK='osascript -e "display notification \"$CODEX_EVENT_TYPE\" with title \"Codex PR\""' \
+scripts/watch-codex-review.sh --pr 96
+```
+
+To watch additional bot accounts, set `CODEX_BOT_LOGINS` as a comma-separated list:
+
+```bash
+CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]' \
+scripts/watch-codex-review.sh --pr 96
+```
+
 ---
 
 ## Directory Structure
@@ -347,6 +367,7 @@ scripts/
 ├── setup-global-agentic-sdd.sh
 ├── sot_refs.py
 ├── sync-agent-config.sh
+├── watch-codex-review.sh
 ├── update-agentic-sdd.sh
 ├── ui-iterate.sh
 ├── validate-approval.py

@@ -460,7 +460,7 @@ if ! grep -q '"head_sha": "' "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-m
   exit 1
 fi
 
-for required_key in engine_fingerprint sot_fingerprint tests_fingerprint; do
+for required_key in engine_fingerprint sot_fingerprint tests_fingerprint script_semantics_version; do
   if ! grep -q "\"${required_key}\":" "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
     eprint "Expected ${required_key} in review metadata"
     cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" >&2
@@ -591,6 +591,27 @@ if ! grep -q '"reused_from_run": "run-cache-seed"' "$tmpdir/.agentic-sdd/reviews
   exit 1
 fi
 
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/prompt.txt" ]]; then
+  eprint "Expected cache-hit path to skip prompt generation"
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged MAX_PROMPT_BYTES=1 \
+  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-cache-prompt-budget-miss) >/dev/null 2>"$tmpdir/stderr-cache-prompt-budget-miss"
+code_cache_prompt_budget_miss=$?
+set -e
+if [[ "$code_cache_prompt_budget_miss" -eq 0 ]]; then
+  eprint "Expected strict MAX_PROMPT_BYTES to force non-reuse"
+  exit 1
+fi
+if ! grep -q "Prompt bytes exceeded MAX_PROMPT_BYTES" "$tmpdir/stderr-cache-prompt-budget-miss"; then
+  eprint "Expected cache miss to fail fast when MAX_PROMPT_BYTES is stricter than cached prompt"
+  cat "$tmpdir/stderr-cache-prompt-budget-miss" >&2
+  exit 1
+fi
+
 cat > "$tmpdir/codex-no-version" <<'EOF'
 #!/usr/bin/env bash
 if [[ ${1:-} == "--version" ]]; then
@@ -664,6 +685,38 @@ if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-bl
 fi
 
 cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review-metadata.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"
+python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+data.pop("script_semantics_version", None)
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-cache-missing-script-semantics) >/dev/null 2>"$tmpdir/stderr-cache-missing-script-semantics"
+code_cache_missing_script_semantics=$?
+set -e
+if [[ "$code_cache_missing_script_semantics" -eq 0 ]]; then
+  eprint "Expected missing script_semantics_version to force non-reuse"
+  exit 1
+fi
+if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-missing-script-semantics"; then
+  eprint "Expected cache miss to execute engine when script_semantics_version is missing"
+  cat "$tmpdir/stderr-cache-missing-script-semantics" >&2
+  exit 1
+fi
+
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review-metadata.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"
 python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" <<'PY'
 import json
 import sys
@@ -694,6 +747,7 @@ if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-re
 fi
 
 cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review-metadata.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"
 python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" <<'PY'
 import json
 import sys
@@ -723,6 +777,21 @@ if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-re
   cat "$tmpdir/stderr-cache-review-completed-string" >&2
   exit 1
 fi
+
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review-metadata.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"
+python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+data["tests_exit_code"] = 1
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
 
 set +e
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
