@@ -278,6 +278,8 @@ diff_bytes=0
 sot_bytes=0
 prompt_bytes=0
 engine_runtime_ms=0
+# Internal compatibility token for incremental cache reuse.
+# Bump when prompt composition or reuse eligibility semantics change.
 script_semantics_version="v2"
 
 review_cycle_incremental="${REVIEW_CYCLE_INCREMENTAL:-0}"

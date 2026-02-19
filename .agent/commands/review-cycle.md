@@ -83,6 +83,8 @@ Underlying script:
 - `REVIEW_CYCLE_INCREMENTAL`: `1` enables conditional reuse of the latest approved `review.json` when strict fingerprints match; default `0` (full execution)
   - Reuse is fail-closed. Any missing/mismatched metadata field forces full execution.
   - Reuse is allowed only when the latest review status is `Approved` or `Approved with nits`.
+  - Internal compatibility token `script_semantics_version` is included in reuse metadata checks.
+    Bump it when prompt composition or reuse eligibility semantics change.
   - Recommended operation:
     - First run in an Issue/branch: keep `REVIEW_CYCLE_INCREMENTAL=0` (establish a fresh full baseline).
     - Subsequent reruns in the same Issue loop: set `REVIEW_CYCLE_INCREMENTAL=1`.
