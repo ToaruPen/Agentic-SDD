@@ -23,7 +23,7 @@ Required environment:
     SOT                  Manual source-of-truth (paths / links / summary)
     GH_ISSUE             GitHub issue number or URL (uses `gh issue view`)
     GH_ISSUE_BODY_FILE   Local file containing issue body (test/offline)
-    SOT_FILES            Extra SoT files (repo-relative paths, space-separated)
+    SOT_FILES            Extra SoT files (repo-relative paths, shell-like quoting supported)
 
   And:
     TESTS                Short test summary (can be 'not run: reason')
@@ -34,7 +34,7 @@ Required environment:
   GH_REPO              Repo for gh (OWNER/REPO)
   GH_INCLUDE_COMMENTS  1 to include comments in issue JSON (default: 0)
   GH_ISSUE_BODY_FILE   Local file containing issue body (test/offline)
-  SOT_FILES            Extra SoT files (repo-relative paths, space-separated)
+  SOT_FILES            Extra SoT files (repo-relative paths, shell-like quoting supported)
   SOT_MAX_CHARS        Max chars for assembled SoT bundle (0 = no limit)
   TEST_COMMAND         Command to run tests (captures full output to tests.txt)
   TEST_STDERR_POLICY   warn|fail|ignore (default: warn). When TEST_COMMAND is set,
@@ -223,8 +223,36 @@ sot_max_chars="${SOT_MAX_CHARS:-0}"
 
 declare -a sot_files=()
 if [[ -n "$sot_files_raw" ]]; then
-  # shellcheck disable=SC2206
-  sot_files=($sot_files_raw)
+  if ! command -v python3 >/dev/null 2>&1; then
+    eprint "python3 not found (required for SOT_FILES parsing)."
+    exit 1
+  fi
+
+  if ! sot_files_parsed="$(python3 - "$sot_files_raw" <<'PY_SPLIT'
+import sys
+import shlex
+
+raw = sys.argv[1]
+try:
+    parts = shlex.split(raw)
+except ValueError as exc:
+    print(f"Invalid SOT_FILES: {exc}", file=sys.stderr)
+    sys.exit(2)
+
+for item in parts:
+    if item == "":
+        continue
+    print(item)
+PY_SPLIT
+  )"; then
+    eprint "Invalid SOT_FILES; failed to parse shell-like list"
+    exit 2
+  fi
+
+  while IFS= read -r parsed_item; do
+    [[ -n "$parsed_item" ]] || continue
+    sot_files+=("$parsed_item")
+  done <<< "$sot_files_parsed"
 fi
 
 if [[ -z "$sot" && -z "$gh_issue" && -z "$gh_issue_body_file" && ${#sot_files[@]} -eq 0 ]]; then
@@ -347,6 +375,11 @@ git_ref_exists() {
   git -C "$repo_root" rev-parse --verify "$ref" >/dev/null 2>&1
 }
 
+git_local_branch_exists() {
+  local branch_ref="$1"
+  git -C "$repo_root" show-ref --verify --quiet "refs/heads/$branch_ref"
+}
+
 fetch_remote_tracking_ref() {
   local ref="$1"
   local remote_name=""
@@ -362,7 +395,7 @@ fetch_remote_tracking_ref() {
     if [[ -z "$branch" ]]; then
       return 0
     fi
-    if git -C "$repo_root" show-ref --verify --quiet "refs/heads/$ref"; then
+    if git_local_branch_exists "$ref"; then
       return 0
     fi
     git -C "$repo_root" fetch --no-tags --quiet "$remote_name" "$branch"
@@ -404,7 +437,7 @@ fetch_remote_tracking_ref() {
 	    } > "$out_tests"
 
 	    set +e
-	    bash -lc "$test_command" >"$tmp_tests_stdout" 2>"$out_tests_stderr"
+    env -u BASH_ENV bash -c "$test_command" >"$tmp_tests_stdout" 2>"$out_tests_stderr"
 	    exit_code=$?
 	    set -e
 	    tests_exit_code="$exit_code"
