@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.01] - 2026-02-20
+
 - fix: Make `/review-cycle` parse `SOT_FILES` without `readarray` so it works on macOS default Bash 3.2 (`/bin/bash`).
 - fix: Run `/review-cycle` `TEST_COMMAND` via `bash -c` with `BASH_ENV` unset to reduce environment-dependent side effects from login/init hooks.
 - fix: Keep local-branch precedence in `/review-cycle` remote-ref fetch helper when base refs contain `/` and overlap with remote names.
