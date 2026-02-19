@@ -596,6 +596,22 @@ if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/prompt.txt" ]]; then
   exit 1
 fi
 
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged MAX_PROMPT_BYTES=1 \
+  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  "$review_cycle_sh" issue-1 run-cache-prompt-budget-miss) >/dev/null 2>"$tmpdir/stderr-cache-prompt-budget-miss"
+code_cache_prompt_budget_miss=$?
+set -e
+if [[ "$code_cache_prompt_budget_miss" -eq 0 ]]; then
+  eprint "Expected strict MAX_PROMPT_BYTES to force non-reuse"
+  exit 1
+fi
+if ! grep -q "Prompt bytes exceeded MAX_PROMPT_BYTES" "$tmpdir/stderr-cache-prompt-budget-miss"; then
+  eprint "Expected cache miss to fail fast when MAX_PROMPT_BYTES is stricter than cached prompt"
+  cat "$tmpdir/stderr-cache-prompt-budget-miss" >&2
+  exit 1
+fi
+
 cat > "$tmpdir/codex-no-version" <<'EOF'
 #!/usr/bin/env bash
 if [[ ${1:-} == "--version" ]]; then

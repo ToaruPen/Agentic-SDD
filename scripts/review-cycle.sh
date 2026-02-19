@@ -923,7 +923,7 @@ if [[ -f "$current_run_file" ]]; then
 fi
 
 if [[ "$review_cycle_incremental" == "1" && -n "$reuse_candidate_meta" ]]; then
-  reuse_state_fast="$(python3 - "$reuse_candidate_meta" "$reuse_candidate_json" "$head_sha" "$meta_base_ref" "$meta_base_sha" "$diff_source" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_version_available" "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$script_semantics_version" <<'PY'
+  reuse_state_fast="$(python3 - "$reuse_candidate_meta" "$reuse_candidate_json" "$head_sha" "$meta_base_ref" "$meta_base_sha" "$diff_source" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_version_available" "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$script_semantics_version" "$max_prompt_bytes" <<'PY'
 import json
 import sys
 
@@ -945,12 +945,15 @@ curr_schema_sha256 = sys.argv[15]
 curr_constraints = sys.argv[16]
 curr_engine_version_output = sys.argv[17]
 curr_script_semantics_version = sys.argv[18]
+curr_max_prompt_bytes = int(sys.argv[19])
 
-def out(eligible: bool, reason: str, engine_fingerprint: str = "") -> None:
+def out(eligible: bool, reason: str, engine_fingerprint: str = "", prompt_bytes=None) -> None:
     print("eligible=1" if eligible else "eligible=0")
     print(f"reason={reason}")
     if engine_fingerprint:
         print(f"engine_fingerprint={engine_fingerprint}")
+    if prompt_bytes is not None:
+        print(f"prompt_bytes={prompt_bytes}")
 
 try:
     with open(meta_path, "r", encoding="utf-8") as fh:
@@ -1016,6 +1019,15 @@ if tests_exit_code is not None and tests_exit_code != 0:
     out(False, "tests-exit-nonzero")
     raise SystemExit(0)
 
+meta_prompt_bytes = meta.get("prompt_bytes")
+if curr_max_prompt_bytes > 0:
+    if not isinstance(meta_prompt_bytes, int) or meta_prompt_bytes < 0:
+        out(False, "prompt-bytes-missing")
+        raise SystemExit(0)
+    if meta_prompt_bytes > curr_max_prompt_bytes:
+        out(False, "prompt-bytes-exceeded")
+        raise SystemExit(0)
+
 checks = [
     ("head_sha", curr_head),
     ("base_ref", curr_base_ref),
@@ -1039,18 +1051,23 @@ for key, expected in checks:
         out(False, f"{key}-mismatch")
         raise SystemExit(0)
 
-out(True, "cache-hit-fast", str(meta.get("engine_fingerprint")))
+if not isinstance(meta_prompt_bytes, int) or meta_prompt_bytes < 0:
+    meta_prompt_bytes = 0
+
+out(True, "cache-hit-fast", str(meta.get("engine_fingerprint")), meta_prompt_bytes)
 PY
 )"
   reuse_eligible=0
   reuse_reason="unknown"
   cached_engine_fingerprint=""
+  cached_prompt_bytes=0
   while IFS= read -r line; do
     case "$line" in
       eligible=1) reuse_eligible=1 ;;
       eligible=0) reuse_eligible=0 ;;
       reason=*) reuse_reason="${line#reason=}" ;;
       engine_fingerprint=*) cached_engine_fingerprint="${line#engine_fingerprint=}" ;;
+      prompt_bytes=*) cached_prompt_bytes="${line#prompt_bytes=}" ;;
     esac
   done <<< "$reuse_state_fast"
 
@@ -1063,6 +1080,7 @@ PY
       reused=1
       reused_from_run="$reuse_candidate_run"
       engine_fingerprint="$cached_engine_fingerprint"
+      prompt_bytes="$cached_prompt_bytes"
     else
       reuse_eligible=0
       reuse_reason="candidate-review-invalid"
