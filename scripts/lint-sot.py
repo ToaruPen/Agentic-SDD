@@ -495,20 +495,30 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                     )
                 )
 
-        if (
-            (not is_template)
-            and re.search(r"^\s*適用可否:", block, re.MULTILINE) is not None
-            and (_RESEARCH_APPLICABILITY_RE.search(block) is None)
-        ):
-            errs.append(
-                LintError(
-                    path=rel_path,
-                    message=(
-                        "調査ドキュメントの候補フォーマットが不完全です。 "
-                        f"{cand} の '適用可否:' は Yes / Partial / No のいずれかで記載してください"
-                    ),
-                )
+        if not is_template:
+            applicability_lines = re.findall(
+                r"^\s*適用可否:\s*(.+?)\s*$", block, re.MULTILINE
             )
+            if len(applicability_lines) != 1:
+                errs.append(
+                    LintError(
+                        path=rel_path,
+                        message=(
+                            "調査ドキュメントの候補フォーマットが不完全です。 "
+                            f"{cand} の '適用可否:' は 1件のみ記載してください"
+                        ),
+                    )
+                )
+            elif _RESEARCH_APPLICABILITY_RE.search(block) is None:
+                errs.append(
+                    LintError(
+                        path=rel_path,
+                        message=(
+                            "調査ドキュメントの候補フォーマットが不完全です。 "
+                            f"{cand} の '適用可否:' は Yes / Partial / No のいずれかで記載してください"
+                        ),
+                    )
+                )
 
         if re.search(
             r"^\s*根拠リンク:", block, re.MULTILINE
