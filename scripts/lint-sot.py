@@ -97,6 +97,19 @@ _RESEARCH_ADJACENT_H2_RE = re.compile(
 )
 _RESEARCH_ANY_H2_RE = re.compile(r"^\s*##\s+", re.MULTILINE)
 _RESEARCH_EVIDENCE_URL_RE = re.compile(r"^\s*-\s*https?://\S+", re.MULTILINE)
+_RESEARCH_APPLICABILITY_RE = re.compile(
+    r"^\s*適用可否:[ \t]*(Yes|Partial|No)[ \t]*$", re.MULTILINE
+)
+_RESEARCH_CANDIDATE_REQUIRED_LABELS = [
+    "概要:",
+    "適用可否:",
+    "仮説:",
+    "反証:",
+    "採否理由:",
+    "根拠リンク:",
+    "捨て条件:",
+    "リスク/検証:",
+]
 _RESEARCH_NOVELTY_REQUIRED_SUBSTRINGS = [
     "直接の先行事例が2件未満",
     "Unknown",
@@ -111,6 +124,33 @@ _RESEARCH_NOVELTY_REQUIRED_TRIGGER_SUBSTRINGS = [
     "直接の先行事例が2件未満",
     "Unknown",
     "Q6-5",
+]
+
+_RESEARCH_EPIC_COMPARISON_H2_RE = re.compile(
+    r"^\s*##\s*(?:\d+\.\s*)?外部サービス比較ゲート.*$", re.MULTILINE
+)
+_RESEARCH_EPIC_GATE_REQUIRED_RE = re.compile(
+    r"^\s*外部サービス比較ゲート:\s*Required\s*$", re.MULTILINE
+)
+_RESEARCH_EPIC_GATE_SKIP_RE = re.compile(
+    r"^\s*外部サービス比較ゲート:\s*Skip（[^）\n]+）\s*$", re.MULTILINE
+)
+_RESEARCH_EPIC_SERVICE_BULLET_RE = re.compile(
+    r"^\s*-\s*[^（\n]+（[^）\n]+）\s*$", re.MULTILINE
+)
+_RESEARCH_EPIC_WEIGHT_BULLET_RE = re.compile(
+    r"^\s*-\s*.+（\d{1,3}%）\s*$", re.MULTILINE
+)
+
+_RESEARCH_EPIC_REQUIRED_TABLE_COLUMNS = [
+    "サービス名",
+    "ベンダー",
+    "初期費用",
+    "月額費用",
+    "レイテンシ",
+    "可用性SLO",
+    "運用負荷",
+    "適用判定",
 ]
 
 
@@ -161,22 +201,231 @@ def has_candidate_evidence_url(block: str) -> bool:
                 in_evidence = True
             continue
 
-        if any(
-            s.startswith(x)
-            for x in (
-                "概要:",
-                "適用可否:",
-                "根拠リンク:",
-                "捨て条件:",
-                "リスク/検証:",
-            )
-        ):
+        if any(s.startswith(x) for x in _RESEARCH_CANDIDATE_REQUIRED_LABELS):
             if not s.startswith("根拠リンク:"):
                 break
 
         if _RESEARCH_EVIDENCE_URL_RE.search(line):
             return True
     return False
+
+
+def extract_labeled_block(section: str, start_label: str, end_labels: List[str]) -> str:
+    in_block = False
+    out: List[str] = []
+    for line in section.splitlines():
+        s = line.strip()
+        if not in_block:
+            if s == start_label:
+                in_block = True
+            continue
+
+        if s in end_labels:
+            break
+        out.append(line)
+    return "\n".join(out)
+
+
+def count_markdown_table_rows_with_headers(
+    section: str, required_headers: List[str]
+) -> int:
+    def parse_table_cells(row: str) -> List[str]:
+        s = row.strip()
+        body = s[1:]
+        if body.endswith("|"):
+            body = body[:-1]
+        return [c.strip() for c in body.split("|")]
+
+    lines = section.splitlines()
+    for i, line in enumerate(lines):
+        s = line.strip()
+        if not s.startswith("|"):
+            continue
+
+        header_cells = parse_table_cells(s)
+        if not all(h in header_cells for h in required_headers):
+            continue
+
+        count = 0
+        expected_cols = len(header_cells)
+        j = i + 1
+        while j < len(lines):
+            t = lines[j].strip()
+            if not t.startswith("|"):
+                break
+            if re.fullmatch(r"\|\s*[-:| ]+\|?\s*", t):
+                j += 1
+                continue
+
+            row_cells = parse_table_cells(t)
+            if len(row_cells) != expected_cols:
+                j += 1
+                continue
+
+            count += 1
+            j += 1
+        return count
+    return -1
+
+
+def lint_epic_external_service_comparison(
+    rel_path: str, contract_text: str
+) -> List[LintError]:
+    errs: List[LintError] = []
+    section = extract_h2_section(contract_text, _RESEARCH_EPIC_COMPARISON_H2_RE)
+    if not section.strip():
+        errs.append(
+            LintError(
+                path=rel_path,
+                message=(
+                    "Epic調査ドキュメントには見出し '## 外部サービス比較ゲート'（番号は任意）を含めてください"
+                ),
+            )
+        )
+        return errs
+
+    has_required = _RESEARCH_EPIC_GATE_REQUIRED_RE.search(section) is not None
+    has_skip = _RESEARCH_EPIC_GATE_SKIP_RE.search(section) is not None
+
+    if has_required and has_skip:
+        errs.append(
+            LintError(
+                path=rel_path,
+                message=(
+                    "外部サービス比較ゲートは 'Required' と 'Skip（理由）' のどちらか一方のみ記載してください"
+                ),
+            )
+        )
+        return errs
+
+    if (not has_required) and (not has_skip):
+        errs.append(
+            LintError(
+                path=rel_path,
+                message=(
+                    "外部サービス比較ゲートには '外部サービス比較ゲート: Required' または "
+                    "'外部サービス比較ゲート: Skip（理由）' を記載してください"
+                ),
+            )
+        )
+        return errs
+
+    if has_skip:
+        return errs
+
+    labels = [
+        "比較対象サービス:",
+        "代替系統カバレッジ:",
+        "評価軸（重み）:",
+        "定量比較表:",
+        "判定理由:",
+    ]
+    for label in labels:
+        if re.search(rf"^\s*{re.escape(label)}\s*$", section, re.MULTILINE) is None:
+            errs.append(
+                LintError(
+                    path=rel_path,
+                    message=f"外部サービス比較ゲートに '{label}' がありません",
+                )
+            )
+
+    service_block = extract_labeled_block(
+        section,
+        start_label="比較対象サービス:",
+        end_labels=[
+            "代替系統カバレッジ:",
+            "評価軸（重み）:",
+            "定量比較表:",
+            "判定理由:",
+        ],
+    )
+    service_count = len(_RESEARCH_EPIC_SERVICE_BULLET_RE.findall(service_block))
+    if service_count < 3:
+        errs.append(
+            LintError(
+                path=rel_path,
+                message=(
+                    "外部サービス比較ゲートの '比較対象サービス:' は 3件以上必要です。 "
+                    "各行を '- サービス名（ベンダー名）' 形式で記載してください"
+                ),
+            )
+        )
+
+    family_block = extract_labeled_block(
+        section,
+        start_label="代替系統カバレッジ:",
+        end_labels=["評価軸（重み）:", "定量比較表:", "判定理由:"],
+    )
+    family_count = len(re.findall(r"^\s*-\s+.+$", family_block, re.MULTILINE))
+    if family_count < 3:
+        errs.append(
+            LintError(
+                path=rel_path,
+                message="外部サービス比較ゲートの '代替系統カバレッジ:' は 3件以上必要です",
+            )
+        )
+
+    weight_block = extract_labeled_block(
+        section,
+        start_label="評価軸（重み）:",
+        end_labels=["定量比較表:", "判定理由:"],
+    )
+    weight_count = len(_RESEARCH_EPIC_WEIGHT_BULLET_RE.findall(weight_block))
+    if weight_count < 3:
+        errs.append(
+            LintError(
+                path=rel_path,
+                message=(
+                    "外部サービス比較ゲートの '評価軸（重み）:' は 3件以上必要です。 "
+                    "各行を '- 評価軸（NN%）' 形式で記載してください"
+                ),
+            )
+        )
+
+    table_block = extract_labeled_block(
+        section,
+        start_label="定量比較表:",
+        end_labels=["判定理由:"],
+    )
+    table_rows = count_markdown_table_rows_with_headers(
+        table_block, _RESEARCH_EPIC_REQUIRED_TABLE_COLUMNS
+    )
+    if table_rows == -1:
+        errs.append(
+            LintError(
+                path=rel_path,
+                message=(
+                    "外部サービス比較ゲートの '定量比較表:' に必須列がありません。 "
+                    "必須列: サービス名 / ベンダー / 初期費用 / 月額費用 / レイテンシ / "
+                    "可用性SLO / 運用負荷 / 適用判定"
+                ),
+            )
+        )
+    elif table_rows < 3:
+        errs.append(
+            LintError(
+                path=rel_path,
+                message="外部サービス比較ゲートの '定量比較表:' は 3行以上のデータ行が必要です",
+            )
+        )
+
+    reason_block = extract_labeled_block(
+        section,
+        start_label="判定理由:",
+        end_labels=[],
+    )
+    if re.search(r"^\s*-\s+.+$", reason_block, re.MULTILINE) is None:
+        errs.append(
+            LintError(
+                path=rel_path,
+                message=(
+                    "外部サービス比較ゲートの '判定理由:' は 1件以上必要です。 "
+                    "各行を '- 理由' 形式で記載してください"
+                ),
+            )
+        )
+
+    return errs
 
 
 def is_approved_prd_or_epic(rel_path: str, text: str) -> bool:
@@ -240,13 +489,7 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
             )
         )
 
-    required_field_labels = [
-        "概要:",
-        "適用可否:",
-        "根拠リンク:",
-        "捨て条件:",
-        "リスク/検証:",
-    ]
+    required_field_labels = _RESEARCH_CANDIDATE_REQUIRED_LABELS
     for m in candidate_blocks:
         n_raw = m.group(1)
         block = m.group(0)
@@ -259,6 +502,31 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                         message=(
                             "調査ドキュメントの候補フォーマットが不完全です。 "
                             f"{cand} に '{label}' がありません"
+                        ),
+                    )
+                )
+
+        if not is_template:
+            applicability_lines = re.findall(
+                r"^\s*適用可否:[ \t]*[^\n]*$", block, re.MULTILINE
+            )
+            if len(applicability_lines) != 1:
+                errs.append(
+                    LintError(
+                        path=rel_path,
+                        message=(
+                            "調査ドキュメントの候補フォーマットが不完全です。 "
+                            f"{cand} の '適用可否:' は 1件のみ記載してください"
+                        ),
+                    )
+                )
+            elif _RESEARCH_APPLICABILITY_RE.search(block) is None:
+                errs.append(
+                    LintError(
+                        path=rel_path,
+                        message=(
+                            "調査ドキュメントの候補フォーマットが不完全です。 "
+                            f"{cand} の '適用可否:' は Yes / Partial / No のいずれかで記載してください"
                         ),
                     )
                 )
@@ -395,6 +663,13 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                     ),
                 )
             )
+
+    if (
+        rel_path.startswith("docs/research/epic/")
+        and (not is_template)
+        and is_date_artifact
+    ):
+        errs.extend(lint_epic_external_service_comparison(rel_path, contract_text))
 
     return errs
 

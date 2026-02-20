@@ -310,7 +310,7 @@ engine_runtime_ms=0
 # Bump when prompt composition or reuse eligibility semantics change.
 script_semantics_version="v2"
 
-review_cycle_incremental="${REVIEW_CYCLE_INCREMENTAL:-0}"
+review_cycle_incremental="${REVIEW_CYCLE_INCREMENTAL:-1}"
 if [[ "$review_cycle_incremental" != "0" && "$review_cycle_incremental" != "1" ]]; then
   eprint "Invalid REVIEW_CYCLE_INCREMENTAL: $review_cycle_incremental (use 0|1)"
   exit 2

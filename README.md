@@ -290,9 +290,10 @@ In this default (`DIFF_MODE=range`), the working tree must be clean; for pre-com
 
 Recommended incremental operation:
 
-- First run in an Issue/branch: keep `REVIEW_CYCLE_INCREMENTAL=0` (fresh full baseline).
-- Subsequent reruns in the same Issue loop: set `REVIEW_CYCLE_INCREMENTAL=1`.
-- Force a fresh full run again when base/HEAD context changed materially (for example rebase/base update) and right before `/final-review`.
+- Keep `REVIEW_CYCLE_INCREMENTAL=1` during normal issue loops (default behavior).
+- When a fresh full baseline is needed, set `REVIEW_CYCLE_INCREMENTAL=0` explicitly.
+- Before `/final-review`, run one fresh full local review context (do not rely only on reused incremental artifacts).
+- If `/final-review` reports any `P2` or higher finding (`P0/P1/P2`), fix it and run `/review-cycle` again, then re-run `/final-review`.
 
 Note: the review engine invocation (`codex exec` by default) has no timeout by default. If you need one, set `EXEC_TIMEOUT_SEC` (uses `timeout`/`gtimeout` when available).
 

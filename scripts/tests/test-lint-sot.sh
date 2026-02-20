@@ -301,6 +301,9 @@ cat > "$r9/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-1
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -311,6 +314,9 @@ cat > "$r9/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -321,6 +327,9 @@ cat > "$r9/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -331,6 +340,9 @@ cat > "$r9/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -341,6 +353,9 @@ cat > "$r9/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -382,6 +397,9 @@ cat > "$r9a/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-1
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -392,6 +410,9 @@ cat > "$r9a/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -402,6 +423,9 @@ cat > "$r9a/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -412,6 +436,9 @@ cat > "$r9a/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -422,6 +449,9 @@ cat > "$r9a/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -475,6 +505,9 @@ cat > "$r9aa/docs/research/prd/proj/2026-02-15.md" <<'EOF'
     候補-1
     概要: a
     適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
     根拠リンク:
     - https://example.com
     捨て条件:
@@ -485,6 +518,9 @@ cat > "$r9aa/docs/research/prd/proj/2026-02-15.md" <<'EOF'
     候補-2
     概要: a
     適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
     根拠リンク:
     - https://example.com
     捨て条件:
@@ -495,6 +531,9 @@ cat > "$r9aa/docs/research/prd/proj/2026-02-15.md" <<'EOF'
     候補-3
     概要: a
     適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
     根拠リンク:
     - https://example.com
     捨て条件:
@@ -505,6 +544,9 @@ cat > "$r9aa/docs/research/prd/proj/2026-02-15.md" <<'EOF'
     候補-4
     概要: a
     適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
     根拠リンク:
     - https://example.com
     捨て条件:
@@ -515,6 +557,9 @@ cat > "$r9aa/docs/research/prd/proj/2026-02-15.md" <<'EOF'
     候補-5
     概要: a
     適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
     根拠リンク:
     - https://example.com
     捨て条件:
@@ -568,6 +613,9 @@ cat > "$r9ab/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-1
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -578,6 +626,9 @@ cat > "$r9ab/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -588,6 +639,9 @@ cat > "$r9ab/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -598,6 +652,9 @@ cat > "$r9ab/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -608,6 +665,9 @@ cat > "$r9ab/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -662,6 +722,9 @@ cat > "$r9ac/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-1
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -672,6 +735,9 @@ cat > "$r9ac/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -682,6 +748,9 @@ cat > "$r9ac/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -692,6 +761,9 @@ cat > "$r9ac/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -702,6 +774,9 @@ cat > "$r9ac/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -805,6 +880,9 @@ cat > "$r9c/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-1
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -815,6 +893,9 @@ cat > "$r9c/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -825,6 +906,9 @@ cat > "$r9c/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -835,6 +919,9 @@ cat > "$r9c/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -845,6 +932,9 @@ cat > "$r9c/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -903,6 +993,9 @@ cat > "$r10/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-1
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -913,6 +1006,9 @@ cat > "$r10/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -923,6 +1019,9 @@ cat > "$r10/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -933,6 +1032,9 @@ cat > "$r10/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -943,6 +1045,9 @@ cat > "$r10/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -989,6 +1094,9 @@ cat > "$r11/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-1
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 リスク/検証:
@@ -997,6 +1105,9 @@ cat > "$r11/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1007,6 +1118,9 @@ cat > "$r11/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1017,6 +1131,9 @@ cat > "$r11/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1027,6 +1144,9 @@ cat > "$r11/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1080,6 +1200,9 @@ cat > "$r11b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-1
 メモ: 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1090,6 +1213,9 @@ cat > "$r11b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1100,6 +1226,9 @@ cat > "$r11b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1110,6 +1239,9 @@ cat > "$r11b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1120,6 +1252,9 @@ cat > "$r11b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1172,6 +1307,9 @@ cat > "$r14/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-1
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - not-a-url
 捨て条件:
@@ -1182,6 +1320,9 @@ cat > "$r14/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - not-a-url
 捨て条件:
@@ -1192,6 +1333,9 @@ cat > "$r14/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - not-a-url
 捨て条件:
@@ -1202,6 +1346,9 @@ cat > "$r14/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - not-a-url
 捨て条件:
@@ -1212,6 +1359,9 @@ cat > "$r14/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - not-a-url
 捨て条件:
@@ -1247,6 +1397,115 @@ if ! grep -q "'根拠リンク:' 配下に URL" "$r14/stderr"; then
   exit 1
 fi
 
+r14b="$(new_repo case-research-evidence-url-outside-evidence-section)"
+write_base_docs "$r14b"
+mkdir -p "$r14b/docs/research/prd/proj"
+cat > "$r14b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- not-a-url
+仮説:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- not-a-url
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- not-a-url
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- not-a-url
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- not-a-url
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r14b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r14b/stderr"
+code_evidence_scope=$?
+set -e
+
+if [[ "$code_evidence_scope" -eq 0 ]]; then
+  eprint "Expected lint-sot failure when URL appears outside 根拠リンク section"
+  cat "$r14b/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "'根拠リンク:' 配下に URL" "$r14b/stderr"; then
+  eprint "Expected evidence section scope message, got:"
+  cat "$r14b/stderr" >&2 || true
+  exit 1
+fi
+
 r16="$(new_repo case-research-evidence-url-with-description)"
 write_base_docs "$r16"
 mkdir -p "$r16/docs/research/prd/proj"
@@ -1264,6 +1523,9 @@ cat > "$r16/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-1
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com (docs)
 捨て条件:
@@ -1274,6 +1536,9 @@ cat > "$r16/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com (docs)
 捨て条件:
@@ -1284,6 +1549,9 @@ cat > "$r16/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com (docs)
 捨て条件:
@@ -1294,6 +1562,9 @@ cat > "$r16/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com (docs)
 捨て条件:
@@ -1304,6 +1575,9 @@ cat > "$r16/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com (docs)
 捨て条件:
@@ -1344,6 +1618,9 @@ cat > "$r15/docs/research/epic/proj/2026-02-15.md" <<'EOF'
 候補-1
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1354,6 +1631,9 @@ cat > "$r15/docs/research/epic/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1364,6 +1644,9 @@ cat > "$r15/docs/research/epic/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1374,6 +1657,9 @@ cat > "$r15/docs/research/epic/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1384,6 +1670,9 @@ cat > "$r15/docs/research/epic/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1400,6 +1689,10 @@ cat > "$r15/docs/research/epic/proj/2026-02-15.md" <<'EOF'
 タイムボックス: 30min
 打ち切り条件:
 - ok
+
+## 6. 外部サービス比較ゲート
+
+外部サービス比較ゲート: Skip（理由）
 
 ## Notes
 
@@ -1428,6 +1721,9 @@ cat > "$r12/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-1
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1438,6 +1734,9 @@ cat > "$r12/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1448,6 +1747,9 @@ cat > "$r12/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1458,6 +1760,9 @@ cat > "$r12/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1468,6 +1773,9 @@ cat > "$r12/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1520,6 +1828,9 @@ cat > "$r13/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-1
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1530,6 +1841,9 @@ cat > "$r13/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1540,6 +1854,9 @@ cat > "$r13/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1550,6 +1867,9 @@ cat > "$r13/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1560,6 +1880,9 @@ cat > "$r13/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1616,6 +1939,9 @@ cat > "$r13b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-1
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1626,6 +1952,9 @@ cat > "$r13b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-2
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1636,6 +1965,9 @@ cat > "$r13b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-3
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1646,6 +1978,9 @@ cat > "$r13b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-4
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1656,6 +1991,9 @@ cat > "$r13b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 候補-5
 概要: a
 適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
 根拠リンク:
 - https://example.com
 捨て条件:
@@ -1705,6 +2043,1164 @@ fi
 if ! grep -q "隣接領域（隣接領域-1..）を 2件以上" "$r13b/stderr"; then
   eprint "Expected adjacent scope failure message, got:"
   cat "$r13b/stderr" >&2 || true
+  exit 1
+fi
+
+r17="$(new_repo case-research-epic-comparison-valid)"
+write_base_docs "$r17"
+mkdir -p "$r17/docs/research/epic/proj"
+cat > "$r17/docs/research/epic/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+
+## 6. 外部サービス比較ゲート
+
+外部サービス比較ゲート: Required
+
+比較対象サービス:
+- OpenAI API（OpenAI）
+- Claude API（Anthropic）
+- Gemini API（Google）
+
+代替系統カバレッジ:
+- SaaS API
+- OSS self-host
+- Managed BaaS
+
+評価軸（重み）:
+- 初期費用（30%）
+- 可用性（40%）
+- 運用負荷（30%）
+
+定量比較表:
+| サービス名 | ベンダー | 初期費用 | 月額費用 | レイテンシ | 可用性SLO | 運用負荷 | 適用判定 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| OpenAI API | OpenAI | 0 | 100 | 300ms | 99.9% | Low | Yes |
+| Claude API | Anthropic | 0 | 120 | 350ms | 99.9% | Low | Partial |
+| Gemini API | Google | 0 | 90 | 320ms | 99.9% | Med | Partial |
+
+判定理由:
+- 初期費用と運用負荷を重視し OpenAI API を採用
+EOF
+
+if ! (cd "$r17" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+  eprint "Expected lint-sot OK for epic research with valid external-service comparison gate"
+  exit 1
+fi
+
+r18="$(new_repo case-research-epic-comparison-missing)"
+write_base_docs "$r18"
+mkdir -p "$r18/docs/research/epic/proj"
+cat > "$r18/docs/research/epic/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r18" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r18/stderr"
+code_epic_comparison_missing=$?
+set -e
+
+if [[ "$code_epic_comparison_missing" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for epic research missing external-service comparison gate"
+  cat "$r18/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "外部サービス比較ゲート" "$r18/stderr"; then
+  eprint "Expected external-service comparison gate message, got:"
+  cat "$r18/stderr" >&2 || true
+  exit 1
+fi
+
+r19="$(new_repo case-research-epic-comparison-skip-with-reason)"
+write_base_docs "$r19"
+mkdir -p "$r19/docs/research/epic/proj"
+cat > "$r19/docs/research/epic/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+
+## 6. 外部サービス比較ゲート
+
+外部サービス比較ゲート: Skip（コスト比較の対象外）
+EOF
+
+if ! (cd "$r19" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+  eprint "Expected lint-sot OK for epic research with Skip(reason)"
+  exit 1
+fi
+
+r20="$(new_repo case-research-epic-comparison-required-and-skip)"
+write_base_docs "$r20"
+mkdir -p "$r20/docs/research/epic/proj"
+cat > "$r20/docs/research/epic/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+
+## 6. 外部サービス比較ゲート
+
+外部サービス比較ゲート: Required
+外部サービス比較ゲート: Skip（対象外）
+EOF
+
+set +e
+(cd "$r20" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r20/stderr"
+code_epic_required_and_skip=$?
+set -e
+
+if [[ "$code_epic_required_and_skip" -eq 0 ]]; then
+  eprint "Expected lint-sot failure when Required and Skip are both set"
+  cat "$r20/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "どちらか一方" "$r20/stderr"; then
+  eprint "Expected mutually-exclusive gate message, got:"
+  cat "$r20/stderr" >&2 || true
+  exit 1
+fi
+
+r21="$(new_repo case-research-epic-comparison-required-empty-reason)"
+write_base_docs "$r21"
+mkdir -p "$r21/docs/research/epic/proj"
+cat > "$r21/docs/research/epic/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+
+## 6. 外部サービス比較ゲート
+
+外部サービス比較ゲート: Required
+
+比較対象サービス:
+- OpenAI API（OpenAI）
+- Claude API（Anthropic）
+- Gemini API（Google）
+
+代替系統カバレッジ:
+- SaaS API
+- OSS self-host
+- Managed BaaS
+
+評価軸（重み）:
+- 初期費用（30%）
+- 可用性（40%）
+- 運用負荷（30%）
+
+定量比較表:
+| サービス名 | ベンダー | 初期費用 | 月額費用 | レイテンシ | 可用性SLO | 運用負荷 | 適用判定 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| OpenAI API | OpenAI | 0 | 100 | 300ms | 99.9% | Low | Yes |
+| Claude API | Anthropic | 0 | 120 | 350ms | 99.9% | Low | Partial |
+| Gemini API | Google | 0 | 90 | 320ms | 99.9% | Med | Partial |
+
+判定理由:
+EOF
+
+set +e
+(cd "$r21" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r21/stderr"
+code_epic_required_empty_reason=$?
+set -e
+
+if [[ "$code_epic_required_empty_reason" -eq 0 ]]; then
+  eprint "Expected lint-sot failure when Required has empty 判定理由"
+  cat "$r21/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "判定理由" "$r21/stderr"; then
+  eprint "Expected 判定理由 requirement message, got:"
+  cat "$r21/stderr" >&2 || true
+  exit 1
+fi
+
+r22="$(new_repo case-research-applicability-enum-invalid)"
+write_base_docs "$r22"
+mkdir -p "$r22/docs/research/prd/proj"
+cat > "$r22/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Maybe
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Partial
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: No
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r22" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r22/stderr"
+code_applicability_enum=$?
+set -e
+
+if [[ "$code_applicability_enum" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for invalid 適用可否 value"
+  cat "$r22/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "Yes / Partial / No" "$r22/stderr"; then
+  eprint "Expected 適用可否 enum requirement message, got:"
+  cat "$r22/stderr" >&2 || true
+  exit 1
+fi
+
+r23="$(new_repo case-research-applicability-duplicate-lines)"
+write_base_docs "$r23"
+mkdir -p "$r23/docs/research/prd/proj"
+cat > "$r23/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Maybe
+仮説: h
+反証: f
+採否理由: r
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Partial
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: No
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r23" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r23/stderr"
+code_applicability_duplicate=$?
+set -e
+
+if [[ "$code_applicability_duplicate" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for duplicate 適用可否 lines"
+  cat "$r23/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "1件のみ" "$r23/stderr"; then
+  eprint "Expected 適用可否 single-line requirement message, got:"
+  cat "$r23/stderr" >&2 || true
+  exit 1
+fi
+
+r24="$(new_repo case-research-applicability-empty-and-valid-lines)"
+write_base_docs "$r24"
+mkdir -p "$r24/docs/research/prd/proj"
+cat > "$r24/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否:
+仮説: h
+反証: f
+採否理由: r
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Partial
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: No
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r24" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r24/stderr"
+code_applicability_empty_and_valid=$?
+set -e
+
+if [[ "$code_applicability_empty_and_valid" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for empty and valid duplicate 適用可否 lines"
+  cat "$r24/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "1件のみ" "$r24/stderr"; then
+  eprint "Expected 適用可否 single-line requirement message for empty+valid case, got:"
+  cat "$r24/stderr" >&2 || true
+  exit 1
+fi
+
+r25="$(new_repo case-research-epic-comparison-header-single-cell)"
+write_base_docs "$r25"
+mkdir -p "$r25/docs/research/epic/proj"
+cat > "$r25/docs/research/epic/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+
+## 6. 外部サービス比較ゲート
+
+外部サービス比較ゲート: Required
+
+比較対象サービス:
+- OpenAI API（OpenAI）
+- Claude API（Anthropic）
+- Gemini API（Google）
+
+代替系統カバレッジ:
+- SaaS API
+- OSS self-host
+- Managed BaaS
+
+評価軸（重み）:
+- 初期費用（30%）
+- 可用性（40%）
+- 運用負荷（30%）
+
+定量比較表:
+| サービス名 ベンダー 初期費用 月額費用 レイテンシ 可用性SLO 運用負荷 適用判定 |
+| --- |
+| OpenAI API OpenAI 0 100 300ms 99.9% Low Yes |
+| Claude API Anthropic 0 120 350ms 99.9% Low Partial |
+| Gemini API Google 0 90 320ms 99.9% Med Partial |
+
+判定理由:
+- 比較表に基づいて選定
+EOF
+
+set +e
+(cd "$r25" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r25/stderr"
+code_epic_single_cell_header=$?
+set -e
+
+if [[ "$code_epic_single_cell_header" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for single-cell comparison header"
+  cat "$r25/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "必須列" "$r25/stderr"; then
+  eprint "Expected required columns message for malformed header, got:"
+  cat "$r25/stderr" >&2 || true
+  exit 1
+fi
+
+r26="$(new_repo case-research-missing-hypothesis-counterevidence-reason)"
+write_base_docs "$r26"
+mkdir -p "$r26/docs/research/prd/proj"
+cat > "$r26/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+仮説: h
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r26" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r26/stderr"
+code_missing_reasoning_fields=$?
+set -e
+
+if [[ "$code_missing_reasoning_fields" -eq 0 ]]; then
+  eprint "Expected lint-sot failure when 仮説/反証/採否理由 are missing"
+  cat "$r26/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "候補-1 に '仮説:' がありません" "$r26/stderr"; then
+  eprint "Expected missing 仮説 field message, got:"
+  cat "$r26/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "候補-2 に '反証:' がありません" "$r26/stderr"; then
+  eprint "Expected missing 反証 field message, got:"
+  cat "$r26/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "候補-3 に '採否理由:' がありません" "$r26/stderr"; then
+  eprint "Expected missing 採否理由 field message, got:"
+  cat "$r26/stderr" >&2 || true
   exit 1
 fi
 

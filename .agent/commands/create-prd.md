@@ -32,6 +32,16 @@ Stop condition:
 
 - If the research artifact does not exist yet, stop and create it first.
 
+### Phase 0.5: Research quality spot check (required)
+
+Before continuing, spot-check the latest `/research prd` artifact:
+
+- Each candidate includes `仮説:`, `反証:`, and `採否理由:`
+- Candidate `適用可否:` values use only `Yes / Partial / No`
+- Exploration log is present (`何を調べたか / 何を除外したか / 未解決`) 
+
+If any item is missing, stop and revise research first.
+
 ### Phase 1: Ask 7 questions (in Japanese)
 
 Ask the user the following questions in order. Provide a good/bad example for each question.

@@ -4,6 +4,52 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.08] - 2026-02-21
+
+- fix(review-cycle): Switch `REVIEW_CYCLE_INCREMENTAL` default to `1` so reuse is enabled by default in normal review loops.
+- docs(review): Update `/review-cycle` and `README.md` guidance to use incremental-by-default with explicit full-run (`REVIEW_CYCLE_INCREMENTAL=0`) before `/final-review`.
+- fix(lint-sot): Update evidence URL section parsing to treat `仮説:` / `反証:` / `採否理由:` as candidate section boundaries.
+- test(lint-sot): Add regression coverage to ensure URLs outside `根拠リンク:` are not accepted as evidence.
+- test(review-cycle): Update default-mode expectation from `incremental-disabled` to `no-previous-run`.
+
+## [0.3.07] - 2026-02-21
+
+- fix(lint-sot): Enforce `仮説:` / `反証:` / `採否理由:` as required candidate fields in `lint_research_contract` to align lint behavior with the `/research` contract.
+- test(lint-sot): Add regression coverage that fails when candidate blocks omit `仮説` / `反証` / `採否理由`.
+- docs(research): Backfill existing estimation research artifacts under `docs/research/estimation/issue-*` with `仮説` / `反証` / `採否理由` so repository docs remain lint-clean under the updated contract.
+
+## [0.3.06] - 2026-02-21
+
+- fix(lint-sot): Parse external-service comparison table headers by column cells instead of raw substring matching, so malformed single-cell headers no longer pass required-column checks.
+- fix(lint-sot): Count comparison data rows only when column counts match the parsed header shape.
+- test(lint-sot): Add regression coverage for malformed single-cell comparison table headers.
+
+## [0.3.05] - 2026-02-20
+
+- fix(lint-sot): Count `適用可否:` lines with empty values when enforcing the single-entry rule, preventing bypass with empty+valid duplicate lines in one candidate block.
+- test(lint-sot): Add regression coverage for the empty+valid duplicate `適用可否:` bypass pattern.
+
+## [0.3.04] - 2026-02-20
+
+- fix(lint-sot): Reject candidate blocks that contain multiple `適用可否:` lines, preventing enum-check bypass via mixed valid/invalid duplicated entries.
+- fix(lint-sot): Keep Markdown table separator parsing tolerant of rows without a trailing `|` in external-service comparison tables.
+- test(lint-sot): Add regression coverage for duplicate `適用可否:` lines in a single candidate block.
+
+## [0.3.03] - 2026-02-20
+
+- docs(research): Refine `/research` guidance with explicit exploration-quality prompts (`仮説` / `反証` / `採否理由`) and required exploration-log expectations.
+- docs(flow): Add required research quality spot-check phases to `/create-prd`, `/create-epic`, and `/estimation` so downstream generation stops when research artifacts are structurally incomplete.
+- docs(template): Update `docs/research/*/_template.md` candidate format with hypothesis/falsification/decision-rationale fields and add mandatory exploration-log sections.
+- fix(lint-sot): Validate research candidate `適用可否` values against `Yes / Partial / No` for non-template artifacts.
+- test(lint-sot): Add regression coverage for invalid `適用可否` enum values in `scripts/tests/test-lint-sot.sh`.
+
+## [0.3.02] - 2026-02-20
+
+- feat: Add Epic research external-service comparison gate to `scripts/lint-sot.py` with required structure (`Required` or `Skip(reason)`), concrete service entries, alternative-family coverage, weighted criteria, quantitative table columns, and decision rationale checks.
+- test: Extend `scripts/tests/test-lint-sot.sh` with positive/negative cases for Epic comparison gate behavior (valid required block, missing section, skip-with-reason, required+skip conflict, empty decision rationale).
+- docs: Update Epic research command/template requirements in `.agent/commands/research.md`, `.agent/commands/create-epic.md`, and `docs/research/epic/_template.md` to codify comparison depth expectations.
+- docs: Clarify review loop policy in `.agent/commands/review-cycle.md`, `.agent/commands/final-review.md`, and `README.md` (first full baseline, same `scope-id` incremental reruns, fresh full context before `/final-review`, rerun `/review-cycle` when `/final-review` reports `P2+`).
+
 ## [0.3.01] - 2026-02-20
 
 - fix: Make `/review-cycle` parse `SOT_FILES` without `readarray` so it works on macOS default Bash 3.2 (`/bin/bash`).
