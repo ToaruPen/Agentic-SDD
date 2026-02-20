@@ -48,8 +48,8 @@ Underlying script:
 
 ## Recommended operation policy (default)
 
-- Baseline run (first run for a scope): use `REVIEW_CYCLE_INCREMENTAL=0`.
-- Subsequent runs: keep the same `scope-id` and use `REVIEW_CYCLE_INCREMENTAL=1`.
+- Default runs: keep `REVIEW_CYCLE_INCREMENTAL=1`.
+- Force a fresh full baseline when needed with `REVIEW_CYCLE_INCREMENTAL=0`.
 - Final gate safety check: run `/final-review` with a fresh full review context (do not rely only on reused local review artifacts).
 - If `/final-review` reports any `P2` or higher finding (`P0/P1/P2`), fix and run `/review-cycle` again before re-running `/final-review`.
 
@@ -87,15 +87,14 @@ Underlying script:
   - If both staged and worktree diffs exist in `auto`, fail-fast and ask you to choose.
 - `BASE_REF`: base ref for `range` mode (default: `origin/main`; fallback to `main`)
 - `CONSTRAINTS`: additional constraints (default: `none`)
-- `REVIEW_CYCLE_INCREMENTAL`: `1` enables conditional reuse of the latest approved `review.json` when strict fingerprints match; default `0` (full execution)
+- `REVIEW_CYCLE_INCREMENTAL`: `1` enables conditional reuse of the latest approved `review.json` when strict fingerprints match; default `1`
   - Reuse is fail-closed. Any missing/mismatched metadata field forces full execution.
   - Reuse is allowed only when the latest review status is `Approved` or `Approved with nits`.
   - Internal compatibility token `script_semantics_version` is included in reuse metadata checks.
     Bump it when prompt composition or reuse eligibility semantics change.
   - Recommended operation:
-    - First run in an Issue/branch: keep `REVIEW_CYCLE_INCREMENTAL=0` (establish a fresh full baseline).
-    - Subsequent reruns in the same Issue loop: set `REVIEW_CYCLE_INCREMENTAL=1`.
-    - Force a fresh full run again when base/HEAD context changed materially (for example rebase/base update) and right before `/final-review`.
+    - Keep `REVIEW_CYCLE_INCREMENTAL=1` during normal issue loops.
+    - Force a fresh full run with `REVIEW_CYCLE_INCREMENTAL=0` when base/HEAD context changed materially (for example rebase/base update) and right before `/final-review`.
 
 ### Timeout (review engine execution)
 

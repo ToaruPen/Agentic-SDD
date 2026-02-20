@@ -290,8 +290,8 @@ In this default (`DIFF_MODE=range`), the working tree must be clean; for pre-com
 
 Recommended incremental operation:
 
-- First run in an Issue/branch: keep `REVIEW_CYCLE_INCREMENTAL=0` (fresh full baseline).
-- Subsequent reruns in the same Issue loop: keep the same `scope-id` and set `REVIEW_CYCLE_INCREMENTAL=1`.
+- Keep `REVIEW_CYCLE_INCREMENTAL=1` during normal issue loops (default behavior).
+- When a fresh full baseline is needed, set `REVIEW_CYCLE_INCREMENTAL=0` explicitly.
 - Before `/final-review`, run one fresh full local review context (do not rely only on reused incremental artifacts).
 - If `/final-review` reports any `P2` or higher finding (`P0/P1/P2`), fix it and run `/review-cycle` again, then re-run `/final-review`.
 
