@@ -8,15 +8,25 @@ warn() { eprint "[AUTOFIX] WARN: $*"; }
 issue_number=""
 marker=""
 comment_url=""
+event_type=""
+target_sha=""
+source_event_key=""
+
+build_failure_body() {
+  local msg="$1"
+  local run_url
+  run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID:-}"
+
+  printf '%s\nAutofix failed.\nError: %s\nTarget SHA: %s\nRun: %s\nComment: %s\nSource event: %s\n' \
+    "$marker" "$msg" "${target_sha:-unknown}" "$run_url" "${comment_url:-}" "${source_event_key:-unknown}"
+}
 
 die() {
   local msg="$*"
   eprint "[AUTOFIX] ERROR: $msg"
 
   if [[ -n "${issue_number:-}" && -n "${marker:-}" ]]; then
-    local run_url
-    run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID:-}"
-    post_comment "$issue_number" "$(printf '%s\nAutofix failed.\nError: %s\nRun: %s\nComment: %s\n' "$marker" "$msg" "$run_url" "${comment_url:-}")" || true
+    post_comment "$issue_number" "$(build_failure_body "$msg")" || true
   fi
 
   exit 1
@@ -153,6 +163,98 @@ count_marker_comments() {
   printf '%s\n' "$bodies" | grep -cF -- "${marker}" || true
 }
 
+has_source_event_already_processed() {
+  local issue_number="$1"
+  local marker="$2"
+  local source_key="$3"
+
+  if [[ -z "$source_key" ]]; then
+    return 1
+  fi
+
+  local marker_author
+  marker_author="github-actions[bot]"
+
+  local processed_match
+  processed_match="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq ".[] | select(.user.login == \"${marker_author}\") | select((.body | contains(\"${marker}\")) and (.body | contains(\"Source event: ${source_key}\")) and (.body | contains(\"Autofix applied and pushed.\"))) | .id")" || die "Failed to list issue comments via gh api"
+  if [[ -n "$processed_match" ]]; then
+    return 0
+  fi
+  return 1
+}
+
+extract_event() {
+  local json_path="$1"
+
+  python3 - "$json_path" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, 'r', encoding='utf-8') as f:
+    ev = json.load(f)
+
+event_name = (ev.get('action') and '')
+
+github_event = ''
+if 'pull_request' in ev and 'comment' in ev and 'issue' not in ev:
+    github_event = 'pull_request_review_comment'
+elif 'pull_request' in ev and 'review' in ev:
+    github_event = 'pull_request_review'
+elif 'issue' in ev and 'comment' in ev:
+    github_event = 'issue_comment'
+
+event_type = ''
+issue_number = ''
+is_pr = False
+comment_body = ''
+comment_login = ''
+comment_url = ''
+source_event_key = ''
+
+if github_event == 'issue_comment':
+    issue = ev.get('issue', {})
+    is_pr = issue.get('pull_request') is not None
+    issue_number = str(issue.get('number') or '')
+    comment = ev.get('comment', {})
+    comment_body = comment.get('body') or ''
+    comment_login = (comment.get('user') or {}).get('login') or ''
+    comment_url = comment.get('html_url') or ''
+    event_type = 'issue_comment'
+    source_event_key = f"issue_comment:{comment.get('id') or ''}:{comment_url}"
+elif github_event == 'pull_request_review':
+    pr = ev.get('pull_request', {})
+    review = ev.get('review', {})
+    is_pr = True
+    issue_number = str(pr.get('number') or '')
+    comment_body = review.get('body') or ''
+    comment_login = (review.get('user') or {}).get('login') or ''
+    comment_url = review.get('html_url') or ''
+    event_type = 'review'
+    source_event_key = f"review:{review.get('id') or ''}:{comment_url}"
+elif github_event == 'pull_request_review_comment':
+    pr = ev.get('pull_request', {})
+    comment = ev.get('comment', {})
+    is_pr = True
+    issue_number = str(pr.get('number') or '')
+    comment_body = comment.get('body') or ''
+    comment_login = (comment.get('user') or {}).get('login') or ''
+    comment_url = comment.get('html_url') or ''
+    event_type = 'inline'
+    source_event_key = f"inline:{comment.get('id') or ''}:{comment_url}"
+
+print(json.dumps({
+    'event_type': event_type,
+    'issue_number': issue_number,
+    'is_pr': bool(is_pr),
+    'comment_body': comment_body,
+    'comment_login': comment_login,
+    'comment_url': comment_url,
+    'source_event_key': source_event_key,
+}, ensure_ascii=False))
+PY
+}
+
 main() {
   require_cmd python3
   require_cmd gh
@@ -162,16 +264,19 @@ main() {
   event_path="${GITHUB_EVENT_PATH:-}"
   [[ -n "$event_path" && -f "$event_path" ]] || die "Missing GITHUB_EVENT_PATH"
 
-  local is_pr comment_body comment_login
+  local is_pr comment_body comment_login event_json
+  event_json="$(extract_event "$event_path")"
 
-  issue_number="$(json_get "$event_path" "print(ev.get('issue', {}).get('number', ''))")"
-  is_pr="$(json_get "$event_path" "print('pull_request' in ev.get('issue', {}) and ev.get('issue', {}).get('pull_request') is not None)")"
-  comment_body="$(json_get "$event_path" "print(ev.get('comment', {}).get('body', '') or '')")"
-  comment_login="$(json_get "$event_path" "print(ev.get('comment', {}).get('user', {}).get('login', '') or '')")"
-  comment_url="$(json_get "$event_path" "print(ev.get('comment', {}).get('html_url', '') or '')")"
+  issue_number="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("issue_number", ""))' "$event_json")"
+  is_pr="$(python3 -c 'import json,sys; print(str(json.loads(sys.argv[1]).get("is_pr", False)))' "$event_json")"
+  comment_body="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("comment_body", ""))' "$event_json")"
+  comment_login="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("comment_login", ""))' "$event_json")"
+  comment_url="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("comment_url", ""))' "$event_json")"
+  event_type="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("event_type", ""))' "$event_json")"
+  source_event_key="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("source_event_key", ""))' "$event_json")"
 
   if [[ "$is_pr" != "True" && "$is_pr" != "true" ]]; then
-    eprint "[AUTOFIX] Not a PR comment; skipping"
+    eprint "[AUTOFIX] Not a PR event; skipping"
     exit 0
   fi
 
@@ -189,7 +294,7 @@ main() {
   run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID:-}"
   on_err() {
     local rc=$?
-    post_comment "$issue_number" "$(printf '%s\nAutofix failed (exit=%s).\nRun: %s\nComment: %s\n' "$marker" "$rc" "$run_url" "$comment_url")" || true
+    post_comment "$issue_number" "$(build_failure_body "Autofix failed (exit=$rc).")" || true
     exit "$rc"
   }
   trap on_err ERR
@@ -203,6 +308,20 @@ main() {
 
   if ! csv_contains "$allow_csv" "$comment_login"; then
     eprint "[AUTOFIX] Comment user not allowlisted ($comment_login); skipping"
+    exit 0
+  fi
+
+  if [[ "$event_type" == "review" ]]; then
+    local trimmed_review_body
+    trimmed_review_body="$(trim "$comment_body")"
+    if [[ -z "$trimmed_review_body" ]]; then
+      eprint "[AUTOFIX] Empty pull_request_review body; skipping"
+      exit 0
+    fi
+  fi
+
+  if has_source_event_already_processed "$issue_number" "$marker" "$source_event_key"; then
+    eprint "[AUTOFIX] Duplicate event already processed ($source_event_key); skipping"
     exit 0
   fi
 
@@ -227,9 +346,13 @@ main() {
     exit 0
   fi
 
-  local head_repo head_ref
+  local head_repo head_ref base_ref
   head_repo="$(gh pr view "$issue_number" --repo "$GITHUB_REPOSITORY" --json headRepository --jq '.headRepository.nameWithOwner')"
   head_ref="$(gh pr view "$issue_number" --repo "$GITHUB_REPOSITORY" --json headRefName --jq '.headRefName')"
+  base_ref="$(gh pr view "$issue_number" --repo "$GITHUB_REPOSITORY" --json baseRefName --jq '.baseRefName')"
+  if [[ -z "$base_ref" ]]; then
+    base_ref="main"
+  fi
 
   if [[ -z "$head_repo" || -z "$head_ref" ]]; then
     die "Failed to fetch PR head info via gh"
@@ -283,11 +406,13 @@ main() {
 
   input_file="$(mktemp)"
   printf '%s' "$comment_body" >"$input_file"
+  target_sha="$(git rev-parse HEAD 2>/dev/null || true)"
   export AGENTIC_SDD_AUTOFIX_INPUT_PATH="$input_file"
   export AGENTIC_SDD_AUTOFIX_PR_NUMBER="$issue_number"
   export AGENTIC_SDD_AUTOFIX_REPO="$GITHUB_REPOSITORY"
   export AGENTIC_SDD_AUTOFIX_COMMENT_USER="$comment_login"
   export AGENTIC_SDD_AUTOFIX_COMMENT_URL="$comment_url"
+  export AGENTIC_SDD_AUTOFIX_EVENT_TYPE="$event_type"
 
   eprint "[AUTOFIX] Running autofix command: $autofix_cmd"
   "$autofix_cmd"
@@ -319,12 +444,16 @@ main() {
   stat="$(git show --stat --oneline -1 | sed -e 's/[[:space:]]\+$//')"
 
   if git push origin "HEAD:$head_ref" >/dev/null 2>&1; then
-    post_comment "$issue_number" "$(printf '%s\nAutofix applied and pushed.\n\n%s\n\nRun: %s\nComment: %s\n' "$marker" "$stat" "$run_url" "$comment_url")"
+    local pushed_sha
+    pushed_sha="$(git rev-parse HEAD)"
+    post_comment "$issue_number" "$(printf '%s\nAutofix applied and pushed.\n\n%s\n\nRun: %s\nComment: %s\nSource event: %s\n\n@codex review\n\nこのPRを再レビューしてください（ベースブランチ %s との差分として）。対象は現時点の head SHA (%s) です。\n\n現時点のPRに残っている「実行可能な指摘」だけを挙げ、既に解消済みの事項の繰り返しは避けてください。\n' "$marker" "$stat" "$run_url" "$comment_url" "${source_event_key:-unknown}" "$base_ref" "$pushed_sha")"
     exit 0
   fi
 
   git show -1 --patch --no-color >.agentic-sdd-autofix.patch || true
-  post_comment "$issue_number" "$(printf '%s\nAutofix produced changes but could not push (branch protection / permissions).\n\n%s\n\nPlease apply manually.\nPatch: attached as a workflow artifact (.agentic-sdd-autofix.patch).\nRun: %s\nComment: %s\n' "$marker" "$stat" "$run_url" "$comment_url")" || true
+  local failed_sha
+  failed_sha="$(git rev-parse HEAD 2>/dev/null || printf '%s' "${target_sha:-unknown}")"
+  post_comment "$issue_number" "$(printf '%s\nAutofix produced changes but could not push (branch protection / permissions).\n\n%s\n\nPlease apply manually.\nPatch: attached as a workflow artifact (.agentic-sdd-autofix.patch).\nTarget SHA: %s\nRun: %s\nComment: %s\nSource event: %s\n' "$marker" "$stat" "$failed_sha" "$run_url" "$comment_url" "${source_event_key:-unknown}")" || true
   exit 0
 }
 

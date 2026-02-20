@@ -3,6 +3,10 @@ name: agentic-sdd-pr-autofix
 on:
   issue_comment:
     types: [created]
+  pull_request_review:
+    types: [submitted]
+  pull_request_review_comment:
+    types: [created]
 
 # Opt-in PR autofix template (deny-by-default).
 #
@@ -25,12 +29,12 @@ permissions:
   pull-requests: read
 
 concurrency:
-  group: agentic-sdd-pr-autofix-${{ github.event.issue.number }}
+  group: agentic-sdd-pr-autofix-${{ github.event.pull_request.number || github.event.issue.number }}
   cancel-in-progress: false
 
 jobs:
   autofix:
-    if: ${{ github.event.issue.pull_request != null && !contains(github.event.comment.body, '<!-- agentic-sdd:autofix v1 -->') }}
+    if: ${{ (github.event_name == 'issue_comment' && github.event.issue.pull_request != null && !contains(github.event.comment.body, '<!-- agentic-sdd:autofix v1 -->')) || (github.event_name == 'pull_request_review' && !contains(github.event.review.body, '<!-- agentic-sdd:autofix v1 -->')) || (github.event_name == 'pull_request_review_comment' && !contains(github.event.comment.body, '<!-- agentic-sdd:autofix v1 -->')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -55,6 +59,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: agentic-sdd-autofix-${{ github.event.issue.number }}
+          name: agentic-sdd-autofix-${{ github.event.pull_request.number || github.event.issue.number }}
           path: .agentic-sdd-autofix.patch
           if-no-files-found: ignore
