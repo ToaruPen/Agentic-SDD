@@ -511,8 +511,8 @@ for required_key in prompt_bytes sot_bytes diff_bytes engine_runtime_ms reuse_re
   fi
 done
 
-if ! grep -q '"non_reuse_reason": "incremental-disabled"' "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
-  eprint "Expected non_reuse_reason=incremental-disabled when incremental mode is off"
+if ! grep -q '"non_reuse_reason": "no-previous-run"' "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"; then
+  eprint "Expected non_reuse_reason=no-previous-run on first run with default incremental mode"
   cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" >&2
   exit 1
 fi
