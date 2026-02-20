@@ -97,6 +97,9 @@ _RESEARCH_ADJACENT_H2_RE = re.compile(
 )
 _RESEARCH_ANY_H2_RE = re.compile(r"^\s*##\s+", re.MULTILINE)
 _RESEARCH_EVIDENCE_URL_RE = re.compile(r"^\s*-\s*https?://\S+", re.MULTILINE)
+_RESEARCH_APPLICABILITY_RE = re.compile(
+    r"^\s*適用可否:\s*(Yes|Partial|No)\s*$", re.MULTILINE
+)
 _RESEARCH_NOVELTY_REQUIRED_SUBSTRINGS = [
     "直接の先行事例が2件未満",
     "Unknown",
@@ -239,7 +242,7 @@ def count_markdown_table_rows_with_headers(
             t = lines[j].strip()
             if not t.startswith("|"):
                 break
-            if re.fullmatch(r"\|\s*[-:| ]+\|\s*", t):
+            if re.fullmatch(r"\|\s*[-:| ]+\|?\s*", t):
                 j += 1
                 continue
             count += 1
@@ -491,6 +494,21 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
                         ),
                     )
                 )
+
+        if (
+            (not is_template)
+            and re.search(r"^\s*適用可否:", block, re.MULTILINE) is not None
+            and (_RESEARCH_APPLICABILITY_RE.search(block) is None)
+        ):
+            errs.append(
+                LintError(
+                    path=rel_path,
+                    message=(
+                        "調査ドキュメントの候補フォーマットが不完全です。 "
+                        f"{cand} の '適用可否:' は Yes / Partial / No のいずれかで記載してください"
+                    ),
+                )
+            )
 
         if re.search(
             r"^\s*根拠リンク:", block, re.MULTILINE

@@ -2214,4 +2214,96 @@ if ! grep -q "判定理由" "$r21/stderr"; then
   exit 1
 fi
 
+r22="$(new_repo case-research-applicability-enum-invalid)"
+write_base_docs "$r22"
+mkdir -p "$r22/docs/research/prd/proj"
+cat > "$r22/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Maybe
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Partial
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: No
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+根拠リンク:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r22" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r22/stderr"
+code_applicability_enum=$?
+set -e
+
+if [[ "$code_applicability_enum" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for invalid 適用可否 value"
+  cat "$r22/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "Yes / Partial / No" "$r22/stderr"; then
+  eprint "Expected 適用可否 enum requirement message, got:"
+  cat "$r22/stderr" >&2 || true
+  exit 1
+fi
+
 printf '%s\n' "OK"
