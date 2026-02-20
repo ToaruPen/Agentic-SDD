@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- docs(scope-lock): Add explicit branch/issue context preflight checks to `/impl`, `/tdd`, and `/review-cycle` command docs.
+
 ## [0.3.09] - 2026-02-21
 
 - feat(autofix): Extend the GitHub Actions workflow `templates/ci/github-actions/.github/workflows/agentic-sdd-pr-autofix.yml` to trigger on `issue_comment`, `pull_request_review`, and `pull_request_review_comment`.
