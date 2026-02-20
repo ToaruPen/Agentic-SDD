@@ -4,10 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.05] - 2026-02-20
+
+- fix(lint-sot): Count `適用可否:` lines with empty values when enforcing the single-entry rule, preventing bypass with empty+valid duplicate lines in one candidate block.
+- test(lint-sot): Add regression coverage for the empty+valid duplicate `適用可否:` bypass pattern.
+
 ## [0.3.04] - 2026-02-20
 
 - fix(lint-sot): Reject candidate blocks that contain multiple `適用可否:` lines, preventing enum-check bypass via mixed valid/invalid duplicated entries.
-- fix(lint-sot): Keep markdown table separator parsing tolerant of rows without a trailing `|` in external-service comparison tables.
+- fix(lint-sot): Keep Markdown table separator parsing tolerant of rows without a trailing `|` in external-service comparison tables.
 - test(lint-sot): Add regression coverage for duplicate `適用可否:` lines in a single candidate block.
 
 ## [0.3.03] - 2026-02-20
