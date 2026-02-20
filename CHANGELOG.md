@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.03] - 2026-02-20
+
+- docs(research): Refine `/research` guidance with explicit exploration-quality prompts (`仮説` / `反証` / `採否理由`) and required exploration-log expectations.
+- docs(flow): Add required research quality spot-check phases to `/create-prd`, `/create-epic`, and `/estimation` so downstream generation stops when research artifacts are structurally incomplete.
+- docs(template): Update `docs/research/*/_template.md` candidate format with hypothesis/falsification/decision-rationale fields and add mandatory exploration-log sections.
+- fix(lint-sot): Validate research candidate `適用可否` values against `Yes / Partial / No` for non-template artifacts.
+- test(lint-sot): Add regression coverage for invalid `適用可否` enum values in `scripts/tests/test-lint-sot.sh`.
+
 ## [0.3.02] - 2026-02-20
 
 - feat: Add Epic research external-service comparison gate to `scripts/lint-sot.py` with required structure (`Required` or `Skip(reason)`), concrete service entries, alternative-family coverage, weighted criteria, quantitative table columns, and decision rationale checks.
