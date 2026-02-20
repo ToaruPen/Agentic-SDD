@@ -325,7 +325,12 @@ It also validates `/test-review` metadata for the current branch state
 
 If you enable CI (optional), wait for CI checks and fix failures before merging.
 
-Optional: watch Codex bot feedback and trigger a local hook on new comments/reviews.
+Recommended: use event-driven monitoring via `.github/workflows/codex-review-events.yml`.
+It triggers on `issue_comment` / `pull_request_review` / `pull_request_review_comment`,
+filters to configured bot accounts (`CODEX_BOT_LOGINS`), and logs PR number/URL/type/snippet
+in a consistent format.
+
+Fallback: watch Codex bot feedback locally and trigger a local hook on new comments/reviews.
 
 ```bash
 scripts/watch-codex-review.sh --pr 96

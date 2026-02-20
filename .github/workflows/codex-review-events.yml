@@ -1,0 +1,43 @@
+name: codex-review-events
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  pull_request_review_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  codex-review-events:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate GitHub auth and permissions
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! command -v gh >/dev/null 2>&1; then
+            echo "[codex-review-event] error: gh is required" >&2
+            exit 1
+          fi
+          gh auth status >/dev/null
+          gh api "repos/${GITHUB_REPOSITORY}" --jq '.full_name' >/dev/null
+
+      - name: Normalize and log Codex/Coderabbit events
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CODEX_BOT_LOGINS: ${{ vars.CODEX_BOT_LOGINS }}
+        run: |
+          set -euo pipefail
+          bash ./scripts/codex-review-event.sh

@@ -10,6 +10,9 @@ Usage: scripts/watch-codex-review.sh --pr <number> [options]
 
 Poll Codex bot feedback on a PR and trigger a notification hook on new messages.
 
+Note: Event-driven monitoring via `.github/workflows/codex-review-events.yml` is recommended.
+This script remains as a local fallback.
+
 Options:
   --pr <number>         Pull request number (required)
   --repo <owner/repo>   Repository (default: detected via gh repo view)
