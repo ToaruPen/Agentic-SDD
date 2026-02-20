@@ -41,6 +41,9 @@ The output document must include the following (linted by `scripts/lint-sot.py`)
   - Each candidate uses a fixed format:
     - `概要:` (1 line)
     - `適用可否:` (Yes / Partial / No)
+    - `仮説:` (what you currently believe)
+    - `反証:` (what would falsify the hypothesis)
+    - `採否理由:` (why Yes/Partial/No was chosen)
     - `根拠リンク:` (one or more URLs)
       - Must be written as bullet lines under the label, for example:
         - `- https://example.com`
@@ -102,8 +105,19 @@ If adjacent exploration is not required, you must still include the section and 
 For each candidate:
 
 1. Fill the fixed-format fields
-2. Include at least one evidence URL
-3. Record a concrete discard condition + risk/validation
+2. Write `仮説` and `反証` so a reviewer can verify the decision path
+3. Include at least one evidence URL
+4. Record a concrete discard condition + risk/validation
+5. Record `採否理由` linked to the evidence
+
+### Phase 2.5: Exploration quality prompt (required)
+
+Use this checklist while filling each candidate:
+
+- Hypothesis is explicit (`仮説:`)
+- Falsification condition is explicit (`反証:`)
+- Decision rationale is explicit (`採否理由:`)
+- Evidence links are concrete enough to reproduce the judgment
 
 ### Phase 3: Adjacent exploration (conditional)
 
@@ -116,6 +130,12 @@ Summarize how the findings affect PRD/Epic/estimation:
 - PRD: scope, differentiation, success metrics
 - Epic: tech stack/architecture choices, alternatives + reasons
 - Estimation: unknowns, risks, timeboxes, test plan adjustments
+
+Also include an exploration log in the artifact:
+
+- What was searched
+- What was ruled out and why
+- What remains unknown
 
 ### Phase 5: Self-check (required)
 

@@ -63,6 +63,16 @@ Requirements:
 - Use the template: `docs/research/estimation/_template.md`
 - The output must be in Japanese
 
+### Phase 1.6: Research quality spot check (required)
+
+If `/research estimation` was required, spot-check the artifact before estimating:
+
+- Each candidate includes `仮説:`, `反証:`, and `採否理由:`
+- Candidate `適用可否:` values use only `Yes / Partial / No`
+- Exploration log is present (`何を調べたか / 何を除外したか / 未解決`)
+
+If any item is missing, stop and revise research first.
+
 ### Phase 2: Create the Full estimate (required)
 
 Write all 11 sections. If a section is not applicable, write `N/A (reason)`.
