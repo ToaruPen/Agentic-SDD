@@ -100,6 +100,16 @@ _RESEARCH_EVIDENCE_URL_RE = re.compile(r"^\s*-\s*https?://\S+", re.MULTILINE)
 _RESEARCH_APPLICABILITY_RE = re.compile(
     r"^\s*適用可否:[ \t]*(Yes|Partial|No)[ \t]*$", re.MULTILINE
 )
+_RESEARCH_CANDIDATE_REQUIRED_LABELS = [
+    "概要:",
+    "適用可否:",
+    "仮説:",
+    "反証:",
+    "採否理由:",
+    "根拠リンク:",
+    "捨て条件:",
+    "リスク/検証:",
+]
 _RESEARCH_NOVELTY_REQUIRED_SUBSTRINGS = [
     "直接の先行事例が2件未満",
     "Unknown",
@@ -191,16 +201,7 @@ def has_candidate_evidence_url(block: str) -> bool:
                 in_evidence = True
             continue
 
-        if any(
-            s.startswith(x)
-            for x in (
-                "概要:",
-                "適用可否:",
-                "根拠リンク:",
-                "捨て条件:",
-                "リスク/検証:",
-            )
-        ):
+        if any(s.startswith(x) for x in _RESEARCH_CANDIDATE_REQUIRED_LABELS):
             if not s.startswith("根拠リンク:"):
                 break
 
@@ -488,16 +489,7 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
             )
         )
 
-    required_field_labels = [
-        "概要:",
-        "適用可否:",
-        "仮説:",
-        "反証:",
-        "採否理由:",
-        "根拠リンク:",
-        "捨て条件:",
-        "リスク/検証:",
-    ]
+    required_field_labels = _RESEARCH_CANDIDATE_REQUIRED_LABELS
     for m in candidate_blocks:
         n_raw = m.group(1)
         block = m.group(0)

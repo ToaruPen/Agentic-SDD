@@ -1397,6 +1397,115 @@ if ! grep -q "'根拠リンク:' 配下に URL" "$r14/stderr"; then
   exit 1
 fi
 
+r14b="$(new_repo case-research-evidence-url-outside-evidence-section)"
+write_base_docs "$r14b"
+mkdir -p "$r14b/docs/research/prd/proj"
+cat > "$r14b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
+# Research
+
+## 2. 新規性判定（発火条件）
+
+- 直接の先行事例が2件未満: No
+- PRD Q6 に Unknown が残る: No
+- Q6-5〜8（PII/監査/性能/可用性）のいずれかが Yes: No
+
+## 3. 候補（必須: >= 5）
+
+候補-1
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- not-a-url
+仮説:
+- https://example.com
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-2
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- not-a-url
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-3
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- not-a-url
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-4
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- not-a-url
+捨て条件:
+- x
+リスク/検証:
+- y
+
+候補-5
+概要: a
+適用可否: Yes
+仮説: h
+反証: f
+採否理由: r
+根拠リンク:
+- not-a-url
+捨て条件:
+- x
+リスク/検証:
+- y
+
+## 4. 隣接領域探索
+
+隣接領域探索: N/A（理由）
+
+## 5. 止め時
+
+タイムボックス: 30min
+打ち切り条件:
+- ok
+EOF
+
+set +e
+(cd "$r14b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r14b/stderr"
+code_evidence_scope=$?
+set -e
+
+if [[ "$code_evidence_scope" -eq 0 ]]; then
+  eprint "Expected lint-sot failure when URL appears outside 根拠リンク section"
+  cat "$r14b/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "'根拠リンク:' 配下に URL" "$r14b/stderr"; then
+  eprint "Expected evidence section scope message, got:"
+  cat "$r14b/stderr" >&2 || true
+  exit 1
+fi
+
 r16="$(new_repo case-research-evidence-url-with-description)"
 write_base_docs "$r16"
 mkdir -p "$r16/docs/research/prd/proj"
