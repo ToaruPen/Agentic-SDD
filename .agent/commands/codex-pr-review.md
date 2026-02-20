@@ -54,6 +54,10 @@ Notes:
 
 ### Phase 2: Fetch Codex feedback
 
+If your repository has `.github/workflows/codex-review-events.yml`, prefer that event-driven
+workflow for notification/observability. The local polling script
+`scripts/watch-codex-review.sh` remains available as fallback.
+
 Codex may post:
 
 - conversation comments (PR timeline)

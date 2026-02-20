@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- feat(codex-review): Add event-driven Codex/Coderabbit monitoring workflow at `.github/workflows/codex-review-events.yml` for `issue_comment`, `pull_request_review`, and `pull_request_review_comment` triggers.
+- feat(codex-review): Add `scripts/codex-review-event.sh` to normalize event payloads, filter allowlisted bot actors, emit consistent PR/type/snippet logs, and fail fast on auth/permission errors.
+- docs(codex-review): Update `README.md` and `.agent/commands/codex-pr-review.md` to recommend event-driven monitoring and keep `scripts/watch-codex-review.sh` as fallback.
+- test(codex-review): Add `scripts/tests/test-codex-review-event.sh` coverage for allowlisted processing, non-target no-op behavior, and auth fail-fast path.
+
 ## [0.3.08] - 2026-02-21
 
 - fix(review-cycle): Switch `REVIEW_CYCLE_INCREMENTAL` default to `1` so reuse is enabled by default in normal review loops.
