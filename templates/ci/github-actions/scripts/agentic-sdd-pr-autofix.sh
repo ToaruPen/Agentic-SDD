@@ -442,7 +442,9 @@ main() {
   fi
 
   git show -1 --patch --no-color >.agentic-sdd-autofix.patch || true
-  post_comment "$issue_number" "$(printf '%s\nAutofix produced changes but could not push (branch protection / permissions).\n\n%s\n\nPlease apply manually.\nPatch: attached as a workflow artifact (.agentic-sdd-autofix.patch).\nTarget SHA: %s\nRun: %s\nComment: %s\nSource event: %s\n' "$marker" "$stat" "${target_sha:-unknown}" "$run_url" "$comment_url" "${source_event_key:-unknown}")" || true
+  local failed_sha
+  failed_sha="$(git rev-parse HEAD 2>/dev/null || printf '%s' "${target_sha:-unknown}")"
+  post_comment "$issue_number" "$(printf '%s\nAutofix produced changes but could not push (branch protection / permissions).\n\n%s\n\nPlease apply manually.\nPatch: attached as a workflow artifact (.agentic-sdd-autofix.patch).\nTarget SHA: %s\nRun: %s\nComment: %s\nSource event: %s\n' "$marker" "$stat" "$failed_sha" "$run_url" "$comment_url" "${source_event_key:-unknown}")" || true
   exit 0
 }
 
