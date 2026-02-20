@@ -175,13 +175,9 @@ has_source_event_already_processed() {
   local marker_author
   marker_author="github-actions[bot]"
 
-  local bodies
-  bodies="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq ".[] | select(.user.login == \"${marker_author}\") | .body")" || die "Failed to list issue comments via gh api"
-  if [[ -z "$bodies" ]]; then
-    return 1
-  fi
-
-  if printf '%s\n' "$bodies" | grep -Fq -- "$marker" && printf '%s\n' "$bodies" | grep -Fq -- "Source event: $source_key"; then
+  local processed_match
+  processed_match="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq ".[] | select(.user.login == \"${marker_author}\") | select((.body | contains(\"${marker}\")) and (.body | contains(\"Source event: ${source_key}\")) and (.body | contains(\"Autofix applied and pushed.\"))) | .id")" || die "Failed to list issue comments via gh api"
+  if [[ -n "$processed_match" ]]; then
     return 0
   fi
   return 1
@@ -298,7 +294,7 @@ main() {
   run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID:-}"
   on_err() {
     local rc=$?
-    post_comment "$issue_number" "$(printf '%s\nAutofix failed (exit=%s).\nRun: %s\nComment: %s\n' "$marker" "$rc" "$run_url" "$comment_url")" || true
+    post_comment "$issue_number" "$(build_failure_body "Autofix failed (exit=$rc).")" || true
     exit "$rc"
   }
   trap on_err ERR
@@ -313,6 +309,15 @@ main() {
   if ! csv_contains "$allow_csv" "$comment_login"; then
     eprint "[AUTOFIX] Comment user not allowlisted ($comment_login); skipping"
     exit 0
+  fi
+
+  if [[ "$event_type" == "review" ]]; then
+    local trimmed_review_body
+    trimmed_review_body="$(trim "$comment_body")"
+    if [[ -z "$trimmed_review_body" ]]; then
+      eprint "[AUTOFIX] Empty pull_request_review body; skipping"
+      exit 0
+    fi
   fi
 
   if has_source_event_already_processed "$issue_number" "$marker" "$source_event_key"; then
@@ -341,9 +346,13 @@ main() {
     exit 0
   fi
 
-  local head_repo head_ref
+  local head_repo head_ref base_ref
   head_repo="$(gh pr view "$issue_number" --repo "$GITHUB_REPOSITORY" --json headRepository --jq '.headRepository.nameWithOwner')"
   head_ref="$(gh pr view "$issue_number" --repo "$GITHUB_REPOSITORY" --json headRefName --jq '.headRefName')"
+  base_ref="$(gh pr view "$issue_number" --repo "$GITHUB_REPOSITORY" --json baseRefName --jq '.baseRefName')"
+  if [[ -z "$base_ref" ]]; then
+    base_ref="main"
+  fi
 
   if [[ -z "$head_repo" || -z "$head_ref" ]]; then
     die "Failed to fetch PR head info via gh"
@@ -437,7 +446,7 @@ main() {
   if git push origin "HEAD:$head_ref" >/dev/null 2>&1; then
     local pushed_sha
     pushed_sha="$(git rev-parse HEAD)"
-    post_comment "$issue_number" "$(printf '%s\nAutofix applied and pushed.\n\n%s\n\nRun: %s\nComment: %s\nSource event: %s\n\n@codex review\n\nこのPRを再レビューしてください（ベースブランチ main との差分として）。対象は現時点の head SHA (%s) です。\n\n現時点のPRに残っている「実行可能な指摘」だけを挙げ、既に解消済みの事項の繰り返しは避けてください。\n' "$marker" "$stat" "$run_url" "$comment_url" "${source_event_key:-unknown}" "$pushed_sha")"
+    post_comment "$issue_number" "$(printf '%s\nAutofix applied and pushed.\n\n%s\n\nRun: %s\nComment: %s\nSource event: %s\n\n@codex review\n\nこのPRを再レビューしてください（ベースブランチ %s との差分として）。対象は現時点の head SHA (%s) です。\n\n現時点のPRに残っている「実行可能な指摘」だけを挙げ、既に解消済みの事項の繰り返しは避けてください。\n' "$marker" "$stat" "$run_url" "$comment_url" "${source_event_key:-unknown}" "$base_ref" "$pushed_sha")"
     exit 0
   fi
 
