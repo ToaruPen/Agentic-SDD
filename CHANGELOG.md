@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.07] - 2026-02-21
+
+- fix(lint-sot): Enforce `仮説:` / `反証:` / `採否理由:` as required candidate fields in `lint_research_contract` to align lint behavior with the `/research` contract.
+- test(lint-sot): Add regression coverage that fails when candidate blocks omit `仮説` / `反証` / `採否理由`.
+- docs(research): Backfill existing estimation research artifacts under `docs/research/estimation/issue-*` with `仮説` / `反証` / `採否理由` so repository docs remain lint-clean under the updated contract.
+
 ## [0.3.06] - 2026-02-21
 
 - fix(lint-sot): Parse external-service comparison table headers by column cells instead of raw substring matching, so malformed single-cell headers no longer pass required-column checks.
