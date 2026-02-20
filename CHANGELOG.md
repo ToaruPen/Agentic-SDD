@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.06] - 2026-02-21
+
+- fix(lint-sot): Parse external-service comparison table headers by column cells instead of raw substring matching, so malformed single-cell headers no longer pass required-column checks.
+- fix(lint-sot): Count comparison data rows only when column counts match the parsed header shape.
+- test(lint-sot): Add regression coverage for malformed single-cell comparison table headers.
+
 ## [0.3.05] - 2026-02-20
 
 - fix(lint-sot): Count `適用可否:` lines with empty values when enforcing the single-entry rule, preventing bypass with empty+valid duplicate lines in one candidate block.
