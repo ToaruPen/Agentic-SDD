@@ -228,15 +228,25 @@ def extract_labeled_block(section: str, start_label: str, end_labels: List[str])
 def count_markdown_table_rows_with_headers(
     section: str, required_headers: List[str]
 ) -> int:
+    def parse_table_cells(row: str) -> List[str]:
+        s = row.strip()
+        body = s[1:]
+        if body.endswith("|"):
+            body = body[:-1]
+        return [c.strip() for c in body.split("|")]
+
     lines = section.splitlines()
     for i, line in enumerate(lines):
         s = line.strip()
         if not s.startswith("|"):
             continue
-        if not all(h in s for h in required_headers):
+
+        header_cells = parse_table_cells(s)
+        if not all(h in header_cells for h in required_headers):
             continue
 
         count = 0
+        expected_cols = len(header_cells)
         j = i + 1
         while j < len(lines):
             t = lines[j].strip()
@@ -245,6 +255,12 @@ def count_markdown_table_rows_with_headers(
             if re.fullmatch(r"\|\s*[-:| ]+\|?\s*", t):
                 j += 1
                 continue
+
+            row_cells = parse_table_cells(t)
+            if len(row_cells) != expected_cols:
+                j += 1
+                continue
+
             count += 1
             j += 1
         return count
