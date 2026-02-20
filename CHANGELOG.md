@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.08] - 2026-02-21
+
+- fix(review-cycle): Switch `REVIEW_CYCLE_INCREMENTAL` default to `1` so reuse is enabled by default in normal review loops.
+- docs(review): Update `/review-cycle` and `README.md` guidance to use incremental-by-default with explicit full-run (`REVIEW_CYCLE_INCREMENTAL=0`) before `/final-review`.
+- fix(lint-sot): Update evidence URL section parsing to treat `仮説:` / `反証:` / `採否理由:` as candidate section boundaries.
+- test(lint-sot): Add regression coverage to ensure URLs outside `根拠リンク:` are not accepted as evidence.
+- test(review-cycle): Update default-mode expectation from `incremental-disabled` to `no-previous-run`.
+
 ## [0.3.07] - 2026-02-21
 
 - fix(lint-sot): Enforce `仮説:` / `反証:` / `採否理由:` as required candidate fields in `lint_research_contract` to align lint behavior with the `/research` contract.
