@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "ja-JP"
+
+reviews:
+  profile: assertive
+  review_status: true
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+  path_instructions:
+    - path: "**/*"
+      instructions: |
+        役割:
+        - PR/Issueレビューを実施する。
+        - AC/DoDを検証する。
+        - ドキュメント整合性(sync-docs)を確認する。
+
+        優先順位(高->低):
+        1. テストとTDD
+        2. 可読性と保守性
+        3. 正しさ
+        4. セキュリティ
+        5. パフォーマンス
+
+        テスト/TDD(最重要):
+        - Red -> Green -> Refactor を原則とする。
+        - 挙動変更/バグ修正には先に失敗するテストを要求する。
+        - 実装はテストを通すための最小変更であること。
+        - ふるまい変更に対応するテストがない場合は blocker。
+        - happy path / negative path / edge case を確認する。
+        - 断定的で意味のあるアサーションを要求する。
+        - 時刻/乱数/I-O由来のflaky要因を排除し、決定的なテストを要求する。
+
+        可読性/保守性(最重要):
+        - 命名が意図を表しているか確認する。
+        - 関数/モジュールが単一責務で適切なサイズか確認する。
+        - 制御フローが追いやすく、不必要なネストや隠れた副作用がないか確認する。
+        - コメントは「なぜ」を補足する用途に限定する。
+        - 既存スタイル/パターンとの整合を確認する。
+
+        正しさ:
+        - ACがすべて満たされているか確認する。
+        - PRD/Epic要件に準拠しているか確認する。
+        - DB/APIの整合性を確認する。
+        - 境界値とエラーパスが考慮されているか確認する。
+
+        セキュリティ:
+        - 入力検証/サニタイズを確認する。
+        - AuthN/AuthZが要件どおりか確認する。
+        - ハードコードされた秘密情報がないことを確認する。
+
+        パフォーマンス:
+        - 明らかなN+1や不要な高計算量処理を指摘する。
+        - メモリリーク/過剰保持の兆候を指摘する。
+
+        出力形式:
+        - Findings first で重大度順に列挙する。
+        - 各指摘には severity, file:line, 根拠, 修正案を含める。
+        - severity は blocker / must-fix / nit を使用する。
+        - 最後に AC/DoD/TDD順守/sync-docs の判定を明示する。
