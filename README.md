@@ -54,6 +54,7 @@ Guardrails:
 
 - Each Issue must declare `### 変更対象ファイル（推定）` (used as the conflict-check input)
 - Only mark Issues as `parallel-ok` when declared file sets are disjoint
+- Before high-impact actions (`/review-cycle`, `/create-pr`, `/codex-pr-review`, manual conflict resolution), run a Scope Lock check and stop on mismatch (`git branch --show-current` + `gh issue develop --list <issue>` + `gh pr view <pr> --json headRefName`).
 
 Helper script:
 

@@ -19,8 +19,10 @@ User-facing output and artifacts remain in Japanese.
 2. Identify the related Epic and PRD
 3. Extract AC
 4. Check work status (required)
+   - Confirm current branch: `git branch --show-current`
    - List linked branches (SoT): `gh issue develop --list <issue-number>`
    - If any linked branch exists and you are not on it, report and stop
+   - If multiple linked branches exist, stop and request explicit branch selection before continuing
    - (Optional) For each linked branch, check PRs: `gh pr list --head "<branch>" --state all`
    - If no linked branch exists, create one *before* starting estimation/implementation
      - Recommended: `/worktree new --issue <issue-number> --desc "<ascii short desc>"` and re-run `/impl` inside that worktree
