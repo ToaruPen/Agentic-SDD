@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 - feat(autofix): Update `templates/ci/github-actions/scripts/agentic-sdd-pr-autofix.sh` to normalize multi-event payloads, pass `AGENTIC_SDD_AUTOFIX_EVENT_TYPE`, suppress duplicate source events, and include target SHA/run URL/source event in failure output.
 - feat(autofix): After successful autofix push, automatically post `@codex review` with current head SHA.
 - docs(autofix): Update `README.md` and `.agent/commands/codex-pr-review.md` to document event-driven autofix loop behavior.
+- feat(codex-review): Add event-driven Codex/Coderabbit monitoring workflow at `.github/workflows/codex-review-events.yml` for `issue_comment`, `pull_request_review`, and `pull_request_review_comment` triggers.
+- feat(codex-review): Add `scripts/codex-review-event.sh` to normalize event payloads, filter allowlisted bot actors, emit consistent PR/type/snippet logs, and fail fast on auth/permission errors.
+- docs(codex-review): Update `README.md` and `.agent/commands/codex-pr-review.md` to recommend event-driven monitoring and keep `scripts/watch-codex-review.sh` as fallback.
+- test(codex-review): Add `scripts/tests/test-codex-review-event.sh` coverage for allowlisted processing, non-target no-op behavior, and auth fail-fast path.
 
 ## [0.3.08] - 2026-02-21
 
