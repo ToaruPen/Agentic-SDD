@@ -20,24 +20,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate GitHub auth and permissions
+      - name: Ensure gh is available
         shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           if ! command -v gh >/dev/null 2>&1; then
             echo "[codex-review-event] error: gh is required" >&2
             exit 1
           fi
-          gh auth status >/dev/null
-          gh api "repos/${GITHUB_REPOSITORY}" --jq '.full_name' >/dev/null
 
       - name: Normalize and log Codex/Coderabbit events
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CODEX_BOT_LOGINS: ${{ vars.CODEX_BOT_LOGINS }}
+          CODEX_REVIEW_REQUIRE_GH_AUTH: "1"
         run: |
           set -euo pipefail
           bash ./scripts/codex-review-event.sh

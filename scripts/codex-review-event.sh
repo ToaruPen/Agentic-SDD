@@ -149,13 +149,18 @@ PY
 )"
 
   local should_process reason kind actor pr_number pr_url body_snippet
-  should_process="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("should_process", ""))' "$parsed_json")"
-  reason="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("reason", ""))' "$parsed_json")"
-  kind="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("kind", ""))' "$parsed_json")"
-  actor="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("actor", ""))' "$parsed_json")"
-  pr_number="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("pr_number", ""))' "$parsed_json")"
-  pr_url="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("pr_url", ""))' "$parsed_json")"
-  body_snippet="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("body_snippet", ""))' "$parsed_json")"
+  eval "$(python3 - "$parsed_json" <<'PY'
+import json
+import shlex
+import sys
+
+data = json.loads(sys.argv[1])
+
+for key in ("should_process", "reason", "kind", "actor", "pr_number", "pr_url", "body_snippet"):
+    value = "" if data.get(key) is None else str(data.get(key))
+    print(f"{key}={shlex.quote(value)}")
+PY
+)"
 
   if [[ "$should_process" != "true" ]]; then
     eprint "[codex-review-event] ${reason}"

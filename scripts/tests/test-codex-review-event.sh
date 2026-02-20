@@ -59,6 +59,21 @@ cat > "$tmpdir/issue_comment.json" <<'EOF'
 }
 EOF
 
+cat > "$tmpdir/issue_comment_non_pr.json" <<'EOF'
+{
+  "issue": {
+    "number": 999,
+    "html_url": "https://github.com/o/r/issues/999"
+  },
+  "comment": {
+    "body": "status update",
+    "user": {
+      "login": "chatgpt-codex-connector[bot]"
+    }
+  }
+}
+EOF
+
 cat > "$tmpdir/review_comment_non_bot.json" <<'EOF'
 {
   "pull_request": {
@@ -104,6 +119,13 @@ out2="$tmpdir/out2.txt"
 PATH="$tmpdir/bin:$PATH" GH_TOKEN=dummy GITHUB_REPOSITORY=o/r GITHUB_EVENT_NAME=pull_request_review_comment GITHUB_EVENT_PATH="$tmpdir/review_comment_non_bot.json" CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]' CODEX_REVIEW_REQUIRE_GH_AUTH=0 bash "$script_path" >"$out2" 2>&1
 if ! grep -Fq 'no-op: actor not in CODEX_BOT_LOGINS (actor=octocat)' "$out2"; then
   eprint "Expected non-allowlisted actor no-op message"
+  exit 1
+fi
+
+out2b="$tmpdir/out2b.txt"
+PATH="$tmpdir/bin:$PATH" GH_TOKEN=dummy GITHUB_REPOSITORY=o/r GITHUB_EVENT_NAME=issue_comment GITHUB_EVENT_PATH="$tmpdir/issue_comment_non_pr.json" CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]' CODEX_REVIEW_REQUIRE_GH_AUTH=0 bash "$script_path" >"$out2b" 2>&1
+if ! grep -Fq 'no-op: issue_comment is not on a pull request' "$out2b"; then
+  eprint "Expected non-PR issue_comment no-op message"
   exit 1
 fi
 
