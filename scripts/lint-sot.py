@@ -98,7 +98,7 @@ _RESEARCH_ADJACENT_H2_RE = re.compile(
 _RESEARCH_ANY_H2_RE = re.compile(r"^\s*##\s+", re.MULTILINE)
 _RESEARCH_EVIDENCE_URL_RE = re.compile(r"^\s*-\s*https?://\S+", re.MULTILINE)
 _RESEARCH_APPLICABILITY_RE = re.compile(
-    r"^\s*適用可否:\s*(Yes|Partial|No)\s*$", re.MULTILINE
+    r"^\s*適用可否:[ \t]*(Yes|Partial|No)[ \t]*$", re.MULTILINE
 )
 _RESEARCH_NOVELTY_REQUIRED_SUBSTRINGS = [
     "直接の先行事例が2件未満",
@@ -497,7 +497,7 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
 
         if not is_template:
             applicability_lines = re.findall(
-                r"^\s*適用可否:\s*(.+?)\s*$", block, re.MULTILINE
+                r"^\s*適用可否:[ \t]*[^\n]*$", block, re.MULTILINE
             )
             if len(applicability_lines) != 1:
                 errs.append(
