@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- feat(autofix): Extend `templates/ci/github-actions/.github/workflows/agentic-sdd-pr-autofix.yml` to trigger on `issue_comment`, `pull_request_review`, and `pull_request_review_comment`.
+- feat(autofix): Update `templates/ci/github-actions/scripts/agentic-sdd-pr-autofix.sh` to normalize multi-event payloads, pass `AGENTIC_SDD_AUTOFIX_EVENT_TYPE`, suppress duplicate source events, and include target SHA/run URL/source event in failure output.
+- feat(autofix): After successful autofix push, automatically post `@codex review` with current head SHA.
+- docs(autofix): Update `README.md` and `.agent/commands/codex-pr-review.md` to document event-driven autofix loop behavior.
+
 ## [0.3.08] - 2026-02-21
 
 - fix(review-cycle): Switch `REVIEW_CYCLE_INCREMENTAL` default to `1` so reuse is enabled by default in normal review loops.

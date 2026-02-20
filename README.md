@@ -327,6 +327,11 @@ If you enable CI (optional), wait for CI checks and fix failures before merging.
 
 Optional: watch Codex bot feedback and trigger a local hook on new comments/reviews.
 
+For CI-based autofix loops, use `templates/ci/github-actions/.github/workflows/agentic-sdd-pr-autofix.yml`.
+It handles `issue_comment` / `pull_request_review` / `pull_request_review_comment`, passes
+comment body + PR number + normalized event type (`issue_comment`/`review`/`inline`) to
+`AGENTIC_SDD_AUTOFIX_CMD`, and re-requests `@codex review` after successful push.
+
 ```bash
 scripts/watch-codex-review.sh --pr 96
 ```
