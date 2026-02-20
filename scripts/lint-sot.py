@@ -491,6 +491,9 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
     required_field_labels = [
         "概要:",
         "適用可否:",
+        "仮説:",
+        "反証:",
+        "採否理由:",
         "根拠リンク:",
         "捨て条件:",
         "リスク/検証:",
