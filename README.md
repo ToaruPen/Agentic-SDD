@@ -291,8 +291,8 @@ In this default (`DIFF_MODE=range`), the working tree must be clean; for pre-com
 
 Recommended incremental operation:
 
-- Keep `REVIEW_CYCLE_INCREMENTAL=1` + `REVIEW_CYCLE_CACHE_POLICY=strict` during normal issue loops (default behavior).
-- If you want to reuse non-Approved results (`Blocked`/`Question`) on exact no-change loops, opt in with `REVIEW_CYCLE_CACHE_POLICY=balanced`.
+- Keep `REVIEW_CYCLE_INCREMENTAL=1` + `REVIEW_CYCLE_CACHE_POLICY=balanced` during normal issue loops (default behavior).
+- If you want to avoid reusing non-Approved results (`Blocked`/`Question`) on exact no-change loops, set `REVIEW_CYCLE_CACHE_POLICY=strict`.
 - When a fresh full baseline is needed, set `REVIEW_CYCLE_INCREMENTAL=0` (or `REVIEW_CYCLE_CACHE_POLICY=off`) explicitly.
 - Before `/final-review`, run one fresh full local review context (do not rely only on reused incremental artifacts).
 - If `/final-review` reports any `P2` or higher finding (`P0/P1/P2`), fix it and run `/review-cycle` again, then re-run `/final-review`.
