@@ -195,6 +195,15 @@ touch "$tmpdir/src/a.ts" "$tmpdir/src/b.ts" "$tmpdir/src/c.ts" "$tmpdir/src/shar
 git -C "$tmpdir" add issue-1.md issue-2.md issue-3.md issue-1.json issue-2.json src
 git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "add fixtures" -q
 
+cat > "$tmpdir/scripts/sync-agent-config.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> .sync-agent-config.log
+EOF
+chmod +x "$tmpdir/scripts/sync-agent-config.sh"
+git -C "$tmpdir" add scripts/sync-agent-config.sh
+git -C "$tmpdir" -c user.name=test -c user.email=test@example.com commit -m "add sync stub" -q
+
 # Extractor: local file
 out1="$(python3 "$tmpdir/scripts/extract-issue-files.py" --repo-root "$tmpdir" --issue-body-file "$tmpdir/issue-1.md" --mode section)"
 if ! printf '%s\n' "$out1" | grep -qx "src/a.ts"; then
@@ -237,6 +246,16 @@ fi
 # worktree.sh check: no conflict
 (cd "$tmpdir" && PATH="$tmpdir/bin:$PATH" ./scripts/worktree.sh check --issue 1 --issue 3) >/dev/null
 
+(cd "$tmpdir" && ./scripts/worktree.sh bootstrap --tool opencode) >/dev/null
+if [[ ! -f "$tmpdir/.sync-agent-config.log" ]]; then
+  eprint "Expected bootstrap to run sync-agent-config.sh"
+  exit 1
+fi
+if ! grep -q -- "--force opencode" "$tmpdir/.sync-agent-config.log"; then
+  eprint "Expected bootstrap sync invocation args in log"
+  cat "$tmpdir/.sync-agent-config.log" >&2
+  exit 1
+fi
 
 # worktree.sh new/remove (Issue lock enabled by default; gh is stubbed)
 worktrees_root="$tmpdir/wt"
@@ -276,5 +295,20 @@ if [[ ! -d "$wt_dir2" ]]; then
 fi
 
 (cd "$tmpdir" && ./scripts/worktree.sh remove --dir "$wt_dir2")
+
+wt_dir3="$(cd "$tmpdir" && PATH="$tmpdir/bin:$PATH" ./scripts/worktree.sh new --issue 100 --desc "sync fallback" --base HEAD --tool opencode --worktrees-root "$worktrees_root")"
+if [[ ! -f "$wt_dir3/.sync-agent-config.log" ]]; then
+  eprint "Expected new --tool opencode to run sync-agent-config.sh in worktree"
+  exit 1
+fi
+if ! grep -q -- "--force opencode" "$wt_dir3/.sync-agent-config.log"; then
+  eprint "Expected worktree sync invocation args in log"
+  cat "$wt_dir3/.sync-agent-config.log" >&2
+  exit 1
+fi
+
+rm -f "$wt_dir3/.sync-agent-config.log"
+
+(cd "$tmpdir" && ./scripts/worktree.sh remove --dir "$wt_dir3")
 
 eprint "OK: scripts/tests/test-worktree.sh"

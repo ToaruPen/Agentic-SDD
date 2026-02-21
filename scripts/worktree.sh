@@ -71,6 +71,19 @@ branch_exists() {
 	git show-ref --verify --quiet "refs/heads/$branch"
 }
 
+resolve_sync_agent_config_script() {
+	local dir="$1"
+	if [[ -x "$dir/scripts/agentic-sdd/sync-agent-config.sh" ]]; then
+		printf '%s\n' "./scripts/agentic-sdd/sync-agent-config.sh"
+		return 0
+	fi
+	if [[ -x "$dir/scripts/sync-agent-config.sh" ]]; then
+		printf '%s\n' "./scripts/sync-agent-config.sh"
+		return 0
+	fi
+	return 1
+}
+
 cmd_list() {
 	git worktree list
 }
@@ -118,12 +131,13 @@ EOF
 		exit 2
 	fi
 
-	if [[ ! -x "$dir/scripts/agentic-sdd/sync-agent-config.sh" ]]; then
-		eprint "Missing executable: $dir/scripts/agentic-sdd/sync-agent-config.sh"
+	local sync_cmd
+	if ! sync_cmd="$(resolve_sync_agent_config_script "$dir")"; then
+		eprint "Missing executable: $dir/scripts/agentic-sdd/sync-agent-config.sh or $dir/scripts/sync-agent-config.sh"
 		exit 1
 	fi
 
-	(cd "$dir" && ./scripts/agentic-sdd/sync-agent-config.sh --force "$tool")
+	(cd "$dir" && "$sync_cmd" --force "$tool")
 }
 
 cmd_new() {
@@ -342,10 +356,11 @@ EOF
 		git worktree add "$dir" "$branch" 1>&2
 
 		if [[ "$tool" != "none" ]]; then
-			if [[ ! -x "$dir/scripts/agentic-sdd/sync-agent-config.sh" ]]; then
+			local sync_cmd
+			if ! sync_cmd="$(resolve_sync_agent_config_script "$dir")"; then
 				eprint "Warning: sync-agent-config.sh not found/executable in new worktree: $dir"
 			else
-				(cd "$dir" && ./scripts/agentic-sdd/sync-agent-config.sh --force "$tool") 1>&2
+				(cd "$dir" && "$sync_cmd" --force "$tool") 1>&2
 			fi
 		fi
 
@@ -428,10 +443,11 @@ EOF
 	fi
 
 	if [[ "$tool" != "none" ]]; then
-		if [[ ! -x "$dir/scripts/agentic-sdd/sync-agent-config.sh" ]]; then
+		local sync_cmd
+		if ! sync_cmd="$(resolve_sync_agent_config_script "$dir")"; then
 			eprint "Warning: sync-agent-config.sh not found/executable in new worktree: $dir"
 		else
-			(cd "$dir" && ./scripts/agentic-sdd/sync-agent-config.sh --force "$tool") 1>&2
+			(cd "$dir" && "$sync_cmd" --force "$tool") 1>&2
 		fi
 	fi
 
