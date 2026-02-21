@@ -65,6 +65,14 @@ Review bot may post:
 - inline review comments (attached to files/lines)
 - reviews summary
 
+`<BOT_LOGIN>` is a placeholder. Replace it with a concrete bot account login.
+If you already set `CODEX_BOT_LOGINS`, use one login from that comma-separated list.
+
+```bash
+BOT_LOGIN="${CODEX_BOT_LOGINS%%,*}"
+echo "$BOT_LOGIN"
+```
+
 ```bash
 # Conversation comments
 gh api repos/<OWNER>/<REPO>/issues/<PR_NUMBER>/comments \
