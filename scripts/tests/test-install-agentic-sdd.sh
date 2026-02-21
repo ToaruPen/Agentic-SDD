@@ -199,4 +199,31 @@ if [[ -f "$proj4/.github/workflows/release.yml" ]]; then
 	exit 1
 fi
 
+proj5="$tmpdir/proj5"
+mkproj "$proj5"
+
+mkdir -p "$proj5/scripts"
+cat >"$proj5/scripts/agentic-sdd" <<'EOF'
+#!/usr/bin/env bash
+echo legacy-entrypoint
+EOF
+chmod +x "$proj5/scripts/agentic-sdd"
+
+"$installer" --target "$proj5" --mode minimal --tool none >/dev/null
+
+if [[ ! -d "$proj5/scripts/agentic-sdd" ]]; then
+	eprint "Expected scripts/agentic-sdd to become a directory after migration"
+	exit 1
+fi
+
+if [[ ! -f "$proj5/scripts/agentic-sdd/ui-iterate.sh" ]]; then
+	eprint "Expected script copy to succeed after legacy migration: scripts/agentic-sdd/ui-iterate.sh"
+	exit 1
+fi
+
+if ! compgen -G "$proj5/scripts/agentic-sdd.bak.*" >/dev/null; then
+	eprint "Expected legacy scripts/agentic-sdd file backup to be created"
+	exit 1
+fi
+
 eprint "OK: scripts/tests/test-install-agentic-sdd.sh"

@@ -205,18 +205,6 @@ copy_file() {
 	local dst_dir
 	dst_dir=$(dirname "$dst")
 
-	legacy_scripts_dir_target="$TARGET_DIR/scripts/agentic-sdd"
-	if [ "$dst_dir" = "$legacy_scripts_dir_target" ] && [ -f "$legacy_scripts_dir_target" ]; then
-		local legacy_backup
-		legacy_backup=$(backup_path "$legacy_scripts_dir_target")
-		if [ "$DRY_RUN" = true ]; then
-			log_info "[DRY-RUN] migrate legacy file target: $legacy_scripts_dir_target (backup: $legacy_backup)"
-		else
-			mv "$legacy_scripts_dir_target" "$legacy_backup"
-			log_warn "Migrated legacy script file target to backup: $legacy_scripts_dir_target -> $legacy_backup"
-		fi
-	fi
-
 	if [ "$DRY_RUN" = true ]; then
 		if [ -e "$dst" ]; then
 			if cmp -s "$src" "$dst"; then
@@ -293,6 +281,21 @@ copy_dir_excluding() {
 		fi
 		copy_file "$src_dir/$rel" "$dst_dir/$rel"
 	done < <(cd "$src_dir" && find . -type f -print0)
+}
+
+prepare_scripts_target_dir() {
+	local scripts_target="$TARGET_DIR/scripts/agentic-sdd"
+
+	if [ -e "$scripts_target" ] && [ ! -d "$scripts_target" ]; then
+		local legacy_backup
+		legacy_backup=$(backup_path "$scripts_target")
+		if [ "$DRY_RUN" = true ]; then
+			log_info "[DRY-RUN] migrate legacy script target: $scripts_target (backup: $legacy_backup)"
+		else
+			mv "$scripts_target" "$legacy_backup"
+			log_warn "Migrated legacy script target to backup: $scripts_target -> $legacy_backup"
+		fi
+	fi
 }
 
 ensure_gitignore_line() {
@@ -377,6 +380,7 @@ copy_file "$SOURCE_ROOT/docs/glossary.md" "$TARGET_DIR/docs/glossary.md"
 copy_dir "$SOURCE_ROOT/skills" "$TARGET_DIR/skills"
 
 # Scripts
+prepare_scripts_target_dir
 copy_dir "$SOURCE_ROOT/scripts" "$TARGET_DIR/scripts/agentic-sdd"
 
 # Templates (for /generate-project-config command)
