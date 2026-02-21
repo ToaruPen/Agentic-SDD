@@ -97,18 +97,14 @@ Before collecting diffs, verify the scope matches the current branch context.
   - If both staged and worktree diffs exist in `auto`, fail-fast and ask you to choose.
 - `BASE_REF`: base ref for `range` mode (default: `origin/main`; fallback to `main`)
 - `CONSTRAINTS`: additional constraints (default: `none`)
-- `REVIEW_CYCLE_INCREMENTAL`: `1` enables conditional reuse of the latest `review.json` when strict fingerprints match; default `1`
-- `REVIEW_CYCLE_CACHE_POLICY`: `strict` | `balanced` | `off` (default: `strict`)
-  - `strict`: reuse only when latest status is `Approved` or `Approved with nits` (backward compatible)
-  - `balanced`: reuse any latest status (`Approved`/`Approved with nits`/`Blocked`/`Question`) when strict fingerprints match
-  - `off`: disable reuse and force full execution even when fingerprints match
+- `REVIEW_CYCLE_INCREMENTAL`: `1` enables conditional reuse of the latest approved `review.json` when strict fingerprints match; default `1`
   - Reuse is fail-closed. Any missing/mismatched metadata field forces full execution.
+  - Reuse is allowed only when the latest review status is `Approved` or `Approved with nits`.
   - Internal compatibility token `script_semantics_version` is included in reuse metadata checks.
     Bump it when prompt composition or reuse eligibility semantics change.
   - Recommended operation:
-    - Keep `REVIEW_CYCLE_INCREMENTAL=1` + `REVIEW_CYCLE_CACHE_POLICY=strict` as the default baseline.
-    - Use `REVIEW_CYCLE_CACHE_POLICY=balanced` only when you intentionally want to reuse non-Approved results for no-change loops.
-    - Force a fresh full run with `REVIEW_CYCLE_INCREMENTAL=0` (or `REVIEW_CYCLE_CACHE_POLICY=off`) when base/HEAD context changed materially (for example rebase/base update) and right before `/final-review`.
+    - Keep `REVIEW_CYCLE_INCREMENTAL=1` during normal issue loops.
+    - Force a fresh full run with `REVIEW_CYCLE_INCREMENTAL=0` when base/HEAD context changed materially (for example rebase/base update) and right before `/final-review`.
 
 ### Timeout (review engine execution)
 
