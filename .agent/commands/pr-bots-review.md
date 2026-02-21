@@ -31,7 +31,7 @@ HEAD_SHA="$(git rev-parse HEAD)"
 echo "$HEAD_SHA"
 ```
 
-2. Resolve review mention from `AGENTIC_SDD_PR_REVIEW_MENTION` and comment it on the PR
+1. Resolve review mention from `AGENTIC_SDD_PR_REVIEW_MENTION` and comment it on the PR
    (include the head SHA so the bot reviews the current PR state).
    The comment body should be Japanese.
 
