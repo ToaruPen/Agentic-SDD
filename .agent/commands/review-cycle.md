@@ -83,6 +83,7 @@ Before collecting diffs, verify the scope matches the current branch context.
 - Exception: `TESTS="not run: <reason>"` is allowed only when you truly cannot run tests
   - `TESTS`: an explicit reasoned summary (e.g. `not run: CI only`).
   - If `TEST_COMMAND` is not set and `TESTS` is not `not run: ...`, `/review-cycle` fails fast (because it is not valid evidence).
+- 動的リスク（race/並行実行/環境依存）を含む変更では、`/review-cycle` に加えて `/test-review` 実行時に `TEST_REVIEW_DYNAMIC_COMMAND` を opt-in で設定して検証する。
 
 ## Optional inputs (env vars)
 
