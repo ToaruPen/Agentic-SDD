@@ -28,6 +28,9 @@
 
 - `TEST_REVIEW_DIFF_MODE` = `auto|worktree|staged|range`（default: `auto`）
 - `TEST_REVIEW_BASE_REF`（`range` 用。default: `origin/main`）
+- `TEST_REVIEW_DYNAMIC_COMMAND`（任意）
+  - 動的・並行条件の検証を必要時のみ実行する opt-in フック
+  - 例: `bash scripts/tests/test-concurrency-gate.sh`
 - `OUTPUT_ROOT`（default: `<repo>/.agentic-sdd/test-reviews`）
 
 ## Output
@@ -35,12 +38,19 @@
 - `.agentic-sdd/test-reviews/<scope-id>/<run-id>/test-review.json`
 - `.agentic-sdd/test-reviews/<scope-id>/<run-id>/test-review-metadata.json`
 - `.agentic-sdd/test-reviews/<scope-id>/<run-id>/preflight.txt`
+- `.agentic-sdd/test-reviews/<scope-id>/<run-id>/dynamic.txt`（`TEST_REVIEW_DYNAMIC_COMMAND` 指定時のみ）
 - `.agentic-sdd/test-reviews/<scope-id>/<run-id>/diff-files.txt`
 
 ## Status handling
 
 - `Approved`: 通過
-- `Blocked`: fail-fast（前段コマンド失敗、focused test marker、コード変更に対するテスト変更不足）
+- `Blocked`: fail-fast（前段コマンド失敗、動的検証コマンド失敗、focused test marker、コード変更に対するテスト変更不足）
+
+## Dynamic check policy (opt-in)
+
+- `TEST_REVIEW_DYNAMIC_COMMAND` は全Issue必須ではない（未指定時は現行挙動を維持）。
+- プロセス管理・並行実行・ネットワーク境界など、静的差分だけでは判定しづらい変更でのみ指定する。
+- 失敗時は `test-review.json` に `Dynamic validation failed` finding が記録される。
 
 ## PR gate note
 

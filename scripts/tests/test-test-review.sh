@@ -262,6 +262,138 @@ if [[ "$status_approved" != "Approved" ]]; then
   exit 1
 fi
 
+set +e
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DYNAMIC_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=staged "$script_src" issue-1 run-dynamic-pass) >/dev/null 2>"$tmpdir/stderr-dynamic-pass"
+code_dynamic_pass=$?
+set -e
+if [[ "$code_dynamic_pass" -ne 0 ]]; then
+  eprint "Expected dynamic pass run to succeed"
+  cat "$tmpdir/stderr-dynamic-pass" >&2
+  exit 1
+fi
+dynamic_pass_json="$tmpdir/.agentic-sdd/test-reviews/issue-1/run-dynamic-pass/test-review.json"
+dynamic_pass_meta="$tmpdir/.agentic-sdd/test-reviews/issue-1/run-dynamic-pass/test-review-metadata.json"
+status_dynamic_pass="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1],encoding="utf-8")).get("status",""))' "$dynamic_pass_json")"
+if [[ "$status_dynamic_pass" != "Approved" ]]; then
+  eprint "Expected Approved status for dynamic pass, got: $status_dynamic_pass"
+  exit 1
+fi
+dynamic_enabled="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1],encoding="utf-8")).get("dynamic_command_enabled"))' "$dynamic_pass_meta")"
+dynamic_exit_code="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1],encoding="utf-8")).get("dynamic_command_exit_code"))' "$dynamic_pass_meta")"
+if [[ "$dynamic_enabled" != "True" || "$dynamic_exit_code" != "0" ]]; then
+  eprint "Expected dynamic metadata to record enabled=True and exit_code=0"
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DYNAMIC_COMMAND='bash -lc "exit 9"' TEST_REVIEW_DIFF_MODE=staged "$script_src" issue-1 run-dynamic-fail) >/dev/null 2>"$tmpdir/stderr-dynamic-fail"
+code_dynamic_fail=$?
+set -e
+if [[ "$code_dynamic_fail" -eq 0 ]]; then
+  eprint "Expected dynamic failure run to block"
+  exit 1
+fi
+dynamic_fail_json="$tmpdir/.agentic-sdd/test-reviews/issue-1/run-dynamic-fail/test-review.json"
+status_dynamic_fail="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1],encoding="utf-8")).get("status",""))' "$dynamic_fail_json")"
+if [[ "$status_dynamic_fail" != "Blocked" ]]; then
+  eprint "Expected Blocked status for dynamic failure, got: $status_dynamic_fail"
+  exit 1
+fi
+dynamic_fail_title="$(python3 -c 'import json,sys;print((json.load(open(sys.argv[1],encoding="utf-8")).get("findings") or [{}])[0].get("title",""))' "$dynamic_fail_json")"
+if [[ "$dynamic_fail_title" != "Dynamic validation failed" ]]; then
+  eprint "Expected Dynamic validation failed finding title, got: $dynamic_fail_title"
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 3"' TEST_REVIEW_DYNAMIC_COMMAND='bash -lc "echo ran > dynamic-ran.txt; exit 9"' TEST_REVIEW_DIFF_MODE=staged "$script_src" issue-1 run-preflight-fail-with-dynamic) >/dev/null 2>"$tmpdir/stderr-preflight-fail-with-dynamic"
+code_preflight_fail_with_dynamic=$?
+set -e
+if [[ "$code_preflight_fail_with_dynamic" -eq 0 ]]; then
+  eprint "Expected preflight failure with dynamic configured to block"
+  exit 1
+fi
+preflight_fail_with_dynamic_json="$tmpdir/.agentic-sdd/test-reviews/issue-1/run-preflight-fail-with-dynamic/test-review.json"
+preflight_fail_with_dynamic_meta="$tmpdir/.agentic-sdd/test-reviews/issue-1/run-preflight-fail-with-dynamic/test-review-metadata.json"
+preflight_fail_with_dynamic_title="$(python3 -c 'import json,sys;print((json.load(open(sys.argv[1],encoding="utf-8")).get("findings") or [{}])[0].get("title",""))' "$preflight_fail_with_dynamic_json")"
+if [[ "$preflight_fail_with_dynamic_title" != "Preflight failed" ]]; then
+  eprint "Expected Preflight failed finding when preflight fails first, got: $preflight_fail_with_dynamic_title"
+  exit 1
+fi
+preflight_dynamic_exit_code="$(python3 -c 'import json,sys;v=json.load(open(sys.argv[1],encoding="utf-8")).get("dynamic_command_exit_code");print("None" if v is None else v)' "$preflight_fail_with_dynamic_meta")"
+if [[ "$preflight_dynamic_exit_code" != "None" ]]; then
+  eprint "Expected dynamic_command_exit_code to remain None when preflight fails first"
+  exit 1
+fi
+if [[ -f "$tmpdir/dynamic-ran.txt" ]]; then
+  eprint "Dynamic command must not run when preflight fails"
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DYNAMIC_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=staged "$script_src" issue-1 run-dynamic-stale-disabled) >/dev/null 2>"$tmpdir/stderr-dynamic-stale-disabled-create"
+code_dynamic_stale_disabled_create=$?
+set -e
+if [[ "$code_dynamic_stale_disabled_create" -ne 0 ]]; then
+  eprint "Expected stale-disabled setup run to succeed"
+  cat "$tmpdir/stderr-dynamic-stale-disabled-create" >&2
+  exit 1
+fi
+dynamic_stale_disabled_path="$tmpdir/.agentic-sdd/test-reviews/issue-1/run-dynamic-stale-disabled/dynamic.txt"
+if [[ ! -f "$dynamic_stale_disabled_path" ]]; then
+  eprint "Expected dynamic.txt to exist after stale-disabled setup run"
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=staged "$script_src" issue-1 run-dynamic-stale-disabled) >/dev/null 2>"$tmpdir/stderr-dynamic-stale-disabled-rerun"
+code_dynamic_stale_disabled_rerun=$?
+set -e
+if [[ "$code_dynamic_stale_disabled_rerun" -ne 0 ]]; then
+  eprint "Expected stale-disabled rerun without dynamic command to succeed"
+  cat "$tmpdir/stderr-dynamic-stale-disabled-rerun" >&2
+  exit 1
+fi
+if [[ -f "$dynamic_stale_disabled_path" ]]; then
+  eprint "Expected stale dynamic.txt to be removed when dynamic command is disabled"
+  exit 1
+fi
+dynamic_stale_disabled_meta="$tmpdir/.agentic-sdd/test-reviews/issue-1/run-dynamic-stale-disabled/test-review-metadata.json"
+dynamic_stale_disabled_enabled="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1],encoding="utf-8")).get("dynamic_command_enabled"))' "$dynamic_stale_disabled_meta")"
+dynamic_stale_disabled_exit_code="$(python3 -c 'import json,sys;v=json.load(open(sys.argv[1],encoding="utf-8")).get("dynamic_command_exit_code");print("None" if v is None else v)' "$dynamic_stale_disabled_meta")"
+if [[ "$dynamic_stale_disabled_enabled" != "False" || "$dynamic_stale_disabled_exit_code" != "None" ]]; then
+  eprint "Expected disabled dynamic metadata after stale-disabled rerun"
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DYNAMIC_COMMAND='bash -lc "exit 0"' TEST_REVIEW_DIFF_MODE=staged "$script_src" issue-1 run-dynamic-stale-preflight) >/dev/null 2>"$tmpdir/stderr-dynamic-stale-preflight-create"
+code_dynamic_stale_preflight_create=$?
+set -e
+if [[ "$code_dynamic_stale_preflight_create" -ne 0 ]]; then
+  eprint "Expected stale-preflight setup run to succeed"
+  cat "$tmpdir/stderr-dynamic-stale-preflight-create" >&2
+  exit 1
+fi
+dynamic_stale_preflight_path="$tmpdir/.agentic-sdd/test-reviews/issue-1/run-dynamic-stale-preflight/dynamic.txt"
+if [[ ! -f "$dynamic_stale_preflight_path" ]]; then
+  eprint "Expected dynamic.txt to exist after stale-preflight setup run"
+  exit 1
+fi
+
+set +e
+(cd "$tmpdir" && TEST_REVIEW_PREFLIGHT_COMMAND='bash -lc "exit 3"' TEST_REVIEW_DIFF_MODE=staged "$script_src" issue-1 run-dynamic-stale-preflight) >/dev/null 2>"$tmpdir/stderr-dynamic-stale-preflight-rerun"
+code_dynamic_stale_preflight_rerun=$?
+set -e
+if [[ "$code_dynamic_stale_preflight_rerun" -eq 0 ]]; then
+  eprint "Expected stale-preflight rerun to fail because preflight fails"
+  exit 1
+fi
+if [[ -f "$dynamic_stale_preflight_path" ]]; then
+  eprint "Expected stale dynamic.txt to be removed when preflight fails"
+  exit 1
+fi
+
 tmpdir_root_js="$(mktemp -d 2>/dev/null || mktemp -d -t agentic-sdd-test-review-root-js)"
 cleanup_root_js() { rm -rf "$tmpdir_root_js"; }
 trap 'cleanup_root_js; cleanup' EXIT

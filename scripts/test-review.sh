@@ -12,6 +12,7 @@ Run two-stage test review:
 
 Environment:
   TEST_REVIEW_PREFLIGHT_COMMAND   Required command for preflight checks
+  TEST_REVIEW_DYNAMIC_COMMAND     Optional command for dynamic checks (opt-in)
   TEST_REVIEW_DIFF_MODE           auto|worktree|staged|range (default: auto)
   TEST_REVIEW_BASE_REF            Base ref when diff mode is range (default: origin/main)
   OUTPUT_ROOT                     Output root (default: <repo_root>/.agentic-sdd/test-reviews)
@@ -20,6 +21,7 @@ Output:
   <OUTPUT_ROOT>/<scope-id>/<run-id>/test-review.json
   <OUTPUT_ROOT>/<scope-id>/<run-id>/test-review-metadata.json
   <OUTPUT_ROOT>/<scope-id>/<run-id>/preflight.txt
+  <OUTPUT_ROOT>/<scope-id>/<run-id>/dynamic.txt (only when TEST_REVIEW_DYNAMIC_COMMAND is set)
   <OUTPUT_ROOT>/<scope-id>/<run-id>/diff-files.txt
 EOF
 }
@@ -90,6 +92,7 @@ run_dir="${scope_root}/${run_id}"
 out_json="${run_dir}/test-review.json"
 out_meta="${run_dir}/test-review-metadata.json"
 out_preflight="${run_dir}/preflight.txt"
+out_dynamic="${run_dir}/dynamic.txt"
 out_files="${run_dir}/diff-files.txt"
 
 mkdir -p "$run_dir"
@@ -99,6 +102,7 @@ if [[ -z "$pref_cmd" ]]; then
   eprint "TEST_REVIEW_PREFLIGHT_COMMAND is required."
   exit 2
 fi
+dynamic_cmd="${TEST_REVIEW_DYNAMIC_COMMAND:-}"
 
 configured_diff_mode="${TEST_REVIEW_DIFF_MODE:-auto}"
 diff_mode="$configured_diff_mode"
@@ -241,14 +245,33 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   eprint "- diff_mode: $configured_diff_mode"
   eprint "- base_ref: $base_ref"
   eprint "- preflight_command: $pref_cmd"
+  if [[ -n "$dynamic_cmd" ]]; then
+    eprint "- dynamic_command: enabled"
+  else
+    eprint "- dynamic_command: disabled"
+  fi
   eprint "- out_json: $out_json"
   exit 0
+fi
+
+if [[ -f "$out_dynamic" ]]; then
+  rm -f "$out_dynamic"
 fi
 
 set +e
 bash -lc "$pref_cmd" >"$out_preflight" 2>&1
 pref_exit=$?
 set -e
+
+dynamic_ran=0
+dynamic_exit=0
+if [[ "$pref_exit" -eq 0 && -n "$dynamic_cmd" ]]; then
+  dynamic_ran=1
+  set +e
+  bash -lc "$dynamic_cmd" >"$out_dynamic" 2>&1
+  dynamic_exit=$?
+  set -e
+fi
 
 set +e
 collect_diff_files >"$out_files"
@@ -306,6 +329,12 @@ if [[ "$pref_exit" -ne 0 ]]; then
   findings_json='[{"title":"Preflight failed","body":"TEST_REVIEW_PREFLIGHT_COMMAND returned non-zero.","priority":"P0"}]'
 fi
 
+if [[ "$status" != "Blocked" && "$dynamic_ran" -eq 1 && "$dynamic_exit" -ne 0 ]]; then
+  status="Blocked"
+  overall="Dynamic validation command failed."
+  findings_json='[{"title":"Dynamic validation failed","body":"TEST_REVIEW_DYNAMIC_COMMAND returned non-zero.","priority":"P1"}]'
+fi
+
 if [[ "$status" != "Blocked" && "$has_focused_tests" -eq 1 ]]; then
   status="Blocked"
   overall="Focused/isolated test marker detected."
@@ -348,11 +377,11 @@ with open(path, "w", encoding="utf-8") as fh:
     fh.write("\n")
 PY
 
-python3 - "$out_meta" "$scope_id" "$run_id" "$head_sha" "$base_ref" "$base_sha" "$diff_mode" <<'PY'
+python3 - "$out_meta" "$scope_id" "$run_id" "$head_sha" "$base_ref" "$base_sha" "$diff_mode" "$dynamic_cmd" "$dynamic_ran" "$dynamic_exit" <<'PY'
 import json
 import sys
 
-path, scope_id, run_id, head_sha, base_ref, base_sha, diff_mode = sys.argv[1:8]
+path, scope_id, run_id, head_sha, base_ref, base_sha, diff_mode, dynamic_cmd, dynamic_ran, dynamic_exit = sys.argv[1:11]
 obj = {
     "schema_version": 1,
     "scope_id": scope_id,
@@ -361,6 +390,8 @@ obj = {
     "base_ref": base_ref,
     "base_sha": base_sha,
     "diff_mode": diff_mode,
+    "dynamic_command_enabled": bool(dynamic_cmd),
+    "dynamic_command_exit_code": int(dynamic_exit) if dynamic_cmd and dynamic_ran == "1" else None,
 }
 with open(path, "w", encoding="utf-8") as fh:
     json.dump(obj, fh, ensure_ascii=False, indent=2)
