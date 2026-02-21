@@ -404,9 +404,17 @@ export const AgenticSddGatePlugin = async ({ $, worktree }) => {
     return s.startsWith("git commit") || s.startsWith("git push")
   }
 
+  const runValidateWorktree = async () => {
+    await $`cd ${worktree} && if [ -f scripts/agentic-sdd/validate-worktree.py ]; then python3 scripts/agentic-sdd/validate-worktree.py; else python3 scripts/validate-worktree.py; fi`
+  }
+
+  const runValidateApproval = async () => {
+    await $`cd ${worktree} && if [ -f scripts/agentic-sdd/validate-approval.py ]; then python3 scripts/agentic-sdd/validate-approval.py; else python3 scripts/validate-approval.py; fi`
+  }
+
   const validate = async () => {
-    await $`cd ${worktree} && python3 scripts/validate-worktree.py`
-    await $`cd ${worktree} && python3 scripts/validate-approval.py`
+    await runValidateWorktree()
+    await runValidateApproval()
   }
 
   return {
@@ -414,7 +422,7 @@ export const AgenticSddGatePlugin = async ({ $, worktree }) => {
       if (input.tool === "edit" || input.tool === "write") {
         const p = getPathFromArgs(output.args)
         if (isAllowedPath(p)) {
-          await $`cd ${worktree} && python3 scripts/validate-worktree.py`
+          await runValidateWorktree()
           return
         }
         await validate()

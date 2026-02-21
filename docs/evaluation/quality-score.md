@@ -61,7 +61,7 @@
 ### 軸G: ドキュメント健全性
 
 - 観点: リンク切れ/プレースホルダ、テンプレからの未更新
-- Evidence例: `scripts/lint-sot.py`、定期GC
+- Evidence例: `scripts/agentic-sdd/lint-sot.py`、定期GC
 
 ---
 

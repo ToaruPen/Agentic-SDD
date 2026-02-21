@@ -23,7 +23,7 @@ Review taxonomy (status/priority) and output rules are defined in:
 Underlying script:
 
 ```bash
-./scripts/review-cycle.sh <scope-id> [run-id] [--dry-run] [--model MODEL] [--claude-model MODEL]
+./scripts/agentic-sdd/review-cycle.sh <scope-id> [run-id] [--dry-run] [--model MODEL] [--claude-model MODEL]
 ```
 
 ## Flow
@@ -173,7 +173,7 @@ Using Codex (default):
 SOT="docs/prd/example.md docs/epics/example.md" \
 TEST_COMMAND="npm test" \
 REASONING_EFFORT=high \
-./scripts/review-cycle.sh issue-123 --model gpt-5.3-codex
+./scripts/agentic-sdd/review-cycle.sh issue-123 --model gpt-5.3-codex
 ```
 
 Auto-build SoT from a GitHub Issue:
@@ -181,7 +181,7 @@ Auto-build SoT from a GitHub Issue:
 ```bash
 GH_ISSUE=123 \
 TESTS="not run: reason" \
-./scripts/review-cycle.sh issue-123
+./scripts/agentic-sdd/review-cycle.sh issue-123
 ```
 
 Using Claude as fallback:
@@ -190,7 +190,7 @@ Using Claude as fallback:
 GH_ISSUE=123 \
 TESTS="not run: reason" \
 REVIEW_ENGINE=claude \
-./scripts/review-cycle.sh issue-123
+./scripts/agentic-sdd/review-cycle.sh issue-123
 ```
 
 ## Notes on Claude engine

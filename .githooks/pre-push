@@ -13,17 +13,29 @@ fi
 
 cd "$ROOT"
 
-if [ ! -f "scripts/validate-approval.py" ]; then
-  exit 0
+approval_py=""
+worktree_py=""
+if [ -f "scripts/agentic-sdd/validate-approval.py" ] && [ -f "scripts/agentic-sdd/validate-worktree.py" ]; then
+  approval_py="scripts/agentic-sdd/validate-approval.py"
+  worktree_py="scripts/agentic-sdd/validate-worktree.py"
+elif [ -f "scripts/validate-approval.py" ] && [ -f "scripts/validate-worktree.py" ]; then
+  approval_py="scripts/validate-approval.py"
+  worktree_py="scripts/validate-worktree.py"
 fi
 
-if [ ! -f "scripts/validate-worktree.py" ]; then
-  echo "[agentic-sdd gate] BLOCKED: validate-worktree.py is missing. Reinstall/upgrade Agentic-SDD." >&2
+if [ -z "$approval_py" ] || [ -z "$worktree_py" ]; then
+  if [ -f "scripts/agentic-sdd/validate-approval.py" ] || [ -f "scripts/validate-approval.py" ]; then
+    echo "[agentic-sdd gate] BLOCKED: validate-worktree.py is missing. Reinstall/upgrade Agentic-SDD." >&2
+  elif [ -f "scripts/agentic-sdd/validate-worktree.py" ] || [ -f "scripts/validate-worktree.py" ]; then
+    echo "[agentic-sdd gate] BLOCKED: validate-approval.py is missing. Reinstall/upgrade Agentic-SDD." >&2
+  else
+    echo "[agentic-sdd gate] BLOCKED: validator pair is missing. Reinstall/upgrade Agentic-SDD." >&2
+  fi
   exit 1
 fi
 
-python3 scripts/validate-worktree.py
-python3 scripts/validate-approval.py
+python3 "$worktree_py"
+python3 "$approval_py"
 
 # Python lint gate (Stage 1): ruff
 need_ruff=0

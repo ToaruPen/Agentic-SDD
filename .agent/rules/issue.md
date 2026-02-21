@@ -174,7 +174,7 @@ Required:
 
 Validation:
 
-- Use `./scripts/worktree.sh check ...` to detect overlaps before starting.
+- Use `./scripts/agentic-sdd/worktree.sh check ...` to detect overlaps before starting.
 
 If file targets are unknown or overlaps exist, do NOT use `parallel-ok`; mark as `blocked` and serialize.
 

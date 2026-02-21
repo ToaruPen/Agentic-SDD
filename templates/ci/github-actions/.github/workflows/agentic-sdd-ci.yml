@@ -33,4 +33,4 @@ jobs:
           AGENTIC_SDD_CI_DOCS_CMD: ""
         run: |
           set -euo pipefail
-          bash ./scripts/agentic-sdd-ci.sh
+          bash ./scripts/agentic-sdd/agentic-sdd-ci.sh

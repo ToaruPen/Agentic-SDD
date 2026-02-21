@@ -80,7 +80,7 @@ Report (Japanese):
 Use the helper script:
 
 ```bash
-./scripts/cleanup.sh [issue-number | --all] [options]
+./scripts/agentic-sdd/cleanup.sh [issue-number | --all] [options]
 ```
 
 ## Related

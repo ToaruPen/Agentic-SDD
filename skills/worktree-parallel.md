@@ -40,7 +40,7 @@ Treat an Issue as eligible for parallel work ONLY when:
 - The Issue body includes `### 変更対象ファイル（推定）` with repo-relative paths.
 - The set of declared files does NOT overlap with other parallel Issues.
 
-Use `./scripts/worktree.sh check ...` to validate overlap before starting.
+Use `./scripts/agentic-sdd/worktree.sh check ...` to validate overlap before starting.
 
 ---
 
@@ -91,8 +91,8 @@ Treat the Issue's declared file list as a contract.
 
 - [ ] Each Issue declares `### 変更対象ファイル（推定）` (repo-relative paths)
 - [ ] Each Issue declares dependencies (`Blocked by` + what becomes possible)
-- [ ] `./scripts/worktree.sh check ...` reports no overlaps
-- [ ] One worktree per Issue created (`./scripts/worktree.sh new ...`)
+- [ ] `./scripts/agentic-sdd/worktree.sh check ...` reports no overlaps
+- [ ] One worktree per Issue created (`./scripts/agentic-sdd/worktree.sh new ...`)
 - [ ] Tool configs generated per worktree (OpenCode/Codex) if needed
 - [ ] Each Issue passes `/final-review` (DoD + `/sync-docs`) before merge
 - [ ] After merge: run `/cleanup` to remove worktree + local branch
@@ -113,4 +113,4 @@ Treat the Issue's declared file list as a contract.
 - `.agent/rules/issue.md` - dependency + labels
 - `.agent/rules/branch.md` - branch naming
 - `.agent/commands/worktree.md` - command definition
-- `scripts/worktree.sh` - deterministic wrapper
+- `scripts/agentic-sdd/worktree.sh` - deterministic wrapper

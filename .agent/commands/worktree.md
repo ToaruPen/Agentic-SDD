@@ -15,7 +15,7 @@ User-facing output remains in Japanese.
 /worktree <subcommand> [args]
 ```
 
-Subcommands map to `./scripts/worktree.sh`:
+Subcommands map to `./scripts/agentic-sdd/worktree.sh`:
 
 - `new`: create a worktree + branch for an Issue
 - `bootstrap`: generate tool configs in an existing worktree (OpenCode/Codex)
@@ -54,7 +54,7 @@ Examples:
 
 ```bash
 # Check GitHub Issues (requires gh)
-./scripts/worktree.sh check --issue 123 --issue 124
+./scripts/agentic-sdd/worktree.sh check --issue 123 --issue 124
 ```
 
 If overlaps exist, fail-fast and:
@@ -67,7 +67,7 @@ If overlaps exist, fail-fast and:
 
 Create a separate branch/worktree per Issue.
 
-`./scripts/worktree.sh new` will also create a linked branch on the GitHub Issue via
+`./scripts/agentic-sdd/worktree.sh new` will also create a linked branch on the GitHub Issue via
 `gh issue develop` (SoT for "in progress"). It fails fast if the Issue already has
 linked branches.
 
@@ -77,11 +77,11 @@ Scope lock before continuing from an existing Issue context:
 - Always list linked branches for the Issue: `gh issue develop --list <issue-number>`
 - If there are multiple linked branches for the same Issue, stop and choose one branch/worktree explicitly before implementation or conflict resolution.
 
-If you are using a parent/child structure, run `./scripts/worktree.sh new` only for the parent Issue (implementation unit). Child Issues remain branch-less and are updated via comments/checklists.
+If you are using a parent/child structure, run `./scripts/agentic-sdd/worktree.sh new` only for the parent Issue (implementation unit). Child Issues remain branch-less and are updated via comments/checklists.
 
 ```bash
-./scripts/worktree.sh new --issue 123 --desc "add user profile" --tool opencode
-./scripts/worktree.sh new --issue 124 --desc "add settings page" --tool opencode
+./scripts/agentic-sdd/worktree.sh new --issue 123 --desc "add user profile" --tool opencode
+./scripts/agentic-sdd/worktree.sh new --issue 124 --desc "add settings page" --tool opencode
 ```
 
 ### Phase 4: Work in parallel
@@ -99,11 +99,11 @@ For each Issue, run:
 
 ## Options
 
-See `./scripts/worktree.sh --help`.
+See `./scripts/agentic-sdd/worktree.sh --help`.
 
 ## Related
 
 - `.agent/rules/issue.md` - dependency + `parallel-ok` rules
 - `.agent/rules/branch.md` - branch naming
 - `skills/worktree-parallel.md` - patterns/checklists
-- `scripts/worktree.sh` - deterministic wrapper
+- `scripts/agentic-sdd/worktree.sh` - deterministic wrapper

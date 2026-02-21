@@ -41,7 +41,7 @@ D-2026-02-21-PR_BOTS_REVIEW_AND_FAIL_FAST
 - 影響範囲:
   - コマンド導線（`.agent/commands`, `README.md`, `AGENTS.md`）
   - review-loop/autofix-loop 実装（`scripts/`, `templates/`）
-  - 関連テスト（`scripts/tests/`）
+  - 関連テスト（`scripts/agentic-sdd/tests/`）
 - 互換性:
   - 旧 `/codex-pr-review` 導線は廃止（互換非維持）。
 - 運用影響:
@@ -50,10 +50,10 @@ D-2026-02-21-PR_BOTS_REVIEW_AND_FAIL_FAST
 ## Verification
 
 - 検証方法:
-  - `bash scripts/tests/test-pr-autofix-template.sh`
-  - `bash scripts/tests/test-codex-review-event.sh`
-  - `python3 scripts/lint-sot.py docs`
-  - `GH_ISSUE=108 DIFF_MODE=staged TEST_COMMAND='bash scripts/tests/test-pr-autofix-template.sh && bash scripts/tests/test-codex-review-event.sh' ./scripts/review-cycle.sh issue-108`
+  - `bash scripts/agentic-sdd/tests/test-pr-autofix-template.sh`
+  - `bash scripts/agentic-sdd/tests/test-codex-review-event.sh`
+  - `python3 scripts/agentic-sdd/lint-sot.py docs`
+  - `GH_ISSUE=108 DIFF_MODE=staged TEST_COMMAND='bash scripts/agentic-sdd/tests/test-pr-autofix-template.sh && bash scripts/agentic-sdd/tests/test-codex-review-event.sh' ./scripts/agentic-sdd/review-cycle.sh issue-108`
 - エビデンス:
   - 未設定 fail-fast のテストケース追加（mention/allowlist）
   - review-cycle status `Approved` の確認
@@ -70,7 +70,7 @@ D-2026-02-21-PR_BOTS_REVIEW_AND_FAIL_FAST
 - Related files:
   - `.agent/commands/pr-bots-review.md`
   - `templates/ci/github-actions/scripts/agentic-sdd-pr-autofix.sh`
-  - `scripts/codex-review-event.sh`
-  - `scripts/watch-codex-review.sh`
-  - `scripts/tests/test-pr-autofix-template.sh`
-  - `scripts/tests/test-codex-review-event.sh`
+  - `scripts/agentic-sdd/codex-review-event.sh`
+  - `scripts/agentic-sdd/watch-codex-review.sh`
+  - `scripts/agentic-sdd/tests/test-pr-autofix-template.sh`
+  - `scripts/agentic-sdd/tests/test-codex-review-event.sh`

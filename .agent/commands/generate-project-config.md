@@ -35,7 +35,7 @@ Notes (user-facing artifacts remain Japanese; these files are project-local guid
 
 ### Phase 2: Extract inputs
 
-Use `scripts/extract-epic-config.py` to extract:
+Use `scripts/agentic-sdd/extract-epic-config.py` to extract:
 
 1. Tech selection (section 3.2)
    - language, framework, database, infrastructure
@@ -60,7 +60,7 @@ Select templates based on extracted inputs:
 
 ### Phase 4: Render templates and write files
 
-Use `scripts/generate-project-config.py`:
+Use `scripts/agentic-sdd/generate-project-config.py`:
 
 1. Load template files
 2. Render via Jinja2 variables
@@ -89,14 +89,14 @@ Use `scripts/generate-project-config.py`:
 
 ```bash
 # Generate directly from an Epic file
-python scripts/generate-project-config.py docs/epics/my-project-epic.md
+python scripts/agentic-sdd/generate-project-config.py docs/epics/my-project-epic.md
 
 # Split extraction and generation
-python scripts/extract-epic-config.py docs/epics/my-project-epic.md -o /tmp/config.json
-python scripts/generate-project-config.py /tmp/config.json
+python scripts/agentic-sdd/extract-epic-config.py docs/epics/my-project-epic.md -o /tmp/config.json
+python scripts/agentic-sdd/generate-project-config.py /tmp/config.json
 
 # Dry-run (preview generated files)
-python scripts/generate-project-config.py docs/epics/my-project-epic.md --dry-run
+python scripts/agentic-sdd/generate-project-config.py docs/epics/my-project-epic.md --dry-run
 ```
 
 ## Notes

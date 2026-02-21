@@ -26,7 +26,7 @@ User-facing interactions remain in Japanese.
 2. Check whether Agentic-SDD is already installed:
    - `.agent/` exists
    - `docs/prd/_template.md` exists
-   - `scripts/install-agentic-sdd.sh` exists
+   - `scripts/agentic-sdd/install-agentic-sdd.sh` exists
 3. If not installed:
    - Tell the user to run `/agentic-sdd` (recommended) and STOP.
 
@@ -80,7 +80,7 @@ If you installed with `--tool none` or you edited `.agent/` after installation, 
 
 ```bash
 # Sync for all tools
-./scripts/sync-agent-config.sh all
+./scripts/agentic-sdd/sync-agent-config.sh all
 ```
 
 OpenCode note: restart OpenCode after sync.
@@ -95,7 +95,7 @@ Notes:
 - If you are upgrading from an older version, re-run it manually.
 
 ```bash
-./scripts/setup-githooks.sh
+./scripts/agentic-sdd/setup-githooks.sh
 ```
 
 ### Phase 4: Finish

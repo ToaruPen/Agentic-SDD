@@ -17,7 +17,7 @@
 
 根拠（実装/仕様）:
 
-- enforcement: `scripts/validate-worktree.py`
+- enforcement: `scripts/agentic-sdd/validate-worktree.py`
 - 要件（仕様）: `.agent/commands/estimation.md`, `.agent/rules/impl-gate.md`
 
 ### Gate 1: SoT の解決が決定的であること
@@ -27,8 +27,8 @@
 
 根拠（実装/仕様）:
 - `/sync-docs`: `.agent/commands/sync-docs.md`
-- 入力解決: `scripts/resolve-sync-docs-inputs.py`
-- /research の契約lint: `scripts/lint-sot.py`, `.agent/commands/research.md`
+- 入力解決: `scripts/agentic-sdd/resolve-sync-docs-inputs.py`
+- /research の契約lint: `scripts/agentic-sdd/lint-sot.py`, `.agent/commands/research.md`
 
 ### Gate 2: 変更の証跡（diff）が明確であること
 
@@ -57,7 +57,7 @@
 
 根拠（実装/仕様）:
 - schema: `.agent/schemas/review.json`
-- 検証: `scripts/validate-review-json.py`
+- 検証: `scripts/agentic-sdd/validate-review-json.py`
 - `/review-cycle` 出力: `.agent/commands/review-cycle.md`
 
 ### Gate 5: 最終レビュー（DoD + docs sync）が通ること

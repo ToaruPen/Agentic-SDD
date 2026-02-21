@@ -25,7 +25,7 @@ Examples:
 Underlying helper script:
 
 ```bash
-./scripts/ui-iterate.sh <issue-number> [round-id] --route /kiosk \
+./scripts/agentic-sdd/ui-iterate.sh <issue-number> [round-id] --route /kiosk \
   --check-cmd "<project-typecheck-command>" \
   --check-cmd "<project-lint-command>" \
   --check-cmd "<project-test-command>"
