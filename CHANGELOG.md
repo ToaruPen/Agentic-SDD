@@ -12,6 +12,8 @@ All notable changes to this project will be documented in this file.
 - feat(codex-review): Add `scripts/codex-review-event.sh` to normalize event payloads, filter allowlisted bot actors, emit consistent PR/type/snippet logs, and fail fast on auth/permission errors.
 - docs(codex-review): Update `README.md` and `.agent/commands/codex-pr-review.md` to recommend event-driven monitoring and keep `scripts/watch-codex-review.sh` as fallback.
 - test(codex-review): Add `scripts/tests/test-codex-review-event.sh` coverage for allowlisted processing, non-target no-op behavior, and auth fail-fast path.
+- feat(pr-bots-review): Rename `/codex-pr-review` to `/pr-bots-review` and align command docs/config sync references across agent commands and README guidance.
+- fix(autofix): Make re-review mention configurable via `AGENTIC_SDD_PR_REVIEW_MENTION` (default `@pr-bots review`) and cover non-target review events in script tests.
 
 ## [0.3.08] - 2026-02-21
 

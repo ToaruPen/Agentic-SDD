@@ -243,6 +243,38 @@ export AGENTIC_SDD_AUTOFIX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai
 export AGENTIC_SDD_AUTOFIX_OPTIN_LABEL='autofix-enabled'
 export AGENTIC_SDD_AUTOFIX_MAX_ITERS=10
 
+unset AGENTIC_SDD_PR_REVIEW_MENTION
+out_missing_mention="$tmpdir/out-missing-mention.txt"
+set +e
+( cd "$work" && GITHUB_EVENT_PATH="$event_issue" bash ./scripts/agentic-sdd-pr-autofix.sh ) >"$out_missing_mention" 2>&1
+rc_missing_mention=$?
+set -e
+if [[ "$rc_missing_mention" -eq 0 ]]; then
+  eprint "Expected missing review mention configuration to fail"
+  exit 1
+fi
+if ! grep -Fq "Missing AGENTIC_SDD_PR_REVIEW_MENTION" "$out_missing_mention"; then
+  eprint "Expected missing mention error message"
+  exit 1
+fi
+
+export AGENTIC_SDD_PR_REVIEW_MENTION='@pr-bots review'
+unset AGENTIC_SDD_AUTOFIX_BOT_LOGINS
+out_missing_allowlist="$tmpdir/out-missing-allowlist.txt"
+set +e
+( cd "$work" && GITHUB_EVENT_PATH="$event_issue" bash ./scripts/agentic-sdd-pr-autofix.sh ) >"$out_missing_allowlist" 2>&1
+rc_missing_allowlist=$?
+set -e
+if [[ "$rc_missing_allowlist" -eq 0 ]]; then
+  eprint "Expected missing autofix allowlist to fail"
+  exit 1
+fi
+if ! grep -Fq "Missing AGENTIC_SDD_AUTOFIX_BOT_LOGINS" "$out_missing_allowlist"; then
+  eprint "Expected missing allowlist error message"
+  exit 1
+fi
+
+export AGENTIC_SDD_AUTOFIX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]'
 ( cd "$work" && GITHUB_EVENT_PATH="$event_issue" bash ./scripts/agentic-sdd-pr-autofix.sh )
 
 if [[ "$(cat "$work/.event_type")" != "issue_comment" ]]; then
@@ -250,18 +282,18 @@ if [[ "$(cat "$work/.event_type")" != "issue_comment" ]]; then
   exit 1
 fi
 
-if ! grep -Fq "@codex review" "$tmpdir/comments.log"; then
-  eprint "Expected @codex review comment after push"
+if ! grep -Fq "@pr-bots review" "$tmpdir/comments.log"; then
+  eprint "Expected configured review mention after push"
   exit 1
 fi
 
 pushed_sha_1="$(git -C "$work" rev-parse HEAD)"
 if ! grep -Fq "head SHA ($pushed_sha_1)" "$tmpdir/comments.log"; then
-  eprint "Expected @codex review comment to include current head SHA"
+  eprint "Expected review mention comment to include current head SHA"
   exit 1
 fi
 if ! grep -Fq "ベースブランチ develop" "$tmpdir/comments.log"; then
-  eprint "Expected @codex review comment to include PR base branch"
+  eprint "Expected review mention comment to include PR base branch"
   exit 1
 fi
 
