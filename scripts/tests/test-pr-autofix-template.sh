@@ -84,7 +84,31 @@ if [[ "${1:-}" == "api" ]]; then
   fi
   if [[ "$endpoint" == "repos/$repo/issues/104/comments" ]]; then
     if [[ "$*" == *"--paginate"* ]]; then
-      if [[ "$*" == *"Autofix applied and pushed."* && "$*" == *"Source event:"* ]]; then
+      if [[ "$*" == *"Autofix stopped: reached max iterations"* ]]; then
+        if [[ -f "$comments_file" ]]; then
+          awk '
+            BEGIN { in_body=0; body=""; id=0 }
+            /^<<<COMMENT>>>$/ { in_body=1; body=""; next }
+            /^<<<END>>>$/ {
+              if (index(body, "<!-- agentic-sdd:autofix v1 -->") > 0 && \
+                  (index(body, "Autofix applied and pushed.") > 0 ||
+                   index(body, "Autofix produced changes but could not push") > 0 ||
+                   index(body, "Autofix stopped: reached max iterations") > 0)) {
+                id += 1
+                print id
+              }
+              in_body=0
+              body=""
+              next
+            }
+            {
+              if (in_body) {
+                if (body == "") body=$0; else body=body "\n" $0
+              }
+            }
+          ' "$comments_file"
+        fi
+      elif [[ "$*" == *"Autofix applied and pushed."* && "$*" == *"Source event:"* ]]; then
         source_key=""
         if [[ "$*" =~ Source\ event:\ ([^\"]+) ]]; then
           source_key="${BASH_REMATCH[1]}"
@@ -275,7 +299,9 @@ if ! grep -Fq "Missing AGENTIC_SDD_AUTOFIX_BOT_LOGINS" "$out_missing_allowlist";
 fi
 
 export AGENTIC_SDD_AUTOFIX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]'
+export AGENTIC_SDD_AUTOFIX_MAX_ITERS=1
 ( cd "$work" && GITHUB_EVENT_PATH="$event_issue" bash ./scripts/agentic-sdd-pr-autofix.sh )
+export AGENTIC_SDD_AUTOFIX_MAX_ITERS=10
 
 if [[ "$(cat "$work/.event_type")" != "issue_comment" ]]; then
   eprint "Expected issue_comment event type"

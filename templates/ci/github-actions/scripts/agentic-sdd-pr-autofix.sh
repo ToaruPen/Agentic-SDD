@@ -154,13 +154,13 @@ count_marker_comments() {
   local marker_author
   marker_author="github-actions[bot]"
 
-  local bodies
-  bodies="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq ".[] | select(.user.login == \"${marker_author}\") | .body")" || die "Failed to list issue comments via gh api"
-  if [[ -z "$bodies" ]]; then
+  local counted_comments
+  counted_comments="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq ".[] | select(.user.login == \"${marker_author}\") | select((.body | contains(\"${marker}\")) and ((.body | contains(\"Autofix applied and pushed.\")) or (.body | contains(\"Autofix produced changes but could not push\")) or (.body | contains(\"Autofix stopped: reached max iterations\")))) | .id")" || die "Failed to list issue comments via gh api"
+  if [[ -z "$counted_comments" ]]; then
     printf '0'
     return 0
   fi
-  printf '%s\n' "$bodies" | grep -cF -- "${marker}" || true
+  printf '%s\n' "$counted_comments" | wc -l | tr -d ' '
 }
 
 has_source_event_already_processed() {
