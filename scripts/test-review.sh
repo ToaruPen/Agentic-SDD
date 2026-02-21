@@ -254,6 +254,10 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   exit 0
 fi
 
+if [[ -f "$out_dynamic" ]]; then
+  rm -f "$out_dynamic"
+fi
+
 set +e
 bash -lc "$pref_cmd" >"$out_preflight" 2>&1
 pref_exit=$?
