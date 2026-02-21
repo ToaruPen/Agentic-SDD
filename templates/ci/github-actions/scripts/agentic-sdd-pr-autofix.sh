@@ -154,8 +154,9 @@ count_marker_comments() {
   local marker_author
   marker_author="github-actions[bot]"
 
-  local counted_comments
-  counted_comments="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq ".[] | select(.user.login == \"${marker_author}\") | select((.body | contains(\"${marker}\")) and ((.body | contains(\"Autofix applied and pushed.\")) or (.body | contains(\"Autofix produced changes but could not push\")) or (.body | contains(\"Autofix stopped: reached max iterations\")))) | .id")" || die "Failed to list issue comments via gh api"
+  local counted_comments comment_filter
+  comment_filter=".[] | select(.user.login == \"${marker_author}\") | select((.body | contains(\"${marker}\")) and ((.body | contains(\"Autofix applied and pushed.\")) or (.body | contains(\"Autofix produced changes but could not push\")) or (.body | contains(\"Autofix stopped: reached max iterations\")))) | .id"
+  counted_comments="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq "$comment_filter")" || die "Failed to list issue comments via gh api"
   if [[ -z "$counted_comments" ]]; then
     printf '0'
     return 0

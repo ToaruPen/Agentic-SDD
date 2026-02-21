@@ -56,6 +56,10 @@ head_repo="${GH_STUB_HEAD_REPO:?}"
 head_ref="${GH_STUB_HEAD_REF:?}"
 base_ref="${GH_STUB_BASE_REF:-main}"
 optin_label="${GH_STUB_OPTIN_LABEL:-autofix-enabled}"
+marker_text='<!-- agentic-sdd:autofix v1 -->'
+status_applied='Autofix applied and pushed.'
+status_push_failed='Autofix produced changes but could not push'
+status_max_iters='Autofix stopped: reached max iterations'
 
 printf '%s\n' "$*" >> "$log_file"
 
@@ -86,14 +90,14 @@ if [[ "${1:-}" == "api" ]]; then
     if [[ "$*" == *"--paginate"* ]]; then
       if [[ "$*" == *"Autofix stopped: reached max iterations"* ]]; then
         if [[ -f "$comments_file" ]]; then
-          awk '
+          awk -v marker_text="$marker_text" -v status_applied="$status_applied" -v status_push_failed="$status_push_failed" -v status_max_iters="$status_max_iters" '
             BEGIN { in_body=0; body=""; id=0 }
             /^<<<COMMENT>>>$/ { in_body=1; body=""; next }
             /^<<<END>>>$/ {
-              if (index(body, "<!-- agentic-sdd:autofix v1 -->") > 0 && \
-                  (index(body, "Autofix applied and pushed.") > 0 ||
-                   index(body, "Autofix produced changes but could not push") > 0 ||
-                   index(body, "Autofix stopped: reached max iterations") > 0)) {
+              if (index(body, marker_text) > 0 && \
+                  (index(body, status_applied) > 0 ||
+                   index(body, status_push_failed) > 0 ||
+                   index(body, status_max_iters) > 0)) {
                 id += 1
                 print id
               }
@@ -114,11 +118,11 @@ if [[ "${1:-}" == "api" ]]; then
           source_key="${BASH_REMATCH[1]}"
         fi
         if [[ -n "$source_key" && -f "$comments_file" ]]; then
-          awk -v source_key="$source_key" '
+          awk -v source_key="$source_key" -v status_applied="$status_applied" '
             BEGIN { in_body=0; body="" }
             /^<<<COMMENT>>>$/ { in_body=1; body=""; next }
             /^<<<END>>>$/ {
-              if (index(body, "Autofix applied and pushed.") > 0 && index(body, "Source event: " source_key) > 0) {
+              if (index(body, status_applied) > 0 && index(body, "Source event: " source_key) > 0) {
                 print "1"
               }
               in_body=0
