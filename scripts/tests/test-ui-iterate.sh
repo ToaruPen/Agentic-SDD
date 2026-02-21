@@ -124,6 +124,10 @@ cat > "$tmpdir/bin/node" <<'NODE'
 set -euo pipefail
 
 scenario="${UI_ITERATE_NODE_SCENARIO:-ok}"
+if [[ -n "${UI_ITERATE_NODE_MARKER:-}" ]]; then
+  mkdir -p "$(dirname "$UI_ITERATE_NODE_MARKER")"
+  printf 'node-ran' > "$UI_ITERATE_NODE_MARKER"
+fi
 case "$scenario" in
 ok)
   mkdir -p "$(dirname "$3")"
@@ -258,8 +262,10 @@ if ! grep -q "networkidle" "$tmpdir/timeout-stderr"; then
 fi
 
 # 12) unreachable URL check in builtin capture should fail before node runs.
+node_marker="$tmpdir/node-marker-unreachable"
+rm -f "$node_marker"
 set +e
-(cd "$tmpdir" && PATH="$tmpdir/bin:$PATH" UI_ITERATE_NODE_SCENARIO=ok UI_ITERATE_CURL_SCENARIO=unreachable ./scripts/ui-iterate.sh 99 round-11 --route /kiosk --skip-checks) >/dev/null 2>"$tmpdir/unreachable-stderr"
+(cd "$tmpdir" && PATH="$tmpdir/bin:$PATH" UI_ITERATE_NODE_MARKER="$node_marker" UI_ITERATE_NODE_SCENARIO=ok UI_ITERATE_CURL_SCENARIO=unreachable ./scripts/ui-iterate.sh 99 round-11 --route /kiosk --skip-checks) >/dev/null 2>"$tmpdir/unreachable-stderr"
 code_unreachable=$?
 set -e
 
@@ -271,6 +277,10 @@ fi
 if ! grep -q "Target URL is unreachable" "$tmpdir/unreachable-stderr"; then
   eprint "Expected unreachable URL message"
   cat "$tmpdir/unreachable-stderr" >&2
+  exit 1
+fi
+if [[ -f "$node_marker" ]]; then
+  eprint "Expected node shim not to run when URL reachability check fails"
   exit 1
 fi
 
