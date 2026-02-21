@@ -63,7 +63,7 @@ Diff source selection (deterministic):
 
 Helper (recommended):
 
-- Run `python3 scripts/resolve-sync-docs-inputs.py` to resolve PRD/Epic and diff source with fail-fast behavior.
+- Run `python3 scripts/agentic-sdd/resolve-sync-docs-inputs.py` to resolve PRD/Epic and diff source with fail-fast behavior.
 
 ### Phase 2: Detect diffs
 

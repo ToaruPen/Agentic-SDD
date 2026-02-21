@@ -16,13 +16,13 @@
 実体:
 
 ```bash
-./scripts/test-review.sh <scope-id> [run-id]
+./scripts/agentic-sdd/test-review.sh <scope-id> [run-id]
 ```
 
 ## Required environment
 
 - `TEST_REVIEW_PREFLIGHT_COMMAND` (必須)
-  - 例: `bash scripts/tests/test-ruff-gate.sh && bash scripts/tests/test-ruff-format-gate.sh && bash scripts/tests/test-lint-sot.sh`
+- 例: `bash scripts/agentic-sdd/tests/test-ruff-gate.sh && bash scripts/agentic-sdd/tests/test-ruff-format-gate.sh && bash scripts/agentic-sdd/tests/test-lint-sot.sh`
 
 ## Optional environment
 

@@ -15,7 +15,7 @@ All notable changes to this project will be documented in this file.
 
 - docs(scope-lock): Add explicit branch/issue context preflight checks in `.agent/commands/impl.md` (Phase 1 work-status), `.agent/commands/tdd.md` (Phase 0 gate), `.agent/commands/review-cycle.md` (Phase 0 Scope Lock), and `.agent/commands/worktree.md` (existing-issue continuation), plus high-impact guardrail updates in `AGENTS.md` (Parallel work) and `README.md` (Guardrails).
 - docs(sync): Align docs with current behavior by clarifying CI env vars (3 required + optional `AGENTIC_SDD_CI_DOCS_CMD`), updating subtree examples to `v0.3.10`, clarifying `DESIGN.md` as historical context, and fixing command docs for dynamic-check/autofix script references.
-- docs(readme): Sync Directory Structure with current tree by adding `docs/memo`, `docs/releasing.md`, `scripts/codex-review-event.sh`, `scripts/tests/test-codex-review-event.sh`, `scripts/tests/test-watch-codex-review.sh`, and `templates/ci/github-actions`.
+- docs(readme): Sync Directory Structure with current tree by adding `docs/memo`, `docs/releasing.md`, `scripts/agentic-sdd/codex-review-event.sh`, `scripts/agentic-sdd/tests/test-codex-review-event.sh`, `scripts/agentic-sdd/tests/test-watch-codex-review.sh`, and `templates/ci/github-actions`.
 - chore(release): Bump `scripts/agentic-sdd` `DEFAULT_REF_FALLBACK` to `v0.3.10`.
 
 ## [0.3.09] - 2026-02-21
@@ -25,9 +25,9 @@ All notable changes to this project will be documented in this file.
 - feat(autofix): After successful autofix push, automatically post `@codex review` with current head SHA.
 - docs(autofix): Update `README.md` and `.agent/commands/codex-pr-review.md` to document event-driven autofix loop behavior.
 - feat(codex-review): Add event-driven Codex/Coderabbit monitoring workflow at `.github/workflows/codex-review-events.yml` for `issue_comment`, `pull_request_review`, and `pull_request_review_comment` triggers.
-- feat(codex-review): Add `scripts/codex-review-event.sh` to normalize event payloads, filter allowlisted bot actors, emit consistent PR/type/snippet logs, and fail fast on auth/permission errors.
-- docs(codex-review): Update `README.md` and `.agent/commands/codex-pr-review.md` to recommend event-driven monitoring and keep `scripts/watch-codex-review.sh` as fallback.
-- test(codex-review): Add `scripts/tests/test-codex-review-event.sh` coverage for allowlisted processing, non-target no-op behavior, and auth fail-fast path.
+- feat(codex-review): Add `scripts/agentic-sdd/codex-review-event.sh` to normalize event payloads, filter allowlisted bot actors, emit consistent PR/type/snippet logs, and fail fast on auth/permission errors.
+- docs(codex-review): Update `README.md` and `.agent/commands/codex-pr-review.md` to recommend event-driven monitoring and keep `scripts/agentic-sdd/watch-codex-review.sh` as fallback.
+- test(codex-review): Add `scripts/agentic-sdd/tests/test-codex-review-event.sh` coverage for allowlisted processing, non-target no-op behavior, and auth fail-fast path.
 - feat(pr-bots-review): Rename `/codex-pr-review` to `/pr-bots-review` and align command docs/config sync references across agent commands and README guidance.
 - fix(autofix): Make re-review mention configurable via `AGENTIC_SDD_PR_REVIEW_MENTION` and cover non-target review events in script tests.
 - break(review-loop): Require `CODEX_BOT_LOGINS` and `AGENTIC_SDD_AUTOFIX_BOT_LOGINS` to be explicitly configured; missing values now fail fast with actionable error messages.
@@ -69,12 +69,12 @@ All notable changes to this project will be documented in this file.
 - docs(flow): Add required research quality spot-check phases to `/create-prd`, `/create-epic`, and `/estimation` so downstream generation stops when research artifacts are structurally incomplete.
 - docs(template): Update `docs/research/*/_template.md` candidate format with hypothesis/falsification/decision-rationale fields and add mandatory exploration-log sections.
 - fix(lint-sot): Validate research candidate `適用可否` values against `Yes / Partial / No` for non-template artifacts.
-- test(lint-sot): Add regression coverage for invalid `適用可否` enum values in `scripts/tests/test-lint-sot.sh`.
+- test(lint-sot): Add regression coverage for invalid `適用可否` enum values in `scripts/agentic-sdd/tests/test-lint-sot.sh`.
 
 ## [0.3.02] - 2026-02-20
 
-- feat: Add Epic research external-service comparison gate to `scripts/lint-sot.py` with required structure (`Required` or `Skip(reason)`), concrete service entries, alternative-family coverage, weighted criteria, quantitative table columns, and decision rationale checks.
-- test: Extend `scripts/tests/test-lint-sot.sh` with positive/negative cases for Epic comparison gate behavior (valid required block, missing section, skip-with-reason, required+skip conflict, empty decision rationale).
+- feat: Add Epic research external-service comparison gate to `scripts/agentic-sdd/lint-sot.py` with required structure (`Required` or `Skip(reason)`), concrete service entries, alternative-family coverage, weighted criteria, quantitative table columns, and decision rationale checks.
+- test: Extend `scripts/agentic-sdd/tests/test-lint-sot.sh` with positive/negative cases for Epic comparison gate behavior (valid required block, missing section, skip-with-reason, required+skip conflict, empty decision rationale).
 - docs: Update Epic research command/template requirements in `.agent/commands/research.md`, `.agent/commands/create-epic.md`, and `docs/research/epic/_template.md` to codify comparison depth expectations.
 - docs: Clarify review loop policy in `.agent/commands/review-cycle.md`, `.agent/commands/final-review.md`, and `README.md` (first full baseline, same `scope-id` incremental reruns, fresh full context before `/final-review`, rerun `/review-cycle` when `/final-review` reports `P2+`).
 
@@ -88,21 +88,21 @@ All notable changes to this project will be documented in this file.
 ## [0.3.00] - 2026-02-19
 
 - Add `/test-review` fail-fast gate documentation and align README PR gate docs with `/create-pr` requirements (`review-metadata` + `test-review-metadata`, range mode on committed HEAD).
-- Sync command inventories in `AGENTS.md`/`README.md` with implemented commands (`/research`, `/test-review`) and script listings (`scripts/test-review.sh`, `scripts/tests/test-test-review.sh`).
+- Sync command inventories in `AGENTS.md`/`README.md` with implemented commands (`/research`, `/test-review`) and script listings (`scripts/agentic-sdd/test-review.sh`, `scripts/agentic-sdd/tests/test-test-review.sh`).
 - Sync additional command docs for `/init` (and OpenCode alias `/sdd-init`), `/generate-project-config`, `/codex-pr-review`, and `/cleanup` in README/AGENTS quick reference sections.
-- Add Codex PR watcher utility (`scripts/watch-codex-review.sh`) and document notifier/bot-filter usage in README.
+- Add Codex PR watcher utility (`scripts/agentic-sdd/watch-codex-review.sh`) and document notifier/bot-filter usage in README.
 - Clarify Decision Snapshot documentation as index + body split (`docs/decisions.md` index and `docs/decisions/*.md` body files) in README/AGENTS/data-model references.
-- Expand README structure/gate docs to reflect actual `docs/` map (`research`, `sot`, `evaluation`, `exec-plans`) and full `scripts/`/`scripts/tests/` inventory used by quality gates.
+- Expand README structure/gate docs to reflect actual `docs/` map (`research`, `sot`, `evaluation`, `exec-plans`) and full `scripts/agentic-sdd/`/`scripts/agentic-sdd/tests/` inventory used by quality gates.
 - Align `/generate-project-config` command docs with actual output paths under `.agentic-sdd/project/`.
 - Make `/create-epic` require repository legibility baselines: project-optimized folder structure design, scoped `AGENTS.md` placement plan, and modern fast lint/format/typecheck toolchain selection with local/CI integration rationale.
 - Make global setup write `~/.config/agentic-sdd/default-ref` using remote default-branch detection, and fail fast when detection fails unless `AGENTIC_SDD_DEFAULT_REF` is explicitly set.
 - Remove hardcoded `--ref main` from Codex/OpenCode/Claude `agentic-sdd` templates and rely on configured defaults.
 - Add `/research` command docs and `docs/research/**` templates to persist reusable research artifacts for PRD/Epic/estimation.
 - Make `/create-prd` and `/create-epic` require `/research` as Phase 0, and document conditional `/research estimation` usage.
-- Extend `scripts/lint-sot.py` (and tests) to lint `docs/research/**` contract requirements.
+- Extend `scripts/agentic-sdd/lint-sot.py` (and tests) to lint `docs/research/**` contract requirements.
 - Add a GitHub Actions template for PR comment-driven autofix loops (opt-in) and wire it into the installer.
-- Add subtree-based update guidance to `README.md` and add `scripts/update-agentic-sdd.sh` for deterministic `git subtree pull` updates.
-- Add deterministic coverage for subtree updater behavior in `scripts/tests/test-update-agentic-sdd.sh`, and verify installer includes the helper script.
+- Add subtree-based update guidance to `README.md` and add `scripts/agentic-sdd/update-agentic-sdd.sh` for deterministic `git subtree pull` updates.
+- Add deterministic coverage for subtree updater behavior in `scripts/agentic-sdd/tests/test-update-agentic-sdd.sh`, and verify installer includes the helper script.
 - Change `/review-cycle` default diff source to base-branch range (`origin/main...HEAD`, fallback `main...HEAD`) via `DIFF_MODE=range`.
 - Add `BASE_REF` support to `/review-cycle` and extend `DIFF_MODE` with `range`.
 - Add `/review-cycle` metadata output (`review-metadata.json`) with `head_sha`/`base_ref`/`base_sha`/`diff_sha256`.
@@ -116,7 +116,7 @@ All notable changes to this project will be documented in this file.
 - Add optional `/review-cycle` incremental reuse (`REVIEW_CYCLE_INCREMENTAL=1`) guarded by strict fingerprint/base/head/diff parity checks, with fail-closed fallback to full execution and reuse observability metadata.
 - Add `/ui-iterate` command documentation for iterative UI redesign loops (`capture -> patch -> verify`) with required gate alignment (`/estimation`, `/review-cycle`, `/final-review`).
 - Add `skills/ui-redesign.md` and register it in `skills/README.md`.
-- Add `scripts/ui-iterate.sh` helper to create round folders, run configurable checks, and capture desktop/mobile screenshots.
+- Add `scripts/agentic-sdd/ui-iterate.sh` helper to create round folders, run configurable checks, and capture desktop/mobile screenshots.
 - Add GitHub Issue template `.github/ISSUE_TEMPLATE/ui-iteration.md` for UI iteration Issues.
 - Update command/workflow docs (`AGENTS.md`, `README.md`) to include `/ui-iterate`.
 - Remove the obsolete optional orchestration subsystem scripts, command docs, tests, installer flags, and user-facing references from this repository.
@@ -143,8 +143,8 @@ All notable changes to this project will be documented in this file.
 
 ## [0.2.35] - 2026-02-06
 
-- Fix `/review-cycle` model selection precedence by adding `--model` and `--claude-model` to `scripts/review-cycle.sh` (CLI overrides env defaults).
-- Support `--` end-of-options terminator in `scripts/review-cycle.sh`.
+- Fix `/review-cycle` model selection precedence by adding `--model` and `--claude-model` to `scripts/agentic-sdd/review-cycle.sh` (CLI overrides env defaults).
+- Support `--` end-of-options terminator in `scripts/agentic-sdd/review-cycle.sh`.
 
 ## [0.2.34] - 2026-02-06
 
@@ -174,13 +174,13 @@ All notable changes to this project will be documented in this file.
 - Document a practical parent/child Issue pattern for `git worktree`: implement via a single parent Issue while keeping child Issues as tracking-only status observation points.
 - Make `/review-cycle` require running tests via `TEST_COMMAND` (allow `TESTS="not run: <reason>"` only).
 - Improve `/cleanup` to delete local branches even when no worktree exists (branch match `issue-<n>`).
-  - `scripts/cleanup.sh`: Parse `git worktree list --porcelain` for branch detection (supports stale worktrees).
-  - `scripts/tests/test-cleanup.sh`: Regression tests for branch-only cleanup and stale worktree cleanup.
+  - `scripts/agentic-sdd/cleanup.sh`: Parse `git worktree list --porcelain` for branch detection (supports stale worktrees).
+  - `scripts/agentic-sdd/tests/test-cleanup.sh`: Regression tests for branch-only cleanup and stale worktree cleanup.
 
 ## [0.2.26] - 2026-01-29
 
 - Add `/cleanup` command to safely remove worktrees and local branches after PR merge.
-  - `scripts/cleanup.sh`: Main cleanup script with safety checks (merge status, uncommitted changes).
+  - `scripts/agentic-sdd/cleanup.sh`: Main cleanup script with safety checks (merge status, uncommitted changes).
   - Support for single Issue cleanup (`/cleanup 123`) and batch cleanup (`/cleanup --all`).
   - Options: `--dry-run`, `--force`, `--skip-merge-check`, `--keep-local-branch`.
 - Update workflow documentation to include cleanup as the final step after merge.
@@ -188,8 +188,8 @@ All notable changes to this project will be documented in this file.
 ## [0.2.24] - 2026-01-28
 
 - Add `/generate-project-config` command to generate project-specific skills/rules from Epic information.
-  - `scripts/extract-epic-config.py`: Extract tech stack, Q6 requirements, and API design from Epic files.
-  - `scripts/generate-project-config.py`: Generate files using Jinja2 templates.
+  - `scripts/agentic-sdd/extract-epic-config.py`: Extract tech stack, Q6 requirements, and API design from Epic files.
+  - `scripts/agentic-sdd/generate-project-config.py`: Generate files using Jinja2 templates.
   - `templates/project-config/`: Template files for config.json, security.md, performance.md, api-conventions.md, and tech-stack.md.
 - Update install script to include `templates/project-config/` and `requirements-agentic-sdd.txt`.
 
@@ -214,7 +214,7 @@ All notable changes to this project will be documented in this file.
 ## [0.2.20] - 2026-01-25
 
 - Add an OpenCode documentation explorer agent (`sdd-docs`) to generate minimal Context Packs for the Agentic-SDD workflow.
-- Add a benchmark helper to validate `sdd-docs` output size and speed (`scripts/bench-sdd-docs.py`).
+- Add a benchmark helper to validate `sdd-docs` output size and speed (`scripts/agentic-sdd/bench-sdd-docs.py`).
 - Pin OpenCode reviewer agent (`sdd-reviewer`) to `openai/gpt-5.2-codex` with `reasoningEffort: high`.
 
 ## [0.2.19] - 2026-01-25
@@ -249,18 +249,18 @@ All notable changes to this project will be documented in this file.
 ## [0.2.14] - 2026-01-25
 
 - Add `/create-pr` to push the linked branch and create a PR via `gh`.
-- Add `scripts/create-pr.sh` and a deterministic offline test for it.
+- Add `scripts/agentic-sdd/create-pr.sh` and a deterministic offline test for it.
 
 ## [0.2.13] - 2026-01-25
 
 - Make `/agentic-sdd` the documented one-time installation entrypoint (README).
 - Align `/init` (`/sdd-init`) documentation with the actual installer behavior.
-- Add a smoke test for `scripts/install-agentic-sdd.sh`.
+- Add a smoke test for `scripts/agentic-sdd/install-agentic-sdd.sh`.
 
 ## [0.2.12] - 2026-01-25
 
 - Clarify deterministic PRD/Epic and diff source resolution for `/sync-docs`.
-- Add a tested helper script `scripts/resolve-sync-docs-inputs.py` to enforce fail-fast input selection.
+- Add a tested helper script `scripts/agentic-sdd/resolve-sync-docs-inputs.py` to enforce fail-fast input selection.
 
 ## [0.2.11] - 2026-01-25
 

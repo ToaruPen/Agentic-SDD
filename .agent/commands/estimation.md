@@ -223,8 +223,8 @@ Required:
 4. If section 10 contains any open questions, stop and wait (see Phase 4)
 5. If approved (and no open questions), create the local approval record (for gate enforcement):
    - Save the approved estimate to: `.agentic-sdd/approvals/issue-<n>/estimate.md`
-   - Run: `python3 scripts/create-approval.py --issue <n> --mode <impl|tdd|custom>`
-   - Run: `python3 scripts/validate-approval.py` (must pass)
+- Run: `python3 scripts/agentic-sdd/create-approval.py --issue <n> --mode <impl|tdd|custom>`
+- Run: `python3 scripts/agentic-sdd/validate-approval.py` (must pass)
 
 Example (Japanese):
 

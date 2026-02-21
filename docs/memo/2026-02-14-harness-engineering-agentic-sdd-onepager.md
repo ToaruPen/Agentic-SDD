@@ -90,9 +90,9 @@ RC --> REVIEW[/final-review (最終ゲート)
 
 - 入力解決の fail-fast: `.agent/commands/sync-docs.md:23-51`
 - ローカル反復(1-3サイクル目安): `.agent/commands/review-cycle.md:36-46`
-- 承認ゲート(estimate.md の hash 凍結): `scripts/validate-approval.py:88-91`, `scripts/validate-approval.py:226-239`
-- worktree ゲート(issueブランチは linked worktree 必須): `scripts/validate-worktree.py`
-- PR作成ゲート(review.json Approved必須): `scripts/create-pr.sh:163-208`
+- 承認ゲート(estimate.md の hash 凍結): `scripts/agentic-sdd/validate-approval.py:88-91`, `scripts/agentic-sdd/validate-approval.py:226-239`
+- worktree ゲート(issueブランチは linked worktree 必須): `scripts/agentic-sdd/validate-worktree.py`
+- PR作成ゲート(review.json Approved必須): `scripts/agentic-sdd/create-pr.sh:163-208`
 - 外部ハーネスとの責務分離(オーケストレーションSoTと混在しない): `README.md:38-49`
 
 ## 改修の要点(提案)

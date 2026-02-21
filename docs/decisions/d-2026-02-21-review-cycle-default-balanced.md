@@ -39,9 +39,9 @@ D-2026-02-21-REVIEW_CYCLE_DEFAULT_BALANCED
 ## Impact
 
 - 影響範囲:
-  - `scripts/review-cycle.sh`（既定値変更）
+  - `scripts/agentic-sdd/review-cycle.sh`（既定値変更）
   - `.agent/commands/review-cycle.md` / `README.md`（運用ガイド同期）
-  - `scripts/tests/test-review-cycle.sh`（既定挙動の期待値更新）
+  - `scripts/agentic-sdd/tests/test-review-cycle.sh`（既定挙動の期待値更新）
 - 互換性:
   - `REVIEW_CYCLE_CACHE_POLICY=strict|off` の明示指定は継続サポートし、後方互換を維持する。
 - 運用影響:
@@ -51,13 +51,13 @@ D-2026-02-21-REVIEW_CYCLE_DEFAULT_BALANCED
 ## Verification
 
 - 検証方法:
-  - `bash scripts/tests/test-review-cycle.sh`
-  - `TEST_REVIEW_PREFLIGHT_COMMAND='bash scripts/tests/test-review-cycle.sh' TEST_REVIEW_DIFF_MODE=worktree ./scripts/test-review.sh issue-117`
-  - `GH_ISSUE=117 DIFF_MODE=worktree TEST_COMMAND='bash scripts/tests/test-review-cycle.sh' ./scripts/review-cycle.sh issue-117`
+  - `bash scripts/agentic-sdd/tests/test-review-cycle.sh`
+  - `TEST_REVIEW_PREFLIGHT_COMMAND='bash scripts/agentic-sdd/tests/test-review-cycle.sh' TEST_REVIEW_DIFF_MODE=worktree ./scripts/agentic-sdd/test-review.sh issue-117`
+  - `GH_ISSUE=117 DIFF_MODE=worktree TEST_COMMAND='bash scripts/agentic-sdd/tests/test-review-cycle.sh' ./scripts/agentic-sdd/review-cycle.sh issue-117`
 - エビデンス:
-  - `scripts/review-cycle.sh:324` で既定値が `balanced` になっている。
-  - `scripts/tests/test-review-cycle.sh:642` / `scripts/tests/test-review-cycle.sh:648` で既定挙動期待値を更新済み。
-  - `scripts/tests/test-review-cycle.sh:744` / `scripts/tests/test-review-cycle.sh:821` で `strict` / `off` の明示指定互換を維持。
+  - `scripts/agentic-sdd/review-cycle.sh:324` で既定値が `balanced` になっている。
+  - `scripts/agentic-sdd/tests/test-review-cycle.sh:642` / `scripts/agentic-sdd/tests/test-review-cycle.sh:648` で既定挙動期待値を更新済み。
+  - `scripts/agentic-sdd/tests/test-review-cycle.sh:744` / `scripts/agentic-sdd/tests/test-review-cycle.sh:821` で `strict` / `off` の明示指定互換を維持。
 
 ## Supersedes
 
@@ -69,7 +69,7 @@ D-2026-02-21-REVIEW_CYCLE_DEFAULT_BALANCED
 - Epic: `docs/epics/agentic-sdd-harness-engineering.md:39`
 - Issue: `https://github.com/ToaruPen/Agentic-SDD/issues/117`
 - Related files:
-  - `scripts/review-cycle.sh`
+  - `scripts/agentic-sdd/review-cycle.sh`
   - `.agent/commands/review-cycle.md`
   - `README.md`
-  - `scripts/tests/test-review-cycle.sh`
+  - `scripts/agentic-sdd/tests/test-review-cycle.sh`

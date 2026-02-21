@@ -53,7 +53,7 @@ Required:
 Preferred: use the helper script (does preflight checks and is idempotent):
 
 ```bash
-./scripts/create-pr.sh --issue <issue-number> --body-file <path>
+./scripts/agentic-sdd/create-pr.sh --issue <issue-number> --body-file <path>
 ```
 
 Alternatively, push manually:

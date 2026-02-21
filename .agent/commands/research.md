@@ -32,7 +32,7 @@ Notes:
 
 ## Required contract (all modes)
 
-The output document must include the following (linted by `scripts/lint-sot.py`):
+The output document must include the following (linted by `scripts/agentic-sdd/lint-sot.py`):
 
 - Naming (required):
   - Research artifacts must be saved as date-based files: `YYYY-MM-DD.md`
@@ -142,7 +142,7 @@ Also include an exploration log in the artifact:
 Run:
 
 ```bash
-python3 scripts/lint-sot.py docs
+python3 scripts/agentic-sdd/lint-sot.py docs
 ```
 
 If it fails, fix the research doc structure and/or broken links.
@@ -152,7 +152,7 @@ If it fails, fix the research doc structure and/or broken links.
 - `docs/research/prd/_template.md`
 - `docs/research/epic/_template.md`
 - `docs/research/estimation/_template.md`
-- `scripts/lint-sot.py`
+- `scripts/agentic-sdd/lint-sot.py`
 
 ## Next command
 

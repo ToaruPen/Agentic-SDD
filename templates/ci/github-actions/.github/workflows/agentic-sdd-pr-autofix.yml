@@ -55,7 +55,7 @@ jobs:
           AGENTIC_SDD_AUTOFIX_MAX_ITERS: ${{ vars.AGENTIC_SDD_AUTOFIX_MAX_ITERS }}
         run: |
           set -euo pipefail
-          bash ./scripts/agentic-sdd-pr-autofix.sh
+          bash ./scripts/agentic-sdd/agentic-sdd-pr-autofix.sh
 
       - name: Upload autofix patch (if any)
         if: always()
