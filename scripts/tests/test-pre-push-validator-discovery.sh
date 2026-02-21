@@ -72,7 +72,9 @@ run_case() {
 	one_missing)
 		write_validator "$dir/scripts/validate-approval.py"
 		;;
-	both_missing) ;;
+	both_missing)
+		# intentionally do nothing when both validators are missing
+		;;
 	*)
 		eprint "Unknown case: $name"
 		exit 1

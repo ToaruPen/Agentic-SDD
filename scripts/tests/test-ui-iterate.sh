@@ -131,6 +131,7 @@ fi
 case "$scenario" in
 ok)
   mkdir -p "$(dirname "$3")"
+  mkdir -p "$(dirname "$4")"
   printf 'desktop' > "$3"
   printf 'mobile' > "$4"
   exit 0
