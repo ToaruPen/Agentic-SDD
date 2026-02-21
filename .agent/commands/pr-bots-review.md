@@ -18,6 +18,7 @@ Required:
 
 1. `gh` (GitHub CLI) is authenticated for the target repo.
 2. The PR exists and is pushed.
+3. `AGENTIC_SDD_PR_REVIEW_MENTION` is set.
 
 ### Phase 1: Request review-bot check
 
@@ -108,6 +109,10 @@ ${REVIEW_MENTION}
 EOF
 )"
 ```
+
+Notes:
+
+- `AGENTIC_SDD_PR_REVIEW_MENTION` is required in this phase as well.
 
 ## Exit condition
 
