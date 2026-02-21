@@ -4,9 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.10] - 2026-02-21
+
 - docs(scope-lock): Add explicit branch/issue context preflight checks in `.agent/commands/impl.md` (Phase 1 work-status), `.agent/commands/tdd.md` (Phase 0 gate), `.agent/commands/review-cycle.md` (Phase 0 Scope Lock), and `.agent/commands/worktree.md` (existing-issue continuation), plus high-impact guardrail updates in `AGENTS.md` (Parallel work) and `README.md` (Guardrails).
-- docs(sync): Align docs with current behavior by clarifying CI env vars (3 required + optional `AGENTIC_SDD_CI_DOCS_CMD`), updating subtree examples to `v0.3.09`, clarifying `DESIGN.md` as historical context, and fixing command docs for dynamic-check/autofix script references.
+- docs(sync): Align docs with current behavior by clarifying CI env vars (3 required + optional `AGENTIC_SDD_CI_DOCS_CMD`), updating subtree examples to `v0.3.10`, clarifying `DESIGN.md` as historical context, and fixing command docs for dynamic-check/autofix script references.
 - docs(readme): Sync Directory Structure with current tree by adding `docs/memo`, `docs/releasing.md`, `scripts/codex-review-event.sh`, `scripts/tests/test-codex-review-event.sh`, `scripts/tests/test-watch-codex-review.sh`, and `templates/ci/github-actions`.
+- chore(release): Bump `scripts/agentic-sdd` `DEFAULT_REF_FALLBACK` to `v0.3.10`.
 
 ## [0.3.09] - 2026-02-21
 
