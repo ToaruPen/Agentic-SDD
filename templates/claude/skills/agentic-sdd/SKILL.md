@@ -29,6 +29,11 @@ AGENTIC_SDD_DEFAULT_TOOL=claude agentic-sdd $ARGUMENTS
 
 3) If the command exits with code 2, conflicts were found. Summarize conflicts and ask whether to re-run with `--force`.
 
+4) If `--ci github-actions` was used, tell the user to configure:
+
+- `AGENTIC_SDD_CI_TEST_CMD` with coverage measurement (and threshold when possible)
+- `AGENTIC_SDD_CI_TYPECHECK_CMD` with strict mode (`--strict` equivalents)
+
 Notes:
 
 - This skill has side effects (creates files in the project). Keep it manual-only.

@@ -17,7 +17,8 @@ Usage: install-agentic-sdd.sh --target <dir> [options]
       --mode minimal|full       What to install (default: minimal)
       --tool none|opencode|codex|claude|all
                                 Run sync for the selected tool (default: none)
-      --ci none|github-actions  Optional CI template to install (default: none)
+      --ci none|github-actions  Optional CI template to install
+                                (tests with coverage + lint + strict typecheck; default: none)
       --force                   Overwrite conflicting files (backs up first)
       --dry-run                 Show what would change
       -h, --help                Show help

@@ -60,6 +60,11 @@ Optional (opt-in): install a GitHub Actions CI template:
 ```
 
 Then edit `.github/workflows/agentic-sdd-ci.yml` and set the 3 required env vars to your project's commands.
+Recommended baseline when filling those commands:
+
+- `AGENTIC_SDD_CI_TEST_CMD`: include coverage measurement (and minimum threshold when possible)
+- `AGENTIC_SDD_CI_TYPECHECK_CMD`: run in strict mode (for example `tsc --noEmit --strict` / `mypy --strict`)
+
 If needed, also set optional `AGENTIC_SDD_CI_DOCS_CMD` for docs checks.
 
 Notes:
@@ -116,7 +121,7 @@ Common `/agentic-sdd` options:
 
 - `--mode minimal|full`
 - `--tool none|opencode|codex|claude|all`
-- `--ci none|github-actions` (opt-in: install a GitHub Actions CI template)
+- `--ci none|github-actions` (opt-in: install a GitHub Actions CI template for tests+coverage/lint/strict-typecheck)
 - `--dry-run`
 - `--force`
 - `--ref <tag>` (install a specific release tag)

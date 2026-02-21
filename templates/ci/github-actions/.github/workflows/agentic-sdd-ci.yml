@@ -14,19 +14,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run CI commands (tests + lint + typecheck)
+      - name: Run CI commands (tests with coverage + lint + strict typecheck)
         shell: bash
         env:
           # This template is language/framework-agnostic.
           # Fill these with your project's commands, for example:
           # - Node.js:
-          #   AGENTIC_SDD_CI_TEST_CMD: "npm test"
+          #   AGENTIC_SDD_CI_TEST_CMD: "npm run test:coverage"
           #   AGENTIC_SDD_CI_LINT_CMD: "npm run lint"
-          #   AGENTIC_SDD_CI_TYPECHECK_CMD: "npm run typecheck"
+          #   AGENTIC_SDD_CI_TYPECHECK_CMD: "tsc --noEmit --strict"
           # - Python:
-          #   AGENTIC_SDD_CI_TEST_CMD: "pytest -q"
+          #   AGENTIC_SDD_CI_TEST_CMD: "pytest -q --cov=. --cov-report=term-missing --cov-fail-under=80"
           #   AGENTIC_SDD_CI_LINT_CMD: "ruff check ."
-          #   AGENTIC_SDD_CI_TYPECHECK_CMD: "mypy ."
+          #   AGENTIC_SDD_CI_TYPECHECK_CMD: "mypy --strict ."
           AGENTIC_SDD_CI_TEST_CMD: ""
           AGENTIC_SDD_CI_LINT_CMD: ""
           AGENTIC_SDD_CI_TYPECHECK_CMD: ""

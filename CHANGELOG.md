@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.11] - 2026-02-21
+
+- docs(ci): Clarify installation and command guidance so the optional `--ci github-actions` template is configured with strict typecheck and test coverage measurement policy (`README.md`, `.agent/commands/init.md`, and `/agentic-sdd` command templates for OpenCode/Codex/Claude).
+- docs(epic): Extend Epic toolchain requirements/templates to explicitly include strict typecheck mode and coverage measurement policy (`.agent/commands/create-epic.md`, `.agent/rules/epic.md`, `docs/epics/_template.md`).
+- docs(ci-template): Update CI template wording and examples to emphasize coverage-oriented test commands and strict typecheck commands (`templates/ci/github-actions/.github/workflows/agentic-sdd-ci.yml`, `templates/ci/github-actions/scripts/agentic-sdd-ci.sh`).
+- chore(release): Bump `scripts/agentic-sdd` `DEFAULT_REF_FALLBACK` to `v0.3.11` and update README subtree examples to `v0.3.11`.
+
 ## [0.3.10] - 2026-02-21
 
 - docs(scope-lock): Add explicit branch/issue context preflight checks in `.agent/commands/impl.md` (Phase 1 work-status), `.agent/commands/tdd.md` (Phase 0 gate), `.agent/commands/review-cycle.md` (Phase 0 Scope Lock), and `.agent/commands/worktree.md` (existing-issue continuation), plus high-impact guardrail updates in `AGENTS.md` (Parallel work) and `README.md` (Guardrails).

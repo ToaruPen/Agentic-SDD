@@ -88,7 +88,7 @@ Checklist:
 [] The 3 required lists are present
 [] Project-optimized folder structure design is present
 [] Scoped `AGENTS.md` map placement plan is present
-[] Modern fast lint/format/typecheck toolchain choice is present with rationale and local/CI integration points
+[] Modern fast lint/format/typecheck (+coverage) toolchain choice is present with rationale and local/CI integration points
 ```
 
 ---
@@ -111,10 +111,10 @@ Every Epic must also include the following mandatory addenda:
 - Scoped `AGENTS.md` map plan
   - Define where root/scoped `AGENTS.md` files live.
   - Use `AGENTS.md` as a concise map with links to deeper docs (progressive disclosure).
-- Lint/format/typecheck toolchain decision
+- Lint/format/typecheck (+coverage) toolchain decision
   - Select modern, fast, maintained tools suitable for the target language stack.
   - Record rationale (speed, maintenance, adoption, compatibility), one simpler alternative,
-    and local/CI integration plan.
+    local/CI integration plan, strict typecheck mode, and coverage measurement policy.
 
 ---
 

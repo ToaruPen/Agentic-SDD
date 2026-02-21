@@ -117,10 +117,11 @@ every Epic must define the following as mandatory design artifacts:
    - Define where scoped `AGENTS.md` files are placed (for example: root + domain subdirectories).
    - For each scoped `AGENTS.md`, define purpose/ownership/scope and links to deeper source-of-truth docs.
    - Keep each `AGENTS.md` concise and map-like (table-of-contents style), not a monolithic manual.
-3. **Modern fast lint/format/typecheck toolchain selection**
+3. **Modern fast lint/format/typecheck (+coverage) toolchain selection**
    - Select tools that are currently maintained, performant, and widely adopted in the target ecosystem.
    - Record concrete selection reasons (speed/maintenance/adoption/CI compatibility) and at least one simpler alternative.
    - Define integration points for local and CI execution (where and how checks run).
+   - Include strict typecheck mode and coverage measurement policy (command + threshold policy).
 
 Fail-fast rule:
 
@@ -167,7 +168,7 @@ Split Issues following `.agent/rules/issue.md`:
 [] The 3 required lists are present
 [] A project-optimized folder structure is explicitly designed
 [] Scoped `AGENTS.md` placement is defined for relevant folders
-[] A modern fast lint/format/typecheck toolchain is selected with rationale and CI/local integration points
+[] A modern fast lint/format/typecheck (+coverage) toolchain is selected with rationale and CI/local integration points
 ```
 
 ### Phase 9: Generate the Epic

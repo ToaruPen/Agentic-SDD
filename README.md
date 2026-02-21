@@ -93,13 +93,18 @@ If Agentic-SDD is not installed in your repository yet, install it first:
 /agentic-sdd opencode minimal
 ```
 
-Optional (opt-in): install a GitHub Actions CI template (tests + lint + typecheck):
+Optional (opt-in): install a GitHub Actions CI template (tests with coverage + lint + strict typecheck):
 
 ```
 /agentic-sdd --ci github-actions opencode minimal
 ```
 
 After install, edit `.github/workflows/agentic-sdd-ci.yml` and set the 3 required env vars to your project's commands.
+Recommended quality baseline:
+
+- `AGENTIC_SDD_CI_TEST_CMD`: run tests with coverage measurement (and a minimum threshold when possible)
+- `AGENTIC_SDD_CI_TYPECHECK_CMD`: run strict type checking mode (for example `tsc --noEmit --strict` / `mypy --strict`)
+
 You can optionally set `AGENTIC_SDD_CI_DOCS_CMD` if you want docs checks in CI.
 To enforce in GitHub, require the check `agentic-sdd-ci / ci` via branch protection rules.
 
@@ -121,19 +126,19 @@ use `git subtree` with a fixed prefix (for example `.agentic-sdd-upstream`).
 One-time setup in each target repository:
 
 ```bash
-git subtree add --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.3.10 --squash
+git subtree add --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.3.11 --squash
 ```
 
 Then update by tag/branch:
 
 ```bash
-git subtree pull --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.3.10 --squash
+git subtree pull --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.3.11 --squash
 ```
 
 This repository also includes a helper script for the pull step:
 
 ```bash
-./.agentic-sdd-upstream/scripts/update-agentic-sdd.sh --ref v0.3.10
+./.agentic-sdd-upstream/scripts/update-agentic-sdd.sh --ref v0.3.11
 ```
 
 Notes:
