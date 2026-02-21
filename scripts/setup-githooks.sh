@@ -19,7 +19,10 @@ while [[ $# -gt 0 ]]; do
 		;;
 	-h | --help)
 		cat <<'EOF'
-Usage: scripts/agentic-sdd/setup-githooks.sh [--force] [--quiet]
+Usage: scripts/setup-githooks.sh [--force] [--quiet]
+
+Installed repositories can also run:
+  scripts/agentic-sdd/setup-githooks.sh [--force] [--quiet]
 
 Configure git hooks to use .githooks/ (Agentic-SDD gates).
 

@@ -17,14 +17,23 @@ approval_py=""
 worktree_py=""
 if [ -f "scripts/agentic-sdd/validate-approval.py" ]; then
   approval_py="scripts/agentic-sdd/validate-approval.py"
-  worktree_py="scripts/agentic-sdd/validate-worktree.py"
 elif [ -f "scripts/validate-approval.py" ]; then
   approval_py="scripts/validate-approval.py"
+fi
+
+if [ -f "scripts/agentic-sdd/validate-worktree.py" ]; then
+  worktree_py="scripts/agentic-sdd/validate-worktree.py"
+elif [ -f "scripts/validate-worktree.py" ]; then
   worktree_py="scripts/validate-worktree.py"
 fi
 
-if [ -z "$approval_py" ]; then
+if [ -z "$approval_py" ] && [ -z "$worktree_py" ]; then
   exit 0
+fi
+
+if [ -z "$approval_py" ]; then
+  echo "[agentic-sdd gate] BLOCKED: validate-approval.py is missing. Reinstall/upgrade Agentic-SDD." >&2
+  exit 1
 fi
 
 if [ ! -f "$worktree_py" ]; then
