@@ -114,7 +114,8 @@ If `gh pr view <PR> --comments` is available and sufficient, you can use it for 
 ### Phase 4: Push and re-request review
 
 When using the CI template `agentic-sdd-pr-autofix.yml`, this step can be automated by
-`scripts/agentic-sdd-pr-autofix.sh` after successful autofix push.
+the installed target-repo script `scripts/agentic-sdd-pr-autofix.sh`
+(source template: `templates/ci/github-actions/scripts/agentic-sdd-pr-autofix.sh`) after successful autofix push.
 
 After pushing fixes, re-request review (again include the current head SHA):
 

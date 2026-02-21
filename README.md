@@ -99,7 +99,8 @@ Optional (opt-in): install a GitHub Actions CI template (tests + lint + typechec
 /agentic-sdd --ci github-actions opencode minimal
 ```
 
-After install, edit `.github/workflows/agentic-sdd-ci.yml` and set the 3 env vars to your project's commands.
+After install, edit `.github/workflows/agentic-sdd-ci.yml` and set the 3 required env vars to your project's commands.
+You can optionally set `AGENTIC_SDD_CI_DOCS_CMD` if you want docs checks in CI.
 To enforce in GitHub, require the check `agentic-sdd-ci / ci` via branch protection rules.
 
 If you do not have `/agentic-sdd` yet, set it up once by cloning this repo and running:
@@ -120,19 +121,19 @@ use `git subtree` with a fixed prefix (for example `.agentic-sdd-upstream`).
 One-time setup in each target repository:
 
 ```bash
-git subtree add --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.3.00 --squash
+git subtree add --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.3.09 --squash
 ```
 
 Then update by tag/branch:
 
 ```bash
-git subtree pull --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.3.00 --squash
+git subtree pull --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.3.09 --squash
 ```
 
 This repository also includes a helper script for the pull step:
 
 ```bash
-./.agentic-sdd-upstream/scripts/update-agentic-sdd.sh --ref v0.3.00
+./.agentic-sdd-upstream/scripts/update-agentic-sdd.sh --ref v0.3.09
 ```
 
 Notes:
@@ -438,6 +439,8 @@ docs/
 │   └── _template.md    # PRD template (Japanese output)
 ├── epics/
 │   └── _template.md    # Epic template (Japanese output)
+├── memo/
+├── releasing.md        # release/tag operation notes
 ├── research/            # reusable research artifacts
 │   ├── prd/
 │   ├── epic/
@@ -480,6 +483,7 @@ scripts/
 ├── check-commit-gate.py
 ├── check-impl-gate.py
 ├── cleanup.sh
+├── codex-review-event.sh
 ├── create-approval.py
 ├── create-pr.sh
 ├── extract-epic-config.py
@@ -504,6 +508,7 @@ scripts/
 └── tests/                   # test scripts
     ├── test-agentic-sdd-latest.sh
     ├── test-approval-gate.sh
+    ├── test-codex-review-event.sh
     ├── test-create-pr.sh
     ├── test-install-agentic-sdd.sh
     ├── test-lint-sot.sh
@@ -517,9 +522,12 @@ scripts/
     ├── test-sync-docs-inputs.sh
     ├── test-update-agentic-sdd.sh
     ├── test-ui-iterate.sh
+    ├── test-watch-codex-review.sh
     └── test-worktree.sh
 
 templates/
+├── ci/                 # optional CI templates
+│   └── github-actions/
 └── project-config/     # templates for /generate-project-config
     ├── config.json.j2
     ├── rules/
@@ -572,7 +580,8 @@ AGENTS.md               # AI agent rules
 
 ## Design Spec
 
-See `DESIGN.md` for the full design.
+See `DESIGN.md` for design rationale and historical context.
+For the current operational structure/commands, use this README and `.agent/` as source of truth.
 
 ---
 

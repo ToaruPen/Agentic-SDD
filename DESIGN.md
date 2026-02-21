@@ -324,6 +324,11 @@ Epic（実装計画）
 
 ## 6. 最終構造（v3）
 
+注記:
+
+- このセクションは v3 設計時点の構造スナップショット。
+- 現在の運用上の正本（コマンド/構造）は `README.md` の Directory Structure と `.agent/` を優先する。
+
 ```
 Agentic-SDD/
 ├── .agent/

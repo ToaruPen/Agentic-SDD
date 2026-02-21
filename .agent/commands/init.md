@@ -59,7 +59,8 @@ Optional (opt-in): install a GitHub Actions CI template:
 /agentic-sdd --ci github-actions [tool] [mode]
 ```
 
-Then edit `.github/workflows/agentic-sdd-ci.yml` and set the 3 env vars to your project's commands.
+Then edit `.github/workflows/agentic-sdd-ci.yml` and set the 3 required env vars to your project's commands.
+If needed, also set optional `AGENTIC_SDD_CI_DOCS_CMD` for docs checks.
 
 Notes:
 

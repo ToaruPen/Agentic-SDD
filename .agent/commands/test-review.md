@@ -30,7 +30,7 @@
 - `TEST_REVIEW_BASE_REF`（`range` 用。default: `origin/main`）
 - `TEST_REVIEW_DYNAMIC_COMMAND`（任意）
   - 動的・並行条件の検証を必要時のみ実行する opt-in フック
-  - 例: `bash scripts/tests/test-concurrency-gate.sh`
+  - 例: `bash -lc "<project-specific dynamic check command>"`
 - `OUTPUT_ROOT`（default: `<repo>/.agentic-sdd/test-reviews`）
 
 ## Output
