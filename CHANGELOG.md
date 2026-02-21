@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### test
+- test(python): Add pure function tests for lint-sot, sot_refs, assemble-sot (70 tests)
+- test(python): Add tests for extract-issue-files, validate-approval, validate-review-json (49 tests)
+- docs(testing): Add test strategy document identifying pure functions vs I/O dependencies
+
+### chore
+- chore(coverage): Expand coverage to all scripts/*.py and raise fail_under from 15% to 20%
+
 ## [0.3.12] - 2026-02-22
 
 - refactor(paths): Standardize all script locations under `scripts/agentic-sdd/` and update documentation references across commands, rules, templates, and skills.

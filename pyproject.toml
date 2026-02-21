@@ -21,11 +21,17 @@ testpaths = ["tests/python"]
 [tool.coverage.run]
 source = ["scripts"]
 branch = true
+omit = [
+    "scripts/tests/*",
+]
 
 [tool.coverage.report]
 include = [
-  "scripts/lint-sot.py",
-  "scripts/validate-worktree.py",
+    "scripts/*.py",
+]
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
 ]
 show_missing = true
-fail_under = 15
+fail_under = 20

@@ -711,7 +711,7 @@ Repository quality baseline (this repo itself):
 - `ruff format --check scripts`
 - `mypy`
 - `pytest -q tests/python --cov=scripts --cov-report=term-missing`  
-  (threshold is managed in `pyproject.toml` via `tool.coverage.report.fail_under`)
+  (threshold managed in `pyproject.toml` via `tool.coverage.report.fail_under`, currently 20% with target 80%)
 
 ---
 
