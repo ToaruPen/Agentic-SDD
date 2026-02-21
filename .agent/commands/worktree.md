@@ -71,6 +71,12 @@ Create a separate branch/worktree per Issue.
 `gh issue develop` (SoT for "in progress"). It fails fast if the Issue already has
 linked branches.
 
+Scope lock before continuing from an existing Issue context:
+
+- Always confirm current branch: `git branch --show-current`
+- Always list linked branches for the Issue: `gh issue develop --list <issue-number>`
+- If there are multiple linked branches for the same Issue, stop and choose one branch/worktree explicitly before implementation or conflict resolution.
+
 If you are using a parent/child structure, run `./scripts/worktree.sh new` only for the parent Issue (implementation unit). Child Issues remain branch-less and are updated via comments/checklists.
 
 ```bash

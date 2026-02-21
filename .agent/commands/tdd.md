@@ -19,10 +19,12 @@ User-facing output remains in Japanese.
 Before starting any TDD cycle, pass the implementation gates.
 
 1. Ensure you are on the linked branch
+   - Confirm current branch: `git branch --show-current`
    - List linked branches (SoT): `gh issue develop --list <issue-number>`
    - If any linked branch exists and you are not on it, report and stop
+   - If multiple linked branches exist, stop and request explicit branch selection before continuing
    - If no linked branch exists, STOP and create one before starting:
-     - Required: `/worktree new --issue <issue-number> --desc "<ascii short desc>"`
+      - Required: `/worktree new --issue <issue-number> --desc "<ascii short desc>"`
      - Then re-run `/tdd` inside that worktree
 2. Run `/estimation` and get explicit approval
    - `/estimation [issue-number]`

@@ -28,6 +28,15 @@ Underlying script:
 
 ## Flow
 
+### Phase 0: Scope lock (required)
+
+Before collecting diffs, verify the scope matches the current branch context.
+
+- Confirm current branch: `git branch --show-current`
+- If `scope-id` is `issue-<number>`, list linked branches: `gh issue develop --list <number>`
+- If linked branches exist and current branch is not one of them, stop and switch to the linked branch
+- If multiple linked branches exist, stop and resolve the intended branch before running `/review-cycle`
+
 1. Collect the diff (default: `DIFF_MODE=range`, `BASE_REF=origin/main`)
 2. Run tests (optional) and record results
 3. Generate `review.json` via selected engine (`codex exec` or `claude -p`)
