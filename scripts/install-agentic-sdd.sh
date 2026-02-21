@@ -205,6 +205,18 @@ copy_file() {
 	local dst_dir
 	dst_dir=$(dirname "$dst")
 
+	legacy_scripts_dir_target="$TARGET_DIR/scripts/agentic-sdd"
+	if [ "$dst_dir" = "$legacy_scripts_dir_target" ] && [ -f "$legacy_scripts_dir_target" ]; then
+		local legacy_backup
+		legacy_backup=$(backup_path "$legacy_scripts_dir_target")
+		if [ "$DRY_RUN" = true ]; then
+			log_info "[DRY-RUN] migrate legacy file target: $legacy_scripts_dir_target (backup: $legacy_backup)"
+		else
+			mv "$legacy_scripts_dir_target" "$legacy_backup"
+			log_warn "Migrated legacy script file target to backup: $legacy_scripts_dir_target -> $legacy_backup"
+		fi
+	fi
+
 	if [ "$DRY_RUN" = true ]; then
 		if [ -e "$dst" ]; then
 			if cmp -s "$src" "$dst"; then

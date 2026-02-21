@@ -138,7 +138,7 @@ git subtree pull --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agen
 This repository also includes a helper script for the pull step:
 
 ```bash
-./.agentic-sdd-upstream/scripts/agentic-sdd/update-agentic-sdd.sh --ref v0.3.11
+./.agentic-sdd-upstream/scripts/update-agentic-sdd.sh --ref v0.3.11
 ```
 
 Notes:
