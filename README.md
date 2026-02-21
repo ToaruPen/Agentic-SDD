@@ -705,6 +705,14 @@ python3 scripts/create-approval.py --issue <n> --mode <impl|tdd|custom>
 python3 scripts/validate-approval.py
 ```
 
+Repository quality baseline (this repo itself):
+
+- `ruff check scripts`
+- `ruff format --check scripts`
+- `mypy`
+- `pytest -q tests/python --cov=scripts --cov-report=term-missing`  
+  (threshold is managed in `pyproject.toml` via `tool.coverage.report.fail_under`)
+
 ---
 
 ## First-cycle Guide
