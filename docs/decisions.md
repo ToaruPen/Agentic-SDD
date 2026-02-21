@@ -20,3 +20,4 @@
 ## Decision Index
 
 - D-2026-02-18-RUFF_S_RULE_ROLLOUT: [`docs/decisions/d-2026-02-18-ruff-s-rule-rollout.md`](./decisions/d-2026-02-18-ruff-s-rule-rollout.md)
+- D-2026-02-21-PR_BOTS_REVIEW_AND_FAIL_FAST: [`docs/decisions/d-2026-02-21-pr-bots-review-and-fail-fast.md`](./decisions/d-2026-02-21-pr-bots-review-and-fail-fast.md)

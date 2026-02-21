@@ -1,16 +1,13 @@
-# /codex-pr-review
+# /pr-bots-review
 
-Request a Codex bot review on a GitHub Pull Request and iterate until resolved.
-
-This command mirrors the OpenCode global skill `codex-pr-review` (located under
-`~/.config/opencode/skills/codex-pr-review/`).
+Request a review-bot check on a GitHub Pull Request and iterate until resolved.
 
 User-facing output remains in Japanese.
 
 ## Usage
 
 ```text
-/codex-pr-review <PR_NUMBER_OR_URL>
+/pr-bots-review <PR_NUMBER_OR_URL>
 ```
 
 ## Flow
@@ -21,8 +18,11 @@ Required:
 
 1. `gh` (GitHub CLI) is authenticated for the target repo.
 2. The PR exists and is pushed.
+3. `AGENTIC_SDD_PR_REVIEW_MENTION` is set.
+4. For Phase 2 bot filtering, either `CODEX_BOT_LOGINS` is set or `BOT_LOGIN` is
+   provided manually.
 
-### Phase 1: Request Codex review
+### Phase 1: Request review-bot check
 
 1. Capture the current head SHA:
 
@@ -31,12 +31,15 @@ HEAD_SHA="$(git rev-parse HEAD)"
 echo "$HEAD_SHA"
 ```
 
-2. Comment `@codex review` on the PR (include the head SHA so the bot reviews the current PR state).
-The comment body should be Japanese, but keep `@codex review` exactly as-is.
+1. Resolve review mention from `AGENTIC_SDD_PR_REVIEW_MENTION` and comment it on the PR
+   (include the head SHA so the bot reviews the current PR state).
+   The comment body should be Japanese.
 
 ```bash
+REVIEW_MENTION="${AGENTIC_SDD_PR_REVIEW_MENTION:?AGENTIC_SDD_PR_REVIEW_MENTION is required}"
+
 gh pr comment <PR_NUMBER_OR_URL> --body "$(cat <<EOF
-@codex review
+${REVIEW_MENTION}
 
 このPRを、ベースブランチ（main）との差分としてレビューしてください（単一コミットではなくPR全体のdiffとして）。
 
@@ -49,34 +52,51 @@ EOF
 
 Notes:
 
-- Use exactly `@codex review`.
+- `AGENTIC_SDD_PR_REVIEW_MENTION` is required.
 - If the PR is a draft, request review after marking it ready.
 
-### Phase 2: Fetch Codex feedback
+### Phase 2: Fetch review-bot feedback
 
 If your repository has `.github/workflows/codex-review-events.yml`, prefer that event-driven
 workflow for notification/observability. The local polling script
 `scripts/watch-codex-review.sh` remains available as fallback.
 
-Codex may post:
+Review bot may post:
 
 - conversation comments (PR timeline)
 - inline review comments (attached to files/lines)
 - reviews summary
 
+Before running the API queries below, set `BOT_LOGIN`.
+If `CODEX_BOT_LOGINS` is set, extract one login from that comma-separated list.
+If not, set `BOT_LOGIN` manually.
+
+```bash
+if [ -n "${CODEX_BOT_LOGINS:-}" ]; then
+  BOT_LOGIN="${CODEX_BOT_LOGINS%%,*}"
+else
+  BOT_LOGIN="<actual-bot-login>"
+fi
+
+echo "$BOT_LOGIN"
+```
+
 ```bash
 # Conversation comments
 gh api repos/<OWNER>/<REPO>/issues/<PR_NUMBER>/comments \
-  --jq '.[] | select(.user.login=="chatgpt-codex-connector[bot]") | {created_at, body}'
+  --jq ".[] | select(.user.login==\"${BOT_LOGIN}\") | {created_at, body}"
 
 # Inline review comments
 gh api repos/<OWNER>/<REPO>/pulls/<PR_NUMBER>/comments \
-  --jq '.[] | select(.user.login=="chatgpt-codex-connector[bot]") | {created_at, path, line, body}'
+  --jq ".[] | select(.user.login==\"${BOT_LOGIN}\") | {created_at, path, line, body}"
 
 # Reviews summary
 gh api repos/<OWNER>/<REPO>/pulls/<PR_NUMBER>/reviews \
-  --jq '.[] | select(.user.login=="chatgpt-codex-connector[bot]") | {submitted_at, state, body}'
+  --jq ".[] | select(.user.login==\"${BOT_LOGIN}\") | {submitted_at, state, body}"
 ```
+
+If you prefer manual inline replacement, replace `<actual-bot-login>` with the
+concrete bot login before running the queries.
 
 If `gh pr view <PR> --comments` is available and sufficient, you can use it for a quick scan.
 
@@ -97,9 +117,10 @@ After pushing fixes, re-request review (again include the current head SHA):
 git push
 
 HEAD_SHA="$(git rev-parse HEAD)"
+REVIEW_MENTION="${AGENTIC_SDD_PR_REVIEW_MENTION:?AGENTIC_SDD_PR_REVIEW_MENTION is required}"
 
 gh pr comment <PR_NUMBER_OR_URL> --body "$(cat <<EOF
-@codex review
+${REVIEW_MENTION}
 
 このPRを再レビューしてください（ベースブランチ main との差分として）。対象は現時点の head SHA (${HEAD_SHA}) です。
 
@@ -108,10 +129,14 @@ EOF
 )"
 ```
 
+Notes:
+
+- `AGENTIC_SDD_PR_REVIEW_MENTION` is required in this phase as well.
+
 ## Exit condition
 
 Stop when:
 
-1. Codex provides no further actionable findings.
+1. The configured review bot provides no further actionable findings.
 2. CI is green.
 3. Human review requirements (if any) are satisfied.

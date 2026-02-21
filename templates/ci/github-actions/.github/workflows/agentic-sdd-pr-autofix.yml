@@ -13,6 +13,7 @@ on:
 # Required repository variables (Settings -> Secrets and variables -> Actions -> Variables):
 # - AGENTIC_SDD_AUTOFIX_CMD: repo-local executable path only (example: ./scripts/autofix.sh)
 # - AGENTIC_SDD_AUTOFIX_BOT_LOGINS: comma-separated allowlist (example: coderabbitai,chatgpt-codex-connector[bot])
+# - AGENTIC_SDD_PR_REVIEW_MENTION: re-review mention text (example: @pr-bots review)
 #
 # Optional variables:
 # - AGENTIC_SDD_AUTOFIX_TEST_CMD: verification command (example: npm test)
@@ -49,6 +50,7 @@ jobs:
           AGENTIC_SDD_AUTOFIX_CMD: ${{ vars.AGENTIC_SDD_AUTOFIX_CMD }}
           AGENTIC_SDD_AUTOFIX_TEST_CMD: ${{ vars.AGENTIC_SDD_AUTOFIX_TEST_CMD }}
           AGENTIC_SDD_AUTOFIX_BOT_LOGINS: ${{ vars.AGENTIC_SDD_AUTOFIX_BOT_LOGINS }}
+          AGENTIC_SDD_PR_REVIEW_MENTION: ${{ vars.AGENTIC_SDD_PR_REVIEW_MENTION }}
           AGENTIC_SDD_AUTOFIX_OPTIN_LABEL: ${{ vars.AGENTIC_SDD_AUTOFIX_OPTIN_LABEL }}
           AGENTIC_SDD_AUTOFIX_MAX_ITERS: ${{ vars.AGENTIC_SDD_AUTOFIX_MAX_ITERS }}
         run: |

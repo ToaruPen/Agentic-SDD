@@ -62,12 +62,13 @@ main() {
   local event_name event_path bot_logins snippet_max require_auth
   event_name="${GITHUB_EVENT_NAME:-}"
   event_path="${GITHUB_EVENT_PATH:-}"
-  bot_logins="${CODEX_BOT_LOGINS:-chatgpt-codex-connector[bot],coderabbitai[bot]}"
+  bot_logins="${CODEX_BOT_LOGINS:-}"
   snippet_max="${CODEX_REVIEW_SNIPPET_MAX:-160}"
   require_auth="${CODEX_REVIEW_REQUIRE_GH_AUTH:-1}"
 
   [[ -n "$event_name" ]] || die "GITHUB_EVENT_NAME is required"
   [[ -n "$event_path" && -f "$event_path" ]] || die "GITHUB_EVENT_PATH is required and must point to an existing file"
+  [[ -n "$bot_logins" ]] || die "CODEX_BOT_LOGINS is required"
   [[ "$snippet_max" =~ ^[0-9]+$ ]] || die "CODEX_REVIEW_SNIPPET_MAX must be an integer"
 
   check_auth "$require_auth"

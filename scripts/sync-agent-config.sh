@@ -129,6 +129,10 @@ sync_codex() {
         log_info "[DRY-RUN] cp -r .agent/rules/* $target_dir/"
     else
         mkdir -p "$target_dir"
+
+        if [ -f "$target_dir/codex-pr-review.md" ]; then
+            rm -f "$target_dir/codex-pr-review.md"
+        fi
         
         # Codex CLI は commands/ と rules/ をフラットに配置
         if [ -d ".agent/commands" ]; then
@@ -181,6 +185,9 @@ sync_opencode() {
     fi
     if [ -f "$target_dir/commands/init.md" ]; then
         rm -f "$target_dir/commands/init.md"
+    fi
+    if [ -f "$target_dir/commands/codex-pr-review.md" ]; then
+        rm -f "$target_dir/commands/codex-pr-review.md"
     fi
     if [ -f "$target_dir/agents/reviewer.md" ]; then
         rm -f "$target_dir/agents/reviewer.md"
@@ -238,8 +245,8 @@ sync_opencode() {
                 create-pr)
                     cmd_description="Push branch and create a Pull Request via gh"
                     ;;
-                codex-pr-review)
-                    cmd_description="Request a Codex bot PR review (@codex review) and iterate until resolved"
+                pr-bots-review)
+                    cmd_description="Request a PR review-bot check and iterate until resolved"
                     ;;
                 worktree)
                     cmd_description="Manage git worktrees for parallel Issues"

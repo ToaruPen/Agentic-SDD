@@ -154,13 +154,14 @@ count_marker_comments() {
   local marker_author
   marker_author="github-actions[bot]"
 
-  local bodies
-  bodies="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq ".[] | select(.user.login == \"${marker_author}\") | .body")" || die "Failed to list issue comments via gh api"
-  if [[ -z "$bodies" ]]; then
+  local counted_comments comment_filter
+  comment_filter=".[] | select(.user.login == \"${marker_author}\") | select((.body | contains(\"${marker}\")) and ((.body | contains(\"Autofix applied and pushed.\")) or (.body | contains(\"Autofix produced changes but could not push\")) or (.body | contains(\"Autofix stopped: reached max iterations\")))) | .id"
+  counted_comments="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq "$comment_filter")" || die "Failed to list issue comments via gh api"
+  if [[ -z "$counted_comments" ]]; then
     printf '0'
     return 0
   fi
-  printf '%s\n' "$bodies" | grep -cF -- "${marker}" || true
+  printf '%s\n' "$counted_comments" | wc -l | tr -d ' '
 }
 
 has_source_event_already_processed() {
@@ -290,8 +291,13 @@ main() {
     exit 0
   fi
 
-  local run_url
+  local run_url review_mention
   run_url="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID:-}"
+  review_mention="${AGENTIC_SDD_PR_REVIEW_MENTION:-}"
+  if [[ -z "$review_mention" ]]; then
+    die "Missing AGENTIC_SDD_PR_REVIEW_MENTION"
+  fi
+  validate_single_line "AGENTIC_SDD_PR_REVIEW_MENTION" "$review_mention" 200
   on_err() {
     local rc=$?
     post_comment "$issue_number" "$(build_failure_body "Autofix failed (exit=$rc).")" || true
@@ -302,8 +308,7 @@ main() {
   local allow_csv
   allow_csv="${AGENTIC_SDD_AUTOFIX_BOT_LOGINS:-}"
   if [[ -z "$allow_csv" ]]; then
-    eprint "[AUTOFIX] Missing AGENTIC_SDD_AUTOFIX_BOT_LOGINS; skipping (deny-by-default)"
-    exit 0
+    die "Missing AGENTIC_SDD_AUTOFIX_BOT_LOGINS"
   fi
 
   if ! csv_contains "$allow_csv" "$comment_login"; then
@@ -446,7 +451,7 @@ main() {
   if git push origin "HEAD:$head_ref" >/dev/null 2>&1; then
     local pushed_sha
     pushed_sha="$(git rev-parse HEAD)"
-    post_comment "$issue_number" "$(printf '%s\nAutofix applied and pushed.\n\n%s\n\nRun: %s\nComment: %s\nSource event: %s\n\n@codex review\n\nこのPRを再レビューしてください（ベースブランチ %s との差分として）。対象は現時点の head SHA (%s) です。\n\n現時点のPRに残っている「実行可能な指摘」だけを挙げ、既に解消済みの事項の繰り返しは避けてください。\n' "$marker" "$stat" "$run_url" "$comment_url" "${source_event_key:-unknown}" "$base_ref" "$pushed_sha")"
+    post_comment "$issue_number" "$(printf '%s\nAutofix applied and pushed.\n\n%s\n\nRun: %s\nComment: %s\nSource event: %s\n\n%s\n\nこのPRを再レビューしてください（ベースブランチ %s との差分として）。対象は現時点の head SHA (%s) です。\n\n現時点のPRに残っている「実行可能な指摘」だけを挙げ、既に解消済みの事項の繰り返しは避けてください。\n' "$marker" "$stat" "$run_url" "$comment_url" "${source_event_key:-unknown}" "$review_mention" "$base_ref" "$pushed_sha")"
     exit 0
   fi
 

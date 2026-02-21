@@ -37,4 +37,5 @@ jobs:
           CODEX_REVIEW_REQUIRE_GH_AUTH: "1"
         run: |
           set -euo pipefail
+          : "${CODEX_BOT_LOGINS:?Set repository variable CODEX_BOT_LOGINS}"
           bash ./scripts/codex-review-event.sh

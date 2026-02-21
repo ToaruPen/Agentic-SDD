@@ -136,9 +136,22 @@ if ! grep -Fq 'type=review pr_number=105 pr_url=https://github.com/o/r/pull/105'
   exit 1
 fi
 
+set +e
+PATH="$tmpdir/bin:$PATH" GH_TOKEN=dummy GITHUB_REPOSITORY=o/r GITHUB_EVENT_NAME=issue_comment GITHUB_EVENT_PATH="$tmpdir/issue_comment.json" CODEX_REVIEW_REQUIRE_GH_AUTH=0 bash "$script_path" >"$tmpdir/out3b.txt" 2>&1
+rc_missing_allowlist=$?
+set -e
+if [[ "$rc_missing_allowlist" -eq 0 ]]; then
+  eprint "Expected missing CODEX_BOT_LOGINS to fail"
+  exit 1
+fi
+if ! grep -Fq 'error: CODEX_BOT_LOGINS is required' "$tmpdir/out3b.txt"; then
+  eprint "Expected missing allowlist error message"
+  exit 1
+fi
+
 ln -sf "$tmpdir/bin/gh-fail" "$tmpdir/bin/gh"
 set +e
-PATH="$tmpdir/bin:$PATH" GH_TOKEN=dummy GITHUB_REPOSITORY=o/r GITHUB_EVENT_NAME=issue_comment GITHUB_EVENT_PATH="$tmpdir/issue_comment.json" CODEX_REVIEW_REQUIRE_GH_AUTH=1 bash "$script_path" >"$tmpdir/out4.txt" 2>&1
+PATH="$tmpdir/bin:$PATH" GH_TOKEN=dummy GITHUB_REPOSITORY=o/r GITHUB_EVENT_NAME=issue_comment GITHUB_EVENT_PATH="$tmpdir/issue_comment.json" CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]' CODEX_REVIEW_REQUIRE_GH_AUTH=1 bash "$script_path" >"$tmpdir/out4.txt" 2>&1
 rc=$?
 set -e
 if [[ "$rc" -eq 0 ]]; then

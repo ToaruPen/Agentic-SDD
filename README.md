@@ -327,25 +327,27 @@ If you enable CI (optional), wait for CI checks and fix failures before merging.
 
 Recommended: use event-driven monitoring via `.github/workflows/codex-review-events.yml`.
 It triggers on `issue_comment` / `pull_request_review` / `pull_request_review_comment`,
-filters to configured bot accounts (`CODEX_BOT_LOGINS`), and logs PR number/URL/type/snippet
+filters to configured bot accounts (`CODEX_BOT_LOGINS`, required), and logs PR number/URL/type/snippet
 in a consistent format.
 
-Fallback: watch Codex bot feedback locally and trigger a local hook on new comments/reviews.
+Fallback: watch review-bot feedback locally and trigger a local hook on new comments/reviews.
 
 For CI-based autofix loops, use `templates/ci/github-actions/.github/workflows/agentic-sdd-pr-autofix.yml`.
 It handles `issue_comment` / `pull_request_review` / `pull_request_review_comment`, passes
 comment body + PR number + normalized event type (`issue_comment`/`review`/`inline`) to
 `AGENTIC_SDD_AUTOFIX_CMD`, executes autofix only on the target PR's HEAD branch,
-and re-requests `@codex review` after successful push.
+and re-requests the configured review mention (`AGENTIC_SDD_PR_REVIEW_MENTION`) after successful push.
 
 ```bash
+CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]' \
 scripts/watch-codex-review.sh --pr 96
 ```
 
 To integrate with your own notifier, pass `--notify-cmd` (or `CODEX_REVIEW_HOOK`):
 
 ```bash
-CODEX_REVIEW_HOOK='osascript -e "display notification \"$CODEX_EVENT_TYPE\" with title \"Codex PR\""' \
+CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]' \
+CODEX_REVIEW_HOOK='osascript -e "display notification \"$CODEX_EVENT_TYPE\" with title \"PR Review Bot\""' \
 scripts/watch-codex-review.sh --pr 96
 ```
 
@@ -356,12 +358,18 @@ CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]' \
 scripts/watch-codex-review.sh --pr 96
 ```
 
-### 6.5) Codex PR review loop (optional)
+For autofix re-review requests, set the mention string explicitly:
 
-To request and iterate Codex bot review on a PR:
+```bash
+AGENTIC_SDD_PR_REVIEW_MENTION='@pr-bots review'
+```
+
+### 6.5) PR review-bot loop (optional)
+
+To request and iterate review-bot checks on a PR:
 
 ```text
-/codex-pr-review <PR_NUMBER_OR_URL>
+/pr-bots-review <PR_NUMBER_OR_URL>
 ```
 
 ### 7) Cleanup after merge
@@ -386,7 +394,7 @@ Batch cleanup for merged Issue branches:
 .agent/
 ├── commands/           # command definitions
 │   ├── cleanup.md
-│   ├── codex-pr-review.md
+│   ├── pr-bots-review.md
 │   ├── create-prd.md
 │   ├── create-epic.md
 │   ├── generate-project-config.md

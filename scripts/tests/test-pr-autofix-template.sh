@@ -56,6 +56,10 @@ head_repo="${GH_STUB_HEAD_REPO:?}"
 head_ref="${GH_STUB_HEAD_REF:?}"
 base_ref="${GH_STUB_BASE_REF:-main}"
 optin_label="${GH_STUB_OPTIN_LABEL:-autofix-enabled}"
+marker_text='<!-- agentic-sdd:autofix v1 -->'
+status_applied='Autofix applied and pushed.'
+status_push_failed='Autofix produced changes but could not push'
+status_max_iters='Autofix stopped: reached max iterations'
 
 printf '%s\n' "$*" >> "$log_file"
 
@@ -84,17 +88,41 @@ if [[ "${1:-}" == "api" ]]; then
   fi
   if [[ "$endpoint" == "repos/$repo/issues/104/comments" ]]; then
     if [[ "$*" == *"--paginate"* ]]; then
-      if [[ "$*" == *"Autofix applied and pushed."* && "$*" == *"Source event:"* ]]; then
+      if [[ "$*" == *"Autofix stopped: reached max iterations"* ]]; then
+        if [[ -f "$comments_file" ]]; then
+          awk -v marker_text="$marker_text" -v status_applied="$status_applied" -v status_push_failed="$status_push_failed" -v status_max_iters="$status_max_iters" '
+            BEGIN { in_body=0; body=""; id=0 }
+            /^<<<COMMENT>>>$/ { in_body=1; body=""; next }
+            /^<<<END>>>$/ {
+              if (index(body, marker_text) > 0 && \
+                  (index(body, status_applied) > 0 ||
+                   index(body, status_push_failed) > 0 ||
+                   index(body, status_max_iters) > 0)) {
+                id += 1
+                print id
+              }
+              in_body=0
+              body=""
+              next
+            }
+            {
+              if (in_body) {
+                if (body == "") body=$0; else body=body "\n" $0
+              }
+            }
+          ' "$comments_file"
+        fi
+      elif [[ "$*" == *"Autofix applied and pushed."* && "$*" == *"Source event:"* ]]; then
         source_key=""
         if [[ "$*" =~ Source\ event:\ ([^\"]+) ]]; then
           source_key="${BASH_REMATCH[1]}"
         fi
         if [[ -n "$source_key" && -f "$comments_file" ]]; then
-          awk -v source_key="$source_key" '
+          awk -v source_key="$source_key" -v status_applied="$status_applied" '
             BEGIN { in_body=0; body="" }
             /^<<<COMMENT>>>$/ { in_body=1; body=""; next }
             /^<<<END>>>$/ {
-              if (index(body, "Autofix applied and pushed.") > 0 && index(body, "Source event: " source_key) > 0) {
+              if (index(body, status_applied) > 0 && index(body, "Source event: " source_key) > 0) {
                 print "1"
               }
               in_body=0
@@ -243,25 +271,59 @@ export AGENTIC_SDD_AUTOFIX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai
 export AGENTIC_SDD_AUTOFIX_OPTIN_LABEL='autofix-enabled'
 export AGENTIC_SDD_AUTOFIX_MAX_ITERS=10
 
+unset AGENTIC_SDD_PR_REVIEW_MENTION
+out_missing_mention="$tmpdir/out-missing-mention.txt"
+set +e
+( cd "$work" && GITHUB_EVENT_PATH="$event_issue" bash ./scripts/agentic-sdd-pr-autofix.sh ) >"$out_missing_mention" 2>&1
+rc_missing_mention=$?
+set -e
+if [[ "$rc_missing_mention" -eq 0 ]]; then
+  eprint "Expected missing review mention configuration to fail"
+  exit 1
+fi
+if ! grep -Fq "Missing AGENTIC_SDD_PR_REVIEW_MENTION" "$out_missing_mention"; then
+  eprint "Expected missing mention error message"
+  exit 1
+fi
+
+export AGENTIC_SDD_PR_REVIEW_MENTION='@pr-bots review'
+unset AGENTIC_SDD_AUTOFIX_BOT_LOGINS
+out_missing_allowlist="$tmpdir/out-missing-allowlist.txt"
+set +e
+( cd "$work" && GITHUB_EVENT_PATH="$event_issue" bash ./scripts/agentic-sdd-pr-autofix.sh ) >"$out_missing_allowlist" 2>&1
+rc_missing_allowlist=$?
+set -e
+if [[ "$rc_missing_allowlist" -eq 0 ]]; then
+  eprint "Expected missing autofix allowlist to fail"
+  exit 1
+fi
+if ! grep -Fq "Missing AGENTIC_SDD_AUTOFIX_BOT_LOGINS" "$out_missing_allowlist"; then
+  eprint "Expected missing allowlist error message"
+  exit 1
+fi
+
+export AGENTIC_SDD_AUTOFIX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]'
+export AGENTIC_SDD_AUTOFIX_MAX_ITERS=1
 ( cd "$work" && GITHUB_EVENT_PATH="$event_issue" bash ./scripts/agentic-sdd-pr-autofix.sh )
+export AGENTIC_SDD_AUTOFIX_MAX_ITERS=10
 
 if [[ "$(cat "$work/.event_type")" != "issue_comment" ]]; then
   eprint "Expected issue_comment event type"
   exit 1
 fi
 
-if ! grep -Fq "@codex review" "$tmpdir/comments.log"; then
-  eprint "Expected @codex review comment after push"
+if ! grep -Fq "@pr-bots review" "$tmpdir/comments.log"; then
+  eprint "Expected configured review mention after push"
   exit 1
 fi
 
 pushed_sha_1="$(git -C "$work" rev-parse HEAD)"
 if ! grep -Fq "head SHA ($pushed_sha_1)" "$tmpdir/comments.log"; then
-  eprint "Expected @codex review comment to include current head SHA"
+  eprint "Expected review mention comment to include current head SHA"
   exit 1
 fi
 if ! grep -Fq "ベースブランチ develop" "$tmpdir/comments.log"; then
-  eprint "Expected @codex review comment to include PR base branch"
+  eprint "Expected review mention comment to include PR base branch"
   exit 1
 fi
 
