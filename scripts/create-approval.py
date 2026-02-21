@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
+from typing import Any
 
 MODE_ALLOWED = {"impl", "tdd", "custom"}
 
@@ -68,7 +69,7 @@ def read_utf8_text(path: str) -> str:
         return fh.read()
 
 
-def write_json(path: str, obj: dict, force: bool) -> None:
+def write_json(path: str, obj: dict[str, Any], force: bool) -> None:
     if os.path.exists(path) and not force:
         raise FileExistsError(f"File already exists: {path} (use --force to overwrite)")
     ensure_parent_dir(path)

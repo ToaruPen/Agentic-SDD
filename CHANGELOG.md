@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- feat(quality-gate): Add repository-owned Python unit coverage gate (`pytest --cov`) to `.github/workflows/lint.yml` and document the baseline in `README.md`.
+- test(python): Add `tests/python/` with helper-focused tests for `scripts/lint-sot.py` and `scripts/validate-worktree.py`, and configure coverage filtering/threshold in `pyproject.toml`.
+- chore(typecheck): Tighten `mypy.ini` with stricter defaults (`check_untyped_defs`, `disallow_untyped_defs`, `disallow_any_generics`, `strict_equality`) and fix affected typing in `scripts/create-approval.py`.
+
 ## [0.3.11] - 2026-02-21
 
 - docs(ci): Clarify installation and command guidance so the optional `--ci github-actions` template is configured with strict typecheck and test coverage measurement policy (`README.md`, `.agent/commands/init.md`, and `/agentic-sdd` command templates for OpenCode/Codex/Claude).

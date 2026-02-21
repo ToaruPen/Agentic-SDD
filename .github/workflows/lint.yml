@@ -67,6 +67,12 @@ jobs:
           set -euo pipefail
           mypy
 
+      - name: Python unit tests with coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          pytest -q tests/python --cov=scripts --cov-report=term-missing
+
       - name: Shellcheck
         shell: bash
         run: |

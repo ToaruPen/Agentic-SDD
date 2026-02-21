@@ -14,3 +14,18 @@ select = [
 ignore = [
   "E501",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+
+[tool.coverage.run]
+source = ["scripts"]
+branch = true
+
+[tool.coverage.report]
+include = [
+  "scripts/lint-sot.py",
+  "scripts/validate-worktree.py",
+]
+show_missing = true
+fail_under = 15
