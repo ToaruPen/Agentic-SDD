@@ -19,6 +19,8 @@ Required:
 1. `gh` (GitHub CLI) is authenticated for the target repo.
 2. The PR exists and is pushed.
 3. `AGENTIC_SDD_PR_REVIEW_MENTION` is set.
+4. For Phase 2 bot filtering, either `CODEX_BOT_LOGINS` is set or `BOT_LOGIN` is
+   provided manually.
 
 ### Phase 1: Request review-bot check
 
@@ -65,27 +67,36 @@ Review bot may post:
 - inline review comments (attached to files/lines)
 - reviews summary
 
-`<BOT_LOGIN>` is a placeholder. Replace it with a concrete bot account login.
-If you already set `CODEX_BOT_LOGINS`, use one login from that comma-separated list.
+Before running the API queries below, set `BOT_LOGIN`.
+If `CODEX_BOT_LOGINS` is set, extract one login from that comma-separated list.
+If not, set `BOT_LOGIN` manually.
 
 ```bash
-BOT_LOGIN="${CODEX_BOT_LOGINS%%,*}"
+if [ -n "${CODEX_BOT_LOGINS:-}" ]; then
+  BOT_LOGIN="${CODEX_BOT_LOGINS%%,*}"
+else
+  BOT_LOGIN="<actual-bot-login>"
+fi
+
 echo "$BOT_LOGIN"
 ```
 
 ```bash
 # Conversation comments
 gh api repos/<OWNER>/<REPO>/issues/<PR_NUMBER>/comments \
-  --jq '.[] | select(.user.login=="<BOT_LOGIN>") | {created_at, body}'
+  --jq ".[] | select(.user.login==\"${BOT_LOGIN}\") | {created_at, body}"
 
 # Inline review comments
 gh api repos/<OWNER>/<REPO>/pulls/<PR_NUMBER>/comments \
-  --jq '.[] | select(.user.login=="<BOT_LOGIN>") | {created_at, path, line, body}'
+  --jq ".[] | select(.user.login==\"${BOT_LOGIN}\") | {created_at, path, line, body}"
 
 # Reviews summary
 gh api repos/<OWNER>/<REPO>/pulls/<PR_NUMBER>/reviews \
-  --jq '.[] | select(.user.login=="<BOT_LOGIN>") | {submitted_at, state, body}'
+  --jq ".[] | select(.user.login==\"${BOT_LOGIN}\") | {submitted_at, state, body}"
 ```
+
+If you prefer manual inline replacement, replace `<actual-bot-login>` with the
+concrete bot login before running the queries.
 
 If `gh pr view <PR> --comments` is available and sufficient, you can use it for a quick scan.
 
