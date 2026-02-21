@@ -4,9 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- feat(quality-gate): Add repository-owned Python unit coverage gate (`pytest --cov`) to `.github/workflows/lint.yml` and document the baseline in `README.md`.
-- test(python): Add `tests/python/` with helper-focused tests for `scripts/lint-sot.py` and `scripts/validate-worktree.py`, and configure coverage filtering/threshold in `pyproject.toml`.
-- chore(typecheck): Tighten `mypy.ini` with stricter defaults (`check_untyped_defs`, `disallow_untyped_defs`, `disallow_any_generics`, `strict_equality`) and fix affected typing in `scripts/create-approval.py`.
+## [0.3.12] - 2026-02-22
+
+- refactor(paths): Standardize all script locations under `scripts/agentic-sdd/` and update documentation references across commands, rules, templates, and skills.
+- fix(installer): Migrate legacy `scripts/` target before recursive copy so existing file conflicts are handled gracefully during installation.
+- fix(hooks): Add fallback path resolution for gate scripts in `.githooks/pre-commit` and `.githooks/pre-push` to support both new (`scripts/agentic-sdd/`) and legacy paths.
+- refactor(sync): Deduplicate validator path resolution in `sync-agent-config.sh` OpenCode gate plugin with shared helper functions.
+- fix(worktree): Add fallback sync script path resolution in `worktree.sh` for bootstrap and new commands to maintain backward compatibility.
+- test(hooks): Add `test-pre-push-validator-discovery.sh` with 4-scenario matrix coverage for validator discovery fallback paths.
+- test(worktree): Extend `test-worktree.sh` with bootstrap and new sync fallback test coverage.
+- test(ui-iterate): Add `test-ui-iterate.sh` error handling tests for node bypass detection.
+- chore(release): Bump `scripts/agentic-sdd` `DEFAULT_REF_FALLBACK` to `v0.3.12` and update README subtree examples to `v0.3.12`.
 
 ## [0.3.11] - 2026-02-21
 
