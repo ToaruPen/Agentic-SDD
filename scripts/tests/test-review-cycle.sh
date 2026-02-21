@@ -639,14 +639,14 @@ if ! grep -q '"reused_from_run": "run-cache-seed"' "$tmpdir/.agentic-sdd/reviews
   exit 1
 fi
 
-if ! grep -q '"cache_policy": "strict"' "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"; then
-  eprint "Expected cache_policy=strict in review metadata"
+if ! grep -q '"cache_policy": "balanced"' "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"; then
+  eprint "Expected cache_policy=balanced in review metadata"
   cat "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" >&2
   exit 1
 fi
 
-if ! grep -q '"reuse_reason": "cache-hit-strict"' "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"; then
-  eprint "Expected strict cache-hit reason in metadata"
+if ! grep -q '"reuse_reason": "cache-hit-balanced"' "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"; then
+  eprint "Expected balanced cache-hit reason in metadata"
   cat "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" >&2
   exit 1
 fi
@@ -849,7 +849,7 @@ PY
 
 set +e
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
-  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  REVIEW_CYCLE_INCREMENTAL=1 REVIEW_CYCLE_CACHE_POLICY=strict CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
   "$review_cycle_sh" issue-1 run-cache-missing-script-semantics) >/dev/null 2>"$tmpdir/stderr-cache-missing-script-semantics"
 code_cache_missing_script_semantics=$?
 set -e
@@ -880,7 +880,7 @@ PY
 
 set +e
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
-  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  REVIEW_CYCLE_INCREMENTAL=1 REVIEW_CYCLE_CACHE_POLICY=strict CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
   "$review_cycle_sh" issue-1 run-cache-review-completed-invalid) >/dev/null 2>"$tmpdir/stderr-cache-review-completed-invalid"
 code_cache_review_completed_invalid=$?
 set -e
@@ -912,7 +912,7 @@ PY
 
 set +e
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
-  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  REVIEW_CYCLE_INCREMENTAL=1 REVIEW_CYCLE_CACHE_POLICY=strict CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
   "$review_cycle_sh" issue-1 run-cache-review-completed-string) >/dev/null 2>"$tmpdir/stderr-cache-review-completed-string"
 code_cache_review_completed_string=$?
 set -e
@@ -943,7 +943,7 @@ PY
 
 set +e
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
-  REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+  REVIEW_CYCLE_INCREMENTAL=1 REVIEW_CYCLE_CACHE_POLICY=strict CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
   "$review_cycle_sh" issue-1 run-cache-tests-failed) >/dev/null 2>"$tmpdir/stderr-cache-tests-failed"
 code_cache_tests_failed=$?
 set -e

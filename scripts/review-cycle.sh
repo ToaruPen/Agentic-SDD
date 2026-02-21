@@ -47,7 +47,7 @@ Required environment:
   SCHEMA_PATH      JSON schema path (default: <repo_root>/.agent/schemas/review.json)
   CONSTRAINTS      Additional constraints string (default: none)
   REVIEW_CYCLE_INCREMENTAL  0|1 (default: 1)
-  REVIEW_CYCLE_CACHE_POLICY strict|balanced|off (default: strict)
+  REVIEW_CYCLE_CACHE_POLICY strict|balanced|off (default: balanced)
                    strict: reuse only Approved/Approved with nits
                    balanced: reuse all statuses on exact fingerprint match
                    off: disable reuse and always execute full review
@@ -321,7 +321,7 @@ if [[ "$review_cycle_incremental" != "0" && "$review_cycle_incremental" != "1" ]
   exit 2
 fi
 
-review_cycle_cache_policy="${REVIEW_CYCLE_CACHE_POLICY:-strict}"
+review_cycle_cache_policy="${REVIEW_CYCLE_CACHE_POLICY:-balanced}"
 case "$review_cycle_cache_policy" in
   strict|balanced|off) ;;
   *)
