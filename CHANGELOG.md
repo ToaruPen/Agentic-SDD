@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.09] - 2026-02-21
+
 - feat(autofix): Extend the GitHub Actions workflow `templates/ci/github-actions/.github/workflows/agentic-sdd-pr-autofix.yml` to trigger on `issue_comment`, `pull_request_review`, and `pull_request_review_comment`.
 - feat(autofix): Update `templates/ci/github-actions/scripts/agentic-sdd-pr-autofix.sh` to normalize multi-event payloads, pass `AGENTIC_SDD_AUTOFIX_EVENT_TYPE`, suppress duplicate source events, and include target SHA/run URL/source event in failure output.
 - feat(autofix): After successful autofix push, automatically post `@codex review` with current head SHA.
