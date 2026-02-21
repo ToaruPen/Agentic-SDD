@@ -18,8 +18,13 @@ Required:
 
 1. `gh` (GitHub CLI) is authenticated for the target repo.
 2. The PR exists and is pushed.
-3. `AGENTIC_SDD_PR_REVIEW_MENTION` is set.
-4. For Phase 2 bot filtering, either `CODEX_BOT_LOGINS` is set or `BOT_LOGIN` is
+3. Scope Lock verification is completed:
+   - Confirm current branch: `git branch --show-current`
+   - For Issue-scoped work, list linked branches: `gh issue develop --list <issue-number>`
+   - Confirm PR head branch: `gh pr view <pr-number-or-url> --json headRefName --jq '.headRefName'`
+   - If current branch and PR `headRefName` differ, stop and switch to the correct branch.
+4. `AGENTIC_SDD_PR_REVIEW_MENTION` is set.
+5. For Phase 2 bot filtering, either `CODEX_BOT_LOGINS` is set or `BOT_LOGIN` is
    provided manually.
 
 ### Phase 1: Request review-bot check

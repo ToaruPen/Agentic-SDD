@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- docs(scope-lock): Add explicit branch/issue context preflight checks to `/impl`, `/tdd`, and `/review-cycle` command docs.
+- docs(scope-lock): Add explicit branch/issue context preflight checks in `.agent/commands/impl.md` (Phase 1 work-status), `.agent/commands/tdd.md` (Phase 0 gate), `.agent/commands/review-cycle.md` (Phase 0 Scope Lock), and `.agent/commands/worktree.md` (existing-issue continuation), plus high-impact guardrail updates in `AGENTS.md` (Parallel work) and `README.md` (Guardrails).
 
 ## [0.3.09] - 2026-02-21
 

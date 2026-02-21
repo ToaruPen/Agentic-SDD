@@ -27,9 +27,12 @@ Required:
 
 1. You are not on `main` (or `master`).
 2. Working tree is clean (no staged/unstaged changes).
-3. The Issue has a linked branch, and you are on it:
+3. Scope Lock verification is completed:
+   - Confirm current branch: `git branch --show-current`
    - List linked branches (SoT): `gh issue develop --list <issue-number>`
    - If any linked branch exists and you are not on it, report and stop.
+   - If a PR already exists for this branch, verify head branch alignment: `gh pr view <pr-number-or-url> --json headRefName --jq '.headRefName'`
+   - If existing PR `headRefName` and current branch differ, report and stop.
 4. `/review-cycle` has a passing `review.json` for this Issue scope (`Approved` or `Approved with nits`).
     - If missing or not passing, stop and ask to re-run `/review-cycle`.
     - `review-metadata.json` must match the current branch state:
