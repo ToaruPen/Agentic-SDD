@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 scripts/check-impl-gate.py"
+            "command": "if [ -f scripts/agentic-sdd/check-impl-gate.py ]; then python3 scripts/agentic-sdd/check-impl-gate.py; else python3 scripts/check-impl-gate.py; fi"
           }
         ]
       },
@@ -15,11 +15,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 scripts/check-commit-gate.py"
+            "command": "if [ -f scripts/agentic-sdd/check-commit-gate.py ]; then python3 scripts/agentic-sdd/check-commit-gate.py; else python3 scripts/check-commit-gate.py; fi"
           }
         ]
       }
     ]
   }
 }
-
