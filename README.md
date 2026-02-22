@@ -126,19 +126,19 @@ use `git subtree` with a fixed prefix (for example `.agentic-sdd-upstream`).
 One-time setup in each target repository:
 
 ```bash
-git subtree add --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.3.12 --squash
+git subtree add --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.3.13 --squash
 ```
 
 Then update by tag/branch:
 
 ```bash
-git subtree pull --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.3.12 --squash
+git subtree pull --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agentic-SDD.git v0.3.13 --squash
 ```
 
 This repository also includes a helper script for the pull step:
 
 ```bash
-./.agentic-sdd-upstream/scripts/update-agentic-sdd.sh --ref v0.3.12
+./.agentic-sdd-upstream/scripts/update-agentic-sdd.sh --ref v0.3.13
 ```
 
 Notes:

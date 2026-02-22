@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.13] - 2026-02-22
+
+- docs(agents): Sync `AGENTS.md` development flow with current command contracts by requiring `/research prd` before `/create-prd`, `/research epic` before `/create-epic`, and `/test-review` before `/review-cycle`/`/create-pr` (including `TEST_REVIEW_DIFF_MODE=range` on committed `HEAD`).
+- docs(agents): Clarify `QuestionTool` usage policy with an explicit `ralph-loop` exception that removes per-step user confirmation while keeping the mandatory gate path `/review-cycle -> /final-review -> /create-pr -> /pr-bots-review`.
+- chore(release): Bump `scripts/agentic-sdd` `DEFAULT_REF_FALLBACK` to `v0.3.13` and update README subtree examples to `v0.3.13`.
+
 ## [0.3.12] - 2026-02-22
 
 - refactor(paths): Standardize all script locations under `scripts/agentic-sdd/` and update documentation references across commands, rules, templates, and skills.

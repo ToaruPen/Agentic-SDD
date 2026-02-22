@@ -30,15 +30,19 @@ Agent Guidelines (simplicity-first)
 Questions (user interaction)
 - When you need to ask the user a question, you MUST use the QuestionTool (the `question` tool).
   Do not ask questions in free-form text.
+- Exception: when `ralph-loop` is explicitly requested, step-by-step user confirmations are not required.
+  In that mode, you must still follow the mandatory gate flow:
+  `/review-cycle` -> `/final-review` -> `/create-pr` -> `/pr-bots-review`.
 
 Static analysis (required)
 - You must introduce and keep running static analysis: lint, format, and typecheck.
 - If the repository has no lint/format/typecheck yet, treat it as a blocker and introduce the minimal viable checks before proceeding.
 - If you cannot introduce or run a required check due to environment or constraints, STOP and ask a human for an explicit exception (with rationale and impact).
 
-Release hygiene (required)
-- After making changes to this repo, you MUST update `CHANGELOG.md`, publish a GitHub Release (tag),
-  and update pinned scripts (e.g. `scripts/agentic-sdd` default ref).
+Release hygiene (when publishing a release)
+- When publishing a release for this repo, you MUST update `CHANGELOG.md`,
+  update pinned scripts (e.g. `scripts/agentic-sdd` default ref),
+  and publish a GitHub Release via tag.
 
 0) Bootstrap
 - Read AGENTS.md (this section + command list). Read README.md only if needed (Workflow section).
@@ -47,16 +51,16 @@ Release hygiene (required)
 1) Entry decision (where to start)
 
 For new development:
-- No PRD: /create-prd
-- PRD exists but no Epic: /create-epic
+- No PRD: /research prd -> /create-prd
+- PRD exists but no Epic: /research epic -> /create-epic
 - Epic exists but no Issues / not split: /create-issues
 - Issues exist: ask the user to choose /impl vs /tdd (do not choose on your own)
   - Then run: /impl <issue-id> or /tdd <issue-id>
 
 For bug fix / refactoring:
 - Small (1-2 Issues): Create Issue directly -> /impl or /tdd
-- Medium (3-5 Issues): /create-epic (reference existing PRD) -> /create-issues
-- Large (6+ Issues): /create-prd -> /create-epic -> /create-issues
+- Medium (3-5 Issues): /research epic (reference existing PRD) -> /create-epic -> /create-issues
+- Large (6+ Issues): /research prd -> /create-prd -> /research epic -> /create-epic -> /create-issues
 
 Note: Even for direct Issue creation, include PRD/Epic links for traceability.
 Bug fix Issues require Priority (P0-P4). See `.agent/rules/issue.md` for details.
@@ -65,8 +69,10 @@ Bug fix Issues require Priority (P0-P4). See `.agent/rules/issue.md` for details
 - /impl or /tdd: pass the implementation gates (.agent/rules/impl-gate.md)
   - Full estimate (11 sections) -> user approval -> implement -> add/run tests
   - Worktree is required for Issue branches (see `.agent/rules/impl-gate.md` Gate -1)
-- /review-cycle: run locally before committing (fix -> re-run)
+- /test-review: run fail-fast test review before /review-cycle
+- /review-cycle: run locally via `codex exec` before committing (fix -> re-run)
 - /final-review: always run /sync-docs; if there is a diff, follow SoT and re-check
+- Before /create-pr: re-run /test-review on committed `HEAD` with `TEST_REVIEW_DIFF_MODE=range`
 
 3) PR / merge
 - Create a PR only after /final-review passes (do not change anything outside the Issue scope)
