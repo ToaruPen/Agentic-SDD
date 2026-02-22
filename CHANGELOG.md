@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.14] - 2026-02-22
+
+- docs(agents): Clarify fallback policy that when `codex exec` is unavailable (e.g. quota limits), `/review-cycle` and `/test-review` must be executed via Claude tooling without skipping gates.
+- docs(agents): Update command summary to state `/review-cycle` default engine (`codex exec`) and Claude fallback.
+- chore(release): Bump `scripts/agentic-sdd` `DEFAULT_REF_FALLBACK` to `v0.3.14` and update README subtree examples to `v0.3.14`.
+
 ## [0.3.13] - 2026-02-22
 
 - docs(agents): Sync `AGENTS.md` development flow with current command contracts by requiring `/research prd` before `/create-prd`, `/research epic` before `/create-epic`, and `/test-review` before `/review-cycle`/`/create-pr` (including `TEST_REVIEW_DIFF_MODE=range` on committed `HEAD`).

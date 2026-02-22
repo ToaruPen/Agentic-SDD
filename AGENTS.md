@@ -71,6 +71,7 @@ Bug fix Issues require Priority (P0-P4). See `.agent/rules/issue.md` for details
   - Worktree is required for Issue branches (see `.agent/rules/impl-gate.md` Gate -1)
 - /test-review: run fail-fast test review before /review-cycle
 - /review-cycle: run locally via `codex exec` before committing (fix -> re-run)
+- If `codex exec` is unavailable (e.g. quota limits or temporary service issues), run `/review-cycle` and `/test-review` via Claude tooling instead; do not skip any gates.
 - /final-review: always run /sync-docs; if there is a diff, follow SoT and re-check
 - Before /create-pr: re-run /test-review on committed `HEAD` with `TEST_REVIEW_DIFF_MODE=range`
 
@@ -156,7 +157,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/tdd`: implement via TDD (Red -> Green -> Refactor)
 - `/ui-iterate`: iterate UI redesign in short loops (capture -> patch -> verify)
 - `/test-review`: run fail-fast test review checks before review/PR gates
-- `/review-cycle`: local review loop (codex exec -> review.json)
+- `/review-cycle`: local review loop (default: codex exec -> review.json, fallback: Claude)
 - `/final-review`: review (DoD check)
 - `/create-pr`: push branch and create a PR (gh)
 - `/pr-bots-review`: request a PR review-bot check on a PR and iterate until feedback is resolved
