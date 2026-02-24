@@ -150,11 +150,17 @@ Before collecting diffs, verify the scope matches the current branch context.
     - `engine_fingerprint`, `sot_fingerprint`, `tests_fingerprint`
   - Includes budget/latency observability keys:
     - `diff_bytes`, `sot_bytes`, `prompt_bytes`, `engine_runtime_ms`
+  - Includes engine execution observability keys:
+    - `engine_exit_code`, `exec_timeout_sec`, `timeout_applied`, `timeout_bin`
+    - `engine_stderr_summary`, `engine_stderr_sha256`, `engine_stderr_bytes`
   - Includes reuse observability fields:
     - `incremental_enabled`, `reuse_eligible`, `reused`, `reuse_reason`, `non_reuse_reason`, `reused_from_run`
+  - On engine/output failure, metadata is still written with:
+    - `review_completed=false`, `failure_reason`, `failure_message`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/diff.patch`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.txt`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.stderr`
+- `.agentic-sdd/reviews/<scope-id>/<run-id>/engine.stderr`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/sot.txt`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/prompt.txt`
 

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 usage() {
-  cat <<'EOF'
+	cat <<'EOF'
 Usage: review-cycle.sh <scope-id> [run-id] [options]
 
 Generate a review JSON (schema v3) via `codex exec --output-schema`.
@@ -89,82 +89,82 @@ claude_model_cli_set=0
 claude_model_cli=""
 args=()
 while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --)
-      # End of options marker. Treat the remaining args as positional.
-      shift
-      while [[ $# -gt 0 ]]; do
-        args+=("$1")
-        shift
-      done
-      ;;
-    --dry-run)
-      DRY_RUN=1
-      shift
-      ;;
-    --model)
-      if [[ $# -lt 2 ]]; then
-        eprint "Missing value for --model"
-        usage
-        exit 2
-      fi
-      model_cli_set=1
-      model_cli="$2"
-      shift 2
-      ;;
-    --model=*)
-      model_cli_set=1
-      model_cli="${1#*=}"
-      shift
-      ;;
-    --claude-model)
-      if [[ $# -lt 2 ]]; then
-        eprint "Missing value for --claude-model"
-        usage
-        exit 2
-      fi
-      claude_model_cli_set=1
-      claude_model_cli="$2"
-      shift 2
-      ;;
-    --claude-model=*)
-      claude_model_cli_set=1
-      claude_model_cli="${1#*=}"
-      shift
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    -*)
-      eprint "Unknown option: $1"
-      usage
-      exit 2
-      ;;
-    *)
-      args+=("$1")
-      shift
-      ;;
-  esac
+	case "$1" in
+	--)
+		# End of options marker. Treat the remaining args as positional.
+		shift
+		while [[ $# -gt 0 ]]; do
+			args+=("$1")
+			shift
+		done
+		;;
+	--dry-run)
+		DRY_RUN=1
+		shift
+		;;
+	--model)
+		if [[ $# -lt 2 ]]; then
+			eprint "Missing value for --model"
+			usage
+			exit 2
+		fi
+		model_cli_set=1
+		model_cli="$2"
+		shift 2
+		;;
+	--model=*)
+		model_cli_set=1
+		model_cli="${1#*=}"
+		shift
+		;;
+	--claude-model)
+		if [[ $# -lt 2 ]]; then
+			eprint "Missing value for --claude-model"
+			usage
+			exit 2
+		fi
+		claude_model_cli_set=1
+		claude_model_cli="$2"
+		shift 2
+		;;
+	--claude-model=*)
+		claude_model_cli_set=1
+		claude_model_cli="${1#*=}"
+		shift
+		;;
+	-h | --help)
+		usage
+		exit 0
+		;;
+	-*)
+		eprint "Unknown option: $1"
+		usage
+		exit 2
+		;;
+	*)
+		args+=("$1")
+		shift
+		;;
+	esac
 done
 
 if [[ ${#args[@]} -lt 1 || ${#args[@]} -gt 2 ]]; then
-  usage
-  exit 2
+	usage
+	exit 2
 fi
 
 scope_id="${args[0]}"
 run_id="${args[1]:-}"
 
 if [[ ! "$scope_id" =~ ^[A-Za-z0-9._-]+$ || "$scope_id" == "." || "$scope_id" == ".." ]]; then
-  eprint "Invalid scope-id: $scope_id (allowed: [A-Za-z0-9._-]+, not '.' or '..')"
-  exit 2
+	eprint "Invalid scope-id: $scope_id (allowed: [A-Za-z0-9._-]+, not '.' or '..')"
+	exit 2
 fi
 
 repo_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
 if [[ -z "$repo_root" ]]; then
-  eprint "Not in a git repository; cannot locate repo root."
-  exit 1
+	eprint "Not in a git repository; cannot locate repo root."
+	exit 1
 fi
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -181,18 +181,18 @@ review_engine="${REVIEW_ENGINE:-codex}"
 
 # Validate engine selection early (before dry-run)
 case "$review_engine" in
-  codex|claude) ;;
-  *)
-    eprint "Invalid REVIEW_ENGINE: $review_engine (use codex|claude)"
-    exit 2
-    ;;
+codex | claude) ;;
+*)
+	eprint "Invalid REVIEW_ENGINE: $review_engine (use codex|claude)"
+	exit 2
+	;;
 esac
 
 # Codex options
 codex_bin="${CODEX_BIN:-codex}"
 if [[ "$model_cli_set" -eq 1 && -z "$model_cli" ]]; then
-  eprint "Invalid --model: empty"
-  exit 2
+	eprint "Invalid --model: empty"
+	exit 2
 fi
 model="${model_cli:-${MODEL:-gpt-5.3-codex}}"
 effort="${REASONING_EFFORT:-high}"
@@ -200,8 +200,8 @@ effort="${REASONING_EFFORT:-high}"
 # Claude options
 claude_bin="${CLAUDE_BIN:-claude}"
 if [[ "$claude_model_cli_set" -eq 1 && -z "$claude_model_cli" ]]; then
-  eprint "Invalid --claude-model: empty"
-  exit 2
+	eprint "Invalid --claude-model: empty"
+	exit 2
 fi
 claude_model="${claude_model_cli:-${CLAUDE_MODEL:-claude-opus-4-5-20250929}}"
 
@@ -228,12 +228,13 @@ sot_max_chars="${SOT_MAX_CHARS:-0}"
 
 declare -a sot_files=()
 if [[ -n "$sot_files_raw" ]]; then
-  if ! command -v python3 >/dev/null 2>&1; then
-    eprint "python3 not found (required for SOT_FILES parsing)."
-    exit 1
-  fi
+	if ! command -v python3 >/dev/null 2>&1; then
+		eprint "python3 not found (required for SOT_FILES parsing)."
+		exit 1
+	fi
 
-  if ! sot_files_parsed="$(python3 - "$sot_files_raw" <<'PY_SPLIT'
+	if ! sot_files_parsed="$(
+		python3 - "$sot_files_raw" <<'PY_SPLIT'
 import sys
 import shlex
 
@@ -249,46 +250,46 @@ for item in parts:
         continue
     print(item)
 PY_SPLIT
-  )"; then
-    eprint "Invalid SOT_FILES; failed to parse shell-like list"
-    exit 2
-  fi
+	)"; then
+		eprint "Invalid SOT_FILES; failed to parse shell-like list"
+		exit 2
+	fi
 
-  while IFS= read -r parsed_item; do
-    [[ -n "$parsed_item" ]] || continue
-    sot_files+=("$parsed_item")
-  done <<< "$sot_files_parsed"
+	while IFS= read -r parsed_item; do
+		[[ -n "$parsed_item" ]] || continue
+		sot_files+=("$parsed_item")
+	done <<<"$sot_files_parsed"
 fi
 
 if [[ -z "$sot" && -z "$gh_issue" && -z "$gh_issue_body_file" && ${#sot_files[@]} -eq 0 ]]; then
-  eprint "SoT is required. Set one of: SOT, GH_ISSUE, GH_ISSUE_BODY_FILE, SOT_FILES"
-  exit 2
+	eprint "SoT is required. Set one of: SOT, GH_ISSUE, GH_ISSUE_BODY_FILE, SOT_FILES"
+	exit 2
 fi
 
 if [[ ! "$sot_max_chars" =~ ^[0-9]+$ ]]; then
-  eprint "Invalid SOT_MAX_CHARS: $sot_max_chars (expected integer)"
-  exit 2
+	eprint "Invalid SOT_MAX_CHARS: $sot_max_chars (expected integer)"
+	exit 2
 fi
 
 scope_root="${output_root}/${scope_id}"
 current_run_file="${scope_root}/.current_run"
 
 if [[ -z "$run_id" && -f "$current_run_file" ]]; then
-  candidate="$(cat "$current_run_file" 2>/dev/null || true)"
-  if [[ "$candidate" =~ ^[A-Za-z0-9._-]+$ && "$candidate" != "." && "$candidate" != ".." ]]; then
-    run_id="$candidate"
-  else
-    run_id=""
-  fi
+	candidate="$(cat "$current_run_file" 2>/dev/null || true)"
+	if [[ "$candidate" =~ ^[A-Za-z0-9._-]+$ && "$candidate" != "." && "$candidate" != ".." ]]; then
+		run_id="$candidate"
+	else
+		run_id=""
+	fi
 fi
 
 if [[ -z "$run_id" ]]; then
-  run_id="$(date +"%Y%m%d_%H%M%S")"
+	run_id="$(date +"%Y%m%d_%H%M%S")"
 fi
 
 if [[ ! "$run_id" =~ ^[A-Za-z0-9._-]+$ || "$run_id" == "." || "$run_id" == ".." ]]; then
-  eprint "Invalid run-id: $run_id (allowed: [A-Za-z0-9._-]+, not '.' or '..')"
-  exit 2
+	eprint "Invalid run-id: $run_id (allowed: [A-Za-z0-9._-]+, not '.' or '..')"
+	exit 2
 fi
 
 run_dir="${scope_root}/${run_id}"
@@ -297,6 +298,7 @@ out_meta="${run_dir}/review-metadata.json"
 out_diff="${run_dir}/diff.patch"
 out_tests="${run_dir}/tests.txt"
 out_tests_stderr="${run_dir}/tests.stderr"
+out_engine_stderr="${run_dir}/engine.stderr"
 
 out_sot="${run_dir}/sot.txt"
 out_issue_json="${run_dir}/issue.json"
@@ -311,28 +313,32 @@ diff_bytes=0
 sot_bytes=0
 prompt_bytes=0
 engine_runtime_ms=0
+engine_exit_code=""
+engine_stderr_summary="none"
+engine_stderr_sha256=""
+engine_stderr_bytes=0
 # Internal compatibility token for incremental cache reuse.
 # Bump when prompt composition or reuse eligibility semantics change.
 script_semantics_version="v3"
 
 review_cycle_incremental="${REVIEW_CYCLE_INCREMENTAL:-1}"
 if [[ "$review_cycle_incremental" != "0" && "$review_cycle_incremental" != "1" ]]; then
-  eprint "Invalid REVIEW_CYCLE_INCREMENTAL: $review_cycle_incremental (use 0|1)"
-  exit 2
+	eprint "Invalid REVIEW_CYCLE_INCREMENTAL: $review_cycle_incremental (use 0|1)"
+	exit 2
 fi
 
 review_cycle_cache_policy="${REVIEW_CYCLE_CACHE_POLICY:-balanced}"
 case "$review_cycle_cache_policy" in
-  strict|balanced|off) ;;
-  *)
-    eprint "Invalid REVIEW_CYCLE_CACHE_POLICY: $review_cycle_cache_policy (use strict|balanced|off)"
-    exit 2
-    ;;
+strict | balanced | off) ;;
+*)
+	eprint "Invalid REVIEW_CYCLE_CACHE_POLICY: $review_cycle_cache_policy (use strict|balanced|off)"
+	exit 2
+	;;
 esac
 
 sha256_file() {
-  local path="$1"
-  python3 - "$path" <<'PY'
+	local path="$1"
+	python3 - "$path" <<'PY'
 import hashlib
 import sys
 
@@ -343,120 +349,426 @@ PY
 
 timeout_bin=""
 if [[ -n "$exec_timeout_sec" ]]; then
-  if command -v timeout >/dev/null 2>&1; then
-    timeout_bin="timeout"
-  elif command -v gtimeout >/dev/null 2>&1; then
-    timeout_bin="gtimeout"
-  else
-    eprint "EXEC_TIMEOUT_SEC set but no timeout/gtimeout found; running without timeout"
-  fi
+	if command -v timeout >/dev/null 2>&1; then
+		timeout_bin="timeout"
+	elif command -v gtimeout >/dev/null 2>&1; then
+		timeout_bin="gtimeout"
+	else
+		eprint "EXEC_TIMEOUT_SEC set but no timeout/gtimeout found; running without timeout"
+	fi
+fi
+
+timeout_applied=0
+if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
+	timeout_applied=1
 fi
 
 ensure_run_dir() {
-  mkdir -p "$run_dir"
+	mkdir -p "$run_dir"
+}
+
+collect_engine_stderr_diagnostics() {
+	local stderr_path="$1"
+	local diag_summary="none"
+	local diag_sha256=""
+	local diag_bytes="0"
+
+	if [[ -f "$stderr_path" ]]; then
+		local diag_output
+		local diag_status=0
+		set +e
+		diag_output="$(
+			python3 - "$stderr_path" <<'PY'
+import hashlib
+import sys
+
+path = sys.argv[1]
+try:
+    with open(path, "rb") as fh:
+        raw = fh.read()
+except OSError:
+    print("none")
+    print("")
+    print("0")
+    raise SystemExit(0)
+
+if not raw:
+    print("none")
+    print("")
+    print("0")
+    raise SystemExit(0)
+
+sha = hashlib.sha256(raw).hexdigest()
+text = raw.decode("utf-8", "replace")
+summary = "present (non-empty)"
+for line in text.splitlines():
+    candidate = line.strip()
+    if candidate:
+        summary = candidate
+        break
+
+if len(summary) > 200:
+    summary = summary[:197] + "..."
+
+print(summary)
+print(sha)
+print(str(len(raw)))
+PY
+		)"
+		diag_status=$?
+		set -e
+
+		if [[ "$diag_status" -eq 0 && -n "$diag_output" ]]; then
+			local line_no=0
+			local line=""
+			while IFS= read -r line; do
+				line_no=$((line_no + 1))
+				case "$line_no" in
+				1) diag_summary="$line" ;;
+				2) diag_sha256="$line" ;;
+				3) diag_bytes="$line" ;;
+				esac
+			done <<<"$diag_output"
+		fi
+	fi
+
+	engine_stderr_summary="$diag_summary"
+	engine_stderr_sha256="$diag_sha256"
+	engine_stderr_bytes="$diag_bytes"
+}
+
+update_engine_runtime_ms() {
+	if [[ -z "${engine_start_ms:-}" ]]; then
+		return
+	fi
+
+	local current_end_ms
+	local py_status=0
+	set +e
+	current_end_ms="$(
+		python3 - <<'PY'
+import time
+print(time.time_ns() // 1_000_000)
+PY
+	)"
+	py_status=$?
+	set -e
+
+	if [[ "$py_status" -ne 0 || -z "$current_end_ms" || ! "$current_end_ms" =~ ^[0-9]+$ ]]; then
+		return
+	fi
+
+	engine_runtime_ms="$((current_end_ms - engine_start_ms))"
+	if [[ "$engine_runtime_ms" -lt 0 ]]; then
+		engine_runtime_ms=0
+	fi
+}
+
+write_failure_review_metadata() {
+	local failure_reason="$1"
+	local failure_message="$2"
+	local non_reuse_reason=""
+
+	rm -f "$out_json"
+	rm -f "$tmp_json"
+
+	if [[ "$reused" -eq 0 ]]; then
+		if [[ "$review_cycle_incremental" != "1" ]]; then
+			non_reuse_reason="incremental-disabled"
+		else
+			non_reuse_reason="$reuse_reason"
+		fi
+	fi
+
+	write_review_metadata "0" "$non_reuse_reason" "$failure_reason" "$failure_message"
+}
+
+write_review_metadata() {
+	local review_completed="$1"
+	local non_reuse_reason="$2"
+	local failure_reason="${3:-}"
+	local failure_message="${4:-}"
+
+	REVIEW_META_OUT="$out_meta" \
+		REVIEW_META_SCOPE_ID="$scope_id" \
+		REVIEW_META_RUN_ID="$run_id" \
+		REVIEW_META_DIFF_SOURCE="$diff_source" \
+		REVIEW_META_BASE_REF="$meta_base_ref" \
+		REVIEW_META_BASE_SHA="$meta_base_sha" \
+		REVIEW_META_HEAD_SHA="$head_sha" \
+		REVIEW_META_DIFF_SHA256="$diff_sha256" \
+		REVIEW_META_SOT_FINGERPRINT="$sot_fingerprint" \
+		REVIEW_META_TESTS_FINGERPRINT="$tests_fingerprint" \
+		REVIEW_META_ENGINE_FINGERPRINT="$engine_fingerprint" \
+		REVIEW_META_ENGINE_VERSION_AVAILABLE="$engine_version_available" \
+		REVIEW_META_INCREMENTAL_ENABLED="$review_cycle_incremental" \
+		REVIEW_META_CACHE_POLICY="$review_cycle_cache_policy" \
+		REVIEW_META_REUSE_ELIGIBLE="$reuse_eligible" \
+		REVIEW_META_REUSED="$reused" \
+		REVIEW_META_REUSE_REASON="$reuse_reason" \
+		REVIEW_META_NON_REUSE_REASON="$non_reuse_reason" \
+		REVIEW_META_REUSED_FROM_RUN="$reused_from_run" \
+		REVIEW_META_TESTS_EXIT_CODE="$tests_exit_code" \
+		REVIEW_META_PROMPT_BYTES="$prompt_bytes" \
+		REVIEW_META_SOT_BYTES="$sot_bytes" \
+		REVIEW_META_DIFF_BYTES="$diff_bytes" \
+		REVIEW_META_ENGINE_RUNTIME_MS="$engine_runtime_ms" \
+		REVIEW_META_REVIEW_ENGINE="$review_engine" \
+		REVIEW_META_MODEL="$model" \
+		REVIEW_META_REASONING_EFFORT="$effort" \
+		REVIEW_META_CLAUDE_MODEL="$claude_model" \
+		REVIEW_META_SCHEMA_SHA256="$schema_sha256" \
+		REVIEW_META_CONSTRAINTS="$constraints" \
+		REVIEW_META_ENGINE_VERSION_OUTPUT="$engine_version_output" \
+		REVIEW_META_SCRIPT_SEMANTICS_VERSION="$script_semantics_version" \
+		REVIEW_META_ENGINE_EXIT_CODE="$engine_exit_code" \
+		REVIEW_META_EXEC_TIMEOUT_SEC="$exec_timeout_sec" \
+		REVIEW_META_TIMEOUT_APPLIED="$timeout_applied" \
+		REVIEW_META_TIMEOUT_BIN="$timeout_bin" \
+		REVIEW_META_ENGINE_STDERR_SUMMARY="$engine_stderr_summary" \
+		REVIEW_META_ENGINE_STDERR_SHA256="$engine_stderr_sha256" \
+		REVIEW_META_ENGINE_STDERR_BYTES="$engine_stderr_bytes" \
+		REVIEW_META_REVIEW_COMPLETED="$review_completed" \
+		REVIEW_META_FAILURE_REASON="$failure_reason" \
+		REVIEW_META_FAILURE_MESSAGE="$failure_message" \
+		python3 - <<'PY'
+import datetime
+import json
+import os
+import sys
+
+def required(name: str) -> str:
+    value = os.environ.get(name)
+    if value is None:
+        print(f"Missing required metadata input: {name}", file=sys.stderr)
+        raise SystemExit(2)
+    return value
+
+def parse_int(raw: str, default: int = 0) -> int:
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return default
+
+def parse_optional_int(raw: str):
+    if raw is None:
+        return None
+    value = raw.strip()
+    if value == "":
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+def parse_bool(raw: str) -> bool:
+    if raw == "1":
+        return True
+    if raw == "0":
+        return False
+    print(f"Invalid boolean metadata input: {raw!r}", file=sys.stderr)
+    raise SystemExit(2)
+
+out_meta = required("REVIEW_META_OUT")
+scope_id = required("REVIEW_META_SCOPE_ID")
+run_id = required("REVIEW_META_RUN_ID")
+diff_source = required("REVIEW_META_DIFF_SOURCE")
+base_ref = required("REVIEW_META_BASE_REF")
+base_sha = required("REVIEW_META_BASE_SHA")
+head_sha = required("REVIEW_META_HEAD_SHA")
+diff_sha256 = required("REVIEW_META_DIFF_SHA256")
+sot_fingerprint = required("REVIEW_META_SOT_FINGERPRINT")
+tests_fingerprint = required("REVIEW_META_TESTS_FINGERPRINT")
+engine_fingerprint = required("REVIEW_META_ENGINE_FINGERPRINT")
+engine_version_available = parse_bool(required("REVIEW_META_ENGINE_VERSION_AVAILABLE"))
+incremental_enabled = parse_bool(required("REVIEW_META_INCREMENTAL_ENABLED"))
+cache_policy = required("REVIEW_META_CACHE_POLICY")
+reuse_eligible = parse_bool(required("REVIEW_META_REUSE_ELIGIBLE"))
+reused = parse_bool(required("REVIEW_META_REUSED"))
+reuse_reason = required("REVIEW_META_REUSE_REASON")
+non_reuse_reason = required("REVIEW_META_NON_REUSE_REASON")
+reused_from_run = required("REVIEW_META_REUSED_FROM_RUN")
+tests_exit_code_raw = required("REVIEW_META_TESTS_EXIT_CODE")
+prompt_bytes_raw = required("REVIEW_META_PROMPT_BYTES")
+sot_bytes_raw = required("REVIEW_META_SOT_BYTES")
+diff_bytes_raw = required("REVIEW_META_DIFF_BYTES")
+engine_runtime_ms_raw = required("REVIEW_META_ENGINE_RUNTIME_MS")
+review_engine = required("REVIEW_META_REVIEW_ENGINE")
+model = required("REVIEW_META_MODEL")
+reasoning_effort = required("REVIEW_META_REASONING_EFFORT")
+claude_model = required("REVIEW_META_CLAUDE_MODEL")
+schema_sha256 = required("REVIEW_META_SCHEMA_SHA256")
+constraints = required("REVIEW_META_CONSTRAINTS")
+engine_version_output = required("REVIEW_META_ENGINE_VERSION_OUTPUT")
+script_semantics_version = required("REVIEW_META_SCRIPT_SEMANTICS_VERSION")
+engine_exit_code_raw = required("REVIEW_META_ENGINE_EXIT_CODE")
+exec_timeout_sec_raw = required("REVIEW_META_EXEC_TIMEOUT_SEC")
+timeout_applied = parse_bool(required("REVIEW_META_TIMEOUT_APPLIED"))
+timeout_bin = required("REVIEW_META_TIMEOUT_BIN")
+engine_stderr_summary = required("REVIEW_META_ENGINE_STDERR_SUMMARY")
+engine_stderr_sha256 = required("REVIEW_META_ENGINE_STDERR_SHA256")
+engine_stderr_bytes_raw = required("REVIEW_META_ENGINE_STDERR_BYTES")
+review_completed = parse_bool(required("REVIEW_META_REVIEW_COMPLETED"))
+failure_reason = required("REVIEW_META_FAILURE_REASON")
+failure_message = required("REVIEW_META_FAILURE_MESSAGE")
+
+payload = {
+    "schema_version": 1,
+    "scope_id": scope_id,
+    "run_id": run_id,
+    "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    "diff_source": diff_source,
+    "base_ref": base_ref,
+    "base_sha": base_sha,
+    "head_sha": head_sha,
+    "diff_sha256": diff_sha256,
+    "sot_fingerprint": sot_fingerprint,
+    "tests_fingerprint": tests_fingerprint,
+    "engine_fingerprint": engine_fingerprint,
+    "review_engine": review_engine,
+    "codex_model": model if review_engine == "codex" else "",
+    "reasoning_effort": reasoning_effort if review_engine == "codex" else "",
+    "claude_model": claude_model if review_engine == "claude" else "",
+    "schema_sha256": schema_sha256,
+    "constraints": constraints,
+    "engine_version_output": engine_version_output,
+    "script_semantics_version": script_semantics_version,
+    "engine_version_available": engine_version_available,
+    "incremental_enabled": incremental_enabled,
+    "cache_policy": cache_policy,
+    "reuse_eligible": reuse_eligible,
+    "reused": reused,
+    "reuse_reason": reuse_reason,
+    "non_reuse_reason": non_reuse_reason,
+    "reused_from_run": reused_from_run,
+    "review_completed": review_completed,
+    "tests_exit_code": parse_optional_int(tests_exit_code_raw),
+    "prompt_bytes": parse_int(prompt_bytes_raw),
+    "sot_bytes": parse_int(sot_bytes_raw),
+    "diff_bytes": parse_int(diff_bytes_raw),
+    "engine_runtime_ms": parse_int(engine_runtime_ms_raw),
+    "engine_exit_code": parse_optional_int(engine_exit_code_raw),
+    "exec_timeout_sec": parse_optional_int(exec_timeout_sec_raw),
+    "timeout_applied": timeout_applied,
+    "timeout_bin": timeout_bin,
+    "engine_stderr_summary": engine_stderr_summary,
+    "engine_stderr_sha256": engine_stderr_sha256,
+    "engine_stderr_bytes": parse_int(engine_stderr_bytes_raw),
+}
+
+if not review_completed:
+    payload["failure_reason"] = failure_reason
+    payload["failure_message"] = failure_message
+
+os.makedirs(os.path.dirname(out_meta), exist_ok=True)
+with open(out_meta, "w", encoding="utf-8") as fh:
+    json.dump(payload, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
 }
 
 parse_optional_byte_limit() {
-  local name="$1"
-  local raw="$2"
-  local min_value="$3"
-  local parsed=0
-  if [[ -z "$raw" ]]; then
-    printf '0\n'
-    return 0
-  fi
-  if [[ ! "$raw" =~ ^[0-9]+$ ]]; then
-    eprint "Invalid ${name}: ${raw} (expected integer; use 0 to disable)"
-    exit 2
-  fi
-  parsed=$((10#$raw))
-  if (( parsed == 0 )); then
-    printf '0\n'
-    return 0
-  fi
-  if (( parsed < min_value )); then
-    eprint "Invalid ${name}: ${raw} (minimum ${min_value} bytes when enabled; use 0 to disable)"
-    exit 2
-  fi
-  printf '%s\n' "$parsed"
+	local name="$1"
+	local raw="$2"
+	local min_value="$3"
+	local parsed=0
+	if [[ -z "$raw" ]]; then
+		printf '0\n'
+		return 0
+	fi
+	if [[ ! "$raw" =~ ^[0-9]+$ ]]; then
+		eprint "Invalid ${name}: ${raw} (expected integer; use 0 to disable)"
+		exit 2
+	fi
+	parsed=$((10#$raw))
+	if ((parsed == 0)); then
+		printf '0\n'
+		return 0
+	fi
+	if ((parsed < min_value)); then
+		eprint "Invalid ${name}: ${raw} (minimum ${min_value} bytes when enabled; use 0 to disable)"
+		exit 2
+	fi
+	printf '%s\n' "$parsed"
 }
 
 max_diff_bytes="$(parse_optional_byte_limit "MAX_DIFF_BYTES" "$max_diff_bytes_raw" 1)"
 max_prompt_bytes="$(parse_optional_byte_limit "MAX_PROMPT_BYTES" "$max_prompt_bytes_raw" 1)"
 
 git_ref_exists() {
-  local ref="$1"
-  git -C "$repo_root" rev-parse --verify "$ref" >/dev/null 2>&1
+	local ref="$1"
+	git -C "$repo_root" rev-parse --verify "$ref" >/dev/null 2>&1
 }
 
 git_local_branch_exists() {
-  local branch_ref="$1"
-  git -C "$repo_root" show-ref --verify --quiet "refs/heads/$branch_ref"
+	local branch_ref="$1"
+	git -C "$repo_root" show-ref --verify --quiet "refs/heads/$branch_ref"
 }
 
 fetch_remote_tracking_ref() {
-  local ref="$1"
-  local remote_name=""
-  local remote_prefix=""
-  local branch=""
-  while IFS= read -r remote_name; do
-    [[ -n "$remote_name" ]] || continue
-    remote_prefix="${remote_name}/"
-    if [[ "$ref" != "$remote_prefix"* ]]; then
-      continue
-    fi
-    branch="${ref#"$remote_prefix"}"
-    if [[ -z "$branch" ]]; then
-      return 0
-    fi
-    if git_local_branch_exists "$ref"; then
-      return 0
-    fi
-    git -C "$repo_root" fetch --no-tags --quiet "$remote_name" "$branch"
-    return $?
-  done < <(git -C "$repo_root" remote)
-  return 0
+	local ref="$1"
+	local remote_name=""
+	local remote_prefix=""
+	local branch=""
+	while IFS= read -r remote_name; do
+		[[ -n "$remote_name" ]] || continue
+		remote_prefix="${remote_name}/"
+		if [[ "$ref" != "$remote_prefix"* ]]; then
+			continue
+		fi
+		branch="${ref#"$remote_prefix"}"
+		if [[ -z "$branch" ]]; then
+			return 0
+		fi
+		if git_local_branch_exists "$ref"; then
+			return 0
+		fi
+		git -C "$repo_root" fetch --no-tags --quiet "$remote_name" "$branch"
+		return $?
+	done < <(git -C "$repo_root" remote)
+	return 0
 }
 
-		write_tests() {
-	  local exit_code=0
-	  local reported_stderr=0
-	  local tmp_tests_stdout=""
+write_tests() {
+	local exit_code=0
+	local reported_stderr=0
+	local tmp_tests_stdout=""
 
-	  if [[ -n "$test_command" ]]; then
-	    case "$test_stderr_policy" in
-	      warn|fail|ignore) ;;
-	      *)
-	        eprint "Invalid TEST_STDERR_POLICY: $test_stderr_policy (use warn|fail|ignore)"
-	        exit 2
-	        ;;
-	    esac
+	if [[ -n "$test_command" ]]; then
+		case "$test_stderr_policy" in
+		warn | fail | ignore) ;;
+		*)
+			eprint "Invalid TEST_STDERR_POLICY: $test_stderr_policy (use warn|fail|ignore)"
+			exit 2
+			;;
+		esac
 
-	    if [[ "$DRY_RUN" -eq 1 ]]; then
-	      if [[ -z "$tests_summary" ]]; then
-	        tests_summary="command: ${test_command} (not run: --dry-run)"
-      fi
-      tests_stderr_summary="not checked (dry-run)"
-      return 0
-	    fi
+		if [[ "$DRY_RUN" -eq 1 ]]; then
+			if [[ -z "$tests_summary" ]]; then
+				tests_summary="command: ${test_command} (not run: --dry-run)"
+			fi
+			tests_stderr_summary="not checked (dry-run)"
+			return 0
+		fi
 
-	    ensure_run_dir
-	    tmp_tests_stdout="${run_dir}/tests.stdout.tmp.$$"
-	    : > "$out_tests_stderr"
-	    : > "$tmp_tests_stdout"
-	    {
-	      printf 'Command: %s\n' "$test_command"
-	      printf 'Started: %s\n' "$(date +"%Y-%m-%dT%H:%M:%S%z")"
-	      printf '\n'
-	    } > "$out_tests"
+		ensure_run_dir
+		tmp_tests_stdout="${run_dir}/tests.stdout.tmp.$$"
+		: >"$out_tests_stderr"
+		: >"$tmp_tests_stdout"
+		{
+			printf 'Command: %s\n' "$test_command"
+			printf 'Started: %s\n' "$(date +"%Y-%m-%dT%H:%M:%S%z")"
+			printf '\n'
+		} >"$out_tests"
 
-	    set +e
-    env -u BASH_ENV bash -c "$test_command" >"$tmp_tests_stdout" 2>"$out_tests_stderr"
-	    exit_code=$?
-	    set -e
-	    tests_exit_code="$exit_code"
+		set +e
+		env -u BASH_ENV bash -c "$test_command" >"$tmp_tests_stdout" 2>"$out_tests_stderr"
+		exit_code=$?
+		set -e
+		tests_exit_code="$exit_code"
 
-	    tests_fingerprint_input_sha256="$(python3 - "$tmp_tests_stdout" "$out_tests_stderr" "$test_command" "$exit_code" "$test_stderr_policy" <<'PY'
+		tests_fingerprint_input_sha256="$(
+			python3 - "$tmp_tests_stdout" "$out_tests_stderr" "$test_command" "$exit_code" "$test_stderr_policy" <<'PY'
 import hashlib
 import json
 import sys
@@ -483,370 +795,371 @@ payload = {
 encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
 print(hashlib.sha256(encoded).hexdigest())
 PY
-)"
+		)"
 
-	    if grep -qE '^[[:space:]]*stderr [|]' "$tmp_tests_stdout"; then
-	      reported_stderr=1
-	      tests_stderr_present=1
-	    fi
+		if grep -qE '^[[:space:]]*stderr [|]' "$tmp_tests_stdout"; then
+			reported_stderr=1
+			tests_stderr_present=1
+		fi
 
-	    cat "$tmp_tests_stdout" >>"$out_tests"
-	    if [[ -s "$out_tests_stderr" ]]; then
-	      {
-	        printf '\n'
-	        printf '\n'
-	        printf '[stderr]\n'
-	      } >>"$out_tests"
-	      cat "$out_tests_stderr" >>"$out_tests"
-	    fi
-	    rm -f "$tmp_tests_stdout" 2>/dev/null || true
+		cat "$tmp_tests_stdout" >>"$out_tests"
+		if [[ -s "$out_tests_stderr" ]]; then
+			{
+				printf '\n'
+				printf '\n'
+				printf '[stderr]\n'
+			} >>"$out_tests"
+			cat "$out_tests_stderr" >>"$out_tests"
+		fi
+		rm -f "$tmp_tests_stdout" 2>/dev/null || true
 
-	    if [[ -s "$out_tests_stderr" ]]; then
-	      tests_stderr_present=1
-	    fi
+		if [[ -s "$out_tests_stderr" ]]; then
+			tests_stderr_present=1
+		fi
 
-	    if [[ "$tests_stderr_present" -eq 1 ]]; then
-	      if [[ "$reported_stderr" -eq 1 && -s "$out_tests_stderr" ]]; then
-	        tests_stderr_summary="present (process-stderr + reported)"
-      elif [[ "$reported_stderr" -eq 1 ]]; then
-        tests_stderr_summary="present (reported)"
-      else
-        tests_stderr_summary="present (process-stderr)"
-      fi
-    else
-      tests_stderr_summary="none"
-    fi
+		if [[ "$tests_stderr_present" -eq 1 ]]; then
+			if [[ "$reported_stderr" -eq 1 && -s "$out_tests_stderr" ]]; then
+				tests_stderr_summary="present (process-stderr + reported)"
+			elif [[ "$reported_stderr" -eq 1 ]]; then
+				tests_stderr_summary="present (reported)"
+			else
+				tests_stderr_summary="present (process-stderr)"
+			fi
+		else
+			tests_stderr_summary="none"
+		fi
 
-    {
-      printf '\n'
-      printf 'Exit: %s\n' "$exit_code"
-      printf 'Finished: %s\n' "$(date +"%Y-%m-%dT%H:%M:%S%z")"
-      printf 'Stderr: %s\n' "$tests_stderr_summary"
-      printf 'Stderr-Policy: %s\n' "$test_stderr_policy"
-    } >> "$out_tests"
+		{
+			printf '\n'
+			printf 'Exit: %s\n' "$exit_code"
+			printf 'Finished: %s\n' "$(date +"%Y-%m-%dT%H:%M:%S%z")"
+			printf 'Stderr: %s\n' "$tests_stderr_summary"
+			printf 'Stderr-Policy: %s\n' "$test_stderr_policy"
+		} >>"$out_tests"
 
-    if [[ -z "$tests_summary" ]]; then
-      if [[ "$exit_code" -eq 0 ]]; then
-        if [[ "$tests_stderr_present" -eq 1 ]]; then
-          tests_summary="command: ${test_command} (exit=0, stderr=present)"
-        else
-          tests_summary="command: ${test_command} (exit=0)"
-        fi
-      else
-        if [[ "$tests_stderr_present" -eq 1 ]]; then
-          tests_summary="command: ${test_command} (exit=${exit_code}, stderr=present)"
-        else
-          tests_summary="command: ${test_command} (exit=${exit_code})"
-        fi
-      fi
-    fi
+		if [[ -z "$tests_summary" ]]; then
+			if [[ "$exit_code" -eq 0 ]]; then
+				if [[ "$tests_stderr_present" -eq 1 ]]; then
+					tests_summary="command: ${test_command} (exit=0, stderr=present)"
+				else
+					tests_summary="command: ${test_command} (exit=0)"
+				fi
+			else
+				if [[ "$tests_stderr_present" -eq 1 ]]; then
+					tests_summary="command: ${test_command} (exit=${exit_code}, stderr=present)"
+				else
+					tests_summary="command: ${test_command} (exit=${exit_code})"
+				fi
+			fi
+		fi
 
-    if [[ "$tests_stderr_present" -eq 1 ]]; then
-      case "$test_stderr_policy" in
-        warn)
-          eprint "WARNING: test command produced stderr output (exit=${exit_code}). See: $out_tests_stderr"
-          ;;
-        fail)
-          tests_stderr_violation=1
-          ;;
-        ignore) ;;
-      esac
-    fi
-  else
-    if [[ -z "$tests_summary" ]]; then
-      eprint "TEST_COMMAND is required for /review-cycle test verification."
-      eprint "If you truly cannot run tests, set TESTS='not run: <reason>' explicitly."
-      exit 2
-    fi
-    if [[ ! "$tests_summary" =~ ^[Nn][Oo][Tt][[:space:]]+[Rr][Uu][Nn]:[[:space:]]+.+$ ]]; then
-      eprint "Invalid TESTS summary without TEST_COMMAND: '$tests_summary'"
-      eprint "Set TEST_COMMAND to actually run tests, or use TESTS='not run: <reason>'."
-      exit 2
-    fi
+		if [[ "$tests_stderr_present" -eq 1 ]]; then
+			case "$test_stderr_policy" in
+			warn)
+				eprint "WARNING: test command produced stderr output (exit=${exit_code}). See: $out_tests_stderr"
+				;;
+			fail)
+				tests_stderr_violation=1
+				;;
+			ignore) ;;
+			esac
+		fi
+	else
+		if [[ -z "$tests_summary" ]]; then
+			eprint "TEST_COMMAND is required for /review-cycle test verification."
+			eprint "If you truly cannot run tests, set TESTS='not run: <reason>' explicitly."
+			exit 2
+		fi
+		if [[ ! "$tests_summary" =~ ^[Nn][Oo][Tt][[:space:]]+[Rr][Uu][Nn]:[[:space:]]+.+$ ]]; then
+			eprint "Invalid TESTS summary without TEST_COMMAND: '$tests_summary'"
+			eprint "Set TEST_COMMAND to actually run tests, or use TESTS='not run: <reason>'."
+			exit 2
+		fi
 
-    if [[ "$DRY_RUN" -eq 1 ]]; then
-      return 0
-    fi
+		if [[ "$DRY_RUN" -eq 1 ]]; then
+			return 0
+		fi
 
-    ensure_run_dir
+		ensure_run_dir
 
-    {
-      printf 'Summary: %s\n' "$tests_summary"
-      printf 'Recorded: %s\n' "$(date +"%Y-%m-%dT%H:%M:%S%z")"
-    } > "$out_tests"
-    tests_exit_code=""
-    tests_stderr_summary="not checked (no TEST_COMMAND)"
-    tests_fingerprint_input_sha256="$(python3 - "$tests_summary" <<'PY'
+		{
+			printf 'Summary: %s\n' "$tests_summary"
+			printf 'Recorded: %s\n' "$(date +"%Y-%m-%dT%H:%M:%S%z")"
+		} >"$out_tests"
+		tests_exit_code=""
+		tests_stderr_summary="not checked (no TEST_COMMAND)"
+		tests_fingerprint_input_sha256="$(
+			python3 - "$tests_summary" <<'PY'
 import hashlib
 import sys
 
 summary = sys.argv[1]
 print(hashlib.sha256(summary.encode("utf-8")).hexdigest())
 PY
-)"
-  fi
+		)"
+	fi
 }
 
 write_diff() {
-  if [[ -n "$diff_file" ]]; then
-    if [[ ! -f "$diff_file" ]]; then
-      eprint "Diff file not found: $diff_file"
-      exit 2
-    fi
-    if [[ ! -s "$diff_file" ]]; then
-      eprint "Diff is empty: $diff_file"
-      exit 2
-    fi
-    diff_source="file"
-    if [[ "$DRY_RUN" -eq 0 ]]; then
-      ensure_run_dir
-      cp -p "$diff_file" "$out_diff"
-    fi
-    return 0
-  fi
+	if [[ -n "$diff_file" ]]; then
+		if [[ ! -f "$diff_file" ]]; then
+			eprint "Diff file not found: $diff_file"
+			exit 2
+		fi
+		if [[ ! -s "$diff_file" ]]; then
+			eprint "Diff is empty: $diff_file"
+			exit 2
+		fi
+		diff_source="file"
+		if [[ "$DRY_RUN" -eq 0 ]]; then
+			ensure_run_dir
+			cp -p "$diff_file" "$out_diff"
+		fi
+		return 0
+	fi
 
-  local has_staged=0
-  local has_worktree=0
-  if ! git -C "$repo_root" diff --quiet --staged; then
-    has_staged=1
-  fi
-  if ! git -C "$repo_root" diff --quiet; then
-    has_worktree=1
-  fi
+	local has_staged=0
+	local has_worktree=0
+	if ! git -C "$repo_root" diff --quiet --staged; then
+		has_staged=1
+	fi
+	if ! git -C "$repo_root" diff --quiet; then
+		has_worktree=1
+	fi
 
-  case "$diff_mode" in
-    range)
-      local base="$base_ref"
-      if [[ "$has_staged" -eq 1 || "$has_worktree" -eq 1 ]]; then
-        eprint "DIFF_MODE=range requires a clean working tree (no staged/unstaged changes)."
-        eprint "Use DIFF_MODE=staged or DIFF_MODE=worktree for pre-commit local changes."
-        exit 2
-      fi
-      if ! fetch_remote_tracking_ref "$base"; then
-        # Preserve existing fallback behavior when origin/main cannot be fetched
-        # and a local main exists.
-        if [[ "$base" == "origin/main" ]] && ! git_ref_exists "$base" && git_ref_exists "main"; then
-          base="main"
-        else
-          eprint "Failed to fetch latest base ref: $base"
-          eprint "Run 'git fetch' and retry /review-cycle."
-          exit 2
-        fi
-      fi
-      if ! git_ref_exists "$base"; then
-        if [[ "$base" == "origin/main" ]] && git_ref_exists "main"; then
-          base="main"
-        else
-          eprint "Base ref not found for range diff: $base"
-          exit 2
-        fi
-      fi
-      diff_source="range"
-      diff_detail="$base"
-      diff_base_sha="$(git -C "$repo_root" rev-parse "$base" 2>/dev/null || true)"
-      if [[ -z "$diff_base_sha" ]]; then
-        eprint "Failed to resolve base SHA during range diff collection: $base"
-        exit 2
-      fi
-      if git -C "$repo_root" diff --quiet "${base}...HEAD"; then
-        eprint "Diff is empty (range: ${base}...HEAD)."
-        exit 2
-      fi
-      if [[ "$DRY_RUN" -eq 0 ]]; then
-        ensure_run_dir
-        git -C "$repo_root" diff --no-color "${base}...HEAD" > "$out_diff"
-      fi
-      ;;
-    staged)
-      if [[ "$has_staged" -eq 0 ]]; then
-        eprint "Diff is empty (staged)."
-        exit 2
-      fi
-      diff_source="staged"
-      if [[ "$DRY_RUN" -eq 0 ]]; then
-        ensure_run_dir
-        git -C "$repo_root" diff --no-color --staged > "$out_diff"
-      fi
-      ;;
-    worktree)
-      if [[ "$has_worktree" -eq 0 ]]; then
-        eprint "Diff is empty (worktree)."
-        exit 2
-      fi
-      diff_source="worktree"
-      if [[ "$DRY_RUN" -eq 0 ]]; then
-        ensure_run_dir
-        git -C "$repo_root" diff --no-color > "$out_diff"
-      fi
-      ;;
-    auto|"")
-      if [[ "$has_staged" -eq 1 && "$has_worktree" -eq 1 ]]; then
-        eprint "Both staged and worktree diffs are non-empty."
-        eprint "Set DIFF_MODE=staged or DIFF_MODE=worktree (or set DIFF_FILE)."
-        exit 2
-      fi
-      if [[ "$has_staged" -eq 1 ]]; then
-        diff_source="staged"
-        if [[ "$DRY_RUN" -eq 0 ]]; then
-          ensure_run_dir
-          git -C "$repo_root" diff --no-color --staged > "$out_diff"
-        fi
-      elif [[ "$has_worktree" -eq 1 ]]; then
-        diff_source="worktree"
-        if [[ "$DRY_RUN" -eq 0 ]]; then
-          ensure_run_dir
-          git -C "$repo_root" diff --no-color > "$out_diff"
-        fi
-      else
-        eprint "Diff is empty (staged and worktree)."
-        exit 2
-      fi
-      ;;
-    *)
-      eprint "Invalid DIFF_MODE: $diff_mode (use range|staged|worktree|auto)"
-      exit 2
-      ;;
-  esac
+	case "$diff_mode" in
+	range)
+		local base="$base_ref"
+		if [[ "$has_staged" -eq 1 || "$has_worktree" -eq 1 ]]; then
+			eprint "DIFF_MODE=range requires a clean working tree (no staged/unstaged changes)."
+			eprint "Use DIFF_MODE=staged or DIFF_MODE=worktree for pre-commit local changes."
+			exit 2
+		fi
+		if ! fetch_remote_tracking_ref "$base"; then
+			# Preserve existing fallback behavior when origin/main cannot be fetched
+			# and a local main exists.
+			if [[ "$base" == "origin/main" ]] && ! git_ref_exists "$base" && git_ref_exists "main"; then
+				base="main"
+			else
+				eprint "Failed to fetch latest base ref: $base"
+				eprint "Run 'git fetch' and retry /review-cycle."
+				exit 2
+			fi
+		fi
+		if ! git_ref_exists "$base"; then
+			if [[ "$base" == "origin/main" ]] && git_ref_exists "main"; then
+				base="main"
+			else
+				eprint "Base ref not found for range diff: $base"
+				exit 2
+			fi
+		fi
+		diff_source="range"
+		diff_detail="$base"
+		diff_base_sha="$(git -C "$repo_root" rev-parse "$base" 2>/dev/null || true)"
+		if [[ -z "$diff_base_sha" ]]; then
+			eprint "Failed to resolve base SHA during range diff collection: $base"
+			exit 2
+		fi
+		if git -C "$repo_root" diff --quiet "${base}...HEAD"; then
+			eprint "Diff is empty (range: ${base}...HEAD)."
+			exit 2
+		fi
+		if [[ "$DRY_RUN" -eq 0 ]]; then
+			ensure_run_dir
+			git -C "$repo_root" diff --no-color "${base}...HEAD" >"$out_diff"
+		fi
+		;;
+	staged)
+		if [[ "$has_staged" -eq 0 ]]; then
+			eprint "Diff is empty (staged)."
+			exit 2
+		fi
+		diff_source="staged"
+		if [[ "$DRY_RUN" -eq 0 ]]; then
+			ensure_run_dir
+			git -C "$repo_root" diff --no-color --staged >"$out_diff"
+		fi
+		;;
+	worktree)
+		if [[ "$has_worktree" -eq 0 ]]; then
+			eprint "Diff is empty (worktree)."
+			exit 2
+		fi
+		diff_source="worktree"
+		if [[ "$DRY_RUN" -eq 0 ]]; then
+			ensure_run_dir
+			git -C "$repo_root" diff --no-color >"$out_diff"
+		fi
+		;;
+	auto | "")
+		if [[ "$has_staged" -eq 1 && "$has_worktree" -eq 1 ]]; then
+			eprint "Both staged and worktree diffs are non-empty."
+			eprint "Set DIFF_MODE=staged or DIFF_MODE=worktree (or set DIFF_FILE)."
+			exit 2
+		fi
+		if [[ "$has_staged" -eq 1 ]]; then
+			diff_source="staged"
+			if [[ "$DRY_RUN" -eq 0 ]]; then
+				ensure_run_dir
+				git -C "$repo_root" diff --no-color --staged >"$out_diff"
+			fi
+		elif [[ "$has_worktree" -eq 1 ]]; then
+			diff_source="worktree"
+			if [[ "$DRY_RUN" -eq 0 ]]; then
+				ensure_run_dir
+				git -C "$repo_root" diff --no-color >"$out_diff"
+			fi
+		else
+			eprint "Diff is empty (staged and worktree)."
+			exit 2
+		fi
+		;;
+	*)
+		eprint "Invalid DIFF_MODE: $diff_mode (use range|staged|worktree|auto)"
+		exit 2
+		;;
+	esac
 
-  if [[ "$DRY_RUN" -eq 0 ]]; then
-    if [[ ! -s "$out_diff" ]]; then
-      if [[ "$diff_source" == "range" && -n "$diff_detail" ]]; then
-        eprint "Diff is empty (range: ${diff_detail}...HEAD)."
-      else
-        eprint "Diff is empty after collection: $out_diff"
-      fi
-      exit 2
-    fi
-  fi
+	if [[ "$DRY_RUN" -eq 0 ]]; then
+		if [[ ! -s "$out_diff" ]]; then
+			if [[ "$diff_source" == "range" && -n "$diff_detail" ]]; then
+				eprint "Diff is empty (range: ${diff_detail}...HEAD)."
+			else
+				eprint "Diff is empty after collection: $out_diff"
+			fi
+			exit 2
+		fi
+	fi
 }
 
 print_plan() {
-  eprint "Plan:"
-  eprint "- repo_root: $repo_root"
-  eprint "- scope_id: $scope_id"
-  eprint "- run_id: $run_id"
-  eprint "- schema_path: $schema_path"
-  eprint "- out_dir: $run_dir"
-  eprint "- out_json: $out_json"
-  eprint "- out_meta: $out_meta"
-  eprint "- out_diff: $out_diff"
-  eprint "- out_tests: $out_tests"
-  eprint "- out_tests_stderr: $out_tests_stderr"
-  eprint "- out_sot: $out_sot"
-  eprint "- diff_mode: $diff_mode"
-  eprint "- base_ref: $base_ref"
-  if [[ -n "$diff_source" ]]; then
-    eprint "- diff_source: $diff_source"
-  fi
-  if [[ -n "$diff_detail" ]]; then
-    eprint "- diff_detail: $diff_detail"
-  fi
-  if [[ -n "$diff_file" ]]; then
-    eprint "- diff_file: $diff_file"
-  fi
-  eprint "- review_engine: $review_engine"
-  case "$review_engine" in
-    codex)
-      eprint "- codex_bin: $codex_bin"
-      eprint "- model: $model"
-      eprint "- reasoning_effort: $effort"
-      ;;
-    claude)
-      eprint "- claude_bin: $claude_bin"
-      eprint "- claude_model: $claude_model"
-      ;;
-  esac
-  if [[ -n "$exec_timeout_sec" ]]; then
-    eprint "- exec_timeout_sec: $exec_timeout_sec"
-  fi
-  eprint "- constraints: $constraints"
-  eprint "- max_diff_bytes: $max_diff_bytes"
-  eprint "- max_prompt_bytes: $max_prompt_bytes"
-  eprint "- review_cycle_incremental: $review_cycle_incremental"
-  eprint "- review_cycle_cache_policy: $review_cycle_cache_policy"
-  if [[ -n "$gh_issue" ]]; then
-    eprint "- gh_issue: $gh_issue"
-    if [[ -n "$gh_repo" ]]; then
-      eprint "- gh_repo: $gh_repo"
-    fi
-    eprint "- gh_include_comments: $gh_include_comments"
-  fi
-  if [[ -n "$gh_issue_body_file" ]]; then
-    eprint "- gh_issue_body_file: $gh_issue_body_file"
-  fi
-  if [[ ${#sot_files[@]} -gt 0 ]]; then
-    eprint "- sot_files: ${sot_files[*]}"
-  fi
-  eprint "- sot_max_chars: $sot_max_chars"
-  if [[ -n "$sot" ]]; then
-    eprint "- sot: $sot"
-  fi
-  if [[ -n "$test_command" ]]; then
-    eprint "- test_command: $test_command"
-  fi
-  eprint "- tests_summary: $tests_summary"
-  eprint "- tests_stderr_policy: $test_stderr_policy"
-  eprint "- tests_stderr: $tests_stderr_summary"
+	eprint "Plan:"
+	eprint "- repo_root: $repo_root"
+	eprint "- scope_id: $scope_id"
+	eprint "- run_id: $run_id"
+	eprint "- schema_path: $schema_path"
+	eprint "- out_dir: $run_dir"
+	eprint "- out_json: $out_json"
+	eprint "- out_meta: $out_meta"
+	eprint "- out_diff: $out_diff"
+	eprint "- out_tests: $out_tests"
+	eprint "- out_tests_stderr: $out_tests_stderr"
+	eprint "- out_sot: $out_sot"
+	eprint "- diff_mode: $diff_mode"
+	eprint "- base_ref: $base_ref"
+	if [[ -n "$diff_source" ]]; then
+		eprint "- diff_source: $diff_source"
+	fi
+	if [[ -n "$diff_detail" ]]; then
+		eprint "- diff_detail: $diff_detail"
+	fi
+	if [[ -n "$diff_file" ]]; then
+		eprint "- diff_file: $diff_file"
+	fi
+	eprint "- review_engine: $review_engine"
+	case "$review_engine" in
+	codex)
+		eprint "- codex_bin: $codex_bin"
+		eprint "- model: $model"
+		eprint "- reasoning_effort: $effort"
+		;;
+	claude)
+		eprint "- claude_bin: $claude_bin"
+		eprint "- claude_model: $claude_model"
+		;;
+	esac
+	if [[ -n "$exec_timeout_sec" ]]; then
+		eprint "- exec_timeout_sec: $exec_timeout_sec"
+	fi
+	eprint "- constraints: $constraints"
+	eprint "- max_diff_bytes: $max_diff_bytes"
+	eprint "- max_prompt_bytes: $max_prompt_bytes"
+	eprint "- review_cycle_incremental: $review_cycle_incremental"
+	eprint "- review_cycle_cache_policy: $review_cycle_cache_policy"
+	if [[ -n "$gh_issue" ]]; then
+		eprint "- gh_issue: $gh_issue"
+		if [[ -n "$gh_repo" ]]; then
+			eprint "- gh_repo: $gh_repo"
+		fi
+		eprint "- gh_include_comments: $gh_include_comments"
+	fi
+	if [[ -n "$gh_issue_body_file" ]]; then
+		eprint "- gh_issue_body_file: $gh_issue_body_file"
+	fi
+	if [[ ${#sot_files[@]} -gt 0 ]]; then
+		eprint "- sot_files: ${sot_files[*]}"
+	fi
+	eprint "- sot_max_chars: $sot_max_chars"
+	if [[ -n "$sot" ]]; then
+		eprint "- sot: $sot"
+	fi
+	if [[ -n "$test_command" ]]; then
+		eprint "- test_command: $test_command"
+	fi
+	eprint "- tests_summary: $tests_summary"
+	eprint "- tests_stderr_policy: $test_stderr_policy"
+	eprint "- tests_stderr: $tests_stderr_summary"
 }
 
 write_sot() {
-  local issue_json_arg=""
-  local issue_body_arg=""
+	local issue_json_arg=""
+	local issue_body_arg=""
 
-  if [[ "$DRY_RUN" -eq 1 ]]; then
-    return 0
-  fi
+	if [[ "$DRY_RUN" -eq 1 ]]; then
+		return 0
+	fi
 
-  ensure_run_dir
+	ensure_run_dir
 
-  if [[ -n "$gh_issue" ]]; then
-    if ! command -v gh >/dev/null 2>&1; then
-      eprint "gh not found (required for GH_ISSUE)"
-      exit 1
-    fi
+	if [[ -n "$gh_issue" ]]; then
+		if ! command -v gh >/dev/null 2>&1; then
+			eprint "gh not found (required for GH_ISSUE)"
+			exit 1
+		fi
 
-    fields="title,url,body,number"
-    if [[ "$gh_include_comments" == "1" ]]; then
-      fields="title,url,body,number,comments"
-    fi
+		fields="title,url,body,number"
+		if [[ "$gh_include_comments" == "1" ]]; then
+			fields="title,url,body,number,comments"
+		fi
 
-    gh_cmd=(gh issue view "$gh_issue" --json "$fields")
-    if [[ -n "$gh_repo" ]]; then
-      gh_cmd=(gh -R "$gh_repo" issue view "$gh_issue" --json "$fields")
-    fi
+		gh_cmd=(gh issue view "$gh_issue" --json "$fields")
+		if [[ -n "$gh_repo" ]]; then
+			gh_cmd=(gh -R "$gh_repo" issue view "$gh_issue" --json "$fields")
+		fi
 
-    "${gh_cmd[@]}" > "$out_issue_json"
-    issue_json_arg="$out_issue_json"
-  fi
+		"${gh_cmd[@]}" >"$out_issue_json"
+		issue_json_arg="$out_issue_json"
+	fi
 
-  if [[ -n "$gh_issue_body_file" ]]; then
-    if [[ ! -f "$gh_issue_body_file" ]]; then
-      eprint "GH_ISSUE_BODY_FILE not found: $gh_issue_body_file"
-      exit 2
-    fi
-    cp -p "$gh_issue_body_file" "$out_issue_body"
-    issue_body_arg="$out_issue_body"
-  fi
+	if [[ -n "$gh_issue_body_file" ]]; then
+		if [[ ! -f "$gh_issue_body_file" ]]; then
+			eprint "GH_ISSUE_BODY_FILE not found: $gh_issue_body_file"
+			exit 2
+		fi
+		cp -p "$gh_issue_body_file" "$out_issue_body"
+		issue_body_arg="$out_issue_body"
+	fi
 
-  if [[ -z "$issue_json_arg" && -z "$issue_body_arg" ]]; then
-    issue_body_arg=""
-  fi
+	if [[ -z "$issue_json_arg" && -z "$issue_body_arg" ]]; then
+		issue_body_arg=""
+	fi
 
-  assemble_cmd=(python3 "$script_dir/assemble-sot.py" --repo-root "$repo_root" --manual-sot "$sot" --max-chars "$sot_max_chars")
-  if [[ -n "$issue_json_arg" ]]; then
-    assemble_cmd+=(--issue-json "$issue_json_arg")
-  fi
-  if [[ -n "$issue_body_arg" ]]; then
-    assemble_cmd+=(--issue-body-file "$issue_body_arg")
-  fi
+	assemble_cmd=(python3 "$script_dir/assemble-sot.py" --repo-root "$repo_root" --manual-sot "$sot" --max-chars "$sot_max_chars")
+	if [[ -n "$issue_json_arg" ]]; then
+		assemble_cmd+=(--issue-json "$issue_json_arg")
+	fi
+	if [[ -n "$issue_body_arg" ]]; then
+		assemble_cmd+=(--issue-body-file "$issue_body_arg")
+	fi
 
-  if [[ ${#sot_files[@]} -gt 0 ]]; then
-    for f in "${sot_files[@]}"; do
-      assemble_cmd+=(--sot-file "$f")
-    done
-  fi
+	if [[ ${#sot_files[@]} -gt 0 ]]; then
+		for f in "${sot_files[@]}"; do
+			assemble_cmd+=(--sot-file "$f")
+		done
+	fi
 
-  "${assemble_cmd[@]}" > "$out_sot"
+	"${assemble_cmd[@]}" >"$out_sot"
 }
 
 write_diff
@@ -854,56 +1167,57 @@ write_tests
 write_sot
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
-  print_plan
-  exit 0
+	print_plan
+	exit 0
 fi
 
-diff_bytes="$(wc -c < "$out_diff" | tr -d ' ')"
-sot_bytes="$(wc -c < "$out_sot" | tr -d ' ')"
+diff_bytes="$(wc -c <"$out_diff" | tr -d ' ')"
+sot_bytes="$(wc -c <"$out_sot" | tr -d ' ')"
 
-if (( max_diff_bytes > 0 && diff_bytes > max_diff_bytes )); then
-  eprint "Diff bytes exceeded MAX_DIFF_BYTES: diff_bytes=$diff_bytes max=$max_diff_bytes"
-  eprint "Narrow the review input scope (DIFF_FILE/DIFF_MODE/include/exclude) and retry."
-  exit 2
+if ((max_diff_bytes > 0 && diff_bytes > max_diff_bytes)); then
+	eprint "Diff bytes exceeded MAX_DIFF_BYTES: diff_bytes=$diff_bytes max=$max_diff_bytes"
+	eprint "Narrow the review input scope (DIFF_FILE/DIFF_MODE/include/exclude) and retry."
+	exit 2
 fi
 
 if [[ "$tests_stderr_violation" -eq 1 ]]; then
-  eprint "TEST_STDERR_POLICY=fail: failing due to stderr output from test command."
-  eprint "See: $out_tests_stderr"
-  exit 3
+	eprint "TEST_STDERR_POLICY=fail: failing due to stderr output from test command."
+	eprint "See: $out_tests_stderr"
+	exit 3
 fi
 
 if [[ ! -f "$schema_path" ]]; then
-  eprint "Schema not found: $schema_path"
-  eprint "Expected this repo to have .agent/schemas/review.json installed."
-  exit 1
+	eprint "Schema not found: $schema_path"
+	eprint "Expected this repo to have .agent/schemas/review.json installed."
+	exit 1
 fi
 
 if ! command -v python3 >/dev/null 2>&1; then
-  eprint "python3 not found (required for validation)."
-  exit 1
+	eprint "python3 not found (required for validation)."
+	exit 1
 fi
 
 head_sha="$(git -C "$repo_root" rev-parse HEAD 2>/dev/null || true)"
 if [[ -z "$head_sha" ]]; then
-  eprint "Failed to resolve current HEAD SHA for review metadata."
-  exit 1
+	eprint "Failed to resolve current HEAD SHA for review metadata."
+	exit 1
 fi
 
 meta_base_ref=""
 meta_base_sha=""
 if [[ "$diff_source" == "range" && -n "$diff_detail" ]]; then
-  meta_base_ref="$diff_detail"
-  meta_base_sha="$diff_base_sha"
-  if [[ -z "$meta_base_sha" ]]; then
-    eprint "Failed to resolve pinned base SHA for review metadata: $meta_base_ref"
-    exit 1
-  fi
+	meta_base_ref="$diff_detail"
+	meta_base_sha="$diff_base_sha"
+	if [[ -z "$meta_base_sha" ]]; then
+		eprint "Failed to resolve pinned base SHA for review metadata: $meta_base_ref"
+		exit 1
+	fi
 fi
 
 diff_sha256="$(sha256_file "$out_diff")"
 sot_fingerprint="$(sha256_file "$out_sot")"
-tests_fingerprint="$(python3 - "$out_tests" "$tests_summary" "$tests_stderr_summary" "$test_stderr_policy" "$tests_exit_code" "$tests_fingerprint_input_sha256" <<'PY'
+tests_fingerprint="$(
+	python3 - "$out_tests" "$tests_summary" "$tests_stderr_summary" "$test_stderr_policy" "$tests_exit_code" "$tests_fingerprint_input_sha256" <<'PY'
 import hashlib
 import json
 import sys
@@ -933,16 +1247,16 @@ tmp_prompt="${run_dir}/prompt.txt"
 
 engine_version_output=""
 case "$review_engine" in
-  codex)
-    engine_version_output="$("$codex_bin" --version 2>/dev/null || true)"
-    ;;
-  claude)
-    engine_version_output="$("$claude_bin" --version 2>/dev/null || true)"
-    ;;
+codex)
+	engine_version_output="$("$codex_bin" --version 2>/dev/null || true)"
+	;;
+claude)
+	engine_version_output="$("$claude_bin" --version 2>/dev/null || true)"
+	;;
 esac
 engine_version_available=0
 if [[ -n "$engine_version_output" ]]; then
-  engine_version_available=1
+	engine_version_available=1
 fi
 
 engine_fingerprint=""
@@ -956,28 +1270,29 @@ reused=0
 reused_from_run=""
 
 if [[ -f "$current_run_file" ]]; then
-  candidate_run="$(cat "$current_run_file" 2>/dev/null || true)"
-  if [[ "$candidate_run" =~ ^[A-Za-z0-9._-]+$ && "$candidate_run" != "." && "$candidate_run" != ".." ]]; then
-    candidate_meta="$scope_root/$candidate_run/review-metadata.json"
-    candidate_json="$scope_root/$candidate_run/review.json"
-    if [[ -f "$candidate_meta" && -f "$candidate_json" ]]; then
-      reuse_candidate_run="$candidate_run"
-      reuse_candidate_meta="$candidate_meta"
-      reuse_candidate_json="$candidate_json"
-    else
-      reuse_reason="candidate-artifacts-missing"
-    fi
-  else
-    reuse_reason="candidate-run-invalid"
-  fi
+	candidate_run="$(cat "$current_run_file" 2>/dev/null || true)"
+	if [[ "$candidate_run" =~ ^[A-Za-z0-9._-]+$ && "$candidate_run" != "." && "$candidate_run" != ".." ]]; then
+		candidate_meta="$scope_root/$candidate_run/review-metadata.json"
+		candidate_json="$scope_root/$candidate_run/review.json"
+		if [[ -f "$candidate_meta" && -f "$candidate_json" ]]; then
+			reuse_candidate_run="$candidate_run"
+			reuse_candidate_meta="$candidate_meta"
+			reuse_candidate_json="$candidate_json"
+		else
+			reuse_reason="candidate-artifacts-missing"
+		fi
+	else
+		reuse_reason="candidate-run-invalid"
+	fi
 fi
 
 if [[ "$review_cycle_incremental" == "1" && "$review_cycle_cache_policy" == "off" ]]; then
-  reuse_reason="cache-policy-off"
+	reuse_reason="cache-policy-off"
 fi
 
 if [[ "$review_cycle_incremental" == "1" && "$review_cycle_cache_policy" != "off" && -n "$reuse_candidate_meta" ]]; then
-  reuse_state_fast="$(python3 - "$reuse_candidate_meta" "$reuse_candidate_json" "$head_sha" "$meta_base_ref" "$meta_base_sha" "$diff_source" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_version_available" "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$script_semantics_version" "$review_cycle_cache_policy" "$max_prompt_bytes" <<'PY'
+	reuse_state_fast="$(
+		python3 - "$reuse_candidate_meta" "$reuse_candidate_json" "$head_sha" "$meta_base_ref" "$meta_base_sha" "$diff_source" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_version_available" "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$script_semantics_version" "$review_cycle_cache_policy" "$max_prompt_bytes" <<'PY'
 import json
 import sys
 
@@ -1121,42 +1436,42 @@ if not isinstance(meta_prompt_bytes, int) or meta_prompt_bytes < 0:
 
 out(True, hit_reason, str(meta.get("engine_fingerprint")), meta_prompt_bytes)
 PY
-)"
-  reuse_eligible=0
-  reuse_reason="unknown"
-  cached_engine_fingerprint=""
-  cached_prompt_bytes=0
-  while IFS= read -r line; do
-    case "$line" in
-      eligible=1) reuse_eligible=1 ;;
-      eligible=0) reuse_eligible=0 ;;
-      reason=*) reuse_reason="${line#reason=}" ;;
-      engine_fingerprint=*) cached_engine_fingerprint="${line#engine_fingerprint=}" ;;
-      prompt_bytes=*) cached_prompt_bytes="${line#prompt_bytes=}" ;;
-    esac
-  done <<< "$reuse_state_fast"
+	)"
+	reuse_eligible=0
+	reuse_reason="unknown"
+	cached_engine_fingerprint=""
+	cached_prompt_bytes=0
+	while IFS= read -r line; do
+		case "$line" in
+		eligible=1) reuse_eligible=1 ;;
+		eligible=0) reuse_eligible=0 ;;
+		reason=*) reuse_reason="${line#reason=}" ;;
+		engine_fingerprint=*) cached_engine_fingerprint="${line#engine_fingerprint=}" ;;
+		prompt_bytes=*) cached_prompt_bytes="${line#prompt_bytes=}" ;;
+		esac
+	done <<<"$reuse_state_fast"
 
-  if [[ "$reuse_eligible" -eq 1 ]]; then
-    if python3 "$script_dir/validate-review-json.py" "$reuse_candidate_json" --scope-id "$scope_id" >/dev/null 2>&1; then
-      ensure_run_dir
-      if [[ "$reuse_candidate_json" != "$out_json" ]]; then
-        cp -p "$reuse_candidate_json" "$out_json"
-      fi
-      reused=1
-      reused_from_run="$reuse_candidate_run"
-      engine_fingerprint="$cached_engine_fingerprint"
-      prompt_bytes="$cached_prompt_bytes"
-    else
-      reuse_eligible=0
-      reuse_reason="candidate-review-invalid"
-    fi
-  fi
+	if [[ "$reuse_eligible" -eq 1 ]]; then
+		if python3 "$script_dir/validate-review-json.py" "$reuse_candidate_json" --scope-id "$scope_id" >/dev/null 2>&1; then
+			ensure_run_dir
+			if [[ "$reuse_candidate_json" != "$out_json" ]]; then
+				cp -p "$reuse_candidate_json" "$out_json"
+			fi
+			reused=1
+			reused_from_run="$reuse_candidate_run"
+			engine_fingerprint="$cached_engine_fingerprint"
+			prompt_bytes="$cached_prompt_bytes"
+		else
+			reuse_eligible=0
+			reuse_reason="candidate-review-invalid"
+		fi
+	fi
 fi
 
 if [[ "$reused" -eq 0 ]]; then
-  # Build prompt
-  {
-    cat <<'PROMPT'
+	# Build prompt
+	{
+		cat <<'PROMPT'
 You are a code reviewer.
 
 Output JSON only. Your output MUST validate against the provided JSON schema.
@@ -1198,47 +1513,48 @@ Output requirements:
 - questions must be an array (use [] when none)
 - No markdown fences, no extra prose.
 PROMPT
-    printf 'Schema-Version: 3\n'
-    printf 'Scope-ID: %s\n' "$scope_id"
-    printf 'SoT:\n'
-    cat "$out_sot"
-    printf '\n'
-    printf 'Tests: %s\n' "$tests_summary"
-    printf 'Tests-Stderr: %s\n' "$tests_stderr_summary"
-    printf 'Tests-Stderr-Policy: %s\n' "$test_stderr_policy"
-    printf 'Constraints: %s\n' "$constraints"
-    printf 'Diff:\n'
-    cat "$out_diff"
-  } > "$tmp_prompt"
+		printf 'Schema-Version: 3\n'
+		printf 'Scope-ID: %s\n' "$scope_id"
+		printf 'SoT:\n'
+		cat "$out_sot"
+		printf '\n'
+		printf 'Tests: %s\n' "$tests_summary"
+		printf 'Tests-Stderr: %s\n' "$tests_stderr_summary"
+		printf 'Tests-Stderr-Policy: %s\n' "$test_stderr_policy"
+		printf 'Constraints: %s\n' "$constraints"
+		printf 'Diff:\n'
+		cat "$out_diff"
+	} >"$tmp_prompt"
 
-  prompt_bytes="$(wc -c < "$tmp_prompt" | tr -d ' ')"
-  if (( max_prompt_bytes > 0 && prompt_bytes > max_prompt_bytes )); then
-    eprint "Prompt bytes exceeded MAX_PROMPT_BYTES: prompt_bytes=$prompt_bytes max=$max_prompt_bytes"
-    eprint "Reduce SoT/diff input size and retry."
-    exit 2
-  fi
+	prompt_bytes="$(wc -c <"$tmp_prompt" | tr -d ' ')"
+	if ((max_prompt_bytes > 0 && prompt_bytes > max_prompt_bytes)); then
+		eprint "Prompt bytes exceeded MAX_PROMPT_BYTES: prompt_bytes=$prompt_bytes max=$max_prompt_bytes"
+		eprint "Reduce SoT/diff input size and retry."
+		exit 2
+	fi
 
-  case "$review_engine" in
-    codex)
-      if ! command -v "$codex_bin" >/dev/null 2>&1; then
-        eprint "codex not found: $codex_bin"
-        exit 1
-      fi
-      ;;
-    claude)
-      if ! command -v "$claude_bin" >/dev/null 2>&1; then
-        eprint "claude not found: $claude_bin"
-        exit 1
-      fi
-      ;;
-    *)
-      eprint "Invalid REVIEW_ENGINE: $review_engine (use codex|claude)"
-      exit 2
-      ;;
-  esac
+	case "$review_engine" in
+	codex)
+		if ! command -v "$codex_bin" >/dev/null 2>&1; then
+			eprint "codex not found: $codex_bin"
+			exit 1
+		fi
+		;;
+	claude)
+		if ! command -v "$claude_bin" >/dev/null 2>&1; then
+			eprint "claude not found: $claude_bin"
+			exit 1
+		fi
+		;;
+	*)
+		eprint "Invalid REVIEW_ENGINE: $review_engine (use codex|claude)"
+		exit 2
+		;;
+	esac
 
-  prompt_sha256="$(sha256_file "$tmp_prompt")"
-  engine_fingerprint="$(python3 - "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$prompt_sha256" "$script_semantics_version" <<'PY'
+	prompt_sha256="$(sha256_file "$tmp_prompt")"
+	engine_fingerprint="$(
+		python3 - "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$prompt_sha256" "$script_semantics_version" <<'PY'
 import hashlib
 import json
 import sys
@@ -1266,240 +1582,186 @@ material = {
 encoded = json.dumps(material, ensure_ascii=False, sort_keys=True).encode("utf-8")
 print(hashlib.sha256(encoded).hexdigest())
 PY
-)"
+	)"
 fi
 
 if [[ "$reused" -eq 0 ]]; then
-  engine_start_ms="$(python3 - <<'PY'
+	engine_start_ms="$(
+		python3 - <<'PY'
 import time
 print(time.time_ns() // 1_000_000)
 PY
-)"
+	)"
+	ensure_run_dir
+	: >"$out_engine_stderr"
 
-  case "$review_engine" in
-    codex)
-      cmd=(
-        "$codex_bin" exec
-        --sandbox read-only
-        -m "$model"
-        -c "reasoning.effort=\"${effort}\""
-        --output-last-message "$tmp_json"
-        --output-schema "$schema_path"
-        -
-      )
+	case "$review_engine" in
+	codex)
+		cmd=(
+			"$codex_bin" exec
+			--sandbox read-only
+			-m "$model"
+			-c "reasoning.effort=\"${effort}\""
+			--output-last-message "$tmp_json"
+			--output-schema "$schema_path"
+			-
+		)
 
-      if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
-        cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
-      fi
+		if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
+			cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
+		fi
 
-      "${cmd[@]}" < "$tmp_prompt"
-      ;;
-    claude)
-      schema_content="$(python3 -c "
+		set +e
+		"${cmd[@]}" <"$tmp_prompt" >/dev/null 2>"$out_engine_stderr"
+		engine_exit_code="$?"
+		set -e
+		;;
+	claude)
+		schema_content="$(python3 -c '
 import json
 import sys
-with open('$schema_path', 'r', encoding='utf-8') as f:
+
+with open(sys.argv[1], "r", encoding="utf-8") as f:
     schema = json.load(f)
-schema.pop('\$schema', None)
+
+schema.pop("$schema", None)
 print(json.dumps(schema, ensure_ascii=False))
-")"
+' "$schema_path")"
 
-      cmd=(
-        "$claude_bin" -p
-        --model "$claude_model"
-        --json-schema "$schema_content"
-        --output-format json
-        --betas interleaved-thinking
-      )
+		cmd=(
+			"$claude_bin" -p
+			--model "$claude_model"
+			--json-schema "$schema_content"
+			--output-format json
+			--betas interleaved-thinking
+		)
 
-      if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
-        cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
-      fi
+		if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
+			cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
+		fi
 
-      tmp_claude_out="${tmp_json}.claude.$$"
-      "${cmd[@]}" < "$tmp_prompt" > "$tmp_claude_out"
+		tmp_claude_out="${tmp_json}.claude.$$"
+		set +e
+		"${cmd[@]}" <"$tmp_prompt" >"$tmp_claude_out" 2>"$out_engine_stderr"
+		engine_exit_code="$?"
+		set -e
 
-      python3 -c "
+		if [[ "$engine_exit_code" == "0" ]]; then
+			set +e
+			python3 -c '
 import json
 import sys
+
+claude_output_path = sys.argv[1]
+review_output_path = sys.argv[2]
 
 try:
-    with open('$tmp_claude_out', 'r', encoding='utf-8') as f:
+    with open(claude_output_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 except Exception as e:
-    print(f'Failed to parse Claude output: {e}', file=sys.stderr)
+    print(f"Failed to parse Claude output: {e}", file=sys.stderr)
     sys.exit(1)
 
 if not isinstance(data, dict):
-    print('Claude output is not a JSON object', file=sys.stderr)
+    print("Claude output is not a JSON object", file=sys.stderr)
     sys.exit(1)
 
-is_wrapped = 'type' in data and data.get('type') == 'result'
+is_wrapped = "type" in data and data.get("type") == "result"
 
 if is_wrapped:
-    subtype = data.get('subtype', '')
-    if subtype and subtype != 'success':
-        errors = data.get('errors', [])
-        print(f'Claude returned error: {subtype}', file=sys.stderr)
+    subtype = data.get("subtype", "")
+    if subtype and subtype != "success":
+        errors = data.get("errors", [])
+        print(f"Claude returned error: {subtype}", file=sys.stderr)
         if errors:
             for err in errors:
-                print(f'  {err}', file=sys.stderr)
+                print(f"  {err}", file=sys.stderr)
         sys.exit(1)
 
-    structured = data.get('structured_output')
+    structured = data.get("structured_output")
     if structured is None:
-        print('Claude output missing structured_output field', file=sys.stderr)
-        print('Full response:', file=sys.stderr)
+        print("Claude output missing structured_output field", file=sys.stderr)
+        print("Full response:", file=sys.stderr)
         print(json.dumps(data, indent=2), file=sys.stderr)
         sys.exit(1)
     output = structured
 else:
     output = data
 
-with open('$tmp_json', 'w', encoding='utf-8') as f:
+with open(review_output_path, "w", encoding="utf-8") as f:
     json.dump(output, f, ensure_ascii=False)
-"
-      extract_exit=$?
-      rm -f "$tmp_claude_out"
+' "$tmp_claude_out" "$tmp_json" 2>>"$out_engine_stderr"
+			extract_exit=$?
+			set -e
+		else
+			extract_exit=0
+		fi
+		rm -f "$tmp_claude_out"
 
-      if [[ $extract_exit -ne 0 ]]; then
-        eprint "Failed to extract structured_output from Claude response"
-        exit 1
-      fi
-      ;;
-  esac
+		if [[ $extract_exit -ne 0 ]]; then
+			update_engine_runtime_ms
+			collect_engine_stderr_diagnostics "$out_engine_stderr"
+			write_failure_review_metadata "extract-structured-output" "Failed to extract structured output from ${review_engine} response"
+			eprint "Failed to extract structured_output from Claude response"
+			if [[ "$engine_stderr_summary" != "none" ]]; then
+				eprint "engine stderr: $engine_stderr_summary"
+			fi
+			exit 1
+		fi
+		;;
+	esac
 
-  engine_end_ms="$(python3 - <<'PY'
-import time
-print(time.time_ns() // 1_000_000)
-PY
-)"
-  engine_runtime_ms="$((engine_end_ms - engine_start_ms))"
-  if [[ "$engine_runtime_ms" -lt 0 ]]; then
-    engine_runtime_ms=0
-  fi
+	update_engine_runtime_ms
+	collect_engine_stderr_diagnostics "$out_engine_stderr"
+	if [[ "$engine_exit_code" != "0" ]]; then
+		write_failure_review_metadata "engine-exit" "${review_engine} exited with code ${engine_exit_code}"
+		eprint "${review_engine} execution failed (exit=${engine_exit_code})."
+		if [[ "$engine_stderr_summary" != "none" ]]; then
+			eprint "engine stderr: $engine_stderr_summary"
+		fi
+		exit 1
+	fi
 
-  if [[ ! -f "$tmp_json" || ! -s "$tmp_json" ]]; then
-    eprint "$review_engine did not produce output: $tmp_json"
-    exit 1
-  fi
+	if [[ ! -f "$tmp_json" || ! -s "$tmp_json" ]]; then
+		write_failure_review_metadata "no-output" "${review_engine} completed without producing review output"
+		eprint "$review_engine did not produce output: $tmp_json"
+		exit 1
+	fi
 
-  mv "$tmp_json" "$out_json"
+	mv "$tmp_json" "$out_json"
 fi
 
 validate_args=("$out_json" --scope-id "$scope_id")
 if [[ "$format_json" != "0" ]]; then
-  validate_args+=(--format)
+	validate_args+=(--format)
 fi
+set +e
 python3 "$script_dir/validate-review-json.py" "${validate_args[@]}"
+validate_exit=$?
+set -e
+if [[ "$validate_exit" -ne 0 ]]; then
+	if [[ "$reused" -ne 0 ]]; then
+		update_engine_runtime_ms
+		collect_engine_stderr_diagnostics "$out_engine_stderr"
+	fi
+	write_failure_review_metadata "validation-failed" "${review_engine} review output failed schema validation"
+	exit "$validate_exit"
+fi
 
 non_reuse_reason=""
 if [[ "$reused" -eq 0 ]]; then
-  if [[ "$review_cycle_incremental" != "1" ]]; then
-    non_reuse_reason="incremental-disabled"
-  else
-    non_reuse_reason="$reuse_reason"
-  fi
+	if [[ "$review_cycle_incremental" != "1" ]]; then
+		non_reuse_reason="incremental-disabled"
+	else
+		non_reuse_reason="$reuse_reason"
+	fi
 fi
 
-python3 - "$out_meta" "$scope_id" "$run_id" "$diff_source" "$meta_base_ref" "$meta_base_sha" "$head_sha" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_fingerprint" "$engine_version_available" "$review_cycle_incremental" "$review_cycle_cache_policy" "$reuse_eligible" "$reused" "$reuse_reason" "$non_reuse_reason" "$reused_from_run" "$tests_exit_code" "$prompt_bytes" "$sot_bytes" "$diff_bytes" "$engine_runtime_ms" "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$script_semantics_version" <<'PY'
-import datetime
-import json
-import os
-import sys
-
-out_meta = sys.argv[1]
-scope_id = sys.argv[2]
-run_id = sys.argv[3]
-diff_source = sys.argv[4]
-base_ref = sys.argv[5]
-base_sha = sys.argv[6]
-head_sha = sys.argv[7]
-diff_sha256 = sys.argv[8]
-sot_fingerprint = sys.argv[9]
-tests_fingerprint = sys.argv[10]
-engine_fingerprint = sys.argv[11]
-engine_version_available = sys.argv[12] == "1"
-incremental_enabled = sys.argv[13] == "1"
-cache_policy = sys.argv[14]
-reuse_eligible = sys.argv[15] == "1"
-reused = sys.argv[16] == "1"
-reuse_reason = sys.argv[17]
-non_reuse_reason = sys.argv[18]
-reused_from_run = sys.argv[19]
-tests_exit_code_raw = sys.argv[20]
-prompt_bytes_raw = sys.argv[21]
-sot_bytes_raw = sys.argv[22]
-diff_bytes_raw = sys.argv[23]
-engine_runtime_ms_raw = sys.argv[24]
-review_engine = sys.argv[25]
-model = sys.argv[26]
-reasoning_effort = sys.argv[27]
-claude_model = sys.argv[28]
-schema_sha256 = sys.argv[29]
-constraints = sys.argv[30]
-engine_version_output = sys.argv[31]
-script_semantics_version = sys.argv[32]
-
-tests_exit_code = None
-if tests_exit_code_raw:
-    try:
-        tests_exit_code = int(tests_exit_code_raw)
-    except ValueError:
-        tests_exit_code = None
-
-def parse_int(raw: str, default: int = 0) -> int:
-    try:
-        return int(raw)
-    except (TypeError, ValueError):
-        return default
-
-payload = {
-    "schema_version": 1,
-    "scope_id": scope_id,
-    "run_id": run_id,
-    "generated_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-    "diff_source": diff_source,
-    "base_ref": base_ref,
-    "base_sha": base_sha,
-    "head_sha": head_sha,
-    "diff_sha256": diff_sha256,
-    "sot_fingerprint": sot_fingerprint,
-    "tests_fingerprint": tests_fingerprint,
-    "engine_fingerprint": engine_fingerprint,
-    "review_engine": review_engine,
-    "codex_model": model if review_engine == "codex" else "",
-    "reasoning_effort": reasoning_effort if review_engine == "codex" else "",
-    "claude_model": claude_model if review_engine == "claude" else "",
-    "schema_sha256": schema_sha256,
-    "constraints": constraints,
-    "engine_version_output": engine_version_output,
-    "script_semantics_version": script_semantics_version,
-    "engine_version_available": engine_version_available,
-    "incremental_enabled": incremental_enabled,
-    "cache_policy": cache_policy,
-    "reuse_eligible": reuse_eligible,
-    "reused": reused,
-    "reuse_reason": reuse_reason,
-    "non_reuse_reason": non_reuse_reason,
-    "reused_from_run": reused_from_run,
-    "review_completed": True,
-    "tests_exit_code": tests_exit_code,
-    "prompt_bytes": parse_int(prompt_bytes_raw),
-    "sot_bytes": parse_int(sot_bytes_raw),
-    "diff_bytes": parse_int(diff_bytes_raw),
-    "engine_runtime_ms": parse_int(engine_runtime_ms_raw),
-}
-
-os.makedirs(os.path.dirname(out_meta), exist_ok=True)
-with open(out_meta, "w", encoding="utf-8") as fh:
-    json.dump(payload, fh, ensure_ascii=False, indent=2)
-    fh.write("\n")
-PY
+write_review_metadata "1" "$non_reuse_reason"
 
 tmp_run_file="${current_run_file}.tmp"
 mkdir -p "$scope_root"
-printf '%s' "$run_id" > "$tmp_run_file"
+printf '%s' "$run_id" >"$tmp_run_file"
 mv "$tmp_run_file" "$current_run_file"
 
 printf '%s\n' "$out_json"
