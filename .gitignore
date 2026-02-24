@@ -13,6 +13,7 @@
 
 # Local review-cycle outputs
 .agentic-sdd/
+.cocoindex_code/
 
 # Tool-specific generated directories (from sync-agent-config.sh)
 .codex/
