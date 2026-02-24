@@ -375,6 +375,8 @@ collect_engine_stderr_diagnostics() {
 
 	if [[ -f "$stderr_path" ]]; then
 		local diag_output
+		local diag_status=0
+		set +e
 		diag_output="$(
 			python3 - "$stderr_path" <<'PY'
 import hashlib
@@ -413,16 +415,21 @@ print(sha)
 print(str(len(raw)))
 PY
 		)"
-		local line_no=0
-		local line=""
-		while IFS= read -r line; do
-			line_no=$((line_no + 1))
-			case "$line_no" in
-			1) diag_summary="$line" ;;
-			2) diag_sha256="$line" ;;
-			3) diag_bytes="$line" ;;
-			esac
-		done <<<"$diag_output"
+		diag_status=$?
+		set -e
+
+		if [[ "$diag_status" -eq 0 && -n "$diag_output" ]]; then
+			local line_no=0
+			local line=""
+			while IFS= read -r line; do
+				line_no=$((line_no + 1))
+				case "$line_no" in
+				1) diag_summary="$line" ;;
+				2) diag_sha256="$line" ;;
+				3) diag_bytes="$line" ;;
+				esac
+			done <<<"$diag_output"
+		fi
 	fi
 
 	engine_stderr_summary="$diag_summary"
