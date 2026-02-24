@@ -474,54 +474,60 @@ write_review_metadata() {
 	local failure_reason="${3:-}"
 	local failure_message="${4:-}"
 
-	python3 - "$out_meta" "$scope_id" "$run_id" "$diff_source" "$meta_base_ref" "$meta_base_sha" "$head_sha" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_fingerprint" "$engine_version_available" "$review_cycle_incremental" "$review_cycle_cache_policy" "$reuse_eligible" "$reused" "$reuse_reason" "$non_reuse_reason" "$reused_from_run" "$tests_exit_code" "$prompt_bytes" "$sot_bytes" "$diff_bytes" "$engine_runtime_ms" "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$script_semantics_version" "$engine_exit_code" "$exec_timeout_sec" "$timeout_applied" "$timeout_bin" "$engine_stderr_summary" "$engine_stderr_sha256" "$engine_stderr_bytes" "$review_completed" "$failure_reason" "$failure_message" <<'PY'
+	REVIEW_META_OUT="$out_meta" \
+		REVIEW_META_SCOPE_ID="$scope_id" \
+		REVIEW_META_RUN_ID="$run_id" \
+		REVIEW_META_DIFF_SOURCE="$diff_source" \
+		REVIEW_META_BASE_REF="$meta_base_ref" \
+		REVIEW_META_BASE_SHA="$meta_base_sha" \
+		REVIEW_META_HEAD_SHA="$head_sha" \
+		REVIEW_META_DIFF_SHA256="$diff_sha256" \
+		REVIEW_META_SOT_FINGERPRINT="$sot_fingerprint" \
+		REVIEW_META_TESTS_FINGERPRINT="$tests_fingerprint" \
+		REVIEW_META_ENGINE_FINGERPRINT="$engine_fingerprint" \
+		REVIEW_META_ENGINE_VERSION_AVAILABLE="$engine_version_available" \
+		REVIEW_META_INCREMENTAL_ENABLED="$review_cycle_incremental" \
+		REVIEW_META_CACHE_POLICY="$review_cycle_cache_policy" \
+		REVIEW_META_REUSE_ELIGIBLE="$reuse_eligible" \
+		REVIEW_META_REUSED="$reused" \
+		REVIEW_META_REUSE_REASON="$reuse_reason" \
+		REVIEW_META_NON_REUSE_REASON="$non_reuse_reason" \
+		REVIEW_META_REUSED_FROM_RUN="$reused_from_run" \
+		REVIEW_META_TESTS_EXIT_CODE="$tests_exit_code" \
+		REVIEW_META_PROMPT_BYTES="$prompt_bytes" \
+		REVIEW_META_SOT_BYTES="$sot_bytes" \
+		REVIEW_META_DIFF_BYTES="$diff_bytes" \
+		REVIEW_META_ENGINE_RUNTIME_MS="$engine_runtime_ms" \
+		REVIEW_META_REVIEW_ENGINE="$review_engine" \
+		REVIEW_META_MODEL="$model" \
+		REVIEW_META_REASONING_EFFORT="$effort" \
+		REVIEW_META_CLAUDE_MODEL="$claude_model" \
+		REVIEW_META_SCHEMA_SHA256="$schema_sha256" \
+		REVIEW_META_CONSTRAINTS="$constraints" \
+		REVIEW_META_ENGINE_VERSION_OUTPUT="$engine_version_output" \
+		REVIEW_META_SCRIPT_SEMANTICS_VERSION="$script_semantics_version" \
+		REVIEW_META_ENGINE_EXIT_CODE="$engine_exit_code" \
+		REVIEW_META_EXEC_TIMEOUT_SEC="$exec_timeout_sec" \
+		REVIEW_META_TIMEOUT_APPLIED="$timeout_applied" \
+		REVIEW_META_TIMEOUT_BIN="$timeout_bin" \
+		REVIEW_META_ENGINE_STDERR_SUMMARY="$engine_stderr_summary" \
+		REVIEW_META_ENGINE_STDERR_SHA256="$engine_stderr_sha256" \
+		REVIEW_META_ENGINE_STDERR_BYTES="$engine_stderr_bytes" \
+		REVIEW_META_REVIEW_COMPLETED="$review_completed" \
+		REVIEW_META_FAILURE_REASON="$failure_reason" \
+		REVIEW_META_FAILURE_MESSAGE="$failure_message" \
+		python3 - <<'PY'
 import datetime
 import json
 import os
 import sys
 
-out_meta = sys.argv[1]
-scope_id = sys.argv[2]
-run_id = sys.argv[3]
-diff_source = sys.argv[4]
-base_ref = sys.argv[5]
-base_sha = sys.argv[6]
-head_sha = sys.argv[7]
-diff_sha256 = sys.argv[8]
-sot_fingerprint = sys.argv[9]
-tests_fingerprint = sys.argv[10]
-engine_fingerprint = sys.argv[11]
-engine_version_available = sys.argv[12] == "1"
-incremental_enabled = sys.argv[13] == "1"
-cache_policy = sys.argv[14]
-reuse_eligible = sys.argv[15] == "1"
-reused = sys.argv[16] == "1"
-reuse_reason = sys.argv[17]
-non_reuse_reason = sys.argv[18]
-reused_from_run = sys.argv[19]
-tests_exit_code_raw = sys.argv[20]
-prompt_bytes_raw = sys.argv[21]
-sot_bytes_raw = sys.argv[22]
-diff_bytes_raw = sys.argv[23]
-engine_runtime_ms_raw = sys.argv[24]
-review_engine = sys.argv[25]
-model = sys.argv[26]
-reasoning_effort = sys.argv[27]
-claude_model = sys.argv[28]
-schema_sha256 = sys.argv[29]
-constraints = sys.argv[30]
-engine_version_output = sys.argv[31]
-script_semantics_version = sys.argv[32]
-engine_exit_code_raw = sys.argv[33]
-exec_timeout_sec_raw = sys.argv[34]
-timeout_applied = sys.argv[35] == "1"
-timeout_bin = sys.argv[36]
-engine_stderr_summary = sys.argv[37]
-engine_stderr_sha256 = sys.argv[38]
-engine_stderr_bytes_raw = sys.argv[39]
-review_completed = sys.argv[40] == "1"
-failure_reason = sys.argv[41]
-failure_message = sys.argv[42]
+def required(name: str) -> str:
+    value = os.environ.get(name)
+    if value is None:
+        print(f"Missing required metadata input: {name}", file=sys.stderr)
+        raise SystemExit(2)
+    return value
 
 def parse_int(raw: str, default: int = 0) -> int:
     try:
@@ -539,6 +545,57 @@ def parse_optional_int(raw: str):
         return int(value)
     except ValueError:
         return None
+
+def parse_bool(raw: str) -> bool:
+    if raw == "1":
+        return True
+    if raw == "0":
+        return False
+    print(f"Invalid boolean metadata input: {raw!r}", file=sys.stderr)
+    raise SystemExit(2)
+
+out_meta = required("REVIEW_META_OUT")
+scope_id = required("REVIEW_META_SCOPE_ID")
+run_id = required("REVIEW_META_RUN_ID")
+diff_source = required("REVIEW_META_DIFF_SOURCE")
+base_ref = required("REVIEW_META_BASE_REF")
+base_sha = required("REVIEW_META_BASE_SHA")
+head_sha = required("REVIEW_META_HEAD_SHA")
+diff_sha256 = required("REVIEW_META_DIFF_SHA256")
+sot_fingerprint = required("REVIEW_META_SOT_FINGERPRINT")
+tests_fingerprint = required("REVIEW_META_TESTS_FINGERPRINT")
+engine_fingerprint = required("REVIEW_META_ENGINE_FINGERPRINT")
+engine_version_available = parse_bool(required("REVIEW_META_ENGINE_VERSION_AVAILABLE"))
+incremental_enabled = parse_bool(required("REVIEW_META_INCREMENTAL_ENABLED"))
+cache_policy = required("REVIEW_META_CACHE_POLICY")
+reuse_eligible = parse_bool(required("REVIEW_META_REUSE_ELIGIBLE"))
+reused = parse_bool(required("REVIEW_META_REUSED"))
+reuse_reason = required("REVIEW_META_REUSE_REASON")
+non_reuse_reason = required("REVIEW_META_NON_REUSE_REASON")
+reused_from_run = required("REVIEW_META_REUSED_FROM_RUN")
+tests_exit_code_raw = required("REVIEW_META_TESTS_EXIT_CODE")
+prompt_bytes_raw = required("REVIEW_META_PROMPT_BYTES")
+sot_bytes_raw = required("REVIEW_META_SOT_BYTES")
+diff_bytes_raw = required("REVIEW_META_DIFF_BYTES")
+engine_runtime_ms_raw = required("REVIEW_META_ENGINE_RUNTIME_MS")
+review_engine = required("REVIEW_META_REVIEW_ENGINE")
+model = required("REVIEW_META_MODEL")
+reasoning_effort = required("REVIEW_META_REASONING_EFFORT")
+claude_model = required("REVIEW_META_CLAUDE_MODEL")
+schema_sha256 = required("REVIEW_META_SCHEMA_SHA256")
+constraints = required("REVIEW_META_CONSTRAINTS")
+engine_version_output = required("REVIEW_META_ENGINE_VERSION_OUTPUT")
+script_semantics_version = required("REVIEW_META_SCRIPT_SEMANTICS_VERSION")
+engine_exit_code_raw = required("REVIEW_META_ENGINE_EXIT_CODE")
+exec_timeout_sec_raw = required("REVIEW_META_EXEC_TIMEOUT_SEC")
+timeout_applied = parse_bool(required("REVIEW_META_TIMEOUT_APPLIED"))
+timeout_bin = required("REVIEW_META_TIMEOUT_BIN")
+engine_stderr_summary = required("REVIEW_META_ENGINE_STDERR_SUMMARY")
+engine_stderr_sha256 = required("REVIEW_META_ENGINE_STDERR_SHA256")
+engine_stderr_bytes_raw = required("REVIEW_META_ENGINE_STDERR_BYTES")
+review_completed = parse_bool(required("REVIEW_META_REVIEW_COMPLETED"))
+failure_reason = required("REVIEW_META_FAILURE_REASON")
+failure_message = required("REVIEW_META_FAILURE_MESSAGE")
 
 payload = {
     "schema_version": 1,
