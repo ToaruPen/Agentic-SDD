@@ -443,12 +443,20 @@ update_engine_runtime_ms() {
 	fi
 
 	local current_end_ms
+	local py_status=0
+	set +e
 	current_end_ms="$(
 		python3 - <<'PY'
 import time
 print(time.time_ns() // 1_000_000)
 PY
 	)"
+	py_status=$?
+	set -e
+
+	if [[ "$py_status" -ne 0 || -z "$current_end_ms" || ! "$current_end_ms" =~ ^[0-9]+$ ]]; then
+		return
+	fi
 
 	engine_runtime_ms="$((current_end_ms - engine_start_ms))"
 	if [[ "$engine_runtime_ms" -lt 0 ]]; then
@@ -1727,7 +1735,16 @@ validate_args=("$out_json" --scope-id "$scope_id")
 if [[ "$format_json" != "0" ]]; then
 	validate_args+=(--format)
 fi
+set +e
 python3 "$script_dir/validate-review-json.py" "${validate_args[@]}"
+validate_exit=$?
+set -e
+if [[ "$validate_exit" -ne 0 ]]; then
+	update_engine_runtime_ms
+	collect_engine_stderr_diagnostics "$out_engine_stderr"
+	write_failure_review_metadata "validation-failed" "${review_engine} review output failed schema validation"
+	exit "$validate_exit"
+fi
 
 non_reuse_reason=""
 if [[ "$reused" -eq 0 ]]; then

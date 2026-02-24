@@ -599,6 +599,81 @@ if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-no-output/review.json" ]]; th
 	exit 1
 fi
 
+cat >"$tmpdir/codex-invalid-json" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ ${1:-} == "--version" ]]; then
+  printf '%s\n' "codex-stub 1.0.0"
+  exit 0
+fi
+
+if [[ ${1:-} != "exec" ]]; then
+  exit 2
+fi
+shift
+
+out=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --output-last-message)
+      out="$2"
+      shift 2
+      ;;
+    -)
+      shift
+      break
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+cat >/dev/null || true
+
+if [[ -z "$out" ]]; then
+  exit 2
+fi
+
+mkdir -p "$(dirname "$out")"
+cat >"$out" <<'JSON'
+{
+  "schema_version": 3,
+  "scope_id": "issue-1",
+  "status": "Approved"
+}
+JSON
+EOF
+chmod +x "$tmpdir/codex-invalid-json"
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	CODEX_BIN="$tmpdir/codex-invalid-json" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-validation-fail) >/dev/null 2>"$tmpdir/stderr-validation-fail"
+code_validation_fail=$?
+set -e
+if [[ "$code_validation_fail" -eq 0 ]]; then
+	eprint "Expected schema validation failure run to fail"
+	exit 1
+fi
+
+validation_fail_meta="$tmpdir/.agentic-sdd/reviews/issue-1/run-validation-fail/review-metadata.json"
+if [[ ! -f "$validation_fail_meta" ]]; then
+	eprint "Expected failure metadata for validation-failed run"
+	cat "$tmpdir/stderr-validation-fail" >&2
+	exit 1
+fi
+if ! grep -q '"failure_reason": "validation-failed"' "$validation_fail_meta"; then
+	eprint "Expected failure_reason=validation-failed in metadata"
+	cat "$validation_fail_meta" >&2
+	exit 1
+fi
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-validation-fail/review.json" ]]; then
+	eprint "Expected invalid review.json to be removed on validation failure"
+	exit 1
+fi
+
 cat >"$tmpdir/codex-engine-exit" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
