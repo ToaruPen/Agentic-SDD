@@ -32,7 +32,7 @@ Questions (user interaction)
   Do not ask questions in free-form text.
 - Exception: when `ralph-loop` is explicitly requested, step-by-step user confirmations are not required.
   In that mode, you must still follow the mandatory gate flow:
-  `/review-cycle` -> `/final-review` -> `/create-pr` -> `/pr-bots-review`.
+  `/test-review` -> `/review-cycle` -> `/final-review` -> `/test-review` (with `TEST_REVIEW_DIFF_MODE=range` on committed `HEAD`) -> `/create-pr` -> `/pr-bots-review`.
 
 Static analysis (required)
 - You must introduce and keep running static analysis: lint, format, and typecheck.
