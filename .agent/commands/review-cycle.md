@@ -160,6 +160,7 @@ Before collecting diffs, verify the scope matches the current branch context.
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/diff.patch`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.txt`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.stderr`
+- `.agentic-sdd/reviews/<scope-id>/<run-id>/engine.stderr`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/sot.txt`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/prompt.txt`
 
