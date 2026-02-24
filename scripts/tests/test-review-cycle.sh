@@ -716,6 +716,11 @@ if ! grep -q '"failure_reason": "engine-exit"' "$engine_exit_meta"; then
 	cat "$engine_exit_meta" >&2
 	exit 1
 fi
+if ! grep -q '"review_completed": false' "$engine_exit_meta"; then
+	eprint "Expected review_completed=false in engine-exit metadata"
+	cat "$engine_exit_meta" >&2
+	exit 1
+fi
 engine_runtime_ms_engine_exit="$(
 	python3 - "$engine_exit_meta" <<'PY'
 import json
@@ -1463,6 +1468,11 @@ cat >"$tmpdir/claude" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
+if [[ ${1:-} == "--version" ]]; then
+  printf '%s\n' "claude-stub 1.0.0"
+  exit 0
+fi
+
 # Parse arguments to find --json-schema
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -1572,6 +1582,10 @@ fi
 # Claude error response should fail gracefully
 cat >"$tmpdir/claude-error" <<'EOF'
 #!/usr/bin/env bash
+if [[ ${1:-} == "--version" ]]; then
+  printf '%s\n' "claude-stub 1.0.0"
+  exit 0
+fi
 cat >/dev/null || true
 cat <<'JSON'
 {
@@ -1609,6 +1623,11 @@ if [[ ! -f "$claude_err_meta" ]]; then
 fi
 if ! grep -q '"failure_reason": "extract-structured-output"' "$claude_err_meta"; then
 	eprint "Expected failure_reason=extract-structured-output in metadata"
+	cat "$claude_err_meta" >&2
+	exit 1
+fi
+if ! grep -q '"review_completed": false' "$claude_err_meta"; then
+	eprint "Expected review_completed=false in extract-structured-output metadata"
 	cat "$claude_err_meta" >&2
 	exit 1
 fi
