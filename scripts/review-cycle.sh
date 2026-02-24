@@ -454,6 +454,9 @@ write_failure_review_metadata() {
 	local failure_message="$2"
 	local non_reuse_reason=""
 
+	rm -f "$out_json"
+	rm -f "$tmp_json"
+
 	if [[ "$reused" -eq 0 ]]; then
 		if [[ "$review_cycle_incremental" != "1" ]]; then
 			non_reuse_reason="incremental-disabled"

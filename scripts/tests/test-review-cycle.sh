@@ -558,6 +558,9 @@ exit 2
 EOF
 chmod +x "$tmpdir/codex-no-output"
 
+mkdir -p "$tmpdir/.agentic-sdd/reviews/issue-1/run-no-output"
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/run-no-output/review.json"
+
 set +e
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
 	CODEX_BIN="$tmpdir/codex-no-output" MODEL=stub REASONING_EFFORT=low \
@@ -589,6 +592,10 @@ fi
 if ! grep -q '"engine_stderr_summary":' "$no_output_meta"; then
 	eprint "Expected engine_stderr_summary in no-output metadata"
 	cat "$no_output_meta" >&2
+	exit 1
+fi
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-no-output/review.json" ]]; then
+	eprint "Expected stale review.json to be removed on no-output failure"
 	exit 1
 fi
 
