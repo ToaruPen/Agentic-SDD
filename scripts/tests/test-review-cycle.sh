@@ -1439,6 +1439,25 @@ if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-claude/run1/prompt.txt" ]]; then
 	exit 1
 fi
 
+schema_path_with_quote="${tmpdir}/schema'quoted.json"
+cp -p "$schema_src" "$schema_path_with_quote"
+echo "claude-quoted-schema" >>"$tmpdir/hello.txt"
+git -C "$tmpdir" add hello.txt
+
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_ENGINE=claude CLAUDE_BIN="$tmpdir/claude" CLAUDE_MODEL=stub SCHEMA_PATH="$schema_path_with_quote" \
+	"$review_cycle_sh" issue-claude run-schema-quoted) >/dev/null
+
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-claude/run-schema-quoted/review.json" ]]; then
+	eprint "Expected review.json to be created when SCHEMA_PATH contains single quote"
+	exit 1
+fi
+
+if ! grep -q "claude stub wrapped" "$tmpdir/.agentic-sdd/reviews/issue-claude/run-schema-quoted/review.json"; then
+	eprint "Expected Claude stub wrapped output for quoted SCHEMA_PATH run"
+	exit 1
+fi
+
 # Invalid REVIEW_ENGINE should fail
 set +e
 (cd "$tmpdir" && SOT="test" TESTS="not run: reason" DIFF_MODE=staged \

@@ -1602,14 +1602,16 @@ PY
 		set -e
 		;;
 	claude)
-		schema_content="$(python3 -c "
+		schema_content="$(python3 -c '
 import json
 import sys
-with open('$schema_path', 'r', encoding='utf-8') as f:
+
+with open(sys.argv[1], "r", encoding="utf-8") as f:
     schema = json.load(f)
-schema.pop('\$schema', None)
+
+schema.pop("$schema", None)
 print(json.dumps(schema, ensure_ascii=False))
-")"
+' "$schema_path")"
 
 		cmd=(
 			"$claude_bin" -p
@@ -1631,46 +1633,49 @@ print(json.dumps(schema, ensure_ascii=False))
 
 		if [[ "$engine_exit_code" == "0" ]]; then
 			set +e
-			python3 -c "
+			python3 -c '
 import json
 import sys
 
+claude_output_path = sys.argv[1]
+review_output_path = sys.argv[2]
+
 try:
-    with open('$tmp_claude_out', 'r', encoding='utf-8') as f:
+    with open(claude_output_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 except Exception as e:
-    print(f'Failed to parse Claude output: {e}', file=sys.stderr)
+    print(f"Failed to parse Claude output: {e}", file=sys.stderr)
     sys.exit(1)
 
 if not isinstance(data, dict):
-    print('Claude output is not a JSON object', file=sys.stderr)
+    print("Claude output is not a JSON object", file=sys.stderr)
     sys.exit(1)
 
-is_wrapped = 'type' in data and data.get('type') == 'result'
+is_wrapped = "type" in data and data.get("type") == "result"
 
 if is_wrapped:
-    subtype = data.get('subtype', '')
-    if subtype and subtype != 'success':
-        errors = data.get('errors', [])
-        print(f'Claude returned error: {subtype}', file=sys.stderr)
+    subtype = data.get("subtype", "")
+    if subtype and subtype != "success":
+        errors = data.get("errors", [])
+        print(f"Claude returned error: {subtype}", file=sys.stderr)
         if errors:
             for err in errors:
-                print(f'  {err}', file=sys.stderr)
+                print(f"  {err}", file=sys.stderr)
         sys.exit(1)
 
-    structured = data.get('structured_output')
+    structured = data.get("structured_output")
     if structured is None:
-        print('Claude output missing structured_output field', file=sys.stderr)
-        print('Full response:', file=sys.stderr)
+        print("Claude output missing structured_output field", file=sys.stderr)
+        print("Full response:", file=sys.stderr)
         print(json.dumps(data, indent=2), file=sys.stderr)
         sys.exit(1)
     output = structured
 else:
     output = data
 
-with open('$tmp_json', 'w', encoding='utf-8') as f:
+with open(review_output_path, "w", encoding="utf-8") as f:
     json.dump(output, f, ensure_ascii=False)
-" 2>>"$out_engine_stderr"
+' "$tmp_claude_out" "$tmp_json" 2>>"$out_engine_stderr"
 			extract_exit=$?
 			set -e
 		else
