@@ -669,6 +669,11 @@ if ! grep -q '"failure_reason": "validation-failed"' "$validation_fail_meta"; th
 	cat "$validation_fail_meta" >&2
 	exit 1
 fi
+if ! grep -q '"review_completed": false' "$validation_fail_meta"; then
+	eprint "Expected review_completed=false in validation-failed metadata"
+	cat "$validation_fail_meta" >&2
+	exit 1
+fi
 if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-validation-fail/review.json" ]]; then
 	eprint "Expected invalid review.json to be removed on validation failure"
 	exit 1
@@ -683,7 +688,6 @@ if [[ ${1:-} == "--version" ]]; then
 fi
 if [[ ${1:-} == "exec" ]]; then
   cat >/dev/null || true
-  sleep 0.05
   exit 9
 fi
 exit 2
@@ -712,8 +716,21 @@ if ! grep -q '"failure_reason": "engine-exit"' "$engine_exit_meta"; then
 	cat "$engine_exit_meta" >&2
 	exit 1
 fi
-if grep -q '"engine_runtime_ms": 0' "$engine_exit_meta"; then
-	eprint "Expected non-zero engine_runtime_ms in engine-exit metadata"
+engine_runtime_ms_engine_exit="$(
+	python3 - "$engine_exit_meta" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+v = data.get("engine_runtime_ms")
+if isinstance(v, int) and v >= 0:
+    print(v)
+PY
+)"
+if [[ -z "$engine_runtime_ms_engine_exit" ]]; then
+	eprint "Expected engine_runtime_ms to be a non-negative integer in engine-exit metadata"
 	cat "$engine_exit_meta" >&2
 	exit 1
 fi
@@ -1556,7 +1573,6 @@ fi
 cat >"$tmpdir/claude-error" <<'EOF'
 #!/usr/bin/env bash
 cat >/dev/null || true
-sleep 0.05
 cat <<'JSON'
 {
   "type": "result",
@@ -1596,8 +1612,21 @@ if ! grep -q '"failure_reason": "extract-structured-output"' "$claude_err_meta";
 	cat "$claude_err_meta" >&2
 	exit 1
 fi
-if grep -q '"engine_runtime_ms": 0' "$claude_err_meta"; then
-	eprint "Expected non-zero engine_runtime_ms for Claude extract failure"
+engine_runtime_ms_claude_err="$(
+	python3 - "$claude_err_meta" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+v = data.get("engine_runtime_ms")
+if isinstance(v, int) and v >= 0:
+    print(v)
+PY
+)"
+if [[ -z "$engine_runtime_ms_claude_err" ]]; then
+	eprint "Expected engine_runtime_ms to be a non-negative integer for Claude extract failure"
 	cat "$claude_err_meta" >&2
 	exit 1
 fi

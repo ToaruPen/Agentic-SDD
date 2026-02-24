@@ -1740,8 +1740,10 @@ python3 "$script_dir/validate-review-json.py" "${validate_args[@]}"
 validate_exit=$?
 set -e
 if [[ "$validate_exit" -ne 0 ]]; then
-	update_engine_runtime_ms
-	collect_engine_stderr_diagnostics "$out_engine_stderr"
+	if [[ "$reused" -ne 0 ]]; then
+		update_engine_runtime_ms
+		collect_engine_stderr_diagnostics "$out_engine_stderr"
+	fi
 	write_failure_review_metadata "validation-failed" "${review_engine} review output failed schema validation"
 	exit "$validate_exit"
 fi
