@@ -1677,6 +1677,9 @@ PROMPT
 		exit 2
 	fi
 
+	# Advisory lane runs before the main review engine intentionally:
+	# it is failure-isolated (non-zero exit -> warning, returns 0) so that
+	# main review always proceeds regardless of advisory outcome.
 	write_advisory
 
 	case "$review_engine" in
@@ -1899,6 +1902,8 @@ if [[ "$reused" -eq 0 ]]; then
 	if [[ "$review_cycle_incremental" != "1" ]]; then
 		non_reuse_reason="incremental-disabled"
 	else
+		# Defensive: reuse_reason should always be set when incremental is
+		# enabled but reuse did not occur; guard against unexpected paths.
 		if [[ -z "$reuse_reason" ]]; then
 			reuse_reason="reuse-reason-missing"
 		fi

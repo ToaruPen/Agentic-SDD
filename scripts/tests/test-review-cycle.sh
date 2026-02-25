@@ -584,6 +584,9 @@ if ! grep -q "Tests-Stderr-Policy:" "$advisory_prompt_file"; then
 	exit 1
 fi
 
+# Field ordering matters: advisory prompt must present context in the same
+# sequence as the main review prompt (Tests → Stderr → Policy → Constraints)
+# so the LLM receives a consistent information hierarchy across both lanes.
 if ! python3 - "$advisory_prompt_file" <<'PY'; then
 import sys
 
