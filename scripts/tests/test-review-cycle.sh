@@ -2101,4 +2101,320 @@ if [[ -z "$engine_runtime_ms_claude_err" ]]; then
 	exit 1
 fi
 
+# Issue #127 hybrid review-cycle/create-pr compatibility coverage.
+# AC4 (docs) は .agent/commands/create-pr.md で対応済み。以下は AC1-AC3 のテスト。
+
+# AC1: Schema v3 validation (advisory OFF/ON)
+run1_review_json="$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json"
+run1_review_meta="$tmpdir/.agentic-sdd/reviews/issue-1/run1/review-metadata.json"
+run_advisory_review_json="$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory/review.json"
+run_advisory_review_meta="$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory/review-metadata.json"
+
+python3 "$validator_py" "$run1_review_json" --scope-id issue-1 >/dev/null
+python3 "$validator_py" "$run_advisory_review_json" --scope-id issue-1 >/dev/null
+
+if grep -q '"advisory_lane_enabled": true' "$run1_review_meta"; then
+	eprint "AC1: Expected advisory_lane_enabled to be false/absent for advisory OFF run"
+	cat "$run1_review_meta" >&2
+	exit 1
+fi
+if ! grep -q '"advisory_lane_enabled": true' "$run_advisory_review_meta"; then
+	eprint "AC1: Expected advisory_lane_enabled=true for advisory ON run"
+	cat "$run_advisory_review_meta" >&2
+	exit 1
+fi
+
+if ! python3 - "$run1_review_json" "$run_advisory_review_json" <<'PY'; then
+import json
+import sys
+
+required = {
+    "schema_version",
+    "scope_id",
+    "status",
+    "findings",
+    "questions",
+    "overall_explanation",
+}
+
+for path in sys.argv[1:]:
+    with open(path, "r", encoding="utf-8") as fh:
+        data = json.load(fh)
+    if data.get("schema_version") != 3:
+        raise SystemExit(1)
+    if not required.issubset(set(data.keys())):
+        raise SystemExit(2)
+PY
+	eprint "AC1: Expected schema_version=3 and all required top-level keys in both review.json files"
+	cat "$run1_review_json" >&2
+	cat "$run_advisory_review_json" >&2
+	exit 1
+fi
+
+# AC2: create-pr metadata hard check (advisory OFF/ON)
+create_pr_sh="${repo_root}/scripts/create-pr.sh"
+if [[ ! -f "$create_pr_sh" || ! -x "$create_pr_sh" ]]; then
+	eprint "Missing script or not executable: $create_pr_sh"
+	exit 1
+fi
+compat_origin="$tmpdir/compat-origin.git"
+compat_repo="$tmpdir/compat-repo"
+compat_bin_dir="$tmpdir/compat-bin"
+compat_gh_stub="$compat_bin_dir/gh"
+compat_issue_body="$compat_repo/issue-body.md"
+
+git init -q --bare "$compat_origin"
+mkdir -p "$compat_repo"
+git -C "$compat_repo" init -q
+git -C "$compat_repo" remote add origin "$compat_origin"
+mkdir -p "$compat_repo/.agent/schemas"
+cp -p "$schema_src" "$compat_repo/.agent/schemas/review.json"
+mkdir -p "$compat_repo/docs/prd" "$compat_repo/docs/epics"
+cat >"$compat_repo/docs/prd/prd.md" <<'EOF'
+# PRD: Compat
+
+## 1. Purpose
+
+compat
+EOF
+cat >"$compat_repo/docs/epics/epic.md" <<'EOF'
+# Epic: Compat
+
+## 1. Scope
+
+compat
+EOF
+
+cat >"$compat_repo/hello.txt" <<'EOF'
+hello
+EOF
+git -C "$compat_repo" add hello.txt
+git -C "$compat_repo" -c user.name=test -c user.email=test@example.com commit -m "init" -q
+git -C "$compat_repo" branch -M main
+git -C "$compat_repo" push -u origin main >/dev/null
+
+git -C "$compat_repo" switch -c feature/issue-1-compat -q
+echo "compat-change" >>"$compat_repo/hello.txt"
+git -C "$compat_repo" add hello.txt
+git -C "$compat_repo" -c user.name=test -c user.email=test@example.com commit -m "compat change" -q
+
+compat_head_sha="$(git -C "$compat_repo" rev-parse HEAD)"
+compat_base_sha="$(git -C "$compat_repo" rev-parse main)"
+
+cat >"$compat_issue_body" <<'EOF'
+## Background
+
+- Epic: docs/epics/epic.md
+- PRD: docs/prd/prd.md
+
+## Acceptance Criteria
+
+- [ ] AC1: compat
+EOF
+
+mkdir -p "$compat_bin_dir"
+cat >"$compat_gh_stub" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ "${1:-}" == "issue" && "${2:-}" == "develop" ]]; then
+  printf 'feature/issue-1-compat\thttps://example.com\n'; exit 0
+fi
+if [[ "${1:-}" == "issue" && "${2:-}" == "view" ]]; then
+  printf '{"title":"compat test","url":"https://example.com"}\n'; exit 0
+fi
+if [[ "${1:-}" == "pr" && "${2:-}" == "list" ]]; then printf '[]\n'; exit 0; fi
+if [[ "${1:-}" == "pr" && "${2:-}" == "view" ]]; then echo "no open PR" >&2; exit 1; fi
+if [[ "${1:-}" == "pr" && "${2:-}" == "create" ]]; then printf 'https://example.com/pr/1\n'; exit 0; fi
+echo "compat_gh_stub: unexpected args: $*" >&2; exit 64
+EOF
+chmod +x "$compat_gh_stub"
+
+compat_write_test_review() {
+	local run_id="$1"
+	local review_root="$compat_repo/.agentic-sdd/test-reviews/issue-1"
+	mkdir -p "$review_root/$run_id"
+	cat >"$review_root/$run_id/test-review.json" <<'EOF'
+{
+  "schema_version": 3,
+  "scope_id": "issue-1",
+  "status": "Approved",
+  "findings": [],
+  "questions": [],
+  "overall_explanation": "compat test-review"
+}
+EOF
+	cat >"$review_root/$run_id/test-review-metadata.json" <<EOF
+{
+  "head_sha": "${compat_head_sha}",
+  "base_ref": "main",
+  "base_sha": "${compat_base_sha}",
+  "diff_mode": "range"
+}
+EOF
+	printf '%s\n' "$run_id" >"$review_root/.current_run"
+}
+
+(cd "$compat_repo" && GH_ISSUE_BODY_FILE="$compat_issue_body" TESTS="not run: reason" DIFF_MODE=range BASE_REF=main \
+	REVIEW_CYCLE_INCREMENTAL=0 CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-compat-off) >/dev/null
+
+compat_meta_off="$compat_repo/.agentic-sdd/reviews/issue-1/run-compat-off/review-metadata.json"
+if ! grep -q '"diff_source": "range"' "$compat_meta_off"; then
+	eprint "AC2: Expected diff_source=range in advisory OFF compat metadata"
+	cat "$compat_meta_off" >&2
+	exit 1
+fi
+if ! grep -q "\"head_sha\": \"${compat_head_sha}\"" "$compat_meta_off"; then
+	eprint "AC2: Expected head_sha to match HEAD for advisory OFF compat metadata"
+	cat "$compat_meta_off" >&2
+	exit 1
+fi
+if ! grep -q "\"base_sha\": \"${compat_base_sha}\"" "$compat_meta_off"; then
+	eprint "AC2: Expected base_sha to match main for advisory OFF compat metadata"
+	cat "$compat_meta_off" >&2
+	exit 1
+fi
+compat_write_test_review run-compat-off
+
+if ! (cd "$compat_repo" && PATH="$compat_bin_dir:$PATH" "$create_pr_sh" --dry-run --issue 1) >/dev/null 2>"$tmpdir/stderr-create-pr-compat-off"; then
+	eprint "AC2: Expected create-pr dry-run success with advisory OFF review metadata"
+	cat "$tmpdir/stderr-create-pr-compat-off" >&2
+	exit 1
+fi
+
+(cd "$compat_repo" && GH_ISSUE_BODY_FILE="$compat_issue_body" TESTS="not run: reason" DIFF_MODE=range BASE_REF=main \
+	REVIEW_CYCLE_ADVISORY_LANE=1 REVIEW_CYCLE_INCREMENTAL=0 CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-compat-on) >/dev/null
+
+compat_meta_on="$compat_repo/.agentic-sdd/reviews/issue-1/run-compat-on/review-metadata.json"
+if ! grep -q '"diff_source": "range"' "$compat_meta_on"; then
+	eprint "AC2: Expected diff_source=range in advisory ON compat metadata"
+	cat "$compat_meta_on" >&2
+	exit 1
+fi
+if ! grep -q "\"head_sha\": \"${compat_head_sha}\"" "$compat_meta_on"; then
+	eprint "AC2: Expected head_sha to match HEAD for advisory ON compat metadata"
+	cat "$compat_meta_on" >&2
+	exit 1
+fi
+if ! grep -q "\"base_sha\": \"${compat_base_sha}\"" "$compat_meta_on"; then
+	eprint "AC2: Expected base_sha to match main for advisory ON compat metadata"
+	cat "$compat_meta_on" >&2
+	exit 1
+fi
+compat_write_test_review run-compat-on
+
+if ! (cd "$compat_repo" && PATH="$compat_bin_dir:$PATH" "$create_pr_sh" --dry-run --issue 1) >/dev/null 2>"$tmpdir/stderr-create-pr-compat-on"; then
+	eprint "AC2: Expected create-pr dry-run success with advisory ON review metadata"
+	cat "$tmpdir/stderr-create-pr-compat-on" >&2
+	exit 1
+fi
+
+# AC3: timeout/no-output/engine-exit fail-fast regression (advisory ON)
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_ADVISORY_LANE=1 REVIEW_CYCLE_INCREMENTAL=0 CODEX_BIN="$tmpdir/codex-no-output" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-noout-advisory-on) >/dev/null 2>"$tmpdir/stderr-noout-advisory-on"
+code_noout_advisory_on=$?
+set -e
+if [[ "$code_noout_advisory_on" -eq 0 ]]; then
+	eprint "AC3: Expected no-output run to fail when advisory lane is enabled"
+	exit 1
+fi
+
+noout_advisory_meta="$tmpdir/.agentic-sdd/reviews/issue-1/run-noout-advisory-on/review-metadata.json"
+if ! grep -q '"failure_reason": "no-output"' "$noout_advisory_meta"; then
+	eprint "AC3: Expected failure_reason=no-output for advisory no-output run"
+	cat "$noout_advisory_meta" >&2
+	exit 1
+fi
+if ! grep -q '"review_completed": false' "$noout_advisory_meta"; then
+	eprint "AC3: Expected review_completed=false for advisory no-output run"
+	cat "$noout_advisory_meta" >&2
+	exit 1
+fi
+if ! grep -q '"advisory_lane_enabled": true' "$noout_advisory_meta"; then
+	eprint "AC3: Expected advisory_lane_enabled=true for advisory no-output run"
+	cat "$noout_advisory_meta" >&2
+	exit 1
+fi
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_ADVISORY_LANE=1 REVIEW_CYCLE_INCREMENTAL=0 CODEX_BIN="$tmpdir/codex-engine-exit" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-engine-exit-advisory-on) >/dev/null 2>"$tmpdir/stderr-engine-exit-advisory-on"
+code_engine_exit_advisory_on=$?
+set -e
+if [[ "$code_engine_exit_advisory_on" -eq 0 ]]; then
+	eprint "AC3: Expected engine-exit run to fail when advisory lane is enabled"
+	exit 1
+fi
+
+engine_exit_advisory_meta="$tmpdir/.agentic-sdd/reviews/issue-1/run-engine-exit-advisory-on/review-metadata.json"
+if ! grep -q '"failure_reason": "engine-exit"' "$engine_exit_advisory_meta"; then
+	eprint "AC3: Expected failure_reason=engine-exit for advisory engine-exit run"
+	cat "$engine_exit_advisory_meta" >&2
+	exit 1
+fi
+if ! grep -q '"review_completed": false' "$engine_exit_advisory_meta"; then
+	eprint "AC3: Expected review_completed=false for advisory engine-exit run"
+	cat "$engine_exit_advisory_meta" >&2
+	exit 1
+fi
+if ! grep -q '"advisory_lane_enabled": true' "$engine_exit_advisory_meta"; then
+	eprint "AC3: Expected advisory_lane_enabled=true for advisory engine-exit run"
+	cat "$engine_exit_advisory_meta" >&2
+	exit 1
+fi
+
+# AC3 (continued): timeout fail-fast with advisory ON.
+# review-cycle.sh treats timeout as engine-exit (timeout/gtimeout exit 124).
+# Verify that exit-code 124 (simulating EXEC_TIMEOUT_SEC) is still fail-fast.
+cat >"$tmpdir/codex-timeout" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+if [[ ${1:-} == "--version" ]]; then
+  printf '%s\n' "codex-stub 1.0.0"
+  exit 0
+fi
+if [[ ${1:-} == "exec" ]]; then
+  cat >/dev/null || true
+  exit 124
+fi
+exit 2
+EOF
+chmod +x "$tmpdir/codex-timeout"
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_ADVISORY_LANE=1 REVIEW_CYCLE_INCREMENTAL=0 CODEX_BIN="$tmpdir/codex-timeout" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-timeout-advisory-on) >/dev/null 2>"$tmpdir/stderr-timeout-advisory-on"
+code_timeout_advisory_on=$?
+set -e
+if [[ "$code_timeout_advisory_on" -eq 0 ]]; then
+	eprint "AC3: Expected timeout run to fail when advisory lane is enabled"
+	exit 1
+fi
+
+timeout_advisory_meta="$tmpdir/.agentic-sdd/reviews/issue-1/run-timeout-advisory-on/review-metadata.json"
+if ! grep -q '"failure_reason": "engine-exit"' "$timeout_advisory_meta"; then
+	eprint "AC3: Expected failure_reason=engine-exit for advisory timeout run (exit 124)"
+	cat "$timeout_advisory_meta" >&2
+	exit 1
+fi
+if ! grep -q '"review_completed": false' "$timeout_advisory_meta"; then
+	eprint "AC3: Expected review_completed=false for advisory timeout run"
+	cat "$timeout_advisory_meta" >&2
+	exit 1
+fi
+if ! grep -q '"advisory_lane_enabled": true' "$timeout_advisory_meta"; then
+	eprint "AC3: Expected advisory_lane_enabled=true for advisory timeout run"
+	cat "$timeout_advisory_meta" >&2
+	exit 1
+fi
+if ! grep -q '"engine_exit_code": 124' "$timeout_advisory_meta"; then
+	eprint "AC3: Expected engine_exit_code=124 for advisory timeout run"
+	cat "$timeout_advisory_meta" >&2
+	exit 1
+fi
 eprint "OK: scripts/tests/test-review-cycle.sh"

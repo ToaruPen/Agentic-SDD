@@ -48,6 +48,27 @@ Required:
       - if `base_sha` is present, the same `base_ref` still points to that `base_sha`
       - if `base_sha` is present, the PR target base (`--base` or default base) must match the reviewed base branch
 
+#### Hybrid review-cycle compatibility criteria
+
+When advisory lane is enabled (`REVIEW_CYCLE_ADVISORY_LANE=1`), the contract
+between `/review-cycle` and `/create-pr` remains unchanged:
+
+1. **Schema v3 compliance**: `review.json` passes `validate-review-json.py`
+   regardless of advisory lane state. `schema_version` must be `3` with all
+   required top-level keys (`scope_id`, `status`, `findings`, `questions`,
+   `overall_explanation`).
+2. **Metadata hard checks**: `/create-pr` hard-checks `head_sha` and
+   `diff_source=range`; this contract is unchanged by advisory lane state.
+   Current `/review-cycle` always generates `base_sha` as well (required when
+   `diff_source=range`). `advisory_lane_enabled` is informational only and is
+   not validated by `/create-pr`.
+3. **Fail-fast preservation**: Engine failures (`no-output`, `engine-exit`)
+   still cause the main review flow to fail with `review_completed=false`
+   even when advisory lane is enabled. Advisory lane failures are tolerated
+   (non-fatal), but main lane failures are never masked.
+
+Integration tests: `scripts/tests/test-review-cycle.sh` (AC1–AC3 blocks).
+
 ### Phase 1: Push
 
 Preferred: use the helper script (does preflight checks and is idempotent):
