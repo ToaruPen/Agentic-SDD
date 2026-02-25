@@ -19,11 +19,11 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues/PRs) r
 ## Workflow
 
 ```
-/agentic-sdd* -> /create-prd -> /create-epic -> /generate-project-config** -> /create-issues -> /estimation -> /impl|/tdd -> /ui-iterate*** -> /review-cycle -> /final-review -> /create-pr -> [Merge] -> /cleanup
-     |            |              |              |                            |              |            |              |              |            |            |                         |
-     v            v              v              v                            v              v            v              v              v            v            v                         v
-     Install       7 questions    3-layer guard  Generate project            LOC-based       Full estimate Implement      UI round loop  Local loop    DoD gate       Push + PR create       Remove worktree
-                  + checklist    + 3 required   skills/rules                50-300 LOC      + approval    + tests        capture/verify review.json   + sync-docs    (gh)                   + local branch
+/agentic-sdd* -> /create-prd -> /create-epic -> /generate-project-config** -> /create-issues -> /estimation -> /impl|/tdd -> /ui-iterate*** -> /test-review -> /review-cycle -> /final-review -> /test-review -> /create-pr -> /pr-bots-review -> [Merge] -> /cleanup
+     |            |              |              |                            |              |            |              |              |             |              |             |            |                 |          |
+     v            v              v              v                            v              v            v              v              v             v              v             v            v                 v          v
+     Install       7 questions    3-layer guard  Generate project            LOC-based       Full estimate Implement      UI round loop  Fail-fast     Local loop     DoD gate      Range recheck Push + PR create  Bot review  Remove worktree
+                  + checklist    + 3 required   skills/rules                50-300 LOC      + approval    + tests        capture/verify test checks   review.json    + sync-docs    on HEAD       (gh)            loop        + local branch
 ```
 
 \*\* Optional: generates project-specific skills/rules based on Epic tech stack and Q6 requirements.
