@@ -127,6 +127,11 @@ Before collecting diffs, verify the scope matches the current branch context.
   - Default: unset/`0` (disabled)
   - Enabled value must be an integer `>= 1`.
   - Exceeding budget fails fast before engine execution.
+- `MAX_ADVISORY_PROMPT_BYTES`: hard byte budget for generated `advisory-prompt.txt`.
+  - Default: unset (falls back to `MAX_PROMPT_BYTES` behavior)
+  - `0` disables advisory-specific budget (does not fallback when explicitly set)
+  - Enabled value must be an integer `>= 1`.
+  - Exceeding budget skips advisory lane only and keeps main review flow.
 
 ### Engine selection
 
@@ -167,6 +172,7 @@ Before collecting diffs, verify the scope matches the current branch context.
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/engine.stderr`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/advisory.txt`（`REVIEW_CYCLE_ADVISORY_LANE=1` のとき）
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/advisory.stderr`（`REVIEW_CYCLE_ADVISORY_LANE=1` のとき）
+- `.agentic-sdd/reviews/<scope-id>/<run-id>/advisory-prompt.txt`（`REVIEW_CYCLE_ADVISORY_LANE=1` のとき）
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/sot.txt`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/prompt.txt`
 

@@ -1155,6 +1155,28 @@ if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-over-prompt-budget-advisory/a
 	exit 1
 fi
 
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" SOT_MAX_CHARS=0 SOT="$(
+	python3 - <<'PY'
+print('S' * 12000)
+PY
+)" TESTS="not run: reason" DIFF_MODE=staged REVIEW_CYCLE_ADVISORY_LANE=1 \
+MAX_PROMPT_BYTES=0 MAX_ADVISORY_PROMPT_BYTES=500 CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-over-advisory-prompt-budget) >/dev/null
+
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-over-advisory-prompt-budget/review.json" ]]; then
+	eprint "Expected main review to complete when only advisory prompt budget is exceeded"
+	exit 1
+fi
+if ! grep -q "MAX_ADVISORY_PROMPT_BYTES" "$tmpdir/.agentic-sdd/reviews/issue-1/run-over-advisory-prompt-budget/advisory.txt"; then
+	eprint "Expected advisory skip message to reference MAX_ADVISORY_PROMPT_BYTES"
+	cat "$tmpdir/.agentic-sdd/reviews/issue-1/run-over-advisory-prompt-budget/advisory.txt" >&2
+	exit 1
+fi
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-over-advisory-prompt-budget/advisory.stderr" ]]; then
+	eprint "Did not expect advisory.stderr when advisory prompt budget prevents advisory execution"
+	exit 1
+fi
+
 set +e
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
 	MAX_DIFF_BYTES=08 CODEX_BIN="$tmpdir/codex-no-call" MODEL=stub REASONING_EFFORT=low \
@@ -1446,14 +1468,7 @@ with open(path, "w", encoding="utf-8") as fh:
     fh.write("\n")
 PY
 
-python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/.current_run" "$hit_run" <<'PY'
-import sys
-
-path = sys.argv[1]
-value = sys.argv[2]
-with open(path, "w", encoding="utf-8") as fh:
-    fh.write(value)
-PY
+printf '%s' "$hit_run" >"$tmpdir/.agentic-sdd/reviews/issue-1/.current_run"
 
 set +e
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
@@ -1472,14 +1487,7 @@ if ! grep -q '"reused": true' "$tmpdir/.agentic-sdd/reviews/issue-1/run-cache-mi
 	exit 1
 fi
 
-python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/.current_run" "$hit_run" <<'PY'
-import sys
-
-path = sys.argv[1]
-value = sys.argv[2]
-with open(path, "w", encoding="utf-8") as fh:
-    fh.write(value)
-PY
+printf '%s' "$hit_run" >"$tmpdir/.agentic-sdd/reviews/issue-1/.current_run"
 
 cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"
 cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review-metadata.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"

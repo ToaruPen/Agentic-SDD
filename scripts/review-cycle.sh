@@ -72,6 +72,7 @@ Required environment:
   EXEC_TIMEOUT_SEC Optional timeout in seconds (unset/empty => no timeout; uses timeout/gtimeout if available)
   MAX_DIFF_BYTES   Optional hard limit for diff.patch bytes (0/empty disables; min 1 when enabled)
   MAX_PROMPT_BYTES Optional hard limit for prompt.txt bytes (0/empty disables; min 1 when enabled)
+  MAX_ADVISORY_PROMPT_BYTES Optional hard limit for advisory-prompt.txt bytes (0/empty disables; min 1 when enabled)
   FORMAT_JSON      1 to pretty-format output JSON (default: 1)
 
 Notes:
@@ -212,6 +213,11 @@ exec_timeout_sec="${EXEC_TIMEOUT_SEC:-}"
 format_json="${FORMAT_JSON:-1}"
 max_diff_bytes_raw="${MAX_DIFF_BYTES:-}"
 max_prompt_bytes_raw="${MAX_PROMPT_BYTES:-}"
+max_advisory_prompt_bytes_raw="${MAX_ADVISORY_PROMPT_BYTES:-}"
+max_advisory_prompt_bytes_is_set=0
+if [[ "${MAX_ADVISORY_PROMPT_BYTES+x}" == "x" ]]; then
+	max_advisory_prompt_bytes_is_set=1
+fi
 
 sot="${SOT:-}"
 tests_summary="${TESTS:-}"
@@ -708,6 +714,7 @@ parse_optional_byte_limit() {
 
 max_diff_bytes="$(parse_optional_byte_limit "MAX_DIFF_BYTES" "$max_diff_bytes_raw" 1)"
 max_prompt_bytes="$(parse_optional_byte_limit "MAX_PROMPT_BYTES" "$max_prompt_bytes_raw" 1)"
+max_advisory_prompt_bytes="$(parse_optional_byte_limit "MAX_ADVISORY_PROMPT_BYTES" "$max_advisory_prompt_bytes_raw" 1)"
 
 git_ref_exists() {
 	local ref="$1"
@@ -1089,6 +1096,7 @@ print_plan() {
 	eprint "- constraints: $constraints"
 	eprint "- max_diff_bytes: $max_diff_bytes"
 	eprint "- max_prompt_bytes: $max_prompt_bytes"
+	eprint "- max_advisory_prompt_bytes: $max_advisory_prompt_bytes"
 	eprint "- review_cycle_incremental: $review_cycle_incremental"
 	eprint "- review_cycle_cache_policy: $review_cycle_cache_policy"
 	eprint "- advisory_lane: $advisory_lane"
@@ -1212,10 +1220,19 @@ PROMPT
 	} >"$out_advisory_prompt"
 
 	local advisory_prompt_bytes=0
+	local advisory_prompt_limit=0
+	local advisory_prompt_limit_name="MAX_PROMPT_BYTES"
 	advisory_prompt_bytes="$(wc -c <"$out_advisory_prompt" | tr -d ' ')"
-	if ((max_prompt_bytes > 0 && advisory_prompt_bytes > max_prompt_bytes)); then
-		eprint "WARNING: advisory lane skipped due to MAX_PROMPT_BYTES: advisory_prompt_bytes=${advisory_prompt_bytes} max=${max_prompt_bytes}"
-		printf 'advisory lane skipped: prompt_bytes=%s exceeds max=%s\n' "$advisory_prompt_bytes" "$max_prompt_bytes" >"$out_advisory"
+	if [[ "$max_advisory_prompt_bytes_is_set" -eq 1 ]]; then
+		advisory_prompt_limit="$max_advisory_prompt_bytes"
+		advisory_prompt_limit_name="MAX_ADVISORY_PROMPT_BYTES"
+	else
+		advisory_prompt_limit="$max_prompt_bytes"
+		advisory_prompt_limit_name="MAX_PROMPT_BYTES"
+	fi
+	if ((advisory_prompt_limit > 0 && advisory_prompt_bytes > advisory_prompt_limit)); then
+		eprint "WARNING: advisory lane skipped due to ${advisory_prompt_limit_name}: advisory_prompt_bytes=${advisory_prompt_bytes} max=${advisory_prompt_limit}"
+		printf 'advisory lane skipped: prompt_bytes=%s exceeds %s=%s\n' "$advisory_prompt_bytes" "$advisory_prompt_limit_name" "$advisory_prompt_limit" >"$out_advisory"
 		rm -f "$out_advisory_stderr"
 		return 0
 	fi
@@ -1490,7 +1507,7 @@ if cached_advisory_lane is None:
 if not isinstance(cached_advisory_lane, bool):
     out(False, "advisory-lane-invalid")
     raise SystemExit(0)
-if cached_advisory_lane is not curr_advisory_lane:
+if cached_advisory_lane != curr_advisory_lane:
     out(False, "advisory-lane-mismatch")
     raise SystemExit(0)
 if curr_cache_policy == "strict":
