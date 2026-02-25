@@ -464,6 +464,11 @@ if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run1/sot.txt" ]]; then
 	exit 1
 fi
 
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run1/advisory.txt" ]]; then
+	eprint "Did not expect advisory.txt when advisory lane is disabled by default"
+	exit 1
+fi
+
 if ! grep -q "model=stub" "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json"; then
 	eprint "Expected model passthrough to codex stub (MODEL=stub)"
 	cat "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json" >&2
@@ -543,6 +548,337 @@ if ! grep -q '"engine_version_available": true' "$tmpdir/.agentic-sdd/reviews/is
 	exit 1
 fi
 
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_ADVISORY_LANE=1 CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-advisory) >/dev/null
+
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory/advisory.txt" ]]; then
+	eprint "Expected advisory.txt when advisory lane is enabled"
+	exit 1
+fi
+
+if [[ ! -s "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory/advisory.txt" ]]; then
+	eprint "Expected advisory.txt to be non-empty"
+	exit 1
+fi
+
+if ! grep -q '"advisory_lane_enabled": true' "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory/review-metadata.json"; then
+	eprint "Expected advisory_lane_enabled=true in review metadata"
+	cat "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory/review-metadata.json" >&2
+	exit 1
+fi
+
+advisory_prompt_file="$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory/advisory-prompt.txt"
+if [[ ! -f "$advisory_prompt_file" ]]; then
+	eprint "Expected advisory-prompt.txt to be created when advisory lane is enabled"
+	exit 1
+fi
+if ! grep -q "Tests-Stderr:" "$advisory_prompt_file"; then
+	eprint "Expected advisory prompt to include Tests-Stderr"
+	cat "$advisory_prompt_file" >&2
+	exit 1
+fi
+if ! grep -q "Tests-Stderr-Policy:" "$advisory_prompt_file"; then
+	eprint "Expected advisory prompt to include Tests-Stderr-Policy"
+	cat "$advisory_prompt_file" >&2
+	exit 1
+fi
+
+if ! python3 - "$advisory_prompt_file" <<'PY'; then
+import sys
+
+path = sys.argv[1]
+text = open(path, "r", encoding="utf-8").read()
+tests_idx = text.find("Tests:")
+stderr_idx = text.find("Tests-Stderr:")
+policy_idx = text.find("Tests-Stderr-Policy:")
+constraints_idx = text.find("Constraints:")
+
+if min(tests_idx, stderr_idx, policy_idx, constraints_idx) < 0:
+    raise SystemExit(1)
+if not (tests_idx < stderr_idx < policy_idx < constraints_idx):
+    raise SystemExit(2)
+PY
+	eprint "Expected advisory prompt field ordering to match main prompt ordering"
+	cat "$advisory_prompt_file" >&2
+	exit 1
+fi
+
+cat >"$tmpdir/codex-advisory-fail-main-pass" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ ${1:-} == "--version" ]]; then
+  printf '%s\n' "codex-stub 1.0.0"
+  exit 0
+fi
+
+if [[ ${1:-} != "exec" ]]; then
+  exit 2
+fi
+shift
+
+out=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --output-last-message)
+      out="$2"
+      shift 2
+      ;;
+    -m|-c)
+      shift 2
+      ;;
+    --sandbox)
+      shift 2
+      ;;
+    -)
+      shift
+      break
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+cat >/dev/null || true
+
+if [[ -z "$out" ]]; then
+  exit 2
+fi
+
+count_file="${CODEX_ADVISORY_COUNT_FILE:?}"
+count=0
+if [[ -f "$count_file" ]]; then
+  count="$(cat "$count_file")"
+fi
+count=$((count + 1))
+printf '%s' "$count" >"$count_file"
+
+if [[ "$count" -eq 1 ]]; then
+  echo "advisory simulated stderr" >&2
+  exit 9
+fi
+
+mkdir -p "$(dirname "$out")"
+cat >"$out" <<'JSON'
+{
+  "schema_version": 3,
+  "scope_id": "issue-1",
+  "status": "Approved",
+  "findings": [],
+  "questions": [],
+  "overall_explanation": "advisory tolerated"
+}
+JSON
+EOF
+chmod +x "$tmpdir/codex-advisory-fail-main-pass"
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_ADVISORY_LANE=1 REVIEW_CYCLE_INCREMENTAL=0 CODEX_ADVISORY_COUNT_FILE="$tmpdir/advisory-count" \
+	CODEX_BIN="$tmpdir/codex-advisory-fail-main-pass" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-advisory-tolerate) >/dev/null 2>"$tmpdir/stderr-advisory-tolerate"
+code_advisory_tolerate=$?
+set -e
+if [[ "$code_advisory_tolerate" -ne 0 ]]; then
+	eprint "Expected advisory failure to be tolerated by main review flow"
+	cat "$tmpdir/stderr-advisory-tolerate" >&2
+	exit 1
+fi
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-tolerate/review.json" ]]; then
+	eprint "Expected review.json to be created when advisory lane fails"
+	exit 1
+fi
+if ! grep -q "advisory lane failed" "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-tolerate/advisory.txt"; then
+	eprint "Expected advisory fallback message when advisory lane engine fails"
+	cat "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-tolerate/advisory.txt" >&2
+	exit 1
+fi
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-tolerate/advisory.stderr" ]]; then
+	eprint "Expected advisory.stderr to be created when advisory lane runs"
+	exit 1
+fi
+if ! grep -q "advisory simulated stderr" "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-tolerate/advisory.stderr"; then
+	eprint "Expected advisory stderr details to be preserved in advisory.stderr"
+	cat "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-tolerate/advisory.stderr" >&2
+	exit 1
+fi
+
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_ADVISORY_LANE=1 REVIEW_CYCLE_INCREMENTAL=0 CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-advisory-stale-check) >/dev/null
+
+cat >"$tmpdir/codex-advisory-no-output-main-pass" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ ${1:-} == "--version" ]]; then
+  printf '%s\n' "codex-stub 1.0.0"
+  exit 0
+fi
+
+if [[ ${1:-} != "exec" ]]; then
+  exit 2
+fi
+shift
+
+out=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --output-last-message)
+      out="$2"
+      shift 2
+      ;;
+    -m|-c)
+      shift 2
+      ;;
+    --sandbox)
+      shift 2
+      ;;
+    -)
+      shift
+      break
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+cat >/dev/null || true
+
+if [[ -z "$out" ]]; then
+  exit 2
+fi
+
+count_file="${CODEX_ADVISORY_NOOUT_COUNT_FILE:?}"
+count=0
+if [[ -f "$count_file" ]]; then
+  count="$(cat "$count_file")"
+fi
+count=$((count + 1))
+printf '%s' "$count" >"$count_file"
+
+if [[ "$count" -eq 1 ]]; then
+  exit 0
+fi
+
+mkdir -p "$(dirname "$out")"
+cat >"$out" <<'JSON'
+{
+  "schema_version": 3,
+  "scope_id": "issue-1",
+  "status": "Approved",
+  "findings": [],
+  "questions": [],
+  "overall_explanation": "advisory no-output fallback"
+}
+JSON
+EOF
+chmod +x "$tmpdir/codex-advisory-no-output-main-pass"
+
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_ADVISORY_LANE=1 REVIEW_CYCLE_INCREMENTAL=0 CODEX_ADVISORY_NOOUT_COUNT_FILE="$tmpdir/advisory-noout-count" \
+	CODEX_BIN="$tmpdir/codex-advisory-no-output-main-pass" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-advisory-stale-check) >/dev/null
+
+if ! grep -q "advisory lane produced no output" "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-stale-check/advisory.txt"; then
+	eprint "Expected advisory stale file to be replaced with no-output fallback message"
+	cat "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-stale-check/advisory.txt" >&2
+	exit 1
+fi
+
+cat >"$tmpdir/codex-no-call-local" <<'EOF'
+#!/usr/bin/env bash
+if [[ ${1:-} == "--version" ]]; then
+  printf '%s\n' "codex-stub 1.0.0"
+  exit 0
+fi
+echo "engine should not be called on advisory self-reuse" >&2
+exit 70
+EOF
+chmod +x "$tmpdir/codex-no-call-local"
+
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_ADVISORY_LANE=1 CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-advisory-self-reuse) >/dev/null
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_ADVISORY_LANE=1 REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call-local" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-advisory-self-reuse) >/dev/null 2>"$tmpdir/stderr-advisory-self-reuse"
+code_advisory_self_reuse=$?
+set -e
+if [[ "$code_advisory_self_reuse" -ne 0 ]]; then
+	eprint "Expected advisory self-reuse to avoid same-file copy failure"
+	cat "$tmpdir/stderr-advisory-self-reuse" >&2
+	exit 1
+fi
+if ! grep -q '"reused": true' "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-self-reuse/review-metadata.json"; then
+	eprint "Expected reused=true for advisory self-reuse run"
+	cat "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-self-reuse/review-metadata.json" >&2
+	exit 1
+fi
+
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_ADVISORY_LANE=1 REVIEW_CYCLE_INCREMENTAL=0 CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-advisory-toggle) >/dev/null
+
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-toggle/advisory.txt" ]]; then
+	eprint "Expected advisory.txt to exist after advisory-enabled run"
+	exit 1
+fi
+
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_ADVISORY_LANE=0 REVIEW_CYCLE_INCREMENTAL=0 CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-advisory-toggle) >/dev/null
+
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-toggle/advisory.txt" ]]; then
+	eprint "Did not expect stale advisory.txt when advisory lane is disabled"
+	exit 1
+fi
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-toggle/advisory.stderr" ]]; then
+	eprint "Did not expect stale advisory.stderr when advisory lane is disabled"
+	exit 1
+fi
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-toggle/advisory-prompt.txt" ]]; then
+	eprint "Did not expect stale advisory-prompt.txt when advisory lane is disabled"
+	exit 1
+fi
+
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_ADVISORY_LANE=0 REVIEW_CYCLE_INCREMENTAL=0 CODEX_BIN="$tmpdir/codex" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-advisory-off-reuse) >/dev/null
+
+printf '%s\n' 'stale advisory artifact' >"$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-off-reuse/advisory.txt"
+printf '%s\n' 'stale advisory stderr artifact' >"$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-off-reuse/advisory.stderr"
+printf '%s\n' 'stale advisory prompt artifact' >"$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-off-reuse/advisory-prompt.txt"
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_ADVISORY_LANE=0 REVIEW_CYCLE_INCREMENTAL=1 CODEX_BIN="$tmpdir/codex-no-call-local" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-advisory-off-reuse) >/dev/null 2>"$tmpdir/stderr-advisory-off-reuse"
+code_advisory_off_reuse=$?
+set -e
+if [[ "$code_advisory_off_reuse" -ne 0 ]]; then
+	eprint "Expected advisory-off reuse run to succeed without engine call"
+	cat "$tmpdir/stderr-advisory-off-reuse" >&2
+	exit 1
+fi
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-off-reuse/advisory.txt" ]]; then
+	eprint "Did not expect stale advisory.txt after advisory-off cache reuse"
+	exit 1
+fi
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-off-reuse/advisory.stderr" ]]; then
+	eprint "Did not expect stale advisory.stderr after advisory-off cache reuse"
+	exit 1
+fi
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-advisory-off-reuse/advisory-prompt.txt" ]]; then
+	eprint "Did not expect stale advisory-prompt.txt after advisory-off cache reuse"
+	exit 1
+fi
+
 cat >"$tmpdir/codex-no-output" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -563,7 +899,7 @@ cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/run1/review.json" "$tmpdir/.agentic-
 
 set +e
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
-	CODEX_BIN="$tmpdir/codex-no-output" MODEL=stub REASONING_EFFORT=low \
+	REVIEW_CYCLE_INCREMENTAL=0 CODEX_BIN="$tmpdir/codex-no-output" MODEL=stub REASONING_EFFORT=low \
 	"$review_cycle_sh" issue-1 run-no-output) >/dev/null 2>"$tmpdir/stderr-no-output"
 code_no_output=$?
 set -e
@@ -649,7 +985,7 @@ chmod +x "$tmpdir/codex-invalid-json"
 
 set +e
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
-	CODEX_BIN="$tmpdir/codex-invalid-json" MODEL=stub REASONING_EFFORT=low \
+	REVIEW_CYCLE_INCREMENTAL=0 CODEX_BIN="$tmpdir/codex-invalid-json" MODEL=stub REASONING_EFFORT=low \
 	"$review_cycle_sh" issue-1 run-validation-fail) >/dev/null 2>"$tmpdir/stderr-validation-fail"
 code_validation_fail=$?
 set -e
@@ -696,7 +1032,7 @@ chmod +x "$tmpdir/codex-engine-exit"
 
 set +e
 (cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
-	CODEX_BIN="$tmpdir/codex-engine-exit" MODEL=stub REASONING_EFFORT=low \
+	REVIEW_CYCLE_INCREMENTAL=0 CODEX_BIN="$tmpdir/codex-engine-exit" MODEL=stub REASONING_EFFORT=low \
 	"$review_cycle_sh" issue-1 run-engine-exit) >/dev/null 2>"$tmpdir/stderr-engine-exit"
 code_engine_exit=$?
 set -e
@@ -773,6 +1109,46 @@ fi
 if ! grep -q "Prompt bytes exceeded MAX_PROMPT_BYTES" "$tmpdir/stderr-prompt-budget"; then
 	eprint "Expected prompt budget error message, got:"
 	cat "$tmpdir/stderr-prompt-budget" >&2
+	exit 1
+fi
+
+cat >"$tmpdir/codex-no-call-early" <<'EOF'
+#!/usr/bin/env bash
+if [[ ${1:-} == "--version" ]]; then
+  printf '%s\n' "codex-stub 1.0.0"
+  exit 0
+fi
+echo "engine should not be called before prompt budget failure" >&2
+exit 70
+EOF
+chmod +x "$tmpdir/codex-no-call-early"
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" SOT_MAX_CHARS=0 SOT="$(
+	python3 - <<'PY'
+print('S' * 12000)
+PY
+)" TESTS="not run: reason" DIFF_MODE=staged REVIEW_CYCLE_ADVISORY_LANE=1 \
+MAX_PROMPT_BYTES=500 CODEX_BIN="$tmpdir/codex-no-call-early" MODEL=stub REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-over-prompt-budget-advisory) >/dev/null 2>"$tmpdir/stderr-prompt-budget-advisory"
+code_prompt_budget_advisory=$?
+set -e
+if [[ "$code_prompt_budget_advisory" -eq 0 ]]; then
+	eprint "Expected advisory run to fail when prompt bytes exceed MAX_PROMPT_BYTES"
+	exit 1
+fi
+if ! grep -q "Prompt bytes exceeded MAX_PROMPT_BYTES" "$tmpdir/stderr-prompt-budget-advisory"; then
+	eprint "Expected prompt budget error for advisory run, got:"
+	cat "$tmpdir/stderr-prompt-budget-advisory" >&2
+	exit 1
+fi
+if grep -q "engine should not be called before prompt budget failure" "$tmpdir/stderr-prompt-budget-advisory"; then
+	eprint "Did not expect advisory engine call before prompt budget fail-fast"
+	cat "$tmpdir/stderr-prompt-budget-advisory" >&2
+	exit 1
+fi
+if [[ -f "$tmpdir/.agentic-sdd/reviews/issue-1/run-over-prompt-budget-advisory/advisory.stderr" ]]; then
+	eprint "Did not expect advisory.stderr when prompt budget fail-fast exits before advisory execution"
 	exit 1
 fi
 
@@ -1051,6 +1427,56 @@ if ! grep -q "engine should not be called on cache hit" "$tmpdir/stderr-cache-po
 	cat "$tmpdir/stderr-cache-policy-off" >&2
 	exit 1
 fi
+
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"
+cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review-metadata.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"
+python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+data.pop("advisory_lane_enabled", None)
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, ensure_ascii=False, indent=2)
+    fh.write("\n")
+PY
+
+python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/.current_run" "$hit_run" <<'PY'
+import sys
+
+path = sys.argv[1]
+value = sys.argv[2]
+with open(path, "w", encoding="utf-8") as fh:
+    fh.write(value)
+PY
+
+set +e
+(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_CYCLE_INCREMENTAL=1 REVIEW_CYCLE_CACHE_POLICY=strict CODEX_BIN="$tmpdir/codex-no-call" MODEL=seed-model REASONING_EFFORT=low \
+	"$review_cycle_sh" issue-1 run-cache-missing-advisory-flag) >/dev/null 2>"$tmpdir/stderr-cache-missing-advisory-flag"
+code_cache_missing_advisory_flag=$?
+set -e
+if [[ "$code_cache_missing_advisory_flag" -ne 0 ]]; then
+	eprint "Expected missing advisory_lane_enabled to fallback to advisory-off compatibility"
+	cat "$tmpdir/stderr-cache-missing-advisory-flag" >&2
+	exit 1
+fi
+if ! grep -q '"reused": true' "$tmpdir/.agentic-sdd/reviews/issue-1/run-cache-missing-advisory-flag/review-metadata.json"; then
+	eprint "Expected reused=true when advisory_lane_enabled is absent in cached metadata"
+	cat "$tmpdir/.agentic-sdd/reviews/issue-1/run-cache-missing-advisory-flag/review-metadata.json" >&2
+	exit 1
+fi
+
+python3 - "$tmpdir/.agentic-sdd/reviews/issue-1/.current_run" "$hit_run" <<'PY'
+import sys
+
+path = sys.argv[1]
+value = sys.argv[2]
+with open(path, "w", encoding="utf-8") as fh:
+    fh.write(value)
+PY
 
 cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review.json"
 cp -p "$tmpdir/.agentic-sdd/reviews/issue-1/$seed_run/review-metadata.json" "$tmpdir/.agentic-sdd/reviews/issue-1/$hit_run/review-metadata.json"

@@ -109,6 +109,9 @@ Before collecting diffs, verify the scope matches the current branch context.
     - Keep `REVIEW_CYCLE_INCREMENTAL=1` + `REVIEW_CYCLE_CACHE_POLICY=balanced` as the default baseline.
     - Use `REVIEW_CYCLE_CACHE_POLICY=strict` when you want to avoid reusing non-Approved results.
     - Force a fresh full run with `REVIEW_CYCLE_INCREMENTAL=0` (or `REVIEW_CYCLE_CACHE_POLICY=off`) when base/HEAD context changed materially (for example rebase/base update) and right before `/final-review`.
+- `REVIEW_CYCLE_ADVISORY_LANE`: `0` | `1` (default: `0`)
+  - `1` のとき、最終ゲート出力とは分離された advisory 出力 (`advisory.txt`) を同一 run ディレクトリへ保存する。
+  - `review.json` schema v3 判定には影響させず、探索メモ用途のみで扱う。
 
 ### Timeout (review engine execution)
 
@@ -153,6 +156,7 @@ Before collecting diffs, verify the scope matches the current branch context.
   - Includes engine execution observability keys:
     - `engine_exit_code`, `exec_timeout_sec`, `timeout_applied`, `timeout_bin`
     - `engine_stderr_summary`, `engine_stderr_sha256`, `engine_stderr_bytes`
+    - `advisory_lane_enabled`
   - Includes reuse observability fields:
     - `incremental_enabled`, `reuse_eligible`, `reused`, `reuse_reason`, `non_reuse_reason`, `reused_from_run`
   - On engine/output failure, metadata is still written with:
@@ -161,6 +165,8 @@ Before collecting diffs, verify the scope matches the current branch context.
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.txt`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/tests.stderr`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/engine.stderr`
+- `.agentic-sdd/reviews/<scope-id>/<run-id>/advisory.txt`（`REVIEW_CYCLE_ADVISORY_LANE=1` のとき）
+- `.agentic-sdd/reviews/<scope-id>/<run-id>/advisory.stderr`（`REVIEW_CYCLE_ADVISORY_LANE=1` のとき）
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/sot.txt`
 - `.agentic-sdd/reviews/<scope-id>/<run-id>/prompt.txt`
 
