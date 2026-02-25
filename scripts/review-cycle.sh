@@ -72,7 +72,7 @@ Required environment:
   EXEC_TIMEOUT_SEC Optional timeout in seconds (unset/empty => no timeout; uses timeout/gtimeout if available)
   MAX_DIFF_BYTES   Optional hard limit for diff.patch bytes (0/empty disables; min 1 when enabled)
   MAX_PROMPT_BYTES Optional hard limit for prompt.txt bytes (0/empty disables; min 1 when enabled)
-  MAX_ADVISORY_PROMPT_BYTES Optional hard limit for advisory-prompt.txt bytes (0/empty disables; min 1 when enabled)
+  MAX_ADVISORY_PROMPT_BYTES Optional hard limit for advisory-prompt.txt bytes (when unset, falls back to MAX_PROMPT_BYTES; 0/empty disables; min 1 when enabled)
   FORMAT_JSON      1 to pretty-format output JSON (default: 1)
 
 Notes:

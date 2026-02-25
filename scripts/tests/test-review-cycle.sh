@@ -591,11 +591,25 @@ if ! python3 - "$advisory_prompt_file" <<'PY'; then
 import sys
 
 path = sys.argv[1]
-text = open(path, "r", encoding="utf-8").read()
-tests_idx = text.find("Tests:")
-stderr_idx = text.find("Tests-Stderr:")
-policy_idx = text.find("Tests-Stderr-Policy:")
-constraints_idx = text.find("Constraints:")
+lines = open(path, "r", encoding="utf-8").read().splitlines()
+diff_idx = -1
+for idx in range(len(lines) - 1, -1, -1):
+    if lines[idx].strip().startswith("Diff:"):
+        diff_idx = idx
+        break
+
+def find_last_header(prefix: str) -> int:
+    if diff_idx < 0:
+        return -1
+    for idx in range(diff_idx - 1, -1, -1):
+        if lines[idx].strip().startswith(prefix):
+            return idx
+    return -1
+
+tests_idx = find_last_header("Tests:")
+stderr_idx = find_last_header("Tests-Stderr:")
+policy_idx = find_last_header("Tests-Stderr-Policy:")
+constraints_idx = find_last_header("Constraints:")
 
 if min(tests_idx, stderr_idx, policy_idx, constraints_idx) < 0:
     raise SystemExit(1)
