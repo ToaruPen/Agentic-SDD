@@ -51,6 +51,8 @@ Required environment:
                    strict: reuse only Approved/Approved with nits
                    balanced: reuse all statuses on exact fingerprint match
                    off: disable reuse and always execute full review
+  REVIEW_CYCLE_ADVISORY_LANE 0|1 (default: 0)
+                   when enabled, write advisory output to advisory.txt
 
   Engine selection:
   REVIEW_ENGINE    codex|claude (default: codex)
@@ -70,6 +72,7 @@ Required environment:
   EXEC_TIMEOUT_SEC Optional timeout in seconds (unset/empty => no timeout; uses timeout/gtimeout if available)
   MAX_DIFF_BYTES   Optional hard limit for diff.patch bytes (0/empty disables; min 1 when enabled)
   MAX_PROMPT_BYTES Optional hard limit for prompt.txt bytes (0/empty disables; min 1 when enabled)
+  MAX_ADVISORY_PROMPT_BYTES Optional hard limit for advisory-prompt.txt bytes (when unset, falls back to MAX_PROMPT_BYTES; 0/empty disables; min 1 when enabled)
   FORMAT_JSON      1 to pretty-format output JSON (default: 1)
 
 Notes:
@@ -210,6 +213,11 @@ exec_timeout_sec="${EXEC_TIMEOUT_SEC:-}"
 format_json="${FORMAT_JSON:-1}"
 max_diff_bytes_raw="${MAX_DIFF_BYTES:-}"
 max_prompt_bytes_raw="${MAX_PROMPT_BYTES:-}"
+max_advisory_prompt_bytes_raw="${MAX_ADVISORY_PROMPT_BYTES:-}"
+max_advisory_prompt_bytes_is_set=0
+if [[ "${MAX_ADVISORY_PROMPT_BYTES+x}" == "x" ]]; then
+	max_advisory_prompt_bytes_is_set=1
+fi
 
 sot="${SOT:-}"
 tests_summary="${TESTS:-}"
@@ -299,6 +307,9 @@ out_diff="${run_dir}/diff.patch"
 out_tests="${run_dir}/tests.txt"
 out_tests_stderr="${run_dir}/tests.stderr"
 out_engine_stderr="${run_dir}/engine.stderr"
+out_advisory="${run_dir}/advisory.txt"
+out_advisory_stderr="${run_dir}/advisory.stderr"
+out_advisory_prompt="${run_dir}/advisory-prompt.txt"
 
 out_sot="${run_dir}/sot.txt"
 out_issue_json="${run_dir}/issue.json"
@@ -335,6 +346,12 @@ strict | balanced | off) ;;
 	exit 2
 	;;
 esac
+
+advisory_lane="${REVIEW_CYCLE_ADVISORY_LANE:-0}"
+if [[ "$advisory_lane" != "0" && "$advisory_lane" != "1" ]]; then
+	eprint "Invalid REVIEW_CYCLE_ADVISORY_LANE: $advisory_lane (use 0|1)"
+	exit 2
+fi
 
 sha256_file() {
 	local path="$1"
@@ -528,6 +545,7 @@ write_review_metadata() {
 		REVIEW_META_ENGINE_STDERR_SUMMARY="$engine_stderr_summary" \
 		REVIEW_META_ENGINE_STDERR_SHA256="$engine_stderr_sha256" \
 		REVIEW_META_ENGINE_STDERR_BYTES="$engine_stderr_bytes" \
+		REVIEW_META_ADVISORY_LANE_ENABLED="$advisory_lane" \
 		REVIEW_META_REVIEW_COMPLETED="$review_completed" \
 		REVIEW_META_FAILURE_REASON="$failure_reason" \
 		REVIEW_META_FAILURE_MESSAGE="$failure_message" \
@@ -608,6 +626,7 @@ timeout_bin = required("REVIEW_META_TIMEOUT_BIN")
 engine_stderr_summary = required("REVIEW_META_ENGINE_STDERR_SUMMARY")
 engine_stderr_sha256 = required("REVIEW_META_ENGINE_STDERR_SHA256")
 engine_stderr_bytes_raw = required("REVIEW_META_ENGINE_STDERR_BYTES")
+advisory_lane_enabled = parse_bool(required("REVIEW_META_ADVISORY_LANE_ENABLED"))
 review_completed = parse_bool(required("REVIEW_META_REVIEW_COMPLETED"))
 failure_reason = required("REVIEW_META_FAILURE_REASON")
 failure_message = required("REVIEW_META_FAILURE_MESSAGE")
@@ -654,6 +673,7 @@ payload = {
     "engine_stderr_summary": engine_stderr_summary,
     "engine_stderr_sha256": engine_stderr_sha256,
     "engine_stderr_bytes": parse_int(engine_stderr_bytes_raw),
+    "advisory_lane_enabled": advisory_lane_enabled,
 }
 
 if not review_completed:
@@ -694,6 +714,7 @@ parse_optional_byte_limit() {
 
 max_diff_bytes="$(parse_optional_byte_limit "MAX_DIFF_BYTES" "$max_diff_bytes_raw" 1)"
 max_prompt_bytes="$(parse_optional_byte_limit "MAX_PROMPT_BYTES" "$max_prompt_bytes_raw" 1)"
+max_advisory_prompt_bytes="$(parse_optional_byte_limit "MAX_ADVISORY_PROMPT_BYTES" "$max_advisory_prompt_bytes_raw" 1)"
 
 git_ref_exists() {
 	local ref="$1"
@@ -1075,8 +1096,10 @@ print_plan() {
 	eprint "- constraints: $constraints"
 	eprint "- max_diff_bytes: $max_diff_bytes"
 	eprint "- max_prompt_bytes: $max_prompt_bytes"
+	eprint "- max_advisory_prompt_bytes: $max_advisory_prompt_bytes"
 	eprint "- review_cycle_incremental: $review_cycle_incremental"
 	eprint "- review_cycle_cache_policy: $review_cycle_cache_policy"
+	eprint "- advisory_lane: $advisory_lane"
 	if [[ -n "$gh_issue" ]]; then
 		eprint "- gh_issue: $gh_issue"
 		if [[ -n "$gh_repo" ]]; then
@@ -1160,6 +1183,106 @@ write_sot() {
 	fi
 
 	"${assemble_cmd[@]}" >"$out_sot"
+}
+
+write_advisory() {
+	if [[ "$advisory_lane" != "1" ]]; then
+		rm -f "$out_advisory"
+		rm -f "$out_advisory_stderr"
+		rm -f "$out_advisory_prompt"
+		return 0
+	fi
+
+	ensure_run_dir
+	rm -f "$out_advisory"
+	: >"$out_advisory_stderr"
+	{
+		cat <<'PROMPT'
+You are an advisory reviewer.
+
+Produce concise exploratory notes in plain text (not JSON):
+- 2-5 bullets for potential risk hotspots
+- 1-3 bullets for verification focus
+- 1-3 bullets for assumptions to validate
+
+Do not output final pass/fail judgment. This is advisory only.
+PROMPT
+		printf 'Scope-ID: %s\n' "$scope_id"
+		printf 'SoT:\n'
+		cat "$out_sot"
+		printf '\n'
+		printf 'Tests: %s\n' "$tests_summary"
+		printf 'Tests-Stderr: %s\n' "$tests_stderr_summary"
+		printf 'Tests-Stderr-Policy: %s\n' "$test_stderr_policy"
+		printf 'Constraints: %s\n' "$constraints"
+		printf 'Diff:\n'
+		cat "$out_diff"
+	} >"$out_advisory_prompt"
+
+	local advisory_prompt_bytes=0
+	local advisory_prompt_limit=0
+	local advisory_prompt_limit_name="MAX_PROMPT_BYTES"
+	advisory_prompt_bytes="$(wc -c <"$out_advisory_prompt" | tr -d ' ')"
+	if [[ "$max_advisory_prompt_bytes_is_set" -eq 1 ]]; then
+		advisory_prompt_limit="$max_advisory_prompt_bytes"
+		advisory_prompt_limit_name="MAX_ADVISORY_PROMPT_BYTES"
+	else
+		advisory_prompt_limit="$max_prompt_bytes"
+		advisory_prompt_limit_name="MAX_PROMPT_BYTES"
+	fi
+	if ((advisory_prompt_limit > 0 && advisory_prompt_bytes > advisory_prompt_limit)); then
+		eprint "WARNING: advisory lane skipped due to ${advisory_prompt_limit_name}: advisory_prompt_bytes=${advisory_prompt_bytes} max=${advisory_prompt_limit}"
+		printf 'advisory lane skipped: prompt_bytes=%s exceeds %s=%s\n' "$advisory_prompt_bytes" "$advisory_prompt_limit_name" "$advisory_prompt_limit" >"$out_advisory"
+		rm -f "$out_advisory_stderr"
+		return 0
+	fi
+
+	local advisory_exit=0
+	case "$review_engine" in
+	codex)
+		cmd=(
+			"$codex_bin" exec
+			--sandbox read-only
+			-m "$model"
+			-c "reasoning.effort=\"${effort}\""
+			--output-last-message "$out_advisory"
+			-
+		)
+		if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
+			cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
+		fi
+		set +e
+		"${cmd[@]}" <"$out_advisory_prompt" >/dev/null 2>>"$out_advisory_stderr"
+		advisory_exit="$?"
+		set -e
+		;;
+	claude)
+		cmd=(
+			"$claude_bin" -p
+			--model "$claude_model"
+			--betas interleaved-thinking
+		)
+		if [[ -n "$exec_timeout_sec" && -n "$timeout_bin" ]]; then
+			cmd=("$timeout_bin" "$exec_timeout_sec" "${cmd[@]}")
+		fi
+		set +e
+		"${cmd[@]}" <"$out_advisory_prompt" >"$out_advisory" 2>>"$out_advisory_stderr"
+		advisory_exit="$?"
+		set -e
+		;;
+	esac
+
+	if [[ "$advisory_exit" != "0" ]]; then
+		eprint "WARNING: advisory lane execution failed (exit=${advisory_exit}); continuing main review flow."
+		printf 'advisory lane failed: engine=%s exit=%s\n' "$review_engine" "$advisory_exit" >"$out_advisory"
+		return 0
+	fi
+
+	if [[ ! -s "$out_advisory" ]]; then
+		eprint "WARNING: advisory lane produced no output; continuing main review flow."
+		printf 'advisory lane produced no output\n' >"$out_advisory"
+		return 0
+	fi
 }
 
 write_diff
@@ -1292,7 +1415,7 @@ fi
 
 if [[ "$review_cycle_incremental" == "1" && "$review_cycle_cache_policy" != "off" && -n "$reuse_candidate_meta" ]]; then
 	reuse_state_fast="$(
-		python3 - "$reuse_candidate_meta" "$reuse_candidate_json" "$head_sha" "$meta_base_ref" "$meta_base_sha" "$diff_source" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_version_available" "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$script_semantics_version" "$review_cycle_cache_policy" "$max_prompt_bytes" <<'PY'
+		python3 - "$reuse_candidate_meta" "$reuse_candidate_json" "$head_sha" "$meta_base_ref" "$meta_base_sha" "$diff_source" "$diff_sha256" "$sot_fingerprint" "$tests_fingerprint" "$engine_version_available" "$review_engine" "$model" "$effort" "$claude_model" "$schema_sha256" "$constraints" "$engine_version_output" "$script_semantics_version" "$review_cycle_cache_policy" "$max_prompt_bytes" "$advisory_lane" <<'PY'
 import json
 import sys
 
@@ -1316,6 +1439,7 @@ curr_engine_version_output = sys.argv[17]
 curr_script_semantics_version = sys.argv[18]
 curr_cache_policy = sys.argv[19]
 curr_max_prompt_bytes = int(sys.argv[20])
+curr_advisory_lane = sys.argv[21] == "1"
 
 def out(eligible: bool, reason: str, engine_fingerprint: str = "", prompt_bytes=None) -> None:
     print("eligible=1" if eligible else "eligible=0")
@@ -1376,6 +1500,16 @@ if meta.get("engine_version_available") is not True:
     raise SystemExit(0)
 
 status = str(review.get("status") or "")
+
+cached_advisory_lane = meta.get("advisory_lane_enabled")
+if cached_advisory_lane is None:
+    cached_advisory_lane = False
+if not isinstance(cached_advisory_lane, bool):
+    out(False, "advisory-lane-invalid")
+    raise SystemExit(0)
+if cached_advisory_lane != curr_advisory_lane:
+    out(False, "advisory-lane-mismatch")
+    raise SystemExit(0)
 if curr_cache_policy == "strict":
     allowed_statuses = {"Approved", "Approved with nits"}
     hit_reason = "cache-hit-strict"
@@ -1454,13 +1588,40 @@ PY
 	if [[ "$reuse_eligible" -eq 1 ]]; then
 		if python3 "$script_dir/validate-review-json.py" "$reuse_candidate_json" --scope-id "$scope_id" >/dev/null 2>&1; then
 			ensure_run_dir
-			if [[ "$reuse_candidate_json" != "$out_json" ]]; then
-				cp -p "$reuse_candidate_json" "$out_json"
+			if [[ "$advisory_lane" == "1" ]]; then
+				candidate_advisory="$scope_root/$reuse_candidate_run/advisory.txt"
+				candidate_advisory_stderr="$scope_root/$reuse_candidate_run/advisory.stderr"
+				if [[ ! -f "$candidate_advisory" ]]; then
+					reuse_eligible=0
+					reuse_reason="candidate-advisory-missing"
+				elif [[ "$candidate_advisory" != "$out_advisory" ]]; then
+					cp -p "$candidate_advisory" "$out_advisory"
+				fi
+				if [[ -f "$candidate_advisory_stderr" ]]; then
+					if [[ "$candidate_advisory_stderr" != "$out_advisory_stderr" ]]; then
+						cp -p "$candidate_advisory_stderr" "$out_advisory_stderr"
+					fi
+				else
+					rm -f "$out_advisory_stderr"
+				fi
+			else
+				rm -f "$out_advisory" "$out_advisory_stderr" "$out_advisory_prompt"
 			fi
-			reused=1
-			reused_from_run="$reuse_candidate_run"
-			engine_fingerprint="$cached_engine_fingerprint"
-			prompt_bytes="$cached_prompt_bytes"
+			if [[ "$reuse_eligible" -ne 1 ]]; then
+				reused=0
+				reused_from_run=""
+			elif [[ "$reuse_candidate_json" != "$out_json" ]]; then
+				cp -p "$reuse_candidate_json" "$out_json"
+				reused=1
+				reused_from_run="$reuse_candidate_run"
+				engine_fingerprint="$cached_engine_fingerprint"
+				prompt_bytes="$cached_prompt_bytes"
+			else
+				reused=1
+				reused_from_run="$reuse_candidate_run"
+				engine_fingerprint="$cached_engine_fingerprint"
+				prompt_bytes="$cached_prompt_bytes"
+			fi
 		else
 			reuse_eligible=0
 			reuse_reason="candidate-review-invalid"
@@ -1532,6 +1693,11 @@ PROMPT
 		eprint "Reduce SoT/diff input size and retry."
 		exit 2
 	fi
+
+	# Advisory lane runs before the main review engine intentionally:
+	# it is failure-isolated (non-zero exit -> warning, returns 0) so that
+	# main review always proceeds regardless of advisory outcome.
+	write_advisory
 
 	case "$review_engine" in
 	codex)
@@ -1753,6 +1919,11 @@ if [[ "$reused" -eq 0 ]]; then
 	if [[ "$review_cycle_incremental" != "1" ]]; then
 		non_reuse_reason="incremental-disabled"
 	else
+		# Defensive: reuse_reason should always be set when incremental is
+		# enabled but reuse did not occur; guard against unexpected paths.
+		if [[ -z "$reuse_reason" ]]; then
+			reuse_reason="reuse-reason-missing"
+		fi
 		non_reuse_reason="$reuse_reason"
 	fi
 fi
