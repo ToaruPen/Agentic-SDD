@@ -7,7 +7,7 @@ DEFAULT_REPO_URL="https://github.com/ToaruPen/Agentic-SDD.git"
 # Fallback is used when `latest` can't be resolved (e.g. no semver tags).
 # Keep this pinned to a known-good *release tag* for reproducibility.
 # (Assumption: release tags are immutable; do not move tags.)
-DEFAULT_REF_FALLBACK="v0.3.14"
+DEFAULT_REF_FALLBACK="v0.3.15"
 
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/agentic-sdd"
 DEFAULT_REF_FILE="$CONFIG_DIR/default-ref"

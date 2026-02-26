@@ -4,11 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.15] - 2026-02-26
+
 - feat(review-cycle): Add an advisory exploration lane while preserving the main schema v3 review gate contract.
 - test(review-cycle): Add hybrid advisory lane compatibility integration tests.
 - fix(review-cycle): Default Claude model selection to the `opus` alias.
 - docs(flow): Align ralph-loop gate flow with `/test-review` and reflect the `/test-review` gate in workflow docs.
 - docs(readme): Clarify that `/pr-bots-review` is optional in the workflow diagram.
+- chore(release): Bump `scripts/agentic-sdd` `DEFAULT_REF_FALLBACK` to `v0.3.15` and update README subtree examples to `v0.3.15`.
 
 ## [0.3.14] - 2026-02-22
 
