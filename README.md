@@ -19,7 +19,7 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues/PRs) r
 ## Workflow
 
 ```
-/agentic-sdd* -> /create-prd -> /create-epic -> /generate-project-config** -> /create-issues -> /estimation -> /impl|/tdd -> /ui-iterate*** -> /test-review -> /review-cycle -> /final-review -> /test-review -> /create-pr -> /pr-bots-review -> [Merge] -> /cleanup
+/agentic-sdd* -> /create-prd -> /create-epic -> /generate-project-config** -> /create-issues -> /estimation -> /impl|/tdd -> /ui-iterate*** -> /test-review -> /review-cycle -> /final-review -> /test-review -> /create-pr -> /pr-bots-review (optional) -> [Merge] -> /cleanup
      |            |              |              |                            |              |            |              |              |             |              |             |            |                 |          |
      v            v              v              v                            v              v            v              v              v             v              v             v            v                 v          v
      Install       7 questions    3-layer guard  Generate project            LOC-based       Full estimate Implement      UI round loop  Fail-fast     Local loop     DoD gate      Range recheck Push + PR create  Bot review  Remove worktree
