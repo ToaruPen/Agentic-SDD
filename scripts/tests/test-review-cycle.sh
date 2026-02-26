@@ -1992,6 +1992,84 @@ if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-claude/run1/prompt.txt" ]]; then
 	exit 1
 fi
 
+cat >"$tmpdir/claude-default-model" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ ${1:-} == "--version" ]]; then
+  printf '%s\n' "claude-stub 1.0.0"
+  exit 0
+fi
+
+seen_model=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -p)
+      shift
+      ;;
+    --model)
+      seen_model="${2:-}"
+      shift 2 2>/dev/null || shift
+      ;;
+    --output-format|--betas|--json-schema)
+      shift 2 2>/dev/null || shift
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+if [[ -n "${CLAUDE_MODEL_CAPTURE:-}" ]]; then
+  printf '%s\n' "$seen_model" >"$CLAUDE_MODEL_CAPTURE"
+fi
+
+cat >/dev/null || true
+
+cat <<'JSON'
+{
+  "type": "result",
+  "subtype": "success",
+  "is_error": false,
+  "duration_ms": 1234,
+  "num_turns": 1,
+  "session_id": "test-session",
+  "total_cost_usd": 0.001,
+  "structured_output": {
+    "schema_version": 3,
+    "scope_id": "issue-claude",
+    "status": "Approved",
+    "findings": [],
+    "questions": [],
+    "overall_explanation": "claude default model stub"
+  }
+}
+JSON
+EOF
+chmod +x "$tmpdir/claude-default-model"
+
+default_model_capture="$tmpdir/claude-default-model.seen"
+rm -f "$default_model_capture"
+(cd "$tmpdir" && env -u CLAUDE_MODEL GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" TESTS="not run: reason" DIFF_MODE=staged \
+	REVIEW_ENGINE=claude CLAUDE_BIN="$tmpdir/claude-default-model" CLAUDE_MODEL_CAPTURE="$default_model_capture" \
+	"$review_cycle_sh" issue-claude run-default-model) >/dev/null
+
+if [[ ! -f "$default_model_capture" ]]; then
+	eprint "Expected Claude default model capture file to be created"
+	exit 1
+fi
+
+if [[ "$(cat "$default_model_capture")" != "opus" ]]; then
+	eprint "Expected default Claude model to be opus"
+	cat "$default_model_capture" >&2
+	exit 1
+fi
+
+if [[ ! -f "$tmpdir/.agentic-sdd/reviews/issue-claude/run-default-model/review.json" ]]; then
+	eprint "Expected review.json to be created when using default Claude model"
+	exit 1
+fi
+
 schema_path_with_quote="${tmpdir}/schema'quoted.json"
 cp -p "$schema_src" "$schema_path_with_quote"
 echo "claude-quoted-schema" >>"$tmpdir/hello.txt"

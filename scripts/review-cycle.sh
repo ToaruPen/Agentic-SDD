@@ -64,8 +64,8 @@ Required environment:
 
   Claude options (when REVIEW_ENGINE=claude):
   CLAUDE_BIN       claude binary (default: claude)
-  CLAUDE_MODEL     claude model (default: claude-opus-4-5-20250929)
-                   Note: Claude Opus 4.5 has 200K token context window (half of Codex's 400K).
+  CLAUDE_MODEL     claude model (default: opus)
+                   Note: Claude Opus has 200K token context window (half of Codex's 400K).
                    For large PRD+Epic+diff combinations, consider setting SOT_MAX_CHARS.
 
   Common options:
@@ -206,7 +206,7 @@ if [[ "$claude_model_cli_set" -eq 1 && -z "$claude_model_cli" ]]; then
 	eprint "Invalid --claude-model: empty"
 	exit 2
 fi
-claude_model="${claude_model_cli:-${CLAUDE_MODEL:-claude-opus-4-5-20250929}}"
+claude_model="${claude_model_cli:-${CLAUDE_MODEL:-opus}}"
 
 # Common options
 exec_timeout_sec="${EXEC_TIMEOUT_SEC:-}"
