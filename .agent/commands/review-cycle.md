@@ -146,7 +146,7 @@ Before collecting diffs, verify the scope matches the current branch context.
 ### Claude options (when `REVIEW_ENGINE=claude`)
 
 - `CLAUDE_BIN`: claude binary (default: `claude`)
-- `CLAUDE_MODEL`: Claude model (default: `claude-opus-4-5-20250929`)
+- `CLAUDE_MODEL`: Claude model (default: `opus`)
 
 ## Outputs
 
