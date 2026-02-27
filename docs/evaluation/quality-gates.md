@@ -86,6 +86,6 @@ SoT の優先順位と参照ルールは [`docs/sot/README.md`](../sot/README.md
 ## Gateではない評価（健康診断）
 
 合否ではなく、改善投資の意思決定やGCの回収方針に使う。
-このドキュメント（quality-gates.md）は **合否判定の定義** を担い、quality-score.md は **改善投資の計測** を担う。両者は独立した責務を持つ。
+このドキュメント（quality-gates.md）は **合否判定の定義** を担い、[`quality-score.md`](quality-score.md) は **改善投資の計測** を担う。両者は独立した責務を持つ。
 
 - Quality score テンプレ: [`docs/evaluation/quality-score.md`](quality-score.md)
