@@ -392,6 +392,8 @@ main() {
   }
   trap cleanup_input_file_on_exit EXIT
 
+  eprint "[AUTOFIX] type=${event_type} pr_number=${issue_number} comment_url=${comment_url} decision=proceed"
+
   eprint "[AUTOFIX] Fetching branch: $head_ref"
   git check-ref-format --branch "$head_ref" >/dev/null 2>&1 || die "Invalid PR head ref: $head_ref"
   git fetch --no-tags -- origin "$head_ref"
