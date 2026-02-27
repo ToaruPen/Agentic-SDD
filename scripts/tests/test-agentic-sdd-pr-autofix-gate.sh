@@ -301,12 +301,17 @@ if ! printf '%s' "$out5b" | grep -Fq 'Missing AGENTIC_SDD_PR_REVIEW_MENTION'; th
 fi
 
 set +e
-cd "$dummy_work" && GITHUB_EVENT_PATH='' \
-	bash "$src" >/dev/null 2>&1
+out5c="$(cd "$dummy_work" && GITHUB_EVENT_PATH='' \
+	bash "$src" 2>&1)"
 rc5c=$?
 set -e
 if [[ "$rc5c" -eq 0 ]]; then
 	eprint "Test 5c FAIL: expected non-zero exit for missing GITHUB_EVENT_PATH"
+	exit 1
+fi
+if ! printf '%s' "$out5c" | grep -Fq 'Missing GITHUB_EVENT_PATH'; then
+	eprint "Test 5c FAIL: expected missing event path error"
+	eprint "Got: $out5c"
 	exit 1
 fi
 eprint "Test 5 PASS: missing required env vars → fail-fast"
