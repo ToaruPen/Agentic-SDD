@@ -4,8 +4,9 @@
 
 重要:
 
-- これは **Gate（合否判定）ではない**
+- これは **Gate（合否判定）ではない**。合否判定は [`docs/evaluation/quality-gates.md`](quality-gates.md) が担う
 - スコアは「投資判断」「改善の優先順位付け」「GCの回収方針」のために使う
+- SoTの優先順位・参照ルールは [`docs/sot/README.md`](../sot/README.md) を参照
 
 ---
 
@@ -83,5 +84,5 @@
 
 補足:
 
-- Gateに使わない（合否の代わりにしない）
+- Gateに使わない（合否の代わりにしない）。合否判定は [`quality-gates.md`](quality-gates.md) の責務である
 - スコアが下がったら「なぜ」を書く（GC/大規模変更/負債の顕在化など）

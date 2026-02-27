@@ -1,85 +1,91 @@
 # Quality Gates
 
-このドキュメントは Agentic-SDD の quality gates（何を Pass/Fail とするか）を、参照可能な形で列挙する。
+This document lists Agentic-SDD quality gates in a referenceable form (what is Pass/Fail).
 
-目的:
-- 「合否がブレない」評価を定義する
-- 失敗時に次のアクションが決定できる状態にする
+SoT index: [`docs/sot/README.md`](../sot/README.md) — refer to this index for SoT priority, reference rules, and responsibility boundaries.
+
+Goals:
+- Define stable and deterministic pass/fail criteria
+- Ensure the next action is always clear on failure
 
 ---
 
-## Gate一覧（最小）
+## Gate List (Minimum)
 
-### Gate 0: worktree が必須条件を満たすこと
+### Gate 0: Worktree preconditions are satisfied
 
-- Pass: Issueブランチ（`issue-<n>` を含むブランチ）では linked worktree で作業している
-- Fail: worktree なしで作業している（`.git/` がディレクトリのまま等）
+- Pass: For Issue branches (branch name includes `issue-<n>`), work is done in a linked worktree
+- Fail: Work is done without a worktree (for example, `.git/` remains a directory)
 
-根拠（実装/仕様）:
+Evidence (implementation/spec):
 
 - enforcement: `scripts/agentic-sdd/validate-worktree.py`
-- 要件（仕様）: `.agent/commands/estimation.md`, `.agent/rules/impl-gate.md`
+- requirements (spec): `.agent/commands/estimation.md`, `.agent/rules/impl-gate.md`
 
-### Gate 1: SoT の解決が決定的であること
+### Gate 1: SoT resolution is deterministic
 
-- Pass: PRD/Epic/差分の参照元が一意に解決できる（`docs/research/**/<YYYY-MM-DD>.md` が存在する場合は契約（必須項目/止め時）も満たしている）
-- Fail: 参照が曖昧 / 参照が空 / プレースホルダが残っている / `docs/research/**/<YYYY-MM-DD>.md` の必須項目が欠落している
+SoT priority and reference rules are defined in [`docs/sot/README.md`](../sot/README.md).
 
-根拠（実装/仕様）:
+- Pass: PRD/Epic/diff references resolve uniquely (and when `docs/research/**/<YYYY-MM-DD>.md` exists, its contract fields/stop conditions are also satisfied)
+- Fail: references are ambiguous, empty, placeholder-based, or required fields are missing in `docs/research/**/<YYYY-MM-DD>.md`
+
+Evidence (implementation/spec):
+- SoT index: [`docs/sot/README.md`](../sot/README.md)
 - `/sync-docs`: `.agent/commands/sync-docs.md`
-- 入力解決: `scripts/agentic-sdd/resolve-sync-docs-inputs.py`
-- /research の契約lint: `scripts/agentic-sdd/lint-sot.py`, `.agent/commands/research.md`
+- input resolution: `scripts/agentic-sdd/resolve-sync-docs-inputs.py`
+- /research contract lint: `scripts/agentic-sdd/lint-sot.py`, `.agent/commands/research.md`
 
-### Gate 2: 変更の証跡（diff）が明確であること
+### Gate 2: Change evidence (diff) is unambiguous
 
-- Pass: レビュー対象diffが確定できる（staged/worktree/rangeの選択が矛盾しない）
-- Fail: staged と worktree の両方に差分がある等で対象が不明確
+- Pass: The review target diff is deterministically selected (no contradiction among staged/worktree/range)
+- Fail: The target is ambiguous (for example, both staged and worktree diffs are present)
 
-根拠（仕様）:
+Evidence (spec):
 - `/review-cycle`: `.agent/commands/review-cycle.md`
 
-### Gate 3: 品質チェック（tests/lint/typecheck）が実行され、証跡が残ること
+### Gate 3: Quality checks (tests/lint/typecheck) are executed with evidence
 
-- Pass: 実行したコマンドと結果が記録される
-- Fail: 証跡がない
+- Pass: executed commands and their results are recorded
+- Fail: no evidence is recorded
 
-例外:
-- tests を実行できない場合は `not run: <reason>` を明記し、承認を得る
+Exception:
+- If tests cannot be run, record `not run: <reason>` and obtain approval
 
-根拠（仕様）:
+Evidence (spec):
 - DoD: `.agent/rules/dod.md`
-- `/review-cycle` の必須入力（TEST_COMMAND または TESTS）: `.agent/commands/review-cycle.md`
+- required `/review-cycle` test input (`TEST_COMMAND` or `TESTS`): `.agent/commands/review-cycle.md`
 
-### Gate 4: ローカル反復レビュー（review.json）が schema 準拠であること
+### Gate 4: Local iterative review (`review.json`) is schema-compliant
 
-- Pass: `review.json` が schema と追加制約を満たし、status が `Approved` または `Approved with nits`
-- Fail: JSON不正 / schema不一致 / status が Blocked/Question
+- Pass: `review.json` satisfies the schema and additional constraints, and status is `Approved` or `Approved with nits`
+- Fail: invalid JSON, schema mismatch, or status is `Blocked`/`Question`
 
-根拠（実装/仕様）:
+Evidence (implementation/spec):
 - schema: `.agent/schemas/review.json`
-- 検証: `scripts/agentic-sdd/validate-review-json.py`
-- `/review-cycle` 出力: `.agent/commands/review-cycle.md`
+- validation: `scripts/agentic-sdd/validate-review-json.py`
+- `/review-cycle` output contract: `.agent/commands/review-cycle.md`
 
-### Gate 5: 最終レビュー（DoD + docs sync）が通ること
+### Gate 5: Final review (DoD + docs sync) passes
 
-- Pass: `/final-review` が Approved
-- Fail: DoD未達 / docs sync不一致 / 未解決のQuestion
+- Pass: `/final-review` is Approved
+- Fail: DoD not met, docs sync mismatch, or unresolved questions
 
-根拠（仕様）:
+Evidence (spec):
 - `/final-review`: `.agent/commands/final-review.md`
-- docs syncルール: `.agent/rules/docs-sync.md`
+- docs sync rule: `.agent/rules/docs-sync.md`
 
 ---
 
-## Gateの扱い（fail-closed）
+## Gate Handling (Fail-Closed)
 
-- 不明確な入力（参照/差分/証跡）を「推測」で補完しない
-- JSONが空/不正の場合は Blocked 相当として扱い、次のアクション（修正 or 情報追加）を要求する
+- Do not fill unclear inputs (references/diff/evidence) by guessing
+- Treat empty/invalid JSON as Blocked-equivalent and require a concrete next action (fix or provide missing information)
 
 ---
 
-## Gateではない評価（健康診断）
+## Non-Gate Evaluation (Health Signals)
 
-合否ではなく、改善投資の意思決定やGCの回収方針に使う。
+Use this for investment decisions and GC recovery strategy, not for pass/fail.
+This document (`quality-gates.md`) defines **pass/fail criteria**, while [`quality-score.md`](quality-score.md) is for **improvement measurement**. They have separate responsibilities.
 
-- Quality score テンプレ: [`docs/evaluation/quality-score.md`](quality-score.md)
+- Quality score template: [`docs/evaluation/quality-score.md`](quality-score.md)
