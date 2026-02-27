@@ -301,8 +301,8 @@ if ! printf '%s' "$out5b" | grep -Fq 'Missing AGENTIC_SDD_PR_REVIEW_MENTION'; th
 fi
 
 set +e
-out5c="$(cd "$dummy_work" && GITHUB_EVENT_PATH='' \
-	bash "$src" 2>&1)"
+cd "$dummy_work" && GITHUB_EVENT_PATH='' \
+	bash "$src" >/dev/null 2>&1
 rc5c=$?
 set -e
 if [[ "$rc5c" -eq 0 ]]; then
