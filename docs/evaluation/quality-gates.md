@@ -2,6 +2,8 @@
 
 このドキュメントは Agentic-SDD の quality gates（何を Pass/Fail とするか）を、参照可能な形で列挙する。
 
+SoT索引: [`docs/sot/README.md`](../sot/README.md) — SoTの優先順位・参照ルール・責務境界はこの索引を参照する。
+
 目的:
 - 「合否がブレない」評価を定義する
 - 失敗時に次のアクションが決定できる状態にする
@@ -22,10 +24,13 @@
 
 ### Gate 1: SoT の解決が決定的であること
 
+SoT の優先順位と参照ルールは [`docs/sot/README.md`](../sot/README.md) で定義される。
+
 - Pass: PRD/Epic/差分の参照元が一意に解決できる（`docs/research/**/<YYYY-MM-DD>.md` が存在する場合は契約（必須項目/止め時）も満たしている）
 - Fail: 参照が曖昧 / 参照が空 / プレースホルダが残っている / `docs/research/**/<YYYY-MM-DD>.md` の必須項目が欠落している
 
 根拠（実装/仕様）:
+- SoT索引: [`docs/sot/README.md`](../sot/README.md)
 - `/sync-docs`: `.agent/commands/sync-docs.md`
 - 入力解決: `scripts/agentic-sdd/resolve-sync-docs-inputs.py`
 - /research の契約lint: `scripts/agentic-sdd/lint-sot.py`, `.agent/commands/research.md`
@@ -81,5 +86,6 @@
 ## Gateではない評価（健康診断）
 
 合否ではなく、改善投資の意思決定やGCの回収方針に使う。
+このドキュメント（quality-gates.md）は **合否判定の定義** を担い、quality-score.md は **改善投資の計測** を担う。両者は独立した責務を持つ。
 
 - Quality score テンプレ: [`docs/evaluation/quality-score.md`](quality-score.md)
