@@ -341,10 +341,16 @@ For review-bot monitoring, use event-driven workflows:
 Configuration:
 
 ```bash
-# Required: bot accounts to monitor
+# Required (observability): bot accounts to filter events
 CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]'
 
-# Required for autofix re-review requests
+# Required (autofix): bot accounts whose comments trigger autofix
+AGENTIC_SDD_AUTOFIX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]'
+
+# Required (autofix): repo-relative path to the autofix script invoked by the workflow
+AGENTIC_SDD_AUTOFIX_CMD='./scripts/my-autofix.sh'
+
+# Required (autofix): mention string posted after successful autofix push
 AGENTIC_SDD_PR_REVIEW_MENTION='@pr-bots review'
 ```
 
