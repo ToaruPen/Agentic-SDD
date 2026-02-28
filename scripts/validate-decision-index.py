@@ -148,12 +148,28 @@ def validate(repo_root: Path) -> list[str]:
                 body_files[f.name] = f
 
     # --- Collect all known Decision-IDs (from body files) ---
-    all_decision_ids: dict[str, str] = {}  # id -> filename
+    body_decision_ids: dict[str, str] = {}
+    all_decision_ids: dict[str, str] = {}
     for fname, fpath in body_files.items():
         text = fpath.read_text(encoding="utf-8")
         did = extract_decision_id(text)
-        if did:
-            all_decision_ids[did] = fname
+        if not did:
+            errors.append(
+                f"docs/decisions/{fname}: missing or invalid Decision-ID value "
+                f"(expected format: D-YYYY-MM-DD-UPPER_SNAKE)"
+            )
+            continue
+
+        body_decision_ids[fname] = did
+
+        if did in all_decision_ids:
+            errors.append(
+                f"Duplicate Decision-ID in body files: {did} "
+                f"(docs/decisions/{all_decision_ids[did]} and docs/decisions/{fname})"
+            )
+            continue
+
+        all_decision_ids[did] = fname
 
     # --- AC2: Check for duplicates in index ---
     seen_ids: dict[str, int] = {}
@@ -174,6 +190,14 @@ def validate(repo_root: Path) -> list[str]:
         if fname not in body_files:
             errors.append(
                 f"Index references missing file: {ref_path} (Decision-ID: {did})"
+            )
+            continue
+
+        body_did = body_decision_ids.get(fname)
+        if body_did and body_did != did:
+            errors.append(
+                f"Index/body Decision-ID mismatch: index has '{did}' but "
+                f"docs/decisions/{fname} has '{body_did}'"
             )
 
     # --- AC2: Check body -> index (orphan files) ---

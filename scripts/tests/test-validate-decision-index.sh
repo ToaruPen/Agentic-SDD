@@ -21,9 +21,9 @@ new_repo() {
 	local r="$tmpdir/$name"
 	mkdir -p "$r"
 	git -C "$r" init -q
-  mkdir -p "$r/docs/decisions" "$r/scripts"
-  cp -p "$validate_py" "$r/scripts/validate-decision-index.py"
-  chmod +x "$r/scripts/validate-decision-index.py"
+	mkdir -p "$r/docs/decisions" "$r/scripts"
+	cp -p "$validate_py" "$r/scripts/validate-decision-index.py"
+	chmod +x "$r/scripts/validate-decision-index.py"
 	printf '%s\n' "$r"
 }
 
@@ -245,6 +245,35 @@ set -e
 
 run_test "AC2: duplicate index fails (exit!=0)" test "$code_ac2_dup" -ne 0
 run_test "AC2: error mentions duplicate" grep -qi "duplicate\|重複" "$r5/stderr"
+
+eprint "--- AC2: case-index-body-id-mismatch ---"
+r5b="$(new_repo case-index-body-id-mismatch)"
+write_template "$r5b"
+write_valid_decision "$r5b" "D-2026-02-28-REAL" "d-2026-02-28-real.md"
+write_valid_index "$r5b" "- D-2026-02-28-WRONG: [\`docs/decisions/d-2026-02-28-real.md\`](./decisions/d-2026-02-28-real.md)"
+set +e
+(cd "$r5b" && python3 ./scripts/validate-decision-index.py) >"$r5b/stdout" 2>"$r5b/stderr"
+code_ac2_mismatch=$?
+set -e
+
+run_test "AC2: index/body ID mismatch fails (exit!=0)" test "$code_ac2_mismatch" -ne 0
+run_test "AC2: error mentions ID mismatch" grep -q "Index/body Decision-ID mismatch" "$r5b/stderr"
+
+eprint "--- AC2: case-duplicate-body-decision-id ---"
+r5c="$(new_repo case-duplicate-body-decision-id)"
+write_template "$r5c"
+write_valid_decision "$r5c" "D-2026-02-28-DUPBODY" "d-2026-02-28-a.md"
+write_valid_decision "$r5c" "D-2026-02-28-DUPBODY" "d-2026-02-28-b.md"
+write_valid_index "$r5c" \
+	"- D-2026-02-28-DUPBODY: [\`docs/decisions/d-2026-02-28-a.md\`](./decisions/d-2026-02-28-a.md)" \
+	"- D-2026-02-28-OTHER: [\`docs/decisions/d-2026-02-28-b.md\`](./decisions/d-2026-02-28-b.md)"
+set +e
+(cd "$r5c" && python3 ./scripts/validate-decision-index.py) >"$r5c/stdout" 2>"$r5c/stderr"
+code_ac2_dup_body=$?
+set -e
+
+run_test "AC2: duplicate body Decision-ID fails (exit!=0)" test "$code_ac2_dup_body" -ne 0
+run_test "AC2: error mentions duplicate body Decision-ID" grep -q "Duplicate Decision-ID in body files" "$r5c/stderr"
 
 # ===========================================================================
 # AC3: Supersedes references point to existing Decision-IDs
