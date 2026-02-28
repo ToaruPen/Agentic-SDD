@@ -63,8 +63,8 @@ Notes:
 ### Phase 2: Fetch review-bot feedback
 
 If your repository has `.github/workflows/codex-review-events.yml`, prefer that event-driven
-workflow for notification/observability. The local polling script
-`scripts/agentic-sdd/watch-codex-review.sh` remains available as fallback.
+workflow for notification/observability. For CI-based autofix loops, use
+`templates/ci/github-actions/.github/workflows/agentic-sdd-pr-autofix.yml`.
 
 Review bot may post:
 
