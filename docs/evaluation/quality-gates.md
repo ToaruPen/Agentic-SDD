@@ -89,4 +89,4 @@ Use this for investment decisions and GC recovery strategy, not for pass/fail.
 This document (`quality-gates.md`) defines **pass/fail criteria**, while [`quality-score.md`](quality-score.md) is for **improvement measurement**. They have separate responsibilities.
 
 - Quality score template: [`docs/evaluation/quality-score.md`](quality-score.md)
-- Gate-linked metrics (periodic observation): [`docs/evaluation/quality-score.md` "## Gate-Linked Metrics" section](quality-score.md#gate-linked-metrics-periodic-observation)
+- Gate-linked metrics (periodic observation): [`docs/evaluation/quality-score.md` "## Gate-Linked Metrics (Periodic Observation)" section](quality-score.md#gate-linked-metrics-periodic-observation)
