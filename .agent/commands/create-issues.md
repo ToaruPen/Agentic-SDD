@@ -46,7 +46,7 @@ Choose one mode and fail fast if required inputs are missing.
 `epic` mode:
 
 1. Resolve Epic file input from positional `epic-file` or `--epic-file`
-2. Read the specified Epic file
+2. Read the specified Epic file (fail-fast on file not found, permission denied, or read/parse errors)
 3. Extract section 4 (Issue split plan)
 4. Identify dependencies
 5. Stop if section 4 cannot be extracted
@@ -121,8 +121,9 @@ GitHub Issues are the required output destination.
 1. Preflight the environment:
    - Check git remotes: `git remote -v`
    - Check GitHub auth: `gh auth status`
-2. Create Issues via `gh issue create`.
-3. If the environment is not ready (no `gh`, not authenticated, wrong repo), stop and ask the user to fix it.
+2. If `--dry-run` is set, do not call `gh issue create`; render and display generated Issue title/body/labels/assignees, print `Preview only (--dry-run): no GitHub Issue created.`, and exit.
+3. If `--dry-run` is not set, create Issues via `gh issue create` and print `Issue created on GitHub.`
+4. If the environment is not ready (no `gh`, not authenticated, wrong repo), stop and ask the user to fix it.
 
 ## Output format
 
