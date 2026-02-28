@@ -222,3 +222,4 @@ REVIEW_ENGINE=claude \
 
 - `.agent/commands/final-review.md` - final gate (DoD + `/sync-docs`)
 - `.agent/schemas/review.json` - review JSON schema (schema v3)
+- `.agent/rules/runtime-controls.md` - prompt caching/compaction/context management runbook

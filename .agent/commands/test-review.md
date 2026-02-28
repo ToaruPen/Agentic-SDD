@@ -63,3 +63,4 @@
 - `.agent/commands/impl.md` - 実装フロー
 - `.agent/commands/tdd.md` - TDDフロー
 - `.agent/commands/create-pr.md` - PR作成ゲート
+- `.agent/rules/runtime-controls.md` - prompt caching/compaction/context management runbook

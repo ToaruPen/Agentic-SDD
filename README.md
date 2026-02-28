@@ -325,6 +325,14 @@ Recommended incremental operation:
 - Before `/final-review`, run one fresh full local review context (do not rely only on reused incremental artifacts).
 - If `/final-review` reports any `P2` or higher finding (`P0/P1/P2`), fix it and run `/review-cycle` again, then re-run `/final-review`.
 
+Runtime controls (Plan B):
+
+- Keep static prompt prefixes stable; move volatile context to suffixes for higher cache reuse.
+- Use provider-native controls only as optimization layers (OpenAI prompt caching/compaction, Anthropic cache_control/context management, Gemini context caching).
+- Never replace fail-fast gates with cache assumptions; `/test-review`, `/review-cycle`, `/final-review`, and `/create-pr` remain mandatory.
+- Track cache effectiveness and rerun count trends; if `Blocked/Question` increases on no-change loops, disable the latest runtime control and re-baseline.
+- See `.agent/rules/runtime-controls.md` for rollout and rollback policy.
+
 Note: the review engine invocation (`codex exec` by default) has no timeout by default. If you need one, set `EXEC_TIMEOUT_SEC` (uses `timeout`/`gtimeout` when available).
 
 If you set `GH_ISSUE=123`, it reads the Issue body and `- PRD:` / `- Epic:` references
@@ -438,6 +446,7 @@ Batch cleanup for merged Issue branches:
 │   ├── issue.md
 │   ├── observability.md
 │   ├── performance.md
+│   ├── runtime-controls.md
 │   └── security.md
 └── agents/
     ├── docs.md

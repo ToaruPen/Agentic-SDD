@@ -32,16 +32,19 @@ Detect the target command from the prompt.
 Supported command tokens:
 
 - /sdd-init (OpenCode alias for Agentic-SDD init)
+- /research
 - /create-prd
 - /create-epic
 - /create-issues
 - /estimation
 - /impl
 - /tdd
+- /test-review
 - /review-cycle
 - /final-review
 - /sync-docs
 - /create-pr
+- /pr-bots-review
 - /worktree
 
 Alias:

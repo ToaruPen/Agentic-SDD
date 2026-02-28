@@ -156,3 +156,8 @@ Stop when:
 1. The configured review bot provides no further actionable findings.
 2. CI is green.
 3. Human review requirements (if any) are satisfied.
+
+## Related
+
+- `.agent/rules/runtime-controls.md` - prompt caching/compaction/context management runbook
+- `.agent/commands/create-pr.md` - PR creation gate and metadata checks
