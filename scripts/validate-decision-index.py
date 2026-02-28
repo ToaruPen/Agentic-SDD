@@ -91,9 +91,17 @@ def extract_supersedes(text: str) -> tuple[list[str], list[str]]:
             # Skip N/A
             if stripped in ("- N/A", "N/A"):
                 continue
-            ids = DECISION_ID_RE.findall(stripped)
-            if ids:
-                refs.extend(ids)
+            payload = stripped
+            if payload.startswith("-"):
+                payload = payload[1:].strip()
+
+            tokens = [token.strip() for token in payload.split(",") if token.strip()]
+            if not tokens:
+                invalid_entries.append(stripped)
+                continue
+
+            if all(DECISION_ID_RE.fullmatch(token) for token in tokens):
+                refs.extend(tokens)
             else:
                 invalid_entries.append(stripped)
     return refs, invalid_entries

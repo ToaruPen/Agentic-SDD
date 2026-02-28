@@ -569,6 +569,58 @@ set -e
 run_test "AC3: invalid supersedes format fails (exit!=0)" test "$code_ac3_invalid_fmt" -ne 0
 run_test "AC3: invalid supersedes entry error is reported" grep -q "invalid Supersedes entry" "$r7c/stderr"
 
+eprint "--- AC3: case-partial-match-supersedes-format ---"
+r7d="$(new_repo case-partial-match-supersedes-format)"
+write_template "$r7d"
+write_valid_decision "$r7d" "D-2026-02-01-OLD" "d-2026-02-01-old.md"
+cat >"$r7d/docs/decisions/d-2026-02-28-partial.md" <<'EOF'
+# Decision: Partial Match Supersedes
+
+## Decision-ID
+
+D-2026-02-28-PARTIAL
+
+## Context
+
+- 背景: test
+
+## Rationale
+
+- reason
+
+## Alternatives
+
+### Alternative-A: none
+
+- 採用可否: No
+
+## Impact
+
+- 影響: none
+
+## Verification
+
+- 検証方法: test
+
+## Supersedes
+
+- D-2026-02-01-OLD-extra
+
+## Inputs Fingerprint
+
+- PRD: N/A
+EOF
+write_valid_index "$r7d" \
+	"- D-2026-02-01-OLD: [\`docs/decisions/d-2026-02-01-old.md\`](./decisions/d-2026-02-01-old.md)" \
+	"- D-2026-02-28-PARTIAL: [\`docs/decisions/d-2026-02-28-partial.md\`](./decisions/d-2026-02-28-partial.md)"
+set +e
+(cd "$r7d" && python3 ./scripts/validate-decision-index.py) >"$r7d/stdout" 2>"$r7d/stderr"
+code_ac3_partial=$?
+set -e
+
+run_test "AC3: partial-match supersedes format fails (exit!=0)" test "$code_ac3_partial" -ne 0
+run_test "AC3: partial-match supersedes is flagged invalid" grep -q "invalid Supersedes entry" "$r7d/stderr"
+
 # ===========================================================================
 # Edge cases
 # ===========================================================================
