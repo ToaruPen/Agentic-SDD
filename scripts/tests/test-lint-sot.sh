@@ -3280,6 +3280,64 @@ if ! grep -q "docs/prd/ 配下" "$r29/stderr"; then
   exit 1
 fi
 
+r29b="$(new_repo case-sot-ref-traversal)"
+write_base_docs "$r29b"
+mkdir -p "$r29b/docs/epics" "$r29b/docs/prd"
+cat > "$r29b/docs/epics/target.md" <<'EOF'
+# Epic: Target
+EOF
+
+cat > "$r29b/docs/epics/test.md" <<'EOF'
+# Epic: Test
+
+- ステータス: Approved
+- 参照PRD: docs/prd/../epics/target.md
+EOF
+
+set +e
+(cd "$r29b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r29b/stderr"
+code_sot_ref_traversal=$?
+set -e
+
+if [[ "$code_sot_ref_traversal" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for path traversal in 参照PRD"
+  cat "$r29b/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "docs/prd/ 配下" "$r29b/stderr"; then
+  eprint "Expected docs/prd/ path requirement message for traversal, got:"
+  cat "$r29b/stderr" >&2 || true
+  exit 1
+fi
+
+r29c="$(new_repo case-sot-ref-directory)"
+write_base_docs "$r29c"
+mkdir -p "$r29c/docs/epics" "$r29c/docs/prd/subdir"
+cat > "$r29c/docs/epics/test.md" <<'EOF'
+# Epic: Test
+
+- ステータス: Approved
+- 参照PRD: docs/prd/subdir
+EOF
+
+set +e
+(cd "$r29c" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r29c/stderr"
+code_sot_ref_directory=$?
+set -e
+
+if [[ "$code_sot_ref_directory" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for directory path in 参照PRD"
+  cat "$r29c/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "見つかりません" "$r29c/stderr"; then
+  eprint "Expected missing file message for directory 参照PRD, got:"
+  cat "$r29c/stderr" >&2 || true
+  exit 1
+fi
+
 r30="$(new_repo case-sot-ref-multiple)"
 write_base_docs "$r30"
 mkdir -p "$r30/docs/epics" "$r30/docs/prd"

@@ -730,7 +730,9 @@ def lint_sot_reference_contract(repo: str, rel_path: str, text: str) -> List[Lin
             )
         ]
 
-    if not ref_path.startswith("docs/prd/"):
+    # Normalize to prevent path traversal (e.g. docs/prd/../epics/foo.md)
+    normalized = os.path.normpath(ref_path).replace("\\", "/")
+    if not normalized.startswith("docs/prd/"):
         return [
             LintError(
                 path=rel_path,
@@ -738,7 +740,7 @@ def lint_sot_reference_contract(repo: str, rel_path: str, text: str) -> List[Lin
             )
         ]
 
-    if not os.path.exists(os.path.join(repo, ref_path)):
+    if not os.path.isfile(os.path.join(repo, normalized)):
         return [
             LintError(
                 path=rel_path,
