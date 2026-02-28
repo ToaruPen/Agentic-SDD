@@ -207,7 +207,7 @@ Required for each child Issue before closing:
 
 - Parent linkage is explicit in the child body (Issue number + reason).
 - Child AC is checked with concrete evidence (parent PR link, checklist items, or review notes).
-- Closure reference is explicit: use `Refs #<child>` while in progress and `Fixes #<child>` only when all child AC is satisfied by the parent PR.
+- Closure reference is explicit in the parent PR body or parent commit message: use `Refs #<child>` while child AC is in progress, and switch to `Fixes #<child>` only when all child AC is satisfied by the parent PR. Child issue comments may be used for notification only and are not the canonical closure reference.
 
 Parent closure rule:
 
