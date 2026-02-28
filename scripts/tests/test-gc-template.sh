@@ -17,7 +17,7 @@ python3 - "$src" <<'PYEOF'
 import re, sys
 
 path = sys.argv[1]
-with open(path) as f:
+with open(path, encoding="utf-8") as f:
     lines = f.readlines()
 
 errors = []
