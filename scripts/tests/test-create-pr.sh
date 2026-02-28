@@ -105,6 +105,32 @@ head_sha="$(git -C "$work" rev-parse HEAD)"
 write_review_metadata "$head_sha" "origin/main" "$base_sha"
 write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
 
+mkdir -p "$work/scripts" "$work/docs/decisions"
+cp "$repo_root/scripts/validate-decision-index.py" "$work/scripts/validate-decision-index.py"
+cat > "$work/docs/decisions/_template.md" <<'TMPL'
+## Decision-ID
+
+## Context
+
+## Rationale
+
+## Alternatives
+
+## Impact
+
+## Verification
+
+## Supersedes
+
+## Inputs Fingerprint
+TMPL
+
+cat > "$work/docs/decisions.md" <<'IDX'
+# Decisions
+
+## Decision Index
+IDX
+
 mkdir -p "$tmpdir/bin"
 cat > "$tmpdir/bin/gh" <<'EOF'
 #!/usr/bin/env bash
@@ -395,5 +421,112 @@ if [[ "$out2" != "https://example.invalid/pull/1" ]]; then
   eprint "Expected existing PR URL, got: $out2"
   exit 1
 fi
+
+# --- Decision Index validation gate tests ---
+
+# Reset PR state so gh stub creates fresh
+rm -f "$tmpdir/bin/pr_state"
+
+# Copy the real validate-decision-index.py into the temp repo
+mkdir -p "$work/scripts"
+cp "$repo_root/scripts/validate-decision-index.py" "$work/scripts/validate-decision-index.py"
+
+# Create valid decision fixtures so validation passes
+mkdir -p "$work/docs/decisions"
+cat > "$work/docs/decisions/_template.md" <<'TMPL'
+## Decision-ID
+
+## Context
+
+## Rationale
+
+## Alternatives
+
+## Impact
+
+## Verification
+
+## Supersedes
+
+## Inputs Fingerprint
+TMPL
+
+cat > "$work/docs/decisions.md" <<'IDX'
+# Decisions
+
+## Decision Index
+IDX
+
+# Refresh metadata for current head (required after prior test mutations)
+head_sha="$(git -C "$work" rev-parse HEAD)"
+base_sha="$(git -C "$work" rev-parse origin/main)"
+write_review_metadata "$head_sha" "origin/main" "$base_sha"
+write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
+
+# Decision validation should pass (no body files, no index entries = valid empty state)
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
+
+# Now create an orphan body file (no matching index entry) -> should fail
+cat > "$work/docs/decisions/d-2026-01-01-test-orphan.md" <<'BODY'
+## Decision-ID
+
+D-2026-01-01-TEST_ORPHAN
+
+## Context
+
+Test context
+
+## Rationale
+
+Test rationale
+
+## Alternatives
+
+None
+
+## Impact
+
+None
+
+## Verification
+
+Manual
+
+## Supersedes
+
+- N/A
+
+## Inputs Fingerprint
+
+N/A
+BODY
+
+set +e
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>"$tmpdir/stderr_decision_orphan"
+code_decision_orphan=$?
+set -e
+if [[ "$code_decision_orphan" -eq 0 ]]; then
+  eprint "Expected orphan decision body to fail create-pr"
+  exit 1
+fi
+if ! grep -q "Decision Index validation failed" "$tmpdir/stderr_decision_orphan"; then
+  eprint "Expected Decision Index validation failed message, got:"
+  cat "$tmpdir/stderr_decision_orphan" >&2
+  exit 1
+fi
+
+# Fix by adding the entry to the index -> should pass
+cat > "$work/docs/decisions.md" <<'IDX'
+# Decisions
+
+## Decision Index
+
+- D-2026-01-01-TEST_ORPHAN: [`d-2026-01-01-test-orphan.md`](./decisions/d-2026-01-01-test-orphan.md)
+IDX
+
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
+
+# Clean up decision fixtures for subsequent test stability
+rm -rf "$work/docs/decisions" "$work/docs/decisions.md" "$work/scripts/validate-decision-index.py"
 
 eprint "OK: scripts/tests/test-create-pr.sh"

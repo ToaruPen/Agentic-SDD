@@ -129,6 +129,7 @@ Keep it concise; include "how verified" and evidence.
     - Run `python3 scripts/validate-decision-index.py` from the repo root.
     - This validates: required sections in `docs/decisions/_template.md` (AC1), index/body 1:1 correspondence (AC2), and Supersedes reference integrity (AC3).
     - If the script fails, fix the reported errors before proceeding.
+    - Note: `/create-pr` (and `create-pr.sh`) also runs this validation as a mandatory gate. Fixing errors here prevents PR creation failures downstream.
 - Readability: names, structure, consistency
 - Testing: meaningful assertions, enough coverage
 - Security: input validation, auth, secret handling

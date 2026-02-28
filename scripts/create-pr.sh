@@ -472,6 +472,19 @@ if [[ -n "$meta_base_sha" ]]; then
   fi
 fi
 
+# Decision Index validation gate
+decision_validator="$repo_root/scripts/validate-decision-index.py"
+if [[ ! -f "$decision_validator" ]]; then
+  eprint "Missing decision validator: $decision_validator"
+  eprint "This is a mandatory gate for /create-pr."
+  exit 2
+fi
+if ! python3 "$decision_validator" "$repo_root" >&2; then
+  eprint "Decision Index validation failed."
+  eprint "Fix the errors above, then re-run /create-pr."
+  exit 2
+fi
+
 if [[ -z "$TITLE" ]]; then
   issue_json="$(gh issue view "$ISSUE" --json title,url 2>/dev/null || true)"
   if [[ -z "$issue_json" ]]; then
@@ -498,6 +511,7 @@ eprint "- review_meta: $review_meta (diff_source=${meta_diff_source:-unknown})"
 eprint "- test_review: $test_review_json (status=$test_status)"
 eprint "- test_review_meta: $test_review_meta"
 eprint "- origin: $origin_url"
+eprint "- decision_index: validated"
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   exit 0
