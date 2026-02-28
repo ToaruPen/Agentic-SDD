@@ -54,13 +54,22 @@ for required_key in ['name:', 'on:', 'jobs:']:
     if not re.search(rf'^{re.escape(required_key)}', content, re.MULTILINE):
         errors.append(f'Missing top-level key: {required_key}')
 
-# steps: must appear as an indented key under jobs
-if not re.search(r'^\s+steps:\s*$', content, re.MULTILINE):
-    errors.append('Missing indented steps: key under jobs')
-
-# Steps must contain at least one run: or uses: entry
-if not re.search(r'^\s+(run:|uses:)', content, re.MULTILINE):
-    errors.append('steps: has no run: or uses: entries')
+# Extract the jobs block (from 'jobs:' to the next top-level key or EOF)
+# Top-level keys start at column 0; everything indented belongs to jobs.
+jobs_match = re.search(
+    r'^jobs:\s*\n((?:\s+.*\n|\s*\n)*)',
+    content, re.MULTILINE,
+)
+if not jobs_match:
+    errors.append('Could not extract jobs block from template')
+else:
+    jobs_block = jobs_match.group(1)
+    # steps: must appear as an indented key within the jobs block
+    if not re.search(r'^\s+steps:\s*$', jobs_block, re.MULTILINE):
+        errors.append('No steps: key found inside jobs block')
+    # At least one step must contain run: or uses:
+    if not re.search(r'^\s+(run:|uses:)', jobs_block, re.MULTILINE):
+        errors.append('No run: or uses: entry found inside jobs steps')
 
 # --- GC template contract (non-comment lines only) ---
 
