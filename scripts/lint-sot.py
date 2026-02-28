@@ -78,6 +78,9 @@ def read_text(path: str) -> str:
 
 _STATUS_APPROVED_RE = re.compile(r"^\s*-\s*ステータス\s*:\s*Approved\s*$", re.MULTILINE)
 _ALLOW_HTML_COMMENTS_RE = re.compile(r"<!--\s*lint-sot:\s*allow-html-comments\s*-->")
+_SOT_REFERENCE_PRD_LINE_RE = re.compile(
+    r"^\s*-\s*参照PRD[ \t]*:[ \t]*(?:`([^`\n]*)`|([^\n]*))[ \t]*$", re.MULTILINE
+)
 
 
 _RESEARCH_CANDIDATE_BLOCK_RE = re.compile(
@@ -691,6 +694,63 @@ def lint_placeholders(_repo: str, rel_path: str, text: str) -> List[LintError]:
     return errs
 
 
+def lint_sot_reference_contract(repo: str, rel_path: str, text: str) -> List[LintError]:
+    if not rel_path.startswith("docs/epics/"):
+        return []
+    if not is_approved_prd_or_epic(rel_path, text):
+        return []
+
+    contract_text = strip_html_comment_blocks(
+        strip_indented_code_blocks(strip_fenced_code_blocks(text))
+    )
+    refs = list(_SOT_REFERENCE_PRD_LINE_RE.finditer(contract_text))
+
+    if len(refs) == 0:
+        return [
+            LintError(
+                path=rel_path,
+                message="Approved Epic に '参照PRD:' フィールドがありません（例: - 参照PRD: `docs/prd/xxx.md`）",
+            )
+        ]
+    if len(refs) > 1:
+        return [
+            LintError(
+                path=rel_path,
+                message="Approved Epic に '参照PRD:' が複数あります（一意に解決してください）",
+            )
+        ]
+
+    m = refs[0]
+    ref_path = (m.group(1) or m.group(2) or "").strip()
+    if not ref_path:
+        return [
+            LintError(
+                path=rel_path,
+                message="Approved Epic の '参照PRD:' が空です（docs/prd/xxx.md を指定してください）",
+            )
+        ]
+
+    if not ref_path.startswith("docs/prd/"):
+        return [
+            LintError(
+                path=rel_path,
+                message="Approved Epic の '参照PRD:' は docs/prd/ 配下を指す必要があります",
+            )
+        ]
+
+    if not os.path.exists(os.path.join(repo, ref_path)):
+        return [
+            LintError(
+                path=rel_path,
+                message=(
+                    "Approved Epic の '参照PRD:' が指すファイルが見つかりません: "
+                    f"{ref_path}"
+                ),
+            )
+        ]
+    return []
+
+
 _MD_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 _MD_REF_DEF_RE = re.compile(r"^[ \t]{0,3}\[[^\]]+\]:\s*(\S+)", re.MULTILINE)
 
@@ -902,6 +962,7 @@ def lint_paths(repo: str, roots: List[str]) -> List[LintError]:
             text = read_text(path_abs)
             errs.extend(lint_placeholders(repo, rel_path, text))
             errs.extend(lint_research_contract(rel_path, text))
+            errs.extend(lint_sot_reference_contract(repo, rel_path, text))
             errs.extend(lint_relative_links(repo, rel_path, text))
     return errs
 

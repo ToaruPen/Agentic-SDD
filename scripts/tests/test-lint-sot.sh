@@ -3204,4 +3204,170 @@ if ! grep -q "候補-3 に '採否理由:' がありません" "$r26/stderr"; th
   exit 1
 fi
 
+
+r27="$(new_repo case-sot-ref-valid)"
+write_base_docs "$r27"
+mkdir -p "$r27/docs/epics" "$r27/docs/prd"
+cat > "$r27/docs/prd/test.md" <<'EOF'
+# PRD: Test
+
+- ステータス: Approved
+EOF
+
+cat > "$r27/docs/epics/test.md" <<'EOF'
+# Epic: Test
+
+- ステータス: Approved
+- 参照PRD: `docs/prd/test.md`
+EOF
+
+if ! (cd "$r27" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+  eprint "Expected lint-sot OK for Approved Epic with valid 参照PRD"
+  exit 1
+fi
+
+r28="$(new_repo case-sot-ref-empty)"
+write_base_docs "$r28"
+mkdir -p "$r28/docs/epics"
+cat > "$r28/docs/epics/test.md" <<'EOF'
+# Epic: Test
+
+- ステータス: Approved
+- 参照PRD:
+EOF
+
+set +e
+(cd "$r28" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r28/stderr"
+code_sot_ref_empty=$?
+set -e
+
+if [[ "$code_sot_ref_empty" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for empty 参照PRD"
+  cat "$r28/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "参照PRD:' が空です\|参照PRD:' フィールドがありません" "$r28/stderr"; then
+  eprint "Expected empty/missing 参照PRD message, got:"
+  cat "$r28/stderr" >&2 || true
+  exit 1
+fi
+
+r29="$(new_repo case-sot-ref-not-prd-path)"
+write_base_docs "$r29"
+mkdir -p "$r29/docs/epics"
+cat > "$r29/docs/epics/test.md" <<'EOF'
+# Epic: Test
+
+- ステータス: Approved
+- 参照PRD: docs/epics/other.md
+EOF
+
+set +e
+(cd "$r29" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r29/stderr"
+code_sot_ref_not_prd=$?
+set -e
+
+if [[ "$code_sot_ref_not_prd" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for 参照PRD outside docs/prd/"
+  cat "$r29/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "docs/prd/ 配下" "$r29/stderr"; then
+  eprint "Expected docs/prd/ path requirement message, got:"
+  cat "$r29/stderr" >&2 || true
+  exit 1
+fi
+
+r30="$(new_repo case-sot-ref-multiple)"
+write_base_docs "$r30"
+mkdir -p "$r30/docs/epics" "$r30/docs/prd"
+cat > "$r30/docs/prd/a.md" <<'EOF'
+# PRD A
+EOF
+
+cat > "$r30/docs/prd/b.md" <<'EOF'
+# PRD B
+EOF
+
+cat > "$r30/docs/epics/test.md" <<'EOF'
+# Epic: Test
+
+- ステータス: Approved
+- 参照PRD: docs/prd/a.md
+- 参照PRD: docs/prd/b.md
+EOF
+
+set +e
+(cd "$r30" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r30/stderr"
+code_sot_ref_multiple=$?
+set -e
+
+if [[ "$code_sot_ref_multiple" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for multiple 参照PRD lines"
+  cat "$r30/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "複数" "$r30/stderr"; then
+  eprint "Expected multiple 参照PRD message, got:"
+  cat "$r30/stderr" >&2 || true
+  exit 1
+fi
+
+r31="$(new_repo case-sot-ref-not-found)"
+write_base_docs "$r31"
+mkdir -p "$r31/docs/epics"
+cat > "$r31/docs/epics/test.md" <<'EOF'
+# Epic: Test
+
+- ステータス: Approved
+- 参照PRD: docs/prd/nonexistent.md
+EOF
+
+set +e
+(cd "$r31" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r31/stderr"
+code_sot_ref_not_found=$?
+set -e
+
+if [[ "$code_sot_ref_not_found" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for nonexistent 参照PRD target"
+  cat "$r31/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "見つかりません" "$r31/stderr"; then
+  eprint "Expected missing 参照PRD target message, got:"
+  cat "$r31/stderr" >&2 || true
+  exit 1
+fi
+
+r32="$(new_repo case-sot-ref-draft-skip)"
+write_base_docs "$r32"
+mkdir -p "$r32/docs/epics"
+cat > "$r32/docs/epics/test.md" <<'EOF'
+# Epic: Test
+
+- ステータス: Draft
+- 参照PRD:
+EOF
+
+if ! (cd "$r32" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+  eprint "Expected lint-sot OK for Draft Epic without valid 参照PRD"
+  exit 1
+fi
+
+real_repo_root="$repo_root"
+set +e
+(cd "$real_repo_root" && python3 scripts/lint-sot.py docs) >/dev/null 2>"$tmpdir/real-repo-stderr"
+code_sot_ref_regression=$?
+set -e
+
+if [[ "$code_sot_ref_regression" -ne 0 ]]; then
+  eprint "Expected lint-sot OK on real repo docs (false positive regression)"
+  cat "$tmpdir/real-repo-stderr" >&2 || true
+  exit 1
+fi
+
 printf '%s\n' "OK"
