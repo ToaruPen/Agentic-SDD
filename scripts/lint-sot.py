@@ -802,6 +802,16 @@ _MD_REF_DEF_RE = re.compile(r"^[ \t]{0,3}\[[^\]]+\]:\s*(\S+)", re.MULTILINE)
 
 
 def strip_inline_code_spans(text: str) -> str:
+    """Remove inline code spans for link/placeholder linting.
+
+    Unlike ``md_sanitize._mask_inline_code_spans`` (which is
+    CommonMark-compliant and handles backslash-escaped backticks),
+    this function intentionally ignores escapes.  It is only used
+    by ``parse_md_link_targets`` and ``lint_placeholders`` where
+    the sole requirement is to exclude code-span content from link
+    and placeholder detection — precise escaped-backtick handling
+    is unnecessary for that purpose.
+    """
     out: List[str] = []
     i = 0
     n = len(text)
