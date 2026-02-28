@@ -12,7 +12,7 @@ Required:
 - [ ] Tests are added/updated (when applicable)
 - [ ] Quality checks are run and passing (tests required; lint/format/typecheck required). If a required check does not exist yet, introduce the minimal viable check before proceeding. If a required check cannot be run, record "not run: reason" and get explicit approval.
 - [ ] `/sync-docs` is "no diff" or the diff is explicitly approved
-- [ ] 重要な判断（why）を追加/変更した場合、Decision Snapshot が `docs/decisions/` に追記され、`docs/decisions.md` の index が更新されている
+- [ ] 重要な判断（why）を追加/変更した場合、Decision Snapshot が `docs/decisions/` に追記され、`docs/decisions.md` の index が更新されている（`python3 scripts/validate-decision-index.py` で検証。`/create-pr` 前に必須実行）
 - [ ] Code review is complete
 - [ ] CI passes (when applicable)
 

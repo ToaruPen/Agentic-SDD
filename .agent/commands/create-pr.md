@@ -47,6 +47,10 @@ Required:
       - `diff_mode` must be `range`
       - if `base_sha` is present, the same `base_ref` still points to that `base_sha`
       - if `base_sha` is present, the PR target base (`--base` or default base) must match the reviewed base branch
+6. Decision Index validation: `python3 scripts/validate-decision-index.py` must pass.
+   - This validates: required sections in `docs/decisions/_template.md`, index/body 1:1 correspondence, and Supersedes reference integrity.
+   - If the script fails, stop and fix the reported errors before proceeding.
+   - The helper script `create-pr.sh` runs this check automatically.
 
 #### Hybrid review-cycle compatibility criteria
 
