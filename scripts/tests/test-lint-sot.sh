@@ -508,9 +508,9 @@ cat >"$r9aa/docs/research/prd/proj/2026-02-15.md" <<'EOF'
     候補-1
     概要: a
     適用可否: Yes
-仮説: h
-反証: f
-採否理由: r
+    仮説: h
+    反証: f
+    採否理由: r
     根拠リンク:
     - https://example.com
     捨て条件:
@@ -521,9 +521,9 @@ cat >"$r9aa/docs/research/prd/proj/2026-02-15.md" <<'EOF'
     候補-2
     概要: a
     適用可否: Yes
-仮説: h
-反証: f
-採否理由: r
+    仮説: h
+    反証: f
+    採否理由: r
     根拠リンク:
     - https://example.com
     捨て条件:
@@ -534,9 +534,9 @@ cat >"$r9aa/docs/research/prd/proj/2026-02-15.md" <<'EOF'
     候補-3
     概要: a
     適用可否: Yes
-仮説: h
-反証: f
-採否理由: r
+    仮説: h
+    反証: f
+    採否理由: r
     根拠リンク:
     - https://example.com
     捨て条件:
@@ -547,9 +547,9 @@ cat >"$r9aa/docs/research/prd/proj/2026-02-15.md" <<'EOF'
     候補-4
     概要: a
     適用可否: Yes
-仮説: h
-反証: f
-採否理由: r
+    仮説: h
+    反証: f
+    採否理由: r
     根拠リンク:
     - https://example.com
     捨て条件:
@@ -560,9 +560,9 @@ cat >"$r9aa/docs/research/prd/proj/2026-02-15.md" <<'EOF'
     候補-5
     概要: a
     適用可否: Yes
-仮説: h
-反証: f
-採否理由: r
+    仮説: h
+    反証: f
+    採否理由: r
     根拠リンク:
     - https://example.com
     捨て条件:
