@@ -333,42 +333,18 @@ It also validates `/test-review` metadata for the current branch state
 
 If you enable CI (optional), wait for CI checks and fix failures before merging.
 
-Recommended: use event-driven monitoring via `.github/workflows/codex-review-events.yml`.
-It triggers on `issue_comment` / `pull_request_review` / `pull_request_review_comment`,
-filters to configured bot accounts (`CODEX_BOT_LOGINS`, required), and logs PR number/URL/type/snippet
-in a consistent format.
+For review-bot monitoring, use event-driven workflows:
 
-Fallback: watch review-bot feedback locally and trigger a local hook on new comments/reviews.
+- **Observability**: `.github/workflows/codex-review-events.yml` — triggers on `issue_comment` / `pull_request_review` / `pull_request_review_comment`, filters to configured bot accounts (`CODEX_BOT_LOGINS`, required), and logs PR number/URL/type/snippet in a consistent format.
+- **Autofix**: `templates/ci/github-actions/.github/workflows/agentic-sdd-pr-autofix.yml` — handles the same events, passes comment body + PR number + normalized event type (`issue_comment`/`review`/`inline`) to `AGENTIC_SDD_AUTOFIX_CMD`, executes autofix only on the target PR's HEAD branch, and re-requests the configured review mention (`AGENTIC_SDD_PR_REVIEW_MENTION`) after successful push.
 
-For CI-based autofix loops, use `templates/ci/github-actions/.github/workflows/agentic-sdd-pr-autofix.yml`.
-It handles `issue_comment` / `pull_request_review` / `pull_request_review_comment`, passes
-comment body + PR number + normalized event type (`issue_comment`/`review`/`inline`) to
-`AGENTIC_SDD_AUTOFIX_CMD`, executes autofix only on the target PR's HEAD branch,
-and re-requests the configured review mention (`AGENTIC_SDD_PR_REVIEW_MENTION`) after successful push.
+Configuration:
 
 ```bash
-CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]' \
-scripts/agentic-sdd/watch-codex-review.sh --pr 96
-```
+# Required: bot accounts to monitor
+CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]'
 
-To integrate with your own notifier, pass `--notify-cmd` (or `CODEX_REVIEW_HOOK`):
-
-```bash
-CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]' \
-CODEX_REVIEW_HOOK='osascript -e "display notification \"$CODEX_EVENT_TYPE\" with title \"PR Review Bot\""' \
-scripts/agentic-sdd/watch-codex-review.sh --pr 96
-```
-
-To watch additional bot accounts, set `CODEX_BOT_LOGINS` as a comma-separated list:
-
-```bash
-CODEX_BOT_LOGINS='chatgpt-codex-connector[bot],coderabbitai[bot]' \
-scripts/agentic-sdd/watch-codex-review.sh --pr 96
-```
-
-For autofix re-review requests, set the mention string explicitly:
-
-```bash
+# Required for autofix re-review requests
 AGENTIC_SDD_PR_REVIEW_MENTION='@pr-bots review'
 ```
 
@@ -503,7 +479,6 @@ scripts/
 ├── sot_refs.py
 ├── sync-agent-config.sh
 ├── test-review.sh
-├── watch-codex-review.sh
 ├── update-agentic-sdd.sh
 ├── ui-iterate.sh
 ├── validate-approval.py
@@ -512,22 +487,24 @@ scripts/
 ├── worktree.sh
 └── tests/                   # test scripts
     ├── test-agentic-sdd-latest.sh
+    ├── test-agentic-sdd-pr-autofix-gate.sh
     ├── test-approval-gate.sh
+    ├── test-cleanup.sh
     ├── test-codex-review-event.sh
     ├── test-create-pr.sh
     ├── test-install-agentic-sdd.sh
     ├── test-lint-sot.sh
+    ├── test-pr-autofix-template.sh
+    ├── test-pre-push-validator-discovery.sh
+    ├── test-review-cycle.sh
     ├── test-ruff-format-gate.sh
     ├── test-ruff-gate.sh
     ├── test-ruff-prepush-new-branch-no-new-commits.sh
-    ├── test-test-review.sh
-    ├── test-cleanup.sh
-    ├── test-review-cycle.sh
     ├── test-setup-global-agentic-sdd.sh
     ├── test-sync-docs-inputs.sh
-    ├── test-update-agentic-sdd.sh
+    ├── test-test-review.sh
     ├── test-ui-iterate.sh
-    ├── test-watch-codex-review.sh
+    ├── test-update-agentic-sdd.sh
     └── test-worktree.sh
 
 templates/
