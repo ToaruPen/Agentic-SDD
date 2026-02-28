@@ -199,6 +199,113 @@ set -e
 run_test "AC1: missing field fails (exit!=0)" test "$code_ac1_missing" -ne 0
 run_test "AC1: error mentions Rationale" grep -q "Rationale" "$r2/stderr"
 
+eprint "--- AC1: case-template-missing-required-field ---"
+r2c="$(new_repo case-template-missing-required-field)"
+cat >"$r2c/docs/decisions/_template.md" <<'EOF'
+# Decision: template broken
+
+## Decision-ID
+
+D-YYYY-MM-DD-SHORT_KEBAB
+
+## Context
+
+- 背景:
+
+## Alternatives
+
+### Alternative-A: <name>
+
+- 採用可否:
+
+## Impact
+
+- 影響範囲:
+
+## Verification
+
+- 検証方法:
+
+## Supersedes
+
+- N/A
+
+## Inputs Fingerprint
+
+- PRD: <path:section>
+EOF
+write_valid_decision "$r2c" "D-2026-02-28-OK" "d-2026-02-28-ok.md"
+write_valid_index "$r2c" "- D-2026-02-28-OK: [\`docs/decisions/d-2026-02-28-ok.md\`](./decisions/d-2026-02-28-ok.md)"
+set +e
+(cd "$r2c" && python3 ./scripts/validate-decision-index.py) >"$r2c/stdout" 2>"$r2c/stderr"
+code_ac1_template_missing=$?
+set -e
+
+run_test "AC1: template missing field fails (exit!=0)" test "$code_ac1_template_missing" -ne 0
+run_test "AC1: template missing field error is reported" grep -q "docs/decisions/_template.md: missing required section '## Rationale'" "$r2c/stderr"
+
+eprint "--- AC1: case-missing-template-file ---"
+r2d="$(new_repo case-missing-template-file)"
+write_valid_decision "$r2d" "D-2026-02-28-OK" "d-2026-02-28-ok.md"
+write_valid_index "$r2d" "- D-2026-02-28-OK: [\`docs/decisions/d-2026-02-28-ok.md\`](./decisions/d-2026-02-28-ok.md)"
+set +e
+(cd "$r2d" && python3 ./scripts/validate-decision-index.py) >"$r2d/stdout" 2>"$r2d/stderr"
+code_ac1_template_absent=$?
+set -e
+
+run_test "AC1: missing template file fails (exit!=0)" test "$code_ac1_template_absent" -ne 0
+run_test "AC1: missing template file error is reported" grep -q "docs/decisions/_template.md: missing template file" "$r2d/stderr"
+
+eprint "--- AC1: case-fenced-heading-not-counted ---"
+r2e="$(new_repo case-fenced-heading-not-counted)"
+write_template "$r2e"
+cat >"$r2e/docs/decisions/d-2026-02-28-fenced.md" <<'EOF'
+# Decision: Fenced Heading
+
+## Decision-ID
+
+D-2026-02-28-FENCED
+
+## Context
+
+- 背景: test
+
+```md
+## Rationale
+- this should not be treated as a section
+```
+
+## Alternatives
+
+### Alternative-A: none
+
+- 採用可否: No
+
+## Impact
+
+- 影響: none
+
+## Verification
+
+- 検証方法: test
+
+## Supersedes
+
+- N/A
+
+## Inputs Fingerprint
+
+- PRD: N/A
+EOF
+write_valid_index "$r2e" "- D-2026-02-28-FENCED: [\`docs/decisions/d-2026-02-28-fenced.md\`](./decisions/d-2026-02-28-fenced.md)"
+set +e
+(cd "$r2e" && python3 ./scripts/validate-decision-index.py) >"$r2e/stdout" 2>"$r2e/stderr"
+code_ac1_fenced_heading=$?
+set -e
+
+run_test "AC1: fenced heading does not satisfy required section (exit!=0)" test "$code_ac1_fenced_heading" -ne 0
+run_test "AC1: fenced heading case reports missing Rationale" grep -q "Rationale" "$r2e/stderr"
+
 eprint "--- AC1: case-malformed-decision-id-value ---"
 r2b="$(new_repo case-malformed-decision-id-value)"
 write_template "$r2b"

@@ -127,7 +127,7 @@ Keep it concise; include "how verified" and evidence.
     - Keep `docs/decisions.md` index and Decision body file references consistent.
   - **Decision Index validation** (run before completing review):
     - Run `python3 scripts/validate-decision-index.py` from the repo root.
-    - This validates: required sections in body files (AC1), index/body 1:1 correspondence (AC2), and Supersedes reference integrity (AC3).
+    - This validates: required sections in `docs/decisions/_template.md` (AC1), index/body 1:1 correspondence (AC2), and Supersedes reference integrity (AC3).
     - If the script fails, fix the reported errors before proceeding.
 - Readability: names, structure, consistency
 - Testing: meaningful assertions, enough coverage

@@ -2,7 +2,7 @@
 """Validate Decision Snapshot index/body consistency.
 
 Checks:
-  AC1: Each decision body file contains all required template fields.
+  AC1: docs/decisions/_template.md contains all required fields.
   AC2: Index entries and body files are 1:1 (no orphans, no dangling refs, no duplicates).
   AC3: Supersedes references point to existing Decision-IDs.
 
@@ -45,10 +45,41 @@ def eprint(*args: object) -> None:
     print(*args, file=sys.stderr)
 
 
+def iter_non_fenced_lines(text: str) -> list[str]:
+    lines: list[str] = []
+    in_fence = False
+    fence_char = ""
+    fence_len = 0
+
+    for line in text.splitlines():
+        fence_match = re.match(r"^\s*([`~]{3,})", line)
+        if fence_match:
+            marker = fence_match.group(1)
+            marker_char = marker[0]
+            marker_len = len(marker)
+
+            if not in_fence:
+                in_fence = True
+                fence_char = marker_char
+                fence_len = marker_len
+                continue
+
+            if marker_char == fence_char and marker_len >= fence_len:
+                in_fence = False
+                continue
+
+        if in_fence:
+            continue
+
+        lines.append(line)
+
+    return lines
+
+
 def find_sections(text: str) -> set[str]:
     """Extract H2 section names from markdown text."""
     sections: set[str] = set()
-    for line in text.splitlines():
+    for line in iter_non_fenced_lines(text):
         m = re.match(r"^##\s+(.+)", line)
         if m:
             sections.add(m.group(1).strip())
@@ -58,7 +89,7 @@ def find_sections(text: str) -> set[str]:
 def extract_decision_id(text: str) -> str | None:
     """Extract the Decision-ID value from body text."""
     in_id_section = False
-    for line in text.splitlines():
+    for line in iter_non_fenced_lines(text):
         if re.match(r"^##\s+Decision-ID", line):
             in_id_section = True
             continue
@@ -78,7 +109,7 @@ def extract_supersedes(text: str) -> tuple[list[str], list[str]]:
     in_supersedes = False
     refs: list[str] = []
     invalid_entries: list[str] = []
-    for line in text.splitlines():
+    for line in iter_non_fenced_lines(text):
         if re.match(r"^##\s+Supersedes", line):
             in_supersedes = True
             continue
@@ -172,6 +203,20 @@ def validate(repo_root: Path) -> list[str]:
             if f.is_file() and f.name not in SKIP_FILES and f.suffix == ".md":
                 body_files[f.name] = f
                 body_repo_paths[f"docs/decisions/{f.name}"] = f
+
+    template_path = decisions_dir / "_template.md"
+    if not template_path.exists():
+        errors.append(
+            "docs/decisions/_template.md: missing template file "
+            "(required for AC1 validation)"
+        )
+    else:
+        template_sections = find_sections(template_path.read_text(encoding="utf-8"))
+        for req in REQUIRED_SECTIONS:
+            if req not in template_sections:
+                errors.append(
+                    f"docs/decisions/_template.md: missing required section '## {req}'"
+                )
 
     # --- Collect all known Decision-IDs (from body files) ---
     body_decision_ids: dict[str, str] = {}
@@ -268,7 +313,6 @@ def validate(repo_root: Path) -> list[str]:
                 f"— add it to docs/decisions.md ## Decision Index"
             )
 
-    # --- AC1: Check required sections in each body file ---
     for fname, fpath in body_files.items():
         text = fpath.read_text(encoding="utf-8")
         sections = find_sections(text)
