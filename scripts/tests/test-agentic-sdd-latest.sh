@@ -81,4 +81,48 @@ if ! grep -Fqx "[INFO] Resolved sha: $expected_sha" "$out"; then
 	exit 1
 fi
 
+remote_no_tags="$tmpdir/remote-no-tags"
+mkdir -p "$remote_no_tags/scripts"
+git -C "$remote_no_tags" init -q
+cat >"$remote_no_tags/scripts/install-agentic-sdd.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+exit 0
+EOF
+chmod +x "$remote_no_tags/scripts/install-agentic-sdd.sh"
+git -C "$remote_no_tags" add scripts/install-agentic-sdd.sh
+git -C "$remote_no_tags" -c user.name=test -c user.email=test@example.com commit -m "init" -q
+
+out_fail="$tmpdir/out-fail"
+set +e
+"$cli" \
+	--repo "$remote_no_tags" \
+	--ref latest \
+	--target "$target" \
+	--tool none \
+	--mode minimal \
+	--no-cache \
+	--dry-run \
+	>"$out_fail" 2>&1
+code=$?
+set -e
+
+if [[ "$code" -eq 0 ]]; then
+	eprint "Expected --ref latest to fail fast when no semver tags exist"
+	cat "$out_fail" >&2
+	exit 1
+fi
+
+if ! grep -Fq "Failed to resolve latest release tag from: $remote_no_tags" "$out_fail"; then
+	eprint "Expected latest resolution failure message"
+	cat "$out_fail" >&2
+	exit 1
+fi
+
+if ! grep -Fq "Expected a semver tag like X.Y.Z, vX.Y.Z, X.Y.Z.W, or vX.Y.Z.W" "$out_fail"; then
+	eprint "Expected semver guidance in fail-fast message"
+	cat "$out_fail" >&2
+	exit 1
+fi
+
 eprint "OK: scripts/tests/test-agentic-sdd-latest.sh"
