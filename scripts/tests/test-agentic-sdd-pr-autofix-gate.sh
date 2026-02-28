@@ -83,6 +83,10 @@ fi
 
 # gh pr view
 if [[ "${1:-}" == "pr" && "${2:-}" == "view" ]]; then
+  if [[ "$*" == *"headRepository,headRefName,baseRefName"* ]]; then
+    printf '%s\t%s\t%s\n' "${GITHUB_REPOSITORY:-o/r}" "feature/test" "main"
+    exit 0
+  fi
   if [[ "$*" == *"headRepository"* ]]; then
     printf '%s\n' "${GITHUB_REPOSITORY:-o/r}"
     exit 0

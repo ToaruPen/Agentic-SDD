@@ -100,6 +100,10 @@ gh api repos/<OWNER>/<REPO>/pulls/<PR_NUMBER>/reviews \
   --jq ".[] | select(.user.login==\"${BOT_LOGIN}\") | {submitted_at, state, body}"
 ```
 
+Note: The CI autofix implementation resolves PR metadata with a single
+`fetch_pr_metadata()` call (`gh pr view --json headRepository,headRefName,baseRefName`).
+The individual commands above are kept for manual/debugging usage only.
+
 If you prefer manual inline replacement, replace `<actual-bot-login>` with the
 concrete bot login before running the queries.
 

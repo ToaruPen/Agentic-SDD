@@ -130,10 +130,24 @@ PY
   fi
 }
 
+# Unified gh-api wrapper. Logs endpoint to stderr on failure; returns the exit
+# code so the caller decides fail-fast (|| die) vs best-effort (|| true / || :).
+gh_api() {
+  local rc=0
+  gh api "$@" || rc=$?
+  if (( rc != 0 )); then
+    eprint "[AUTOFIX] gh api failed (rc=$rc, endpoint=${1:-unknown})"
+  fi
+  return $rc
+}
+
 post_comment() {
   local issue_number="$1"
   local body="$2"
-  gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" -f body="$body" >/dev/null
+  gh_api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" -f body="$body" >/dev/null || {
+    eprint "[AUTOFIX] post_comment failed (pr=$issue_number); continuing"
+    return 0
+  }
 }
 
 has_label() {
@@ -141,7 +155,7 @@ has_label() {
   local label_name="$2"
 
   local labels
-  labels="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number" --jq '.labels[].name')" || die "Failed to fetch issue labels via gh api"
+  labels="$(gh_api "repos/$GITHUB_REPOSITORY/issues/$issue_number" --jq '.labels[].name')" || die "gh api call failed (endpoint: repos/$GITHUB_REPOSITORY/issues/$issue_number)"
   if printf '%s\n' "$labels" | grep -Fxq "$label_name"; then
     return 0
   fi
@@ -156,7 +170,7 @@ count_marker_comments() {
 
   local counted_comments comment_filter
   comment_filter=".[] | select(.user.login == \"${marker_author}\") | select((.body | contains(\"${marker}\")) and ((.body | contains(\"Autofix applied and pushed.\")) or (.body | contains(\"Autofix produced changes but could not push\")) or (.body | contains(\"Autofix stopped: reached max iterations\")))) | .id"
-  counted_comments="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq "$comment_filter")" || die "Failed to list issue comments via gh api"
+  counted_comments="$(gh_api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq "$comment_filter")" || die "gh api call failed (endpoint: repos/$GITHUB_REPOSITORY/issues/$issue_number/comments)"
   if [[ -z "$counted_comments" ]]; then
     printf '0'
     return 0
@@ -177,11 +191,19 @@ has_source_event_already_processed() {
   marker_author="github-actions[bot]"
 
   local processed_match
-  processed_match="$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq ".[] | select(.user.login == \"${marker_author}\") | select((.body | contains(\"${marker}\")) and (.body | contains(\"Source event: ${source_key}\")) and (.body | contains(\"Autofix applied and pushed.\"))) | .id")" || die "Failed to list issue comments via gh api"
+  processed_match="$(gh_api "repos/$GITHUB_REPOSITORY/issues/$issue_number/comments" --paginate --jq ".[] | select(.user.login == \"${marker_author}\") | select((.body | contains(\"${marker}\")) and (.body | contains(\"Source event: ${source_key}\")) and (.body | contains(\"Autofix applied and pushed.\"))) | .id")" || die "gh api call failed (endpoint: repos/$GITHUB_REPOSITORY/issues/$issue_number/comments)"
   if [[ -n "$processed_match" ]]; then
     return 0
   fi
   return 1
+}
+
+fetch_pr_metadata() {
+  local issue_number="$1"
+  gh pr view "$issue_number" \
+    --repo "$GITHUB_REPOSITORY" \
+    --json headRepository,headRefName,baseRefName \
+    --jq '((.headRepository.nameWithOwner) // "") + "\t" + .headRefName + "\t" + (.baseRefName // "")'
 }
 
 extract_event() {
@@ -351,10 +373,10 @@ main() {
     exit 0
   fi
 
-  local head_repo head_ref base_ref
-  head_repo="$(gh pr view "$issue_number" --repo "$GITHUB_REPOSITORY" --json headRepository --jq '.headRepository.nameWithOwner')"
-  head_ref="$(gh pr view "$issue_number" --repo "$GITHUB_REPOSITORY" --json headRefName --jq '.headRefName')"
-  base_ref="$(gh pr view "$issue_number" --repo "$GITHUB_REPOSITORY" --json baseRefName --jq '.baseRefName')"
+  local head_repo head_ref base_ref pr_metadata
+  pr_metadata="$(fetch_pr_metadata "$issue_number")" || \
+    die "gh pr view failed (pr: $issue_number, repo: $GITHUB_REPOSITORY)"
+  IFS=$'\t' read -r head_repo head_ref base_ref <<<"$pr_metadata"
   if [[ -z "$base_ref" ]]; then
     base_ref="main"
   fi
