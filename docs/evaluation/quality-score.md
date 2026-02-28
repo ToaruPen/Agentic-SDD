@@ -66,6 +66,38 @@
 
 ---
 
+## Gate 連動メトリクス（定点観測）
+
+このセクションは、[`quality-gates.md`](quality-gates.md) の Gate 合否（二値）と、上記の品質スコア（0-3 グラデーション）を橋渡しするための定点観測テンプレです。
+
+重要な区別:
+
+- **Gate（合否）**: 必須チェックポイント。Pass でなければ次工程に進めない。定義は [`quality-gates.md`](quality-gates.md) が持つ
+- **Gate 連動メトリクス（このセクション）**: 健康シグナル。Gate の通過状況を時系列で観測し、投資判断・改善優先度の参考にする。合否の代替ではない
+
+### Gate 通過状況テーブル
+
+各 Gate の Pass/Fail と根拠リンクを記録する。更新頻度は品質スコアと同じ（週1またはリリース毎）。
+
+| Gate名 | Pass/Fail | 根拠リンク | 備考 |
+| --- | --- | --- | --- |
+| Gate 0: Worktree preconditions are satisfied |  |  |  |
+| Gate 1: SoT resolution is deterministic |  |  |  |
+| Gate 2: Change evidence (diff) is unambiguous |  |  |  |
+| Gate 3: Quality checks (tests/lint/typecheck) are executed with evidence |  |  |  |
+| Gate 4: Local iterative review (`review.json`) is schema-compliant |  |  |  |
+| Gate 5: Final review (DoD + docs sync) passes |  |  |  |
+
+根拠リンク例: CIログURL、`review.json` のパス、`/review-cycle` 出力のスニペット
+
+### 計測タイミングと判定基準
+
+- **計測タイミング**: 品質スコア更新と同じタイミング（週1またはリリース毎）で記録する
+- **判定基準**: 各 Gate の Pass/Fail 定義は [`quality-gates.md`](quality-gates.md) を参照。このセクションでは基準を再定義しない
+- **記録方法**: 上記テーブルを append-only で追記する（スコア記録と同じ運用）
+
+---
+
 ## スコア記録（時系列）
 
 以下を追記（append-only）する。

@@ -89,3 +89,4 @@ Use this for investment decisions and GC recovery strategy, not for pass/fail.
 This document (`quality-gates.md`) defines **pass/fail criteria**, while [`quality-score.md`](quality-score.md) is for **improvement measurement**. They have separate responsibilities.
 
 - Quality score template: [`docs/evaluation/quality-score.md`](quality-score.md)
+- Gate 連動メトリクス（定点観測）: [`docs/evaluation/quality-score.md` 「## Gate 連動メトリクス（定点観測）」セクション](quality-score.md#gate-連動メトリクス定点観測)
