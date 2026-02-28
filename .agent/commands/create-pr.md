@@ -122,6 +122,7 @@ Notes:
 - `.agent/commands/review-cycle.md` - local review cycle (review.json)
 - `.agent/commands/worktree.md` - worktree + linked branch flow
 - `.agent/rules/branch.md` - branch naming rules
+- `.agent/rules/runtime-controls.md` - prompt caching/compaction/context management runbook
 
 ## Next command
 
