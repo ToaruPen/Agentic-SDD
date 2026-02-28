@@ -11,10 +11,10 @@ if str(_REPO_ROOT / "scripts") not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 
 
-def load_module() -> ModuleType:
+def _load_script_module(module_name: str, script_name: str) -> ModuleType:
     repo_root = Path(__file__).resolve().parents[2]
-    module_path = repo_root / "scripts" / "lint-sot.py"
-    spec = importlib.util.spec_from_file_location("lint_sot", module_path)
+    module_path = repo_root / "scripts" / script_name
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Failed to load module spec: {module_path}")
     module = importlib.util.module_from_spec(spec)
@@ -22,19 +22,10 @@ def load_module() -> ModuleType:
     return module
 
 
-def load_extract_epic_config_module() -> ModuleType:
-    repo_root = Path(__file__).resolve().parents[2]
-    module_path = repo_root / "scripts" / "extract-epic-config.py"
-    spec = importlib.util.spec_from_file_location("extract_epic_config", module_path)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Failed to load module spec: {module_path}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-MODULE = load_module()
-EXTRACT_EPIC_CONFIG_MODULE = load_extract_epic_config_module()
+MODULE = _load_script_module("lint_sot", "lint-sot.py")
+EXTRACT_EPIC_CONFIG_MODULE = _load_script_module(
+    "extract_epic_config", "extract-epic-config.py"
+)
 
 
 def test_is_safe_repo_relative_root() -> None:
@@ -119,3 +110,21 @@ def test_extract_meta_info_ignores_status_in_indented_code_block() -> None:
 """
     meta = EXTRACT_EPIC_CONFIG_MODULE.extract_meta_info(text)
     assert meta["status"] is None
+
+
+def test_extract_meta_info_returns_real_status_ignoring_distractors() -> None:
+    text = """
+# Epic: Test
+
+```md
+- ステータス: Approved
+```
+
+<!--
+- ステータス: Approved
+-->
+
+- ステータス: Draft
+"""
+    meta = EXTRACT_EPIC_CONFIG_MODULE.extract_meta_info(text)
+    assert meta["status"] == "Draft"
