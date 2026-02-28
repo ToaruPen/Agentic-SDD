@@ -126,4 +126,4 @@ Notes:
 ## Next command
 
 After PR creation, run `/pr-bots-review <PR_NUMBER_OR_URL>` in autonomous default mode only when review-bot configuration is present (`AGENTIC_SDD_PR_REVIEW_MENTION` plus bot login filtering settings).
-If needed, optionally run `/final-review <pr-number>` for an additional PR-diff review.
+`/final-review` is a precondition before `/create-pr`; do not treat it as a post-PR step in this flow.
