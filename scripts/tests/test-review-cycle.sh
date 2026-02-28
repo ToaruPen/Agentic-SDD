@@ -2248,6 +2248,30 @@ git -C "$compat_repo" remote add origin "$compat_origin"
 mkdir -p "$compat_repo/.agent/schemas"
 cp -p "$schema_src" "$compat_repo/.agent/schemas/review.json"
 mkdir -p "$compat_repo/docs/prd" "$compat_repo/docs/epics"
+mkdir -p "$compat_repo/scripts" "$compat_repo/docs/decisions"
+cp -p "$repo_root/scripts/validate-decision-index.py" "$compat_repo/scripts/validate-decision-index.py"
+cat >"$compat_repo/docs/decisions/_template.md" <<'EOF'
+## Decision-ID
+
+## Context
+
+## Rationale
+
+## Alternatives
+
+## Impact
+
+## Verification
+
+## Supersedes
+
+## Inputs Fingerprint
+EOF
+cat >"$compat_repo/docs/decisions.md" <<'EOF'
+# Decisions
+
+## Decision Index
+EOF
 cat >"$compat_repo/docs/prd/prd.md" <<'EOF'
 # PRD: Compat
 
