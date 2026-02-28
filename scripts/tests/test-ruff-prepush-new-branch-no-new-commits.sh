@@ -25,6 +25,7 @@ git -C "$work" config user.name "Test"
 
 mkdir -p "$work/scripts" "$work/.githooks"
 cp -p "$repo_root/scripts/validate-approval.py" "$work/scripts/validate-approval.py"
+cp -p "$repo_root/scripts/approval_constants.py" "$work/scripts/approval_constants.py"
 cp -p "$repo_root/scripts/validate-worktree.py" "$work/scripts/validate-worktree.py"
 cp -p "$repo_root/.githooks/pre-commit" "$work/.githooks/pre-commit"
 cp -p "$repo_root/.githooks/pre-push" "$work/.githooks/pre-push"
@@ -46,7 +47,7 @@ python3 -m pip -q install -r "$work/requirements-dev.txt" >/dev/null
 
 git -C "$work" checkout -b "feature/base" -q
 mkdir -p "$work/scripts"
-cat > "$work/scripts/ok.py" <<'EOF'
+cat >"$work/scripts/ok.py" <<'EOF'
 print("ok")
 EOF
 git -C "$work" add "$work/scripts/ok.py"
@@ -70,8 +71,8 @@ rc=$?
 set -e
 
 if [[ "$rc" -ne 0 ]]; then
-  eprint "FAIL: expected push to succeed when the new branch contains no new commits"
-  exit 1
+	eprint "FAIL: expected push to succeed when the new branch contains no new commits"
+	exit 1
 fi
 
 printf '%s\n' "OK: pre-push does not gate when new branch has no new commits"

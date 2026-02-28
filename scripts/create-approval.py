@@ -11,7 +11,7 @@ import sys
 from datetime import datetime, timezone
 from typing import Any
 
-MODE_ALLOWED = {"impl", "tdd", "custom"}
+from approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
 
 
 def eprint(msg: str) -> None:
@@ -96,6 +96,16 @@ def main() -> int:
     )
     parser.add_argument("--force", action="store_true", help="Overwrite approval.json")
     parser.add_argument(
+        "--mode-source",
+        required=True,
+        help="How the mode was selected: agent-heuristic|user-choice|operator-override",
+    )
+    parser.add_argument(
+        "--mode-reason",
+        required=True,
+        help="Free-text explanation of why this mode was selected",
+    )
+    parser.add_argument(
         "--repo-root",
         default="",
         help="Override repo root (default: auto-detect via git)",
@@ -109,6 +119,18 @@ def main() -> int:
     mode = str(args.mode)
     if mode not in MODE_ALLOWED:
         eprint(f"Invalid --mode: {mode} (expected one of {sorted(MODE_ALLOWED)})")
+        return 2
+
+    mode_source = str(args.mode_source)
+    if mode_source not in MODE_SOURCE_ALLOWED:
+        eprint(
+            f"Invalid --mode-source: {mode_source} (expected one of {sorted(MODE_SOURCE_ALLOWED)})"
+        )
+        return 2
+
+    mode_reason = str(args.mode_reason).strip()
+    if not mode_reason:
+        eprint("--mode-reason must be a non-empty string")
         return 2
 
     approved_at = args.approved_at.strip() or now_utc_z()
@@ -145,6 +167,8 @@ def main() -> int:
         "schema_version": 1,
         "issue_number": args.issue,
         "mode": mode,
+        "mode_source": mode_source,
+        "mode_reason": mode_reason,
         "approved_at": approved_at,
         "estimate_hash": estimate_hash,
         "approver": str(args.approver),

@@ -5,13 +5,14 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 from typing import Any, Dict, List, Optional, Tuple
 
-EXIT_GATE_BLOCKED = 2
+from approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
 
-MODE_ALLOWED = {"impl", "tdd", "custom"}
+EXIT_GATE_BLOCKED = 2
 
 
 def eprint(msg: str) -> None:
@@ -89,6 +90,17 @@ def approval_paths(repo_root: str, issue_number: int) -> Tuple[str, str]:
     return os.path.join(base, "approval.json"), os.path.join(base, "estimate.md")
 
 
+def resolve_approval_script(repo_root: str, script_name: str) -> str:
+    candidates = (
+        os.path.join("scripts", "agentic-sdd", script_name),
+        os.path.join("scripts", script_name),
+    )
+    for rel in candidates:
+        if os.path.isfile(os.path.join(repo_root, rel)):
+            return rel
+    return os.path.join("scripts", script_name)
+
+
 def load_approval_json(path: str) -> Dict[str, Any]:
     raw = read_utf8_text(path)
     obj = json.loads(raw)
@@ -119,6 +131,8 @@ def validate_approval(obj: Dict[str, Any], expected_issue_number: int) -> None:
         "schema_version",
         "issue_number",
         "mode",
+        "mode_source",
+        "mode_reason",
         "approved_at",
         "approver",
     }
@@ -150,6 +164,17 @@ def validate_approval(obj: Dict[str, Any], expected_issue_number: int) -> None:
     if not isinstance(mode, str) or mode not in MODE_ALLOWED:
         raise ValueError(f"mode must be one of {sorted(MODE_ALLOWED)}")
 
+    mode_source = obj.get("mode_source")
+    if not isinstance(mode_source, str) or mode_source not in MODE_SOURCE_ALLOWED:
+        raise ValueError(f"mode_source must be one of {sorted(MODE_SOURCE_ALLOWED)}")
+
+    mode_reason_raw = obj.get("mode_reason")
+    if not isinstance(mode_reason_raw, str):
+        raise ValueError("mode_reason must be a non-empty string")
+    mode_reason = mode_reason_raw.strip()
+    if not mode_reason:
+        raise ValueError("mode_reason must be a non-empty string")
+
     approved_at = obj.get("approved_at")
     if not isinstance(approved_at, str) or not approved_at:
         raise ValueError("approved_at must be a non-empty string")
@@ -163,7 +188,7 @@ def validate_approval(obj: Dict[str, Any], expected_issue_number: int) -> None:
         raise ValueError("approver must be a non-empty string")
 
 
-def gate_blocked(msg: str) -> int:
+def gate_blocked(msg: str, create_script: str, validate_script: str) -> int:
     eprint("[agentic-sdd gate] BLOCKED")
     eprint("")
     eprint(msg.rstrip())
@@ -173,9 +198,11 @@ def gate_blocked(msg: str) -> int:
     eprint("2) Save the approved estimate to:")
     eprint("   .agentic-sdd/approvals/issue-<n>/estimate.md")
     eprint("3) Create/refresh approval.json:")
-    eprint("   python3 scripts/create-approval.py --issue <n> --mode <impl|tdd|custom>")
+    eprint(
+        f"   python3 {create_script} --issue <n> --mode <impl|tdd|custom> --mode-source <agent-heuristic|user-choice|operator-override> --mode-reason '<reason>'"
+    )
     eprint("4) Validate:")
-    eprint("   python3 scripts/validate-approval.py")
+    eprint(f"   python3 {validate_script}")
     return EXIT_GATE_BLOCKED
 
 
@@ -201,6 +228,9 @@ def main() -> int:
     branch = current_branch(repo_root)
     issue_number = extract_issue_number_from_branch(branch)
 
+    create_script = resolve_approval_script(repo_root, "create-approval.py")
+    validate_script = resolve_approval_script(repo_root, "validate-approval.py")
+
     # Only enforce on branches that clearly indicate an Issue.
     if issue_number is None:
         return 0
@@ -209,18 +239,26 @@ def main() -> int:
 
     if not os.path.isfile(estimate_md):
         return gate_blocked(
-            f"Missing estimate snapshot file: {os.path.relpath(estimate_md, repo_root)}"
+            f"Missing estimate snapshot file: {os.path.relpath(estimate_md, repo_root)}",
+            create_script,
+            validate_script,
         )
 
     if not os.path.isfile(approval_json):
         return gate_blocked(
-            f"Missing approval record file: {os.path.relpath(approval_json, repo_root)}"
+            f"Missing approval record file: {os.path.relpath(approval_json, repo_root)}",
+            create_script,
+            validate_script,
         )
 
     try:
         estimate_text = read_utf8_text(estimate_md)
     except Exception as exc:  # noqa: BLE001
-        return gate_blocked(f"Failed to read estimate.md (utf-8 required): {exc}")
+        return gate_blocked(
+            f"Failed to read estimate.md (utf-8 required): {exc}",
+            create_script,
+            validate_script,
+        )
 
     computed_hash = sha256_prefixed(normalize_text_for_hash(estimate_text))
 
@@ -231,19 +269,32 @@ def main() -> int:
         if not re.match(r"^sha256:[0-9a-f]{64}$", recorded_hash):
             raise ValueError(f"{field} must be 'sha256:<64 lowercase hex>'")
         if recorded_hash != computed_hash:
+            mode_for_cmd = shlex.quote(str(obj.get("mode") or "<mode>"))
+            mode_source_for_cmd = shlex.quote(str(obj.get("mode_source") or "<source>"))
+            mode_reason_for_cmd = shlex.quote(str(obj.get("mode_reason") or "<reason>"))
             return gate_blocked(
                 "Estimate drift detected.\n"
                 f"- recorded: {recorded_hash}\n"
                 f"- computed: {computed_hash}\n"
                 "If you updated the estimate, re-run Phase 2.5 and recreate approval.json:\n"
-                f"  python3 scripts/create-approval.py --issue {issue_number} --mode {obj.get('mode')} --force"
+                f"  python3 {create_script} --issue {issue_number} --mode {mode_for_cmd} --mode-source {mode_source_for_cmd} --mode-reason {mode_reason_for_cmd} --force",
+                create_script,
+                validate_script,
             )
     except KeyError as exc:
-        return gate_blocked(f"Invalid approval.json: {exc}")
+        return gate_blocked(
+            f"Invalid approval.json: {exc}", create_script, validate_script
+        )
     except json.JSONDecodeError as exc:
-        return gate_blocked(f"Invalid JSON in approval.json: {exc}")
+        return gate_blocked(
+            f"Invalid JSON in approval.json: {exc}",
+            create_script,
+            validate_script,
+        )
     except ValueError as exc:
-        return gate_blocked(f"Invalid approval.json: {exc}")
+        return gate_blocked(
+            f"Invalid approval.json: {exc}", create_script, validate_script
+        )
 
     return 0
 

@@ -218,13 +218,15 @@ Present the completed estimate to the user and get explicit approval before impl
 Required:
 
 1. Summarize the estimate (size/effort/confidence, and whether questions remain)
-2. Ask the user to choose the implementation mode (do not recommend)
+2. Select the implementation mode using deterministic heuristics (see `.agent/rules/impl-gate.md` Gate 0)
 3. Ask for explicit approval to start implementation
 4. If section 10 contains any open questions, stop and wait (see Phase 4)
 5. If approved (and no open questions), create the local approval record (for gate enforcement):
    - Save the approved estimate to: `.agentic-sdd/approvals/issue-<n>/estimate.md`
-- Run: `python3 scripts/agentic-sdd/create-approval.py --issue <n> --mode <impl|tdd|custom>`
-- Run: `python3 scripts/agentic-sdd/validate-approval.py` (must pass)
+- Run (installed project): `python3 scripts/agentic-sdd/create-approval.py --issue <n> --mode <impl|tdd|custom> --mode-source <agent-heuristic|user-choice|operator-override> --mode-reason '<reason>'`
+- Run (installed project): `python3 scripts/agentic-sdd/validate-approval.py` (must pass)
+- Run (this repository checkout): `python3 scripts/create-approval.py --issue <n> --mode <impl|tdd|custom> --mode-source <agent-heuristic|user-choice|operator-override> --mode-reason '<reason>'`
+- Run (this repository checkout): `python3 scripts/validate-approval.py` (must pass)
 
 Example (Japanese):
 
@@ -236,10 +238,10 @@ Example (Japanese):
 - 全体信頼度: [Med]
 - 確認事項: [なし / あり（要回答）]
 
-実装モードを選んでください（推奨は付けません）:
-1. /impl（通常）で進める
-2. /tdd（Red→Green→Refactor）で進める
-3. 自由記述（条件/相談）
+エージェントがヒューリスティックに基づきモードを選択しました:
+- 選択モード: [/impl]
+- 選択根拠: [mode_source: agent-heuristic]
+- 選択理由: [mode_reason: 受け入れ条件が実装中心で既存テスト拡張で十分なため、standard実装を選択]
 
 承認: この見積もり内容で実装を開始してよいですか？（Yes/No）
 ```
@@ -263,8 +265,8 @@ If section 10 contains questions:
 
 When Phase 2.5 is approved, stop and point to the next command:
 
-- If the user chose normal mode: run `/impl`
-- If the user chose strict TDD: run `/tdd`
+- If the selected mode is standard (default): run `/impl`
+- If the selected mode is strict TDD: run `/tdd`
 
 ## N/A examples
 
@@ -279,7 +281,7 @@ When Phase 2.5 is approved, stop and point to the next command:
 - `skills/estimation.md` - estimation skill details
 - `skills/testing.md` - test strategy and design
 - `skills/tdd-protocol.md` - TDD execution protocol
-- `.agent/commands/impl.md` - normal implementation flow
+- `.agent/commands/impl.md` - standard implementation flow
 - `.agent/commands/tdd.md` - strict TDD execution loop
 - `.agent/rules/impl-gate.md` - mandatory gates (estimate/test/quality)
 - `.agent/rules/dod.md` - Definition of Done

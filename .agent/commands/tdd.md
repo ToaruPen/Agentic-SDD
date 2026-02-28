@@ -28,7 +28,7 @@ Before starting any TDD cycle, pass the implementation gates.
      - Then re-run `/tdd` inside that worktree
 2. Run `/estimation` and get explicit approval
    - `/estimation [issue-number]`
-   - When prompted for the implementation mode, choose `/tdd`.
+   - The mode must be selected as `/tdd` (via heuristic, user choice, or operator override).
 
 Notes:
 
