@@ -457,7 +457,14 @@ fi
 setup_decision_fixtures
 
 # Decision validation should pass (no body files, no index entries = valid empty state)
+set +e
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
+code_decision_empty_valid=$?
+set -e
+if [[ "$code_decision_empty_valid" -ne 0 ]]; then
+	eprint "Expected empty decision state to pass create-pr"
+	exit 1
+fi
 
 # Now create an orphan body file (no matching index entry) -> should fail
 cat >"$work/docs/decisions/d-2026-01-01-test-orphan.md" <<'BODY'
@@ -519,7 +526,6 @@ IDX
 
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
 
-# Clean up decision fixtures for subsequent test stability
 rm -rf "$work/docs/decisions" "$work/docs/decisions.md" "$work/scripts/validate-decision-index.py"
 
 eprint "OK: scripts/tests/test-create-pr.sh"
