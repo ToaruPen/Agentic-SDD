@@ -10,7 +10,7 @@ Exception: machine-readable keys/tokens used for automation may remain in Englis
 
 ```
 /create-issues [epic-file]
-/create-issues --mode epic
+/create-issues --mode epic --epic-file [epic-file]
 /create-issues --mode generic
 /create-issues --mode bugfix
 /create-issues --mode ops
@@ -19,8 +19,14 @@ Exception: machine-readable keys/tokens used for automation may remain in Englis
 Backward compatibility:
 
 - Existing Epic batch path remains valid: `/create-issues [epic-file]`
-- Explicit Epic mode is supported: `/create-issues --mode epic`
+- Explicit Epic mode is supported: `/create-issues --mode epic --epic-file [epic-file]`
 - If `epic-file` is provided, treat mode as `epic`.
+
+Input parsing (fail-fast):
+
+- If positional `epic-file` is provided, treat mode as `epic`.
+- If `--mode epic` is specified, `--epic-file` is required.
+- If `--mode epic` is specified without `--epic-file`, print usage and stop immediately.
 
 ## Flow
 
@@ -28,7 +34,7 @@ Backward compatibility:
 
 Choose one mode and fail fast if required inputs are missing.
 
-- `epic` (`/create-issues --mode epic` or `/create-issues [epic-file]`): create multiple Issues from an Epic split plan
+- `epic` (`/create-issues --mode epic --epic-file [epic-file]` or `/create-issues [epic-file]`): create multiple Issues from an Epic split plan
 - `generic`: create a single improvement/chore Issue
 - `bugfix`: create a bug fix / urgent response Issue
 - `ops`: create an operations/runbook/process Issue
@@ -37,10 +43,11 @@ Choose one mode and fail fast if required inputs are missing.
 
 `epic` mode:
 
-1. Read the specified Epic file
-2. Extract section 4 (Issue split plan)
-3. Identify dependencies
-4. Stop if section 4 cannot be extracted
+1. Resolve Epic file input from positional `epic-file` or `--epic-file`
+2. Read the specified Epic file
+3. Extract section 4 (Issue split plan)
+4. Identify dependencies
+5. Stop if Epic file input is missing (`--mode epic` without `--epic-file`) or section 4 cannot be extracted
 
 `generic` / `ops` mode:
 
@@ -54,11 +61,12 @@ Choose one mode and fail fast if required inputs are missing.
 `bugfix` mode:
 
 1. Collect bug evidence (`根拠リンク`) and impact
-2. Include `起票目的` and reproduction or incident context
-3. Define `検証条件` (observable fix confirmation)
-4. Select exactly one priority (P0-P4); do not select multiple priorities
-5. Add matching `priority:P[0-4]` label
-6. Stop if evidence, impact, purpose, reproduction or incident context, or verification condition is missing, or if priority is missing or multiple priorities are selected
+2. Include Epic/PRD references, or write `N/A (reason)` when unavailable
+3. Include `起票目的` and reproduction or incident context
+4. Define `検証条件` (observable fix confirmation)
+5. Select exactly one priority (P0-P4); do not select multiple priorities
+6. Add matching `priority:P[0-4]` label
+7. Stop if evidence, impact, Epic/PRD reference (or `N/A (reason)`), purpose, reproduction or incident context, or verification condition is missing, or if priority is missing or multiple priorities are selected
 
 ### Phase 3: Granularity check
 
@@ -124,6 +132,7 @@ gh issue create --title "[title]" --body "[body]" --label "[labels]"
 
 ## Options
 
+- `--epic-file [path]`: required when `--mode epic` is used
 - `--dry-run`: preview only
 - `--start [number]`: start from a specific Issue number
 
