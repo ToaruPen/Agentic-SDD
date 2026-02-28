@@ -150,7 +150,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/research`: create reusable research artifacts for PRD/Epic/estimation
 - `/create-epic`: create an Epic (requires 3 lists: external services / components / new tech)
 - `/generate-project-config`: generate project-specific skills/rules from Epic
-- `/create-issues`: create Issues (granularity rules)
+- `/create-issues`: create Issues (Epic batch or general: granularity rules)
 - `/debug`: create a structured debugging/investigation note (Issue comment or a new Investigation Issue)
 - `/estimation`: create a Full estimate (11 sections) and get approval
 - `/impl`: implement an Issue (Full estimate required)
