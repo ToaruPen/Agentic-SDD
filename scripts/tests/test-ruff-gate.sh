@@ -28,6 +28,7 @@ git -C "$work" config user.name "Test"
 
 mkdir -p "$work/scripts" "$work/scripts/tests" "$work/.githooks"
 cp -p "$repo_root/scripts/validate-approval.py" "$work/scripts/validate-approval.py"
+cp -p "$repo_root/scripts/approval_constants.py" "$work/scripts/approval_constants.py"
 cp -p "$repo_root/scripts/validate-worktree.py" "$work/scripts/validate-worktree.py"
 cp -p "$repo_root/.githooks/pre-commit" "$work/.githooks/pre-commit"
 cp -p "$repo_root/.githooks/pre-push" "$work/.githooks/pre-push"
@@ -41,7 +42,7 @@ chmod +x "$work/.githooks/pre-commit" "$work/.githooks/pre-push"
 git -C "$work" config core.hooksPath .githooks
 git -C "$work" checkout -b "feature/ruff-gate-test" -q
 
-cat > "$work/scripts/bad.py" <<'EOF'
+cat >"$work/scripts/bad.py" <<'EOF'
 import os
 
 print("x")
@@ -53,11 +54,11 @@ git -C "$work" commit -m "test: ruff should block" -q
 rc=$?
 set -e
 if [[ "$rc" -eq 0 ]]; then
-  eprint "FAIL: expected commit to be blocked by ruff gate"
-  exit 1
+	eprint "FAIL: expected commit to be blocked by ruff gate"
+	exit 1
 fi
 
-cat > "$work/scripts/bad.py" <<'EOF'
+cat >"$work/scripts/bad.py" <<'EOF'
 print("x")
 EOF
 git -C "$work" add "$work/scripts/bad.py"
@@ -67,7 +68,7 @@ git init --bare -q "$remote"
 git -C "$work" remote add origin "$remote"
 git -C "$work" push -u origin HEAD -q
 
-cat > "$work/scripts/bad2.py" <<'EOF'
+cat >"$work/scripts/bad2.py" <<'EOF'
 import os
 
 print("y")
@@ -82,11 +83,11 @@ git -C "$work" push -q
 rc=$?
 set -e
 if [[ "$rc" -eq 0 ]]; then
-  eprint "FAIL: expected push to be blocked by ruff gate"
-  exit 1
+	eprint "FAIL: expected push to be blocked by ruff gate"
+	exit 1
 fi
 
-cat > "$work/scripts/bad2.py" <<'EOF'
+cat >"$work/scripts/bad2.py" <<'EOF'
 print("y")
 EOF
 git -C "$work" add "$work/scripts/bad2.py"

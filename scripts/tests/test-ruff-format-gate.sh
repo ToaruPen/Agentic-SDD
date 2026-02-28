@@ -28,6 +28,7 @@ git -C "$work" config user.name "Test"
 
 mkdir -p "$work/scripts" "$work/.githooks"
 cp -p "$repo_root/scripts/validate-approval.py" "$work/scripts/validate-approval.py"
+cp -p "$repo_root/scripts/approval_constants.py" "$work/scripts/approval_constants.py"
 cp -p "$repo_root/scripts/validate-worktree.py" "$work/scripts/validate-worktree.py"
 cp -p "$repo_root/.githooks/pre-commit" "$work/.githooks/pre-commit"
 cp -p "$repo_root/.githooks/pre-push" "$work/.githooks/pre-push"
@@ -42,7 +43,7 @@ git -C "$work" config core.hooksPath .githooks
 git -C "$work" checkout -b "feature/ruff-format-gate-test" -q
 
 # 1) pre-commit should block when formatting is required.
-cat > "$work/scripts/bad_format.py" <<'EOF'
+cat >"$work/scripts/bad_format.py" <<'EOF'
 print(  "x" )
 EOF
 git -C "$work" add "$work/scripts/bad_format.py"
@@ -52,8 +53,8 @@ git -C "$work" commit -m "test: ruff format should block" -q
 rc=$?
 set -e
 if [[ "$rc" -eq 0 ]]; then
-  eprint "FAIL: expected commit to be blocked by ruff format gate"
-  exit 1
+	eprint "FAIL: expected commit to be blocked by ruff format gate"
+	exit 1
 fi
 
 # 2) after formatting, commit should pass.
@@ -66,7 +67,7 @@ git init --bare -q "$remote"
 git -C "$work" remote add origin "$remote"
 git -C "$work" push -u origin HEAD -q
 
-cat > "$work/scripts/bad_format2.py" <<'EOF'
+cat >"$work/scripts/bad_format2.py" <<'EOF'
 print(  "y" )
 EOF
 git -C "$work" add "$work/scripts/bad_format2.py"
@@ -78,8 +79,8 @@ git -C "$work" push -q
 rc=$?
 set -e
 if [[ "$rc" -eq 0 ]]; then
-  eprint "FAIL: expected push to be blocked by ruff format gate"
-  exit 1
+	eprint "FAIL: expected push to be blocked by ruff format gate"
+	exit 1
 fi
 
 (cd "$work" && python3 -m ruff format scripts/bad_format2.py >/dev/null)
