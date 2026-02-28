@@ -199,6 +199,24 @@ If file targets are unknown or overlaps exist, do NOT use `parallel-ok`; mark as
 
 ---
 
+### Tracking-only child completion criteria (parent implementation unit)
+
+When using a parent Issue as the implementation unit, child Issues are tracking-only and must stay branch-less.
+
+Required for each child Issue before closing:
+
+- Parent linkage is explicit in the child body (Issue number + reason).
+- Child AC is checked with concrete evidence (parent PR link, checklist items, or review notes).
+- Closure reference is explicit in the parent PR body or parent commit message: use `Refs #<child>` while child AC is in progress, and switch to `Fixes #<child>` only when all child AC is satisfied by the parent PR. Child issue comments may be used for notification only and are not the canonical closure reference.
+
+Parent closure rule:
+
+- Close the parent Issue only after all linked tracking-only child Issues are completed and final integration checks pass.
+- To keep the parent Issue open, the parent PR should use `Refs #<parent>` (not `Fixes/Closes #<parent>`).
+  `/create-pr` defaults to `Closes #<issue-number>`, so override the body (`--body`/`--body-file`) when creating a parent-unit PR.
+
+---
+
 ## Issue body template (Japanese output)
 
 ```markdown

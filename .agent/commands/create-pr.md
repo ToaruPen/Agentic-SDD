@@ -94,6 +94,12 @@ Guidelines:
 - Body must include `Closes #<issue-number>`.
 - Keep the body short (1-3 bullets) and focused on "why".
 
+Parent-unit exception:
+
+- When the Issue is a parent implementation unit that must stay open until child tracking Issues are complete,
+  use `Refs #<parent-issue-number>` and avoid `Closes/Fixes #<parent-issue-number>`.
+- Override the default body via `--body` or `--body-file` (the helper script default is `Closes #<issue-number>`).
+
 ### Phase 3: Output
 
 Report (Japanese):

@@ -62,6 +62,7 @@ If overlaps exist, fail-fast and:
 - Split Issues to avoid overlap, OR
 - Convert to explicit dependencies (`blocked`) and serialize.
 - Create a single "parent" Issue as the implementation unit, and keep the overlapping Issues as tracking-only children (do not create branches/worktrees for child Issues).
+  This parent-unit model is the standard for overlap-heavy refactor/migration work.
 
 ### Phase 3: Create worktrees (one Issue = one branch = one worktree)
 
@@ -78,6 +79,14 @@ Scope lock before continuing from an existing Issue context:
 - If there are multiple linked branches for the same Issue, stop and choose one branch/worktree explicitly before implementation or conflict resolution.
 
 If you are using a parent/child structure, run `./scripts/agentic-sdd/worktree.sh new` only for the parent Issue (implementation unit). Child Issues remain branch-less and are updated via comments/checklists.
+
+Tracking-only child completion rule:
+
+- Keep child Issues branch-less; implementation evidence lives on the parent branch/PR.
+- Update each child with checklist/comment evidence and close it only when its own AC is satisfied by the parent PR.
+- Keep the parent Issue open until all linked child Issues are complete.
+- To keep the parent Issue open, the parent PR should use `Refs #<parent>` (not `Fixes/Closes #<parent>`).
+  `/create-pr` defaults to `Closes #<issue-number>`, so override the body via `--body` or `--body-file` when creating a parent-unit PR.
 
 ```bash
 ./scripts/agentic-sdd/worktree.sh new --issue 123 --desc "add user profile" --tool opencode

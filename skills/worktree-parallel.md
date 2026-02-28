@@ -58,6 +58,8 @@ When a shared "hotspot" file must change (routing, shared config, core types, DI
 
 When you have multiple related Issues that overlap heavily, but you want to keep the child Issues as "status observation points" (e.g., lower updates progress; middle checks/approves):
 
+Use this as the standard mode for large refactor/migration batches.
+
 1. Create a single parent Issue that becomes the implementation unit (one branch/worktree/PR).
 2. In each child Issue, link the parent and make it explicit that the child is tracking-only (no branch/worktree).
 3. Implement in the parent worktree; update children via checklists/comments as work proceeds.
@@ -65,8 +67,8 @@ When you have multiple related Issues that overlap heavily, but you want to keep
 
 Practical guidance:
 
-- Use `Fixes #<parent>` on the PR to close the parent on merge.
-- Use `Refs #<child>` while a child is still tracking; switch to `Fixes #<child>` when it's fully satisfied by the PR.
+- Use `Refs #<parent>` on the parent PR to keep the parent open until all tracking-only children are complete.
+- Use `Refs #<child>` while a child is still tracking; switch to `Fixes #<child>` only when the child AC is fully satisfied by the parent PR.
 
 ### Pattern: Append-only shared file
 
