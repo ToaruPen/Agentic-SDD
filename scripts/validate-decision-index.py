@@ -91,9 +91,7 @@ def extract_supersedes(text: str) -> list[str]:
             # Skip N/A
             if stripped in ("- N/A", "N/A"):
                 continue
-            m = DECISION_ID_RE.search(stripped)
-            if m:
-                refs.append(m.group(0))
+            refs.extend(DECISION_ID_RE.findall(stripped))
     return refs
 
 
@@ -112,9 +110,11 @@ def parse_index(index_path: Path) -> tuple[list[tuple[str, str]], list[str]]:
 
     text = index_path.read_text(encoding="utf-8")
     in_index = False
+    found_index_header = False
     for lineno, line in enumerate(text.splitlines(), start=1):
         if re.match(r"^##\s+Decision Index", line):
             in_index = True
+            found_index_header = True
             continue
         if in_index:
             if line.startswith("##"):
@@ -130,6 +130,9 @@ def parse_index(index_path: Path) -> tuple[list[tuple[str, str]], list[str]]:
                 errors.append(
                     f"Invalid Decision Index line at {index_path}:{lineno}: {stripped}"
                 )
+
+    if not found_index_header:
+        errors.append(f"Missing section '## Decision Index' in {index_path}")
 
     return entries, errors
 

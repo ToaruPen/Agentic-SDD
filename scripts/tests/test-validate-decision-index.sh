@@ -391,6 +391,58 @@ run_test "AC3: bad supersedes fails (exit!=0)" test "$code_ac3_bad" -ne 0
 run_test "AC3: error mentions nonexistent ID" grep -q "D-2026-01-01-NONEXISTENT" "$r7/stderr"
 run_test "AC3: error includes guidance" grep -qi "supersedes\|修正" "$r7/stderr"
 
+eprint "--- AC3: case-multi-id-single-line ---"
+r7b="$(new_repo case-multi-id-single-line)"
+write_template "$r7b"
+write_valid_decision "$r7b" "D-2026-02-01-OLD" "d-2026-02-01-old.md"
+cat >"$r7b/docs/decisions/d-2026-02-28-multi.md" <<'EOF'
+# Decision: Multi ID Supersedes
+
+## Decision-ID
+
+D-2026-02-28-MULTI
+
+## Context
+
+- 背景: test
+
+## Rationale
+
+- reason
+
+## Alternatives
+
+### Alternative-A: none
+
+- 採用可否: No
+
+## Impact
+
+- 影響: none
+
+## Verification
+
+- 検証方法: test
+
+## Supersedes
+
+- D-2026-02-01-OLD, D-2026-01-01-NONEXISTENT
+
+## Inputs Fingerprint
+
+- PRD: N/A
+EOF
+write_valid_index "$r7b" \
+	"- D-2026-02-01-OLD: [\`docs/decisions/d-2026-02-01-old.md\`](./decisions/d-2026-02-01-old.md)" \
+	"- D-2026-02-28-MULTI: [\`docs/decisions/d-2026-02-28-multi.md\`](./decisions/d-2026-02-28-multi.md)"
+set +e
+(cd "$r7b" && python3 ./scripts/validate-decision-index.py) >"$r7b/stdout" 2>"$r7b/stderr"
+code_ac3_multi=$?
+set -e
+
+run_test "AC3: multi-ID line catches all IDs" test "$code_ac3_multi" -ne 0
+run_test "AC3: multi-ID line reports nonexistent ID" grep -q "D-2026-01-01-NONEXISTENT" "$r7b/stderr"
+
 # ===========================================================================
 # Edge cases
 # ===========================================================================
@@ -416,6 +468,25 @@ code_no_index=$?
 set -e
 
 run_test "Edge: no decisions.md fails (exit!=0)" test "$code_no_index" -ne 0
+
+eprint "--- Edge: case-missing-decision-index-section ---"
+r9b="$(new_repo case-missing-decision-index-section)"
+write_template "$r9b"
+write_valid_decision "$r9b" "D-2026-02-28-VALID" "d-2026-02-28-valid.md"
+cat >"$r9b/docs/decisions.md" <<'EOF'
+# 意思決定ログ（Decision Snapshot）
+
+## Not Decision Index
+
+- D-2026-02-28-VALID: [`docs/decisions/d-2026-02-28-valid.md`](./decisions/d-2026-02-28-valid.md)
+EOF
+set +e
+(cd "$r9b" && python3 ./scripts/validate-decision-index.py) >"$r9b/stdout" 2>"$r9b/stderr"
+code_missing_index_section=$?
+set -e
+
+run_test "Edge: missing Decision Index section fails (exit!=0)" test "$code_missing_index_section" -ne 0
+run_test "Edge: missing section error is reported" grep -q "Missing section '## Decision Index'" "$r9b/stderr"
 
 eprint "--- Edge: case-invalid-index-line ---"
 r10="$(new_repo case-invalid-index-line)"
