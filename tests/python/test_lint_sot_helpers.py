@@ -122,3 +122,19 @@ def test_extract_meta_info_returns_real_status_ignoring_distractors() -> None:
 """
     meta = EXTRACT_EPIC_CONFIG_MODULE.extract_meta_info(text)
     assert meta["status"] == "Draft"
+
+
+def test_extract_meta_info_ignores_status_in_tilde_fenced_code() -> None:
+    text = """
+# Epic: Test
+
+## メタ情報
+
+- 作成日: 2026-02-20
+
+~~~md
+- ステータス: Approved
+~~~
+"""
+    meta = EXTRACT_EPIC_CONFIG_MODULE.extract_meta_info(text)
+    assert meta["status"] is None

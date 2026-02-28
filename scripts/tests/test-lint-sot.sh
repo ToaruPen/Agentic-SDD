@@ -3604,4 +3604,23 @@ if ! grep -q "参照PRD" "$r38/stderr"; then
 	exit 1
 fi
 
+# r39: Draft Epic with Approved status inside tilde-fenced code block (~~~)
+r39="$(new_repo case-approved-in-tilde-fenced-code-draft-epic)"
+write_base_docs "$r39"
+mkdir -p "$r39/docs/epics"
+cat >"$r39/docs/epics/test.md" <<'EOF'
+# Epic: Test
+
+- ステータス: Draft
+
+~~~md
+- ステータス: Approved
+~~~
+EOF
+
+if ! (cd "$r39" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+	eprint "Expected lint-sot OK for Draft Epic with Approved status only inside tilde-fenced code"
+	exit 1
+fi
+
 printf '%s\n' "OK"
