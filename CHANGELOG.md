@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0.0] - 2026-02-28
+
+- feat(create-pr): Enforce decision index validation gate before PR creation.
+- feat(impl-gate): Switch `/impl` vs `/tdd` mode selection to deterministic agent heuristics and harden approval validation inputs.
+- docs(worktree): Standardize parent-issue implementation-unit rules and canonical child-issue closure references.
+- feat/lint: Add fail-fast lint checks for indented status lines and fix status extraction correctness for inline code, HTML comments, and tilde-fenced code blocks.
+- test/refactor: Expand regression coverage for create-pr/review-cycle/lint gates and centralize shared test setup utilities.
+- docs(estimation): Document installed-repo and local-repo approval command usage.
+- chore(release): Bump `scripts/agentic-sdd` `DEFAULT_REF_FALLBACK` to `v0.4.0.0`, update subtree examples, and refresh release/subtree runbooks.
+- fix(release): Extend latest-tag resolution in `scripts/agentic-sdd` to support 4-part tags (`vX.Y.Z.W` / `X.Y.Z.W`) in addition to 3-part tags.
+
 ## [0.3.15] - 2026-02-26
 
 - feat(review-cycle): Add an advisory exploration lane while preserving the main schema v3 review gate contract.

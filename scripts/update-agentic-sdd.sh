@@ -22,7 +22,7 @@ Environment:
   AGENTIC_SDD_SUBTREE_REF
 
 Examples:
-./scripts/agentic-sdd/update-agentic-sdd.sh --ref v0.3.00
+./scripts/agentic-sdd/update-agentic-sdd.sh --ref v0.4.0.0
 ./scripts/agentic-sdd/update-agentic-sdd.sh --prefix .agentic-sdd-upstream --repo https://github.com/ToaruPen/Agentic-SDD.git --ref main
 EOF
 }
