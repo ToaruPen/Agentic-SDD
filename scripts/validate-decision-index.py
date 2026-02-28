@@ -154,6 +154,7 @@ def parse_index(index_path: Path) -> tuple[list[tuple[str, str]], list[str]]:
     text = index_path.read_text(encoding="utf-8")
     in_index = False
     found_index_header = False
+    in_html_comment = False
     for lineno, line in enumerate(text.splitlines(), start=1):
         if re.match(r"^##\s+Decision Index", line):
             in_index = True
@@ -165,7 +166,17 @@ def parse_index(index_path: Path) -> tuple[list[tuple[str, str]], list[str]]:
             if re.match(r"^#{3,}\s+", line):
                 continue
             stripped = line.strip()
-            if not stripped or stripped.startswith("<!--"):
+            if in_html_comment:
+                if "-->" in stripped:
+                    in_html_comment = False
+                continue
+
+            if stripped.startswith("<!--"):
+                if "-->" not in stripped:
+                    in_html_comment = True
+                continue
+
+            if not stripped:
                 continue
 
             m = INDEX_ENTRY_RE.match(stripped)
@@ -257,12 +268,10 @@ def validate(repo_root: Path) -> list[str]:
     for did, ref_path in index_entries:
         if ref_path.startswith("./"):
             repo_rel_raw = f"docs/{ref_path[2:]}"
-        elif ref_path.startswith("docs/"):
-            repo_rel_raw = ref_path
         else:
             errors.append(
                 f"Invalid index link path: {ref_path} (Decision-ID: {did}) "
-                f"— must start with './' or 'docs/'"
+                f"— must start with './decisions/'"
             )
             continue
 

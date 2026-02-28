@@ -472,6 +472,19 @@ set -e
 run_test "AC2: subdir shadowing path fails (exit!=0)" test "$code_ac2_subdir_shadow" -ne 0
 run_test "AC2: unmanaged-file error is reported" grep -q "Index references unmanaged file" "$r5f/stderr"
 
+eprint "--- AC2: case-docs-prefix-link-is-invalid ---"
+r5g="$(new_repo case-docs-prefix-link-is-invalid)"
+write_template "$r5g"
+write_valid_decision "$r5g" "D-2026-02-28-DOCSPREFIX" "d-2026-02-28-docsprefix.md"
+write_valid_index "$r5g" "- D-2026-02-28-DOCSPREFIX: [\`docs/decisions/d-2026-02-28-docsprefix.md\`](docs/decisions/d-2026-02-28-docsprefix.md)"
+set +e
+(cd "$r5g" && python3 ./scripts/validate-decision-index.py) >"$r5g/stdout" 2>"$r5g/stderr"
+code_ac2_docs_prefix=$?
+set -e
+
+run_test "AC2: docs-prefix link fails (exit!=0)" test "$code_ac2_docs_prefix" -ne 0
+run_test "AC2: docs-prefix link error is reported" grep -q "must start with './decisions/'" "$r5g/stderr"
+
 # ===========================================================================
 # AC3: Supersedes references point to existing Decision-IDs
 # ===========================================================================
@@ -805,6 +818,24 @@ cat >"$r11/docs/decisions.md" <<'EOF'
 - D-2026-02-28-SUBHEAD: [`docs/decisions/d-2026-02-28-subhead.md`](./decisions/d-2026-02-28-subhead.md)
 EOF
 run_test "Edge: level-3 subheading inside index is allowed" bash -c "(cd '$r11' && python3 ./scripts/validate-decision-index.py)"
+
+eprint "--- Edge: case-multiline-html-comment-in-index ---"
+r12="$(new_repo case-multiline-html-comment-in-index)"
+write_template "$r12"
+write_valid_decision "$r12" "D-2026-02-28-COMMENT" "d-2026-02-28-comment.md"
+cat >"$r12/docs/decisions.md" <<'EOF'
+# 意思決定ログ（Decision Snapshot）
+
+## Decision Index
+
+<!--
+multiline note
+still comment
+-->
+
+- D-2026-02-28-COMMENT: [`docs/decisions/d-2026-02-28-comment.md`](./decisions/d-2026-02-28-comment.md)
+EOF
+run_test "Edge: multiline HTML comment inside index is ignored" bash -c "(cd '$r12' && python3 ./scripts/validate-decision-index.py)"
 
 # ===========================================================================
 # Summary
