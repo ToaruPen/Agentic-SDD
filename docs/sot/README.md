@@ -36,6 +36,7 @@
 
 - quality gates 一覧（必須）: [`docs/evaluation/quality-gates.md`](../evaluation/quality-gates.md)
 - quality score（任意）: [`docs/evaluation/quality-score.md`](../evaluation/quality-score.md)
+  - Note: quality-score.md includes a Gate-linked metrics (periodic observation) section. It tracks Gate pass/fail status over time as a health signal; Gate definitions themselves are owned by [`quality-gates.md`](../evaluation/quality-gates.md)
 
 ### 実行計画 / 進捗・判断ログ
 
