@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Iterable, List, Optional
 
 from md_sanitize import (
+    sanitize_status_text,
     strip_fenced_code_blocks,
     strip_html_comment_blocks,
     strip_indented_code_blocks,
@@ -442,9 +443,7 @@ def is_approved_prd_or_epic(rel_path: str, text: str) -> bool:
     if rel_path.startswith("docs/prd/") or rel_path.startswith("docs/epics/"):
         if os.path.basename(rel_path) == "_template.md":
             return False
-        status_text = strip_html_comment_blocks(
-            strip_indented_code_blocks(strip_fenced_code_blocks(text))
-        )
+        status_text = sanitize_status_text(text)
         return _STATUS_APPROVED_RE.search(status_text) is not None
     return False
 
@@ -465,7 +464,7 @@ def lint_status_format(rel_path: str, text: str) -> List[LintError]:
 
     fenced_stripped = strip_fenced_code_blocks(text)
     partial = strip_html_comment_blocks(fenced_stripped)
-    full = strip_html_comment_blocks(strip_indented_code_blocks(fenced_stripped))
+    full = sanitize_status_text(text)
 
     if _STATUS_ANY_RE.search(partial) and not _STATUS_ANY_RE.search(full):
         return [
@@ -742,9 +741,7 @@ def lint_sot_reference_contract(repo: str, rel_path: str, text: str) -> List[Lin
     if not is_approved_prd_or_epic(rel_path, text):
         return []
 
-    contract_text = strip_html_comment_blocks(
-        strip_indented_code_blocks(strip_fenced_code_blocks(text))
-    )
+    contract_text = sanitize_status_text(text)
     refs = list(_SOT_REFERENCE_PRD_LINE_RE.finditer(contract_text))
 
     if len(refs) == 0:

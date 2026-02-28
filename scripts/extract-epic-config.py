@@ -13,9 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from md_sanitize import (
-    strip_fenced_code_blocks,
-    strip_html_comment_blocks,
-    strip_indented_code_blocks,
+    sanitize_status_text,
 )
 
 
@@ -324,9 +322,7 @@ def extract_meta_info(text: str) -> Dict[str, Optional[str]]:
         meta["created_date"] = date_match.group(1)
 
     # ステータス
-    status_text = strip_html_comment_blocks(
-        strip_indented_code_blocks(strip_fenced_code_blocks(text))
-    )
+    status_text = sanitize_status_text(text)
     status_match = re.search(r"ステータス:\s*(Draft|Review|Approved)", status_text)
     if status_match:
         meta["status"] = status_match.group(1)

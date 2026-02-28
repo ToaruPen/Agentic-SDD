@@ -135,3 +135,15 @@ def strip_html_comment_blocks(text: str) -> str:
     if i == -1:
         return result
     return result[:i]
+
+
+def sanitize_status_text(text: str) -> str:
+    """Strip fenced code blocks, indented code blocks, and HTML comments.
+
+    This is the standard pipeline for extracting status metadata from
+    Markdown documents.  Centralised here to avoid duplicating the call
+    chain in every consumer.
+    """
+    return strip_html_comment_blocks(
+        strip_indented_code_blocks(strip_fenced_code_blocks(text))
+    )
