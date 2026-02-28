@@ -212,7 +212,8 @@ Required for each child Issue before closing:
 Parent closure rule:
 
 - Close the parent Issue only after all linked tracking-only child Issues are completed and final integration checks pass.
-- The parent PR must use `Refs #<parent>` (not `Fixes #<parent>`) to prevent GitHub from auto-closing the parent Issue on merge.
+- To keep the parent Issue open, the parent PR should use `Refs #<parent>` (not `Fixes/Closes #<parent>`).
+  `/create-pr` defaults to `Closes #<issue-number>`, so override the body (`--body`/`--body-file`) when creating a parent-unit PR.
 
 ---
 

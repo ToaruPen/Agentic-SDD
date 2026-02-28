@@ -64,6 +64,7 @@ Guardrails:
 - Each Issue must declare `### 変更対象ファイル（推定）` (used as the conflict-check input)
 - Only mark Issues as `parallel-ok` when declared file sets are disjoint
 - For overlap-heavy large refactor/migration work, use a parent Issue as the single implementation unit and keep child Issues tracking-only (no child branches/worktrees)
+  (see the closing rule note below for how to keep the parent Issue open)
 - Before high-impact actions (`/review-cycle`, `/create-pr`, `/pr-bots-review`, manual conflict resolution), run a Scope Lock check and stop on mismatch (`git branch --show-current` + `gh issue develop --list <issue>` + `gh pr view <pr> --json headRefName`).
 
 Helper script:
@@ -82,7 +83,7 @@ Note: `worktree.sh new` uses `gh issue develop` to create a linked branch on the
 
 Note: worktrees share the same `.git` database. Merge incrementally (finish one, merge one) to reduce conflicts.
 
-When using the parent-unit model, close child Issues only after their AC is satisfied with evidence from the parent PR, and close the parent Issue after all children are complete.
+When using the parent-unit model, close child Issues only after their AC is satisfied with evidence from the parent PR, and close the parent Issue after all children are complete. To keep the parent Issue open, use `Refs #<parent>` in the parent PR body (not `Closes/Fixes #<parent>`).
 
 ---
 

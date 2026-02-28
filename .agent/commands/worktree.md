@@ -85,7 +85,8 @@ Tracking-only child completion rule:
 - Keep child Issues branch-less; implementation evidence lives on the parent branch/PR.
 - Update each child with checklist/comment evidence and close it only when its own AC is satisfied by the parent PR.
 - Keep the parent Issue open until all linked child Issues are complete.
-- The parent PR must use `Refs #<parent>` (not `Fixes #<parent>`) to prevent auto-close on merge.
+- To keep the parent Issue open, the parent PR should use `Refs #<parent>` (not `Fixes/Closes #<parent>`).
+  `/create-pr` defaults to `Closes #<issue-number>`, so override the body via `--body` or `--body-file` when creating a parent-unit PR.
 
 ```bash
 ./scripts/agentic-sdd/worktree.sh new --issue 123 --desc "add user profile" --tool opencode
