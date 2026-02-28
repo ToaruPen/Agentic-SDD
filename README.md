@@ -191,7 +191,19 @@ If you want project-tailored rules/skills generated from the Epic:
 /create-issues [epic-file]
 ```
 
-Create Issues following the granularity rules (50-300 LOC).
+Backward-compatible Epic split path:
+
+- `/create-issues [epic-file]`
+
+General Issue creation paths:
+
+```text
+/create-issues --mode generic   # single improvement/chore
+/create-issues --mode bugfix    # bug/urgent response
+/create-issues --mode ops       # operations/runbook/process work
+```
+
+All modes use the same granularity rules (50-300 LOC) and fail-fast required fields.
 
 ### 4) Implement
 

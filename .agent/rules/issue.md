@@ -163,6 +163,25 @@ Labels:
 - `blocked`
 - `parallel-ok`
 
+---
+
+## Minimum traceability fields (when Epic/PRD are not available)
+
+For generic improvement, bugfix, or ops Issues that are not directly derived from Epic,
+the following fields are mandatory in the body:
+
+- `根拠リンク`: source context (Issue/PR/discussion/runbook/incident URL or repo path)
+- `起票目的`: what should become better/possible after completion
+- `検証条件`: observable completion criteria
+
+Fail-fast rule:
+
+- If any of the three fields is missing, do not create the Issue.
+
+Note:
+
+- `Epic` / `PRD` fields should still be present; use `N/A (reason)` when unavailable.
+
 ### `parallel-ok` (deterministic rules)
 
 Use `parallel-ok` only when it is safe to work in parallel.
@@ -198,8 +217,11 @@ If file targets are unknown or overlaps exist, do NOT use `parallel-ok`; mark as
 
 ## 背景
 
-- Epic: [Epicファイルへのリンク]
-- PRD: [PRDファイルへのリンク]
+- Epic: [Epicファイルへのリンク or N/A (reason)]
+- PRD: [PRDファイルへのリンク or N/A (reason)]
+- 根拠リンク: [必須: URLまたはrepo内パス]
+- 起票目的: [必須: 完了で何が可能/改善されるか]
+- 検証条件: [必須: 観測可能な完了条件]
 
 ## 受け入れ条件（AC）
 

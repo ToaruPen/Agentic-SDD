@@ -1,6 +1,6 @@
 # /create-issues
 
-Create Issues from an Epic.
+Create Issues from an Epic or from a general request.
 
 Issue titles and bodies are user-facing artifacts and must remain in Japanese.
 Exception: Conventional Commit-style prefixes at the start of the title (e.g. `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`) may remain in English.
@@ -10,17 +10,54 @@ Exception: machine-readable keys/tokens used for automation may remain in Englis
 
 ```
 /create-issues [epic-file]
+/create-issues --mode generic
+/create-issues --mode bugfix
+/create-issues --mode ops
 ```
+
+Backward compatibility:
+
+- Existing Epic batch path remains valid: `/create-issues [epic-file]`
+- If `epic-file` is provided, treat mode as `epic`.
 
 ## Flow
 
-### Phase 1: Read the Epic
+### Phase 1: Select creation mode
+
+Choose one mode and fail fast if required inputs are missing.
+
+- `epic`: create multiple Issues from an Epic split plan
+- `generic`: create a single improvement/chore Issue
+- `bugfix`: create a bug fix / urgent response Issue
+- `ops`: create an operations/runbook/process Issue
+
+### Phase 2: Collect required inputs (mode-specific, fail-fast)
+
+`epic` mode:
 
 1. Read the specified Epic file
 2. Extract section 4 (Issue split plan)
 3. Identify dependencies
+4. Stop if section 4 cannot be extracted
 
-### Phase 2: Granularity check
+`generic` / `ops` mode:
+
+1. Collect minimal traceability fields:
+   - 根拠リンク (URL or repo path)
+   - 起票目的 (what this Issue unlocks/improves)
+   - 検証条件 (observable done condition)
+2. Include Epic/PRD references when known; otherwise use `N/A (reason)`
+3. Stop if any minimal traceability field is missing
+
+`bugfix` mode:
+
+1. Collect bug evidence (`根拠リンク`) and impact
+2. Include reproduction or incident context
+3. Select exactly one priority (P0-P4)
+4. Add matching `priority:P[0-4]` label
+5. Stop if evidence, priority, or verification condition is missing
+
+### Phase 3: Granularity check
 
 Each Issue must satisfy:
 
@@ -28,7 +65,7 @@ Each Issue must satisfy:
 - Files: 1-5
 - AC: 2-5
 
-### Phase 3: Split/merge signals
+### Phase 4: Split/merge signals
 
 Too large (split needed):
 
@@ -43,7 +80,7 @@ Too small (consider merging):
 - Only 1 AC
 - Always done together with another Issue
 
-### Phase 4: Exception labels
+### Phase 5: Exception labels
 
 If an Issue violates the rules, apply an exception label and fill all required fields (see `.agent/rules/issue.md`).
 
@@ -52,18 +89,19 @@ If an Issue violates the rules, apply an exception label and fill all required f
 - `config-risk`
 - `refactor-scope`
 
-### Phase 5: Generate the Issue body
+### Phase 6: Generate the Issue body
 
 Use the Issue body template in `.agent/rules/issue.md`.
 Always include:
 
-- Epic/PRD references
+- Epic/PRD references (or `N/A (reason)`)
+- Minimal traceability fields (`根拠リンク` / `起票目的` / `検証条件`)
 - AC (observable)
 - Estimated change size
 - Dependencies ("Blocked by" + "what becomes possible")
 - If bug fix / urgent response: select P0-P4 in the body and add `priority:P[0-4]` label
 
-### Phase 6: Create Issues
+### Phase 7: Create Issues
 
 GitHub Issues are the required output destination.
 
