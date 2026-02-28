@@ -3571,4 +3571,37 @@ if ! grep -q "参照PRD" "$r37/stderr"; then
 	exit 1
 fi
 
+# r38: Approved Epic with `<!--` and `-->` in separate inline code spans
+# strip_html_comment_blocks must not treat them as a matched pair
+r38="$(new_repo case-inline-comment-pair-approved)"
+write_base_docs "$r38"
+mkdir -p "$r38/docs/epics"
+cat >"$r38/docs/epics/test.md" <<'EPICEOF'
+# Epic: Test
+
+HTMLコメントは `<!--` で開始します。
+
+- ステータス: Approved
+- 参照PRD:
+
+閉じる場合は `-->` を使います。
+EPICEOF
+
+set +e
+(cd "$r38" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r38/stderr"
+code_inline_pair=$?
+set -e
+
+if [[ "$code_inline_pair" -eq 0 ]]; then
+	eprint "Expected lint-sot failure for Approved Epic with inline <!-- and --> pair and missing 参照PRD"
+	cat "$r38/stderr" >&2 || true
+	exit 1
+fi
+
+if ! grep -q "参照PRD" "$r38/stderr"; then
+	eprint "Expected 参照PRD message for Approved Epic with inline <!-- and --> pair, got:"
+	cat "$r38/stderr" >&2 || true
+	exit 1
+fi
+
 printf '%s\n' "OK"

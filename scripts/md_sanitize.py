@@ -65,16 +65,29 @@ def strip_indented_code_blocks(text: str) -> str:
 def strip_html_comment_blocks(text: str) -> str:
     """Strip HTML comment blocks from markdown text.
 
-    Matched ``<!-- ... -->`` pairs are removed.  For an unmatched ``<!--``
-    (no closing ``-->``), everything from that opener onward is removed —
-    unless the ``<!--`` sits inside an inline code span (backticks),
-    in which case it is not a real HTML comment opener and is left intact.
+    Inline code spans are masked first so that ``<!--`` / ``-->`` inside
+    backticks are never treated as comment delimiters.  Matched
+    ``<!-- ... -->`` pairs (outside inline code) are then removed from
+    the **original** text.  For a genuine unmatched ``<!--`` (no closing
+    ``-->`` and not inside inline code), everything from that opener
+    onward is removed.
     """
-    out = _HTML_COMMENT_BLOCK_RE.sub("", text)
-    # Mask inline code spans with same-length whitespace to preserve offsets,
-    # then search the masked text for a genuine unmatched <!--.
-    masked = _INLINE_CODE_RE.sub(lambda m: " " * len(m.group()), out)
-    i = masked.find("<!--")
+    # Mask inline code spans to find real comment boundaries without
+    # treating `<!--`/`-->` inside backticks as delimiters.
+    masked = _INLINE_CODE_RE.sub(lambda m: " " * len(m.group()), text)
+    # Find matched <!-- ... --> spans in the masked copy, then splice
+    # the *original* text around those ranges to preserve inline code.
+    parts: List[str] = []
+    last_end = 0
+    for m in _HTML_COMMENT_BLOCK_RE.finditer(masked):
+        parts.append(text[last_end : m.start()])
+        last_end = m.end()
+    parts.append(text[last_end:])
+    result = "".join(parts)
+    # Check for a genuine unmatched <!-- (re-mask inline code since
+    # character positions shifted after comment removal).
+    result_masked = _INLINE_CODE_RE.sub(lambda m: " " * len(m.group()), result)
+    i = result_masked.find("<!--")
     if i == -1:
-        return out
-    return out[:i]
+        return result
+    return result[:i]
