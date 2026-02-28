@@ -24,7 +24,9 @@ Backward compatibility:
 
 Input parsing (fail-fast):
 
-- If positional `epic-file` is provided, treat mode as `epic`.
+- `--mode` and positional `epic-file` are mutually exclusive.
+- If `--mode` and positional `epic-file` are both provided, print usage and stop immediately.
+- If positional `epic-file` is provided (without `--mode`), treat mode as `epic`.
 - If `--mode epic` is specified, `--epic-file` is required.
 - If `--mode epic` is specified without `--epic-file`, print usage and stop immediately.
 
@@ -47,7 +49,7 @@ Choose one mode and fail fast if required inputs are missing.
 2. Read the specified Epic file
 3. Extract section 4 (Issue split plan)
 4. Identify dependencies
-5. Stop if Epic file input is missing (`--mode epic` without `--epic-file`) or section 4 cannot be extracted
+5. Stop if section 4 cannot be extracted
 
 `generic` / `ops` mode:
 
@@ -55,8 +57,8 @@ Choose one mode and fail fast if required inputs are missing.
    - 根拠リンク (URL or repo path)
    - 起票目的 (what this Issue unlocks/improves)
    - 検証条件 (observable done condition)
-2. Include Epic/PRD references when known; otherwise use `N/A (reason)`
-3. Stop if any minimal traceability field is missing
+2. Include Epic/PRD reference as a link or `N/A (reason)`
+3. Stop if any minimal traceability field is missing, or if Epic/PRD reference (`link` or `N/A (reason)`) is missing
 
 `bugfix` mode:
 
@@ -132,6 +134,7 @@ gh issue create --title "[title]" --body "[body]" --label "[labels]"
 
 ## Options
 
+- `--mode [epic|generic|bugfix|ops]`: select creation mode. `--mode epic` requires `--epic-file [path]`. Do not combine `--mode` with positional `epic-file`. `--mode` can be combined with `--dry-run` and `--start`.
 - `--epic-file [path]`: required when `--mode epic` is used
 - `--dry-run`: preview only
 - `--start [number]`: start from a specific Issue number
