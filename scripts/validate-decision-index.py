@@ -68,9 +68,8 @@ def extract_decision_id(text: str) -> str | None:
                 continue
             if stripped.startswith("#"):
                 break
-            m = DECISION_ID_RE.match(stripped)
-            if m:
-                return m.group(0)
+            if DECISION_ID_RE.fullmatch(stripped):
+                return stripped
     return None
 
 
@@ -122,8 +121,10 @@ def parse_index(index_path: Path) -> tuple[list[tuple[str, str]], list[str]]:
             found_index_header = True
             continue
         if in_index:
-            if line.startswith("##"):
+            if re.match(r"^##(?!#)\s+", line):
                 break
+            if re.match(r"^#{3,}\s+", line):
+                continue
             stripped = line.strip()
             if not stripped or stripped.startswith("<!--"):
                 continue

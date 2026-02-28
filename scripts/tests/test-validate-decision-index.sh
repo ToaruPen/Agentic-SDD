@@ -199,6 +199,55 @@ set -e
 run_test "AC1: missing field fails (exit!=0)" test "$code_ac1_missing" -ne 0
 run_test "AC1: error mentions Rationale" grep -q "Rationale" "$r2/stderr"
 
+eprint "--- AC1: case-malformed-decision-id-value ---"
+r2b="$(new_repo case-malformed-decision-id-value)"
+write_template "$r2b"
+cat >"$r2b/docs/decisions/d-2026-02-28-malformed.md" <<'EOF'
+# Decision: Malformed ID
+
+## Decision-ID
+
+D-2026-02-28-MALFORMED extra
+
+## Context
+
+- 背景: test
+
+## Rationale
+
+- reason
+
+## Alternatives
+
+### Alternative-A: none
+
+- 採用可否: No
+
+## Impact
+
+- 影響: none
+
+## Verification
+
+- 検証方法: test
+
+## Supersedes
+
+- N/A
+
+## Inputs Fingerprint
+
+- PRD: N/A
+EOF
+write_valid_index "$r2b" "- D-2026-02-28-MALFORMED: [\`docs/decisions/d-2026-02-28-malformed.md\`](./decisions/d-2026-02-28-malformed.md)"
+set +e
+(cd "$r2b" && python3 ./scripts/validate-decision-index.py) >"$r2b/stdout" 2>"$r2b/stderr"
+code_ac1_malformed_id=$?
+set -e
+
+run_test "AC1: malformed Decision-ID value fails (exit!=0)" test "$code_ac1_malformed_id" -ne 0
+run_test "AC1: malformed Decision-ID error is reported" grep -q "missing or invalid Decision-ID value" "$r2b/stderr"
+
 # ===========================================================================
 # AC2: Index <-> body correspondence (missing, duplicate, invalid ref)
 # ===========================================================================
@@ -568,6 +617,20 @@ set -e
 
 run_test "Edge: invalid non-empty index line fails (exit!=0)" test "$code_invalid_index_line" -ne 0
 run_test "Edge: invalid line error is reported" grep -q "Invalid Decision Index line" "$r10/stderr"
+
+eprint "--- Edge: case-level3-subheading-in-index ---"
+r11="$(new_repo case-level3-subheading-in-index)"
+write_template "$r11"
+write_valid_decision "$r11" "D-2026-02-28-SUBHEAD" "d-2026-02-28-subhead.md"
+cat >"$r11/docs/decisions.md" <<'EOF'
+# 意思決定ログ（Decision Snapshot）
+
+## Decision Index
+
+### Group A
+- D-2026-02-28-SUBHEAD: [`docs/decisions/d-2026-02-28-subhead.md`](./decisions/d-2026-02-28-subhead.md)
+EOF
+run_test "Edge: level-3 subheading inside index is allowed" bash -c "(cd '$r11' && python3 ./scripts/validate-decision-index.py)"
 
 # ===========================================================================
 # Summary
