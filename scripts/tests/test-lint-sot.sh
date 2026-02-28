@@ -3623,4 +3623,35 @@ if ! (cd "$r39" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
 	exit 1
 fi
 
+# r40: Epic with ONLY nested (4-space indented) status must fail with format error
+# (fail-fast: status lost during indented code block stripping)
+r40="$(new_repo case-nested-status-format-error)"
+write_base_docs "$r40"
+mkdir -p "$r40/docs/epics"
+cat >"$r40/docs/epics/test.md" <<'EOF'
+# Epic: Test
+
+## メタ情報
+
+- メタ:
+    - ステータス: Approved
+    - 参照PRD: docs/prd/test.md
+EOF
+
+set +e
+(cd "$r40" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r40/stderr"
+code_nested_status=$?
+set -e
+
+if [[ "$code_nested_status" -eq 0 ]]; then
+	eprint "Expected lint-sot failure for Epic with nested (indented) status line"
+	exit 1
+fi
+
+if ! grep -q "ステータス行がインデント" "$r40/stderr"; then
+	eprint "Expected indented status format error message, got:"
+	cat "$r40/stderr" >&2 || true
+	exit 1
+fi
+
 printf '%s\n' "OK"

@@ -138,3 +138,31 @@ def test_extract_meta_info_ignores_status_in_tilde_fenced_code() -> None:
 """
     meta = EXTRACT_EPIC_CONFIG_MODULE.extract_meta_info(text)
     assert meta["status"] is None
+
+
+def test_lint_status_format_detects_nested_status() -> None:
+    text = """
+# Epic: Test
+
+## メタ情報
+
+- メタ:
+    - ステータス: Approved
+    - 参照PRD: docs/prd/test.md
+"""
+    errs = MODULE.lint_status_format("docs/epics/test.md", text)
+    assert len(errs) == 1
+    assert "ステータス行がインデント" in errs[0].message
+
+
+def test_lint_status_format_ok_for_toplevel_status() -> None:
+    text = """
+# Epic: Test
+
+## メタ情報
+
+- ステータス: Approved
+- 参照PRD: `docs/prd/test.md`
+"""
+    errs = MODULE.lint_status_format("docs/epics/test.md", text)
+    assert len(errs) == 0

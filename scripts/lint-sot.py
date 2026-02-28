@@ -83,6 +83,7 @@ def read_text(path: str) -> str:
 
 
 _STATUS_APPROVED_RE = re.compile(r"^\s*-\s*ステータス\s*:\s*Approved\s*$", re.MULTILINE)
+_STATUS_ANY_RE = re.compile(r"^\s*-\s*ステータス\s*:\s*\S", re.MULTILINE)
 _ALLOW_HTML_COMMENTS_RE = re.compile(r"<!--\s*lint-sot:\s*allow-html-comments\s*-->")
 _SOT_REFERENCE_PRD_LINE_RE = re.compile(
     r"^\s*-\s*参照PRD[ \t]*:[ \t]*(?:`([^`\n]*)`|([^\n]*))[ \t]*$", re.MULTILINE
@@ -446,6 +447,38 @@ def is_approved_prd_or_epic(rel_path: str, text: str) -> bool:
         )
         return _STATUS_APPROVED_RE.search(status_text) is not None
     return False
+
+
+def lint_status_format(rel_path: str, text: str) -> List[LintError]:
+    """Detect status lines lost during indented code block stripping.
+
+    If a ステータス line exists after fenced/HTML-comment stripping but
+    disappears after indented-code-block stripping, the status is likely
+    in a nested list (4+ spaces) which our sanitizer cannot distinguish
+    from indented code blocks.  Emit an explicit error instead of
+    silently skipping Approved-only checks.
+    """
+    if not (rel_path.startswith("docs/prd/") or rel_path.startswith("docs/epics/")):
+        return []
+    if os.path.basename(rel_path) == "_template.md":
+        return []
+
+    fenced_stripped = strip_fenced_code_blocks(text)
+    partial = strip_html_comment_blocks(fenced_stripped)
+    full = strip_html_comment_blocks(strip_indented_code_blocks(fenced_stripped))
+
+    if _STATUS_ANY_RE.search(partial) and not _STATUS_ANY_RE.search(full):
+        return [
+            LintError(
+                path=rel_path,
+                message=(
+                    "ステータス行がインデント（4スペース以上）されています。"
+                    "メタ情報のステータスはトップレベル（インデントなし）で記述してください。"
+                    "例: - ステータス: Approved"
+                ),
+            )
+        ]
+    return []
 
 
 def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
@@ -913,6 +946,7 @@ def lint_paths(repo: str, roots: List[str]) -> List[LintError]:
             rel_path = os.path.relpath(path_abs, repo).replace(os.sep, "/")
             text = read_text(path_abs)
             errs.extend(lint_placeholders(repo, rel_path, text))
+            errs.extend(lint_status_format(rel_path, text))
             errs.extend(lint_research_contract(rel_path, text))
             errs.extend(lint_sot_reference_contract(repo, rel_path, text))
             errs.extend(lint_relative_links(repo, rel_path, text))
