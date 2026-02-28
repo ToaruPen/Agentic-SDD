@@ -36,9 +36,8 @@ SKIP_FILES: set[str] = {"_template.md", "README.md"}
 # Pattern matching Decision-ID values (D-YYYY-MM-DD-UPPER_SNAKE)
 DECISION_ID_RE = re.compile(r"D-\d{4}-\d{2}-\d{2}-[A-Z][A-Z0-9_]*")
 
-# Pattern for index entries: "- <ID>: [`<path>`](<link>)"
 INDEX_ENTRY_RE = re.compile(
-    r"^-\s+(D-\d{4}-\d{2}-\d{2}-[A-Z][A-Z0-9_]*):\s+\[`([^`]+)`\]"
+    r"^-\s+(D-\d{4}-\d{2}-\d{2}-[A-Z][A-Z0-9_]*):\s+\[`([^`]+)`\]\(([^)]+)\)\s*$"
 )
 
 
@@ -113,16 +112,24 @@ def parse_index(index_path: Path) -> tuple[list[tuple[str, str]], list[str]]:
 
     text = index_path.read_text(encoding="utf-8")
     in_index = False
-    for line in text.splitlines():
+    for lineno, line in enumerate(text.splitlines(), start=1):
         if re.match(r"^##\s+Decision Index", line):
             in_index = True
             continue
         if in_index:
             if line.startswith("##"):
                 break
-            m = INDEX_ENTRY_RE.match(line.strip())
+            stripped = line.strip()
+            if not stripped or stripped.startswith("<!--"):
+                continue
+
+            m = INDEX_ENTRY_RE.match(stripped)
             if m:
-                entries.append((m.group(1), m.group(2)))
+                entries.append((m.group(1), m.group(3)))
+            else:
+                errors.append(
+                    f"Invalid Decision Index line at {index_path}:{lineno}: {stripped}"
+                )
 
     return entries, errors
 

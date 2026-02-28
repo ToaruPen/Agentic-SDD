@@ -275,6 +275,19 @@ set -e
 run_test "AC2: duplicate body Decision-ID fails (exit!=0)" test "$code_ac2_dup_body" -ne 0
 run_test "AC2: error mentions duplicate body Decision-ID" grep -q "Duplicate Decision-ID in body files" "$r5c/stderr"
 
+eprint "--- AC2: case-display-link-path-mismatch ---"
+r5d="$(new_repo case-display-link-path-mismatch)"
+write_template "$r5d"
+write_valid_decision "$r5d" "D-2026-02-28-LINKCHK" "d-2026-02-28-linkchk.md"
+write_valid_index "$r5d" "- D-2026-02-28-LINKCHK: [\`docs/decisions/d-2026-02-28-linkchk.md\`](./decisions/d-2026-02-28-missing.md)"
+set +e
+(cd "$r5d" && python3 ./scripts/validate-decision-index.py) >"$r5d/stdout" 2>"$r5d/stderr"
+code_ac2_link_path=$?
+set -e
+
+run_test "AC2: broken markdown link path fails (exit!=0)" test "$code_ac2_link_path" -ne 0
+run_test "AC2: error uses link destination path" grep -q "d-2026-02-28-missing.md" "$r5d/stderr"
+
 # ===========================================================================
 # AC3: Supersedes references point to existing Decision-IDs
 # ===========================================================================
@@ -403,6 +416,25 @@ code_no_index=$?
 set -e
 
 run_test "Edge: no decisions.md fails (exit!=0)" test "$code_no_index" -ne 0
+
+eprint "--- Edge: case-invalid-index-line ---"
+r10="$(new_repo case-invalid-index-line)"
+write_template "$r10"
+write_valid_decision "$r10" "D-2026-02-28-VALID" "d-2026-02-28-valid.md"
+cat >"$r10/docs/decisions.md" <<'EOF'
+# 意思決定ログ（Decision Snapshot）
+
+## Decision Index
+
+this line is invalid
+EOF
+set +e
+(cd "$r10" && python3 ./scripts/validate-decision-index.py) >"$r10/stdout" 2>"$r10/stderr"
+code_invalid_index_line=$?
+set -e
+
+run_test "Edge: invalid non-empty index line fails (exit!=0)" test "$code_invalid_index_line" -ne 0
+run_test "Edge: invalid line error is reported" grep -q "Invalid Decision Index line" "$r10/stderr"
 
 # ===========================================================================
 # Summary
