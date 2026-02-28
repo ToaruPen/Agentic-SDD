@@ -19,7 +19,7 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues/PRs) r
 ## Workflow
 
 ```
-/agentic-sdd* -> /create-prd -> /create-epic -> /generate-project-config** -> /create-issues -> /estimation -> /impl|/tdd -> /ui-iterate*** -> /test-review -> /review-cycle -> /final-review -> /test-review -> /create-pr -> /pr-bots-review (optional) -> [Merge] -> /cleanup
+/agentic-sdd* -> /create-prd -> /create-epic -> /generate-project-config** -> /create-issues -> /estimation -> /impl|/tdd -> /ui-iterate*** -> /test-review -> /review-cycle -> /final-review -> /test-review -> /create-pr -> /pr-bots-review (autonomous mode, when bot config is available) -> [Merge] -> /cleanup
      |            |              |              |                            |              |            |              |              |             |              |             |            |                 |          |
      v            v              v              v                            v              v            v              v              v             v              v             v            v                 v          v
      Install       7 questions    3-layer guard  Generate project            LOC-based       Full estimate Implement      UI round loop  Fail-fast     Local loop     DoD gate      Range recheck Push + PR create  Bot review  Remove worktree
@@ -39,6 +39,13 @@ Required gate notes:
 - `/research epic` is required before `/create-epic`.
 - `/research estimation` is required before `/estimation` when estimate preconditions are unknown.
 - `/create-pr` requires passing outputs from both `/review-cycle` and `/test-review` on committed `HEAD` with range diff metadata.
+
+Autonomous default policy:
+
+- For implementation Issues, once the approval record exists, run `/impl` or `/tdd` and continue through `/create-pr` without step-by-step prompts.
+- Run `/pr-bots-review` only when review-bot configuration is present (`AGENTIC_SDD_PR_REVIEW_MENTION` plus bot login filtering settings). If config is missing, end the autonomous chain at PR creation and record setup follow-up.
+- Stop only on fail-fast gates: missing approval, unresolved estimate questions, scope lock mismatch, failing review/test gates, or metadata mismatch.
+- Keep human intervention focused on requirements decisions (PRD/Epic/Issue intent) and final PR review/merge decision.
 
 ---
 
@@ -241,6 +248,8 @@ If estimate assumptions are still unclear, run estimation research first:
 The agent selects the mode automatically based on Issue characteristics (see `.agent/rules/impl-gate.md` Gate 0).
 The mode, selection source, and reason are recorded in the approval record.
 
+In autonomous mode, after approval is recorded the agent should proceed through downstream gates without additional per-step confirmation, unless a fail-fast gate blocks execution.
+
 Both `/impl` and `/tdd` require the same Full estimate + user approval gate (via `/estimation`).
 
 ### 4.5) Debug/Investigate (optional)
@@ -367,7 +376,7 @@ AGENTIC_SDD_AUTOFIX_CMD='./scripts/my-autofix.sh'
 AGENTIC_SDD_PR_REVIEW_MENTION='@pr-bots review'
 ```
 
-### 6.5) PR review-bot loop (optional)
+### 6.5) PR review-bot loop (default in autonomous mode)
 
 To request and iterate review-bot checks on a PR:
 

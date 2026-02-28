@@ -72,6 +72,11 @@ Bug fix Issues require Priority (P0-P4). See `.agent/rules/issue.md` for details
 - /impl or /tdd: pass the implementation gates (.agent/rules/impl-gate.md)
   - Full estimate (11 sections) -> agent mode selection -> user approval -> implement -> add/run tests
   - Worktree is required for Issue branches (see `.agent/rules/impl-gate.md` Gate -1)
+- Execution policy: autonomous-by-default
+  - After the approval record exists, continue `/impl` or `/tdd` (which runs `/test-review` -> `/review-cycle` internally before commit) -> `/final-review` -> `/test-review` (range on committed `HEAD`) -> `/create-pr` without step-by-step user prompts.
+  - Run `/pr-bots-review` only when review-bot configuration exists (`AGENTIC_SDD_PR_REVIEW_MENTION` and bot login filtering settings). If config is missing, end the autonomous chain at PR creation and record the missing setup as follow-up.
+  - Stop only on documented fail-fast gates (missing approval, open questions, scope lock mismatch, failing quality/review gates, or metadata mismatch).
+  - Human checkpoints are limited to requirement decisions (PRD/Epic/Issue intent) and final PR review/merge decision.
 - /test-review: run fail-fast test review before /review-cycle
 - /review-cycle: run locally via `codex exec` before committing (fix -> re-run)
 - If `codex exec` is unavailable (e.g. quota limits or temporary service issues), run `/review-cycle` and `/test-review` via Claude tooling instead; do not skip any gates.
