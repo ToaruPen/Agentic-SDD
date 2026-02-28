@@ -52,10 +52,11 @@ Choose one mode and fail fast if required inputs are missing.
 `bugfix` mode:
 
 1. Collect bug evidence (`根拠リンク`) and impact
-2. Include reproduction or incident context
-3. Select exactly one priority (P0-P4)
-4. Add matching `priority:P[0-4]` label
-5. Stop if evidence, priority, or verification condition is missing
+2. Include `起票目的` and reproduction or incident context
+3. Define `検証条件` (observable fix confirmation)
+4. Select exactly one priority (P0-P4)
+5. Add matching `priority:P[0-4]` label
+6. Stop if evidence, purpose, priority, or verification condition is missing
 
 ### Phase 3: Granularity check
 
