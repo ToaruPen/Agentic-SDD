@@ -74,10 +74,11 @@ def extract_decision_id(text: str) -> str | None:
     return None
 
 
-def extract_supersedes(text: str) -> list[str]:
-    """Extract Supersedes Decision-ID references from body text."""
+def extract_supersedes(text: str) -> tuple[list[str], list[str]]:
+    """Extract Supersedes Decision-ID references and invalid entries from body text."""
     in_supersedes = False
     refs: list[str] = []
+    invalid_entries: list[str] = []
     for line in text.splitlines():
         if re.match(r"^##\s+Supersedes", line):
             in_supersedes = True
@@ -91,8 +92,12 @@ def extract_supersedes(text: str) -> list[str]:
             # Skip N/A
             if stripped in ("- N/A", "N/A"):
                 continue
-            refs.extend(DECISION_ID_RE.findall(stripped))
-    return refs
+            ids = DECISION_ID_RE.findall(stripped)
+            if ids:
+                refs.extend(ids)
+            else:
+                invalid_entries.append(stripped)
+    return refs, invalid_entries
 
 
 def parse_index(index_path: Path) -> tuple[list[tuple[str, str]], list[str]]:
@@ -264,7 +269,13 @@ def validate(repo_root: Path) -> list[str]:
     # --- AC3: Check Supersedes references ---
     for fname, fpath in body_files.items():
         text = fpath.read_text(encoding="utf-8")
-        supersedes_refs = extract_supersedes(text)
+        supersedes_refs, invalid_supersedes_entries = extract_supersedes(text)
+        for invalid_entry in invalid_supersedes_entries:
+            errors.append(
+                f"docs/decisions/{fname}: invalid Supersedes entry '{invalid_entry}'. "
+                f"修正指針: D-YYYY-MM-DD-UPPER_SNAKE 形式のDecision-IDを指定してください。"
+            )
+
         for ref_id in supersedes_refs:
             if ref_id not in all_decision_ids:
                 errors.append(

@@ -456,6 +456,55 @@ set -e
 run_test "AC3: multi-ID line catches all IDs" test "$code_ac3_multi" -ne 0
 run_test "AC3: multi-ID line reports nonexistent ID" grep -q "D-2026-01-01-NONEXISTENT" "$r7b/stderr"
 
+eprint "--- AC3: case-invalid-supersedes-format ---"
+r7c="$(new_repo case-invalid-supersedes-format)"
+write_template "$r7c"
+cat >"$r7c/docs/decisions/d-2026-02-28-invalid-supersedes.md" <<'EOF'
+# Decision: Invalid Supersedes Format
+
+## Decision-ID
+
+D-2026-02-28-INVALID_SUPERSEDES
+
+## Context
+
+- 背景: test
+
+## Rationale
+
+- reason
+
+## Alternatives
+
+### Alternative-A: none
+
+- 採用可否: No
+
+## Impact
+
+- 影響: none
+
+## Verification
+
+- 検証方法: test
+
+## Supersedes
+
+- d-2026-02-01-lowercase
+
+## Inputs Fingerprint
+
+- PRD: N/A
+EOF
+write_valid_index "$r7c" "- D-2026-02-28-INVALID_SUPERSEDES: [\`docs/decisions/d-2026-02-28-invalid-supersedes.md\`](./decisions/d-2026-02-28-invalid-supersedes.md)"
+set +e
+(cd "$r7c" && python3 ./scripts/validate-decision-index.py) >"$r7c/stdout" 2>"$r7c/stderr"
+code_ac3_invalid_fmt=$?
+set -e
+
+run_test "AC3: invalid supersedes format fails (exit!=0)" test "$code_ac3_invalid_fmt" -ne 0
+run_test "AC3: invalid supersedes entry error is reported" grep -q "invalid Supersedes entry" "$r7c/stderr"
+
 # ===========================================================================
 # Edge cases
 # ===========================================================================
