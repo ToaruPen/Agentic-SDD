@@ -125,4 +125,5 @@ Notes:
 
 ## Next command
 
-After PR creation, optionally run `/final-review <pr-number>` to review the PR diff.
+After PR creation, run `/pr-bots-review <PR_NUMBER_OR_URL>` in autonomous default mode.
+If needed, optionally run `/final-review <pr-number>` for an additional PR-diff review.

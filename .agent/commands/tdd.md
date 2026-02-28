@@ -75,13 +75,15 @@ Summarize briefly:
 Before committing:
 
 - After implementation is complete, run `/test-review` and then `/review-cycle` automatically before committing and fix findings until it passes.
-  If the change is lightweight (e.g. documentation-only updates), ask the user whether to run `/review-cycle` (skipping requires explicit approval and a recorded reason).
+  Do not skip `/review-cycle` in autonomous default mode, even for lightweight changes.
+  Skipping is an exception path that requires explicit operator override and a recorded reason.
 - Then run `/final-review` (final DoD + `/sync-docs` gate).
 
 After `/final-review` is approved:
 
 - Re-run `/test-review` on committed `HEAD` with `TEST_REVIEW_DIFF_MODE=range`.
 - Run `/create-pr` to push and create the PR.
+- In autonomous default mode, run `/pr-bots-review <PR_NUMBER_OR_URL>` immediately after PR creation.
 
 ## Related
 

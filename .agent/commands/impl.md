@@ -55,7 +55,8 @@ Note:
 ### Phase 4: Local review (required)
 
 After implementation is complete, run `/test-review` then `/review-cycle` automatically before committing.
-If the change is lightweight (e.g. documentation-only updates), ask the user whether to run `/review-cycle` (skipping requires explicit approval and a recorded reason).
+Do not skip `/review-cycle` in autonomous default mode, even for lightweight changes.
+Skipping is an exception path that requires explicit operator override and a recorded reason.
 
 1. Execute review checks
 2. Fix any issues found
@@ -68,7 +69,8 @@ If the change is lightweight (e.g. documentation-only updates), ask the user whe
 
 ### Phase 6: Finish
 
-Report actual vs estimated, and suggest next steps.
+Report actual vs estimated, then proceed to `/final-review` automatically.
+After `/final-review` is approved, re-run `/test-review` on committed `HEAD` with `TEST_REVIEW_DIFF_MODE=range`, then run `/create-pr` and `/pr-bots-review`.
 
 Example (Japanese):
 
