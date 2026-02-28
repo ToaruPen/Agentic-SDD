@@ -56,7 +56,7 @@ Choose one mode and fail fast if required inputs are missing.
 3. Define `検証条件` (observable fix confirmation)
 4. Select exactly one priority (P0-P4)
 5. Add matching `priority:P[0-4]` label
-6. Stop if evidence, purpose, priority, or verification condition is missing
+6. Stop if evidence, impact, purpose, priority, or verification condition is missing
 
 ### Phase 3: Granularity check
 
