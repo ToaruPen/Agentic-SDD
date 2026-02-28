@@ -62,3 +62,26 @@ exec-plan には、少なくとも次を **コピーして凍結** する:
 ## テンプレ
 
 - テンプレ: [`docs/exec-plans/_template.md`](_template.md)
+
+---
+
+## テンプレを1回分埋める手順
+
+初めて exec-plan を作成する場合の最小手順:
+
+1. `_template.md` をコピーして `active/issue-<n>-<short>.md` として保存する
+2. **メタ情報** を埋める（作成日・作成者・対象Issue）
+3. **関連** に Issue URL を貼る（PRD/Epic は任意）
+4. **凍結スナップショット** に、Issue本文から AC・制約・変更対象ファイルを抜粋してコピーする
+   - 丸ごとコピーではなく「後から読み直すと決定的な情報」だけを抜粋する
+5. **実行計画** は Lightweight か Heavyweight のどちらか一方だけ埋める（不要な方は削除してよい）
+6. 実装中は **進捗ログ** と **判断ログ** に追記していく（append-only）
+7. 完了後は `completed/` に移動し、ステータスを `Completed` に更新する
+
+---
+
+## 関連ドキュメント
+
+- 判断ログの昇格先: [`docs/decisions/README.md`](../decisions/README.md)
+- Decision インデックス: [`docs/decisions.md`](../decisions.md)
+- exec-plans の判断ログと Decision 本文の使い分け: [`docs/decisions/README.md`](../decisions/README.md) の「exec-plans の判断ログとの関係」セクション
