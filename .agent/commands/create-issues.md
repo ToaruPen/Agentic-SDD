@@ -27,6 +27,7 @@ Input parsing (fail-fast):
 - `--mode` and positional `epic-file` are mutually exclusive.
 - If `--mode` and positional `epic-file` are both provided, print usage and stop immediately.
 - If positional `epic-file` is provided (without `--mode`), treat mode as `epic`.
+- If neither `--mode` nor positional `epic-file` is provided, print usage and stop immediately.
 - If `--mode epic` is specified, `--epic-file` is required.
 - If `--mode epic` is specified without `--epic-file`, print usage and stop immediately.
 
@@ -68,7 +69,7 @@ Choose one mode and fail fast if required inputs are missing.
 4. Define `検証条件` (observable fix confirmation)
 5. Select exactly one priority (P0-P4); do not select multiple priorities
 6. Add matching `priority:P[0-4]` label
-7. Stop if evidence, impact, Epic/PRD reference (or `N/A (reason)`), purpose, reproduction or incident context, or verification condition is missing, or if priority is missing or multiple priorities are selected
+7. Stop if evidence, impact, Epic/PRD reference (or `N/A (reason)`), purpose, reproduction or incident context, or verification condition is missing, if priority is missing or multiple priorities are selected, or if `priority:P[0-4]` label is missing
 
 ### Phase 3: Granularity check
 
@@ -118,10 +119,10 @@ Always include:
 
 GitHub Issues are the required output destination.
 
-1. Preflight the environment:
+1. If `--dry-run` is set, do not call `gh issue create`; render and display generated Issue title/body/labels/assignees, print `Preview only (--dry-run): no GitHub Issue created.`, and exit.
+2. If `--dry-run` is not set, preflight the environment:
    - Check git remotes: `git remote -v`
    - Check GitHub auth: `gh auth status`
-2. If `--dry-run` is set, do not call `gh issue create`; render and display generated Issue title/body/labels/assignees, print `Preview only (--dry-run): no GitHub Issue created.`, and exit.
 3. If `--dry-run` is not set, create Issues via `gh issue create` and print `Issue created on GitHub.`
 4. If the environment is not ready (no `gh`, not authenticated, wrong repo), stop and ask the user to fix it.
 
