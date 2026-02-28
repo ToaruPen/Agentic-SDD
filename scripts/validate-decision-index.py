@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 # Required sections in every decision body (from _template.md / README.md)
 REQUIRED_SECTIONS: list[str] = [
@@ -194,12 +194,44 @@ def validate(repo_root: Path) -> list[str]:
     # --- AC2: Check index -> body (dangling references) ---
     index_files: set[str] = set()
     for did, ref_path in index_entries:
-        # ref_path is like "docs/decisions/d-2026-02-28-test.md"
-        fname = Path(ref_path).name
+        if ref_path.startswith("./"):
+            repo_rel_raw = f"docs/{ref_path[2:]}"
+        elif ref_path.startswith("docs/"):
+            repo_rel_raw = ref_path
+        else:
+            errors.append(
+                f"Invalid index link path: {ref_path} (Decision-ID: {did}) "
+                f"— must start with './' or 'docs/'"
+            )
+            continue
+
+        repo_rel = PurePosixPath(repo_rel_raw)
+        if ".." in repo_rel.parts:
+            errors.append(
+                f"Invalid index link path traversal: {ref_path} (Decision-ID: {did})"
+            )
+            continue
+
+        if len(repo_rel.parts) < 3 or repo_rel.parts[0:2] != ("docs", "decisions"):
+            errors.append(
+                f"Index link must point to docs/decisions/*.md: {ref_path} "
+                f"(Decision-ID: {did})"
+            )
+            continue
+
+        resolved_path = repo_root.joinpath(*repo_rel.parts)
+        fname = resolved_path.name
         index_files.add(fname)
-        if fname not in body_files:
+
+        if not resolved_path.exists():
             errors.append(
                 f"Index references missing file: {ref_path} (Decision-ID: {did})"
+            )
+            continue
+
+        if fname not in body_files:
+            errors.append(
+                f"Index references unmanaged file: {ref_path} (Decision-ID: {did})"
             )
             continue
 

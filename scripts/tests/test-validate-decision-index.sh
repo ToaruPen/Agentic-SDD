@@ -288,6 +288,19 @@ set -e
 run_test "AC2: broken markdown link path fails (exit!=0)" test "$code_ac2_link_path" -ne 0
 run_test "AC2: error uses link destination path" grep -q "d-2026-02-28-missing.md" "$r5d/stderr"
 
+eprint "--- AC2: case-wrong-directory-link ---"
+r5e="$(new_repo case-wrong-directory-link)"
+write_template "$r5e"
+write_valid_decision "$r5e" "D-2026-02-28-WRONGDIR" "d-2026-02-28-wrongdir.md"
+write_valid_index "$r5e" "- D-2026-02-28-WRONGDIR: [\`docs/decisions/d-2026-02-28-wrongdir.md\`](./wrong-dir/d-2026-02-28-wrongdir.md)"
+set +e
+(cd "$r5e" && python3 ./scripts/validate-decision-index.py) >"$r5e/stdout" 2>"$r5e/stderr"
+code_ac2_wrong_dir=$?
+set -e
+
+run_test "AC2: wrong-directory link fails (exit!=0)" test "$code_ac2_wrong_dir" -ne 0
+run_test "AC2: wrong-directory error is reported" grep -q "docs/decisions/\*.md" "$r5e/stderr"
+
 # ===========================================================================
 # AC3: Supersedes references point to existing Decision-IDs
 # ===========================================================================
