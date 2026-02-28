@@ -12,6 +12,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from md_sanitize import (
+    sanitize_status_text,
+)
+
 
 def eprint(msg: str) -> None:
     print(msg, file=sys.stderr)
@@ -318,7 +322,8 @@ def extract_meta_info(text: str) -> Dict[str, Optional[str]]:
         meta["created_date"] = date_match.group(1)
 
     # ステータス
-    status_match = re.search(r"ステータス:\s*(Draft|Review|Approved)", text)
+    status_text = sanitize_status_text(text)
+    status_match = re.search(r"ステータス:\s*(Draft|Review|Approved)", status_text)
     if status_match:
         meta["status"] = status_match.group(1)
 

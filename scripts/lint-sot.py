@@ -9,6 +9,13 @@ import sys
 from dataclasses import dataclass
 from typing import Iterable, List, Optional
 
+from md_sanitize import (
+    sanitize_status_text,
+    strip_fenced_code_blocks,
+    strip_html_comment_blocks,
+    strip_indented_code_blocks,
+)
+
 
 @dataclass(frozen=True)
 class LintError:
@@ -77,6 +84,7 @@ def read_text(path: str) -> str:
 
 
 _STATUS_APPROVED_RE = re.compile(r"^\s*-\s*ステータス\s*:\s*Approved\s*$", re.MULTILINE)
+_STATUS_ANY_RE = re.compile(r"^\s*-\s*ステータス\s*:\s*\S", re.MULTILINE)
 _ALLOW_HTML_COMMENTS_RE = re.compile(r"<!--\s*lint-sot:\s*allow-html-comments\s*-->")
 _SOT_REFERENCE_PRD_LINE_RE = re.compile(
     r"^\s*-\s*参照PRD[ \t]*:[ \t]*(?:`([^`\n]*)`|([^\n]*))[ \t]*$", re.MULTILINE
@@ -435,8 +443,41 @@ def is_approved_prd_or_epic(rel_path: str, text: str) -> bool:
     if rel_path.startswith("docs/prd/") or rel_path.startswith("docs/epics/"):
         if os.path.basename(rel_path) == "_template.md":
             return False
-        return _STATUS_APPROVED_RE.search(text) is not None
+        status_text = sanitize_status_text(text)
+        return _STATUS_APPROVED_RE.search(status_text) is not None
     return False
+
+
+def lint_status_format(rel_path: str, text: str) -> List[LintError]:
+    """Detect status lines lost during indented code block stripping.
+
+    If a ステータス line exists after fenced/HTML-comment stripping but
+    disappears after indented-code-block stripping, the status is likely
+    in a nested list (4+ spaces) which our sanitizer cannot distinguish
+    from indented code blocks.  Emit an explicit error instead of
+    silently skipping Approved-only checks.
+    """
+    if not (rel_path.startswith("docs/prd/") or rel_path.startswith("docs/epics/")):
+        return []
+    if os.path.basename(rel_path) == "_template.md":
+        return []
+
+    fenced_stripped = strip_fenced_code_blocks(text)
+    partial = strip_html_comment_blocks(fenced_stripped)
+    full = sanitize_status_text(text)
+
+    if _STATUS_ANY_RE.search(partial) and not _STATUS_ANY_RE.search(full):
+        return [
+            LintError(
+                path=rel_path,
+                message=(
+                    "ステータス行がインデント（4スペース以上）されています。"
+                    "メタ情報のステータスはトップレベル（インデントなし）で記述してください。"
+                    "例: - ステータス: Approved"
+                ),
+            )
+        ]
+    return []
 
 
 def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
@@ -700,9 +741,7 @@ def lint_sot_reference_contract(repo: str, rel_path: str, text: str) -> List[Lin
     if not is_approved_prd_or_epic(rel_path, text):
         return []
 
-    contract_text = strip_html_comment_blocks(
-        strip_indented_code_blocks(strip_fenced_code_blocks(text))
-    )
+    contract_text = sanitize_status_text(text)
     refs = list(_SOT_REFERENCE_PRD_LINE_RE.finditer(contract_text))
 
     if len(refs) == 0:
@@ -762,60 +801,17 @@ _MD_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 _MD_REF_DEF_RE = re.compile(r"^[ \t]{0,3}\[[^\]]+\]:\s*(\S+)", re.MULTILINE)
 
 
-_FENCE_OPEN_RE = re.compile(r"^[ \t]{0,3}((?:`{3,})|(?:~{3,}))")
-_FENCE_CLOSE_RE = re.compile(r"^[ \t]{0,3}((?:`{3,})|(?:~{3,}))[ \t]*$")
-
-
-def strip_fenced_code_blocks(text: str) -> str:
-    out_lines: List[str] = []
-    in_fence = False
-    fence_char = ""
-    fence_len = 0
-
-    for line in text.splitlines(keepends=True):
-        if not in_fence:
-            m_open = _FENCE_OPEN_RE.match(line)
-            if m_open:
-                seq = m_open.group(1)
-                in_fence = True
-                fence_char = seq[0]
-                fence_len = len(seq)
-                continue
-        else:
-            m_close = _FENCE_CLOSE_RE.match(line)
-            if m_close:
-                seq = m_close.group(1)
-                if seq[0] == fence_char and len(seq) >= fence_len:
-                    in_fence = False
-                    fence_char = ""
-                    fence_len = 0
-                    continue
-
-        if not in_fence:
-            out_lines.append(line)
-
-    return "".join(out_lines)
-
-
-_INDENTED_CODE_RE = re.compile(r"^(?:\t| {4,})")
-
-
-def strip_indented_code_blocks(text: str) -> str:
-    out_lines: List[str] = []
-    in_code = False
-    for line in text.splitlines(keepends=True):
-        if _INDENTED_CODE_RE.match(line):
-            in_code = True
-            continue
-
-        if in_code:
-            in_code = False
-
-        out_lines.append(line)
-    return "".join(out_lines)
-
-
 def strip_inline_code_spans(text: str) -> str:
+    """Remove inline code spans for link/placeholder linting.
+
+    Unlike ``md_sanitize._mask_inline_code_spans`` (which is
+    CommonMark-compliant and handles backslash-escaped backticks),
+    this function intentionally ignores escapes.  It is only used
+    by ``parse_md_link_targets`` and ``lint_placeholders`` where
+    the sole requirement is to exclude code-span content from link
+    and placeholder detection — precise escaped-backtick handling
+    is unnecessary for that purpose.
+    """
     out: List[str] = []
     i = 0
     n = len(text)
@@ -840,17 +836,6 @@ def strip_inline_code_spans(text: str) -> str:
         i = k + len(delim)
 
     return "".join(out)
-
-
-_HTML_COMMENT_BLOCK_RE = re.compile(r"<!--.*?-->", re.DOTALL)
-
-
-def strip_html_comment_blocks(text: str) -> str:
-    out = _HTML_COMMENT_BLOCK_RE.sub("", text)
-    i = out.find("<!--")
-    if i == -1:
-        return out
-    return out[:i]
 
 
 def parse_md_link_targets(text: str) -> List[str]:
@@ -968,6 +953,7 @@ def lint_paths(repo: str, roots: List[str]) -> List[LintError]:
             rel_path = os.path.relpath(path_abs, repo).replace(os.sep, "/")
             text = read_text(path_abs)
             errs.extend(lint_placeholders(repo, rel_path, text))
+            errs.extend(lint_status_format(rel_path, text))
             errs.extend(lint_research_contract(rel_path, text))
             errs.extend(lint_sot_reference_contract(repo, rel_path, text))
             errs.extend(lint_relative_links(repo, rel_path, text))
