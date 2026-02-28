@@ -134,7 +134,7 @@ def validate_approval(obj: Dict[str, Any], expected_issue_number: int) -> None:
     # estimate_hash/estimate_sha256 is validated separately.
     _field, _value = pick_estimate_hash_field(obj)
 
-    extra_allowed = {"estimate_hash", "estimate_sha256", "mode_source", "mode_reason"}
+    extra_allowed = {"estimate_hash", "estimate_sha256"}
     extra = set(obj.keys()) - required - extra_allowed
     if extra:
         raise KeyError(f"unexpected keys: {sorted(extra)}")
