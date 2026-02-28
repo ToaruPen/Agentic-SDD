@@ -53,7 +53,7 @@
 ## 非目標
 
 - このPhaseでは `decision-snapshot` 自動生成は行わない
-- ~~必須化ゲートの強制実装は行わない~~ → `/create-pr` 前に `python3 scripts/validate-decision-index.py` が必須ゲートとして実行される（`scripts/create-pr.sh` に組み込み済み）
+- `/create-pr` 前に `python3 scripts/validate-decision-index.py` が必須ゲートとして実行される（`scripts/create-pr.sh` に組み込み済み）
 
 ---
 

@@ -8,8 +8,8 @@ repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 script_src="$repo_root/scripts/create-pr.sh"
 
 if [[ ! -x "$script_src" ]]; then
-  eprint "Missing script or not executable: $script_src"
-  exit 1
+	eprint "Missing script or not executable: $script_src"
+	exit 1
 fi
 
 tmpdir="$(mktemp -d 2>/dev/null || mktemp -d -t agentic-sdd-create-pr-test)"
@@ -24,7 +24,7 @@ mkdir -p "$work"
 git -C "$work" init -q
 git -C "$work" remote add origin "$origin_bare"
 
-cat > "$work/README.md" <<'EOF'
+cat >"$work/README.md" <<'EOF'
 # Temp Repo
 EOF
 
@@ -34,14 +34,14 @@ git -C "$work" branch -M main
 git -C "$work" push -u origin main -q
 
 git -C "$work" checkout -b feature/issue-1-test -q
-echo "change" >> "$work/README.md"
+echo "change" >>"$work/README.md"
 git -C "$work" add README.md
 git -C "$work" -c user.name=test -c user.email=test@example.com commit -m "feat: change" -q
 
 # review-cycle fixture
 mkdir -p "$work/.agentic-sdd/reviews/issue-1/run1"
-printf '%s' 'run1' > "$work/.agentic-sdd/reviews/issue-1/.current_run"
-cat > "$work/.agentic-sdd/reviews/issue-1/run1/review.json" <<'EOF'
+printf '%s' 'run1' >"$work/.agentic-sdd/reviews/issue-1/.current_run"
+cat >"$work/.agentic-sdd/reviews/issue-1/run1/review.json" <<'EOF'
 {
   "schema_version": 3,
   "scope_id": "issue-1",
@@ -53,8 +53,8 @@ cat > "$work/.agentic-sdd/reviews/issue-1/run1/review.json" <<'EOF'
 EOF
 
 mkdir -p "$work/.agentic-sdd/test-reviews/issue-1/run1"
-printf '%s' 'run1' > "$work/.agentic-sdd/test-reviews/issue-1/.current_run"
-cat > "$work/.agentic-sdd/test-reviews/issue-1/run1/test-review.json" <<'EOF'
+printf '%s' 'run1' >"$work/.agentic-sdd/test-reviews/issue-1/.current_run"
+cat >"$work/.agentic-sdd/test-reviews/issue-1/run1/test-review.json" <<'EOF'
 {
   "schema_version": 1,
   "scope_id": "issue-1",
@@ -65,11 +65,11 @@ cat > "$work/.agentic-sdd/test-reviews/issue-1/run1/test-review.json" <<'EOF'
 EOF
 
 write_review_metadata() {
-  local head_sha="$1"
-  local base_ref="$2"
-  local base_sha="$3"
-  local diff_source="${4:-range}"
-  cat > "$work/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" <<EOF
+	local head_sha="$1"
+	local base_ref="$2"
+	local base_sha="$3"
+	local diff_source="${4:-range}"
+	cat >"$work/.agentic-sdd/reviews/issue-1/run1/review-metadata.json" <<EOF
 {
   "schema_version": 1,
   "scope_id": "issue-1",
@@ -84,11 +84,11 @@ EOF
 }
 
 write_test_review_metadata() {
-  local head_sha="$1"
-  local base_ref="$2"
-  local base_sha="$3"
-  local diff_mode="${4:-range}"
-  cat > "$work/.agentic-sdd/test-reviews/issue-1/run1/test-review-metadata.json" <<EOF
+	local head_sha="$1"
+	local base_ref="$2"
+	local base_sha="$3"
+	local diff_mode="${4:-range}"
+	cat >"$work/.agentic-sdd/test-reviews/issue-1/run1/test-review-metadata.json" <<EOF
 {
   "schema_version": 1,
   "scope_id": "issue-1",
@@ -100,14 +100,11 @@ write_test_review_metadata() {
 }
 EOF
 }
-base_sha="$(git -C "$work" rev-parse origin/main)"
-head_sha="$(git -C "$work" rev-parse HEAD)"
-write_review_metadata "$head_sha" "origin/main" "$base_sha"
-write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
 
-mkdir -p "$work/scripts" "$work/docs/decisions"
-cp "$repo_root/scripts/validate-decision-index.py" "$work/scripts/validate-decision-index.py"
-cat > "$work/docs/decisions/_template.md" <<'TMPL'
+setup_decision_fixtures() {
+	mkdir -p "$work/scripts" "$work/docs/decisions"
+	cp "$repo_root/scripts/validate-decision-index.py" "$work/scripts/validate-decision-index.py"
+	cat >"$work/docs/decisions/_template.md" <<'TMPL'
 ## Decision-ID
 
 ## Context
@@ -125,14 +122,21 @@ cat > "$work/docs/decisions/_template.md" <<'TMPL'
 ## Inputs Fingerprint
 TMPL
 
-cat > "$work/docs/decisions.md" <<'IDX'
+	cat >"$work/docs/decisions.md" <<'IDX'
 # Decisions
 
 ## Decision Index
 IDX
+}
+
+base_sha="$(git -C "$work" rev-parse origin/main)"
+head_sha="$(git -C "$work" rev-parse HEAD)"
+write_review_metadata "$head_sha" "origin/main" "$base_sha"
+write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
+setup_decision_fixtures
 
 mkdir -p "$tmpdir/bin"
-cat > "$tmpdir/bin/gh" <<'EOF'
+cat >"$tmpdir/bin/gh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 exit 0
@@ -145,35 +149,35 @@ set +e
 code_missing_test_review=$?
 set -e
 if [[ "$code_missing_test_review" -eq 0 ]]; then
-  eprint "Expected missing test-review output to fail"
-  exit 1
+	eprint "Expected missing test-review output to fail"
+	exit 1
 fi
 if ! grep -q "Missing /test-review output" "$tmpdir/stderr_missing_test_review"; then
-  eprint "Expected missing test-review error message, got:"
-  cat "$tmpdir/stderr_missing_test_review" >&2
-  exit 1
+	eprint "Expected missing test-review error message, got:"
+	cat "$tmpdir/stderr_missing_test_review" >&2
+	exit 1
 fi
 
-printf '%s' '../issue-2/run1' > "$work/.agentic-sdd/test-reviews/issue-1/.current_run"
+printf '%s' '../issue-2/run1' >"$work/.agentic-sdd/test-reviews/issue-1/.current_run"
 set +e
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>"$tmpdir/stderr_invalid_test_review_run_id"
 code_invalid_test_review_run_id=$?
 set -e
 if [[ "$code_invalid_test_review_run_id" -eq 0 ]]; then
-  eprint "Expected unsafe test-review run id to fail"
-  exit 1
+	eprint "Expected unsafe test-review run id to fail"
+	exit 1
 fi
 if ! grep -q "Invalid test-review .current_run (unsafe run id)" "$tmpdir/stderr_invalid_test_review_run_id"; then
-  eprint "Expected unsafe test-review run id error message, got:"
-  cat "$tmpdir/stderr_invalid_test_review_run_id" >&2
-  exit 1
+	eprint "Expected unsafe test-review run id error message, got:"
+	cat "$tmpdir/stderr_invalid_test_review_run_id" >&2
+	exit 1
 fi
 
-printf '%s' 'run1' > "$work/.agentic-sdd/test-reviews/issue-1/.current_run"
+printf '%s' 'run1' >"$work/.agentic-sdd/test-reviews/issue-1/.current_run"
 
 # Stub gh (no network/auth)
 mkdir -p "$tmpdir/bin"
-cat > "$tmpdir/bin/gh" <<'EOF'
+cat >"$tmpdir/bin/gh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -228,7 +232,7 @@ EOF
 chmod +x "$tmpdir/bin/gh"
 
 # Stale head should fail and require re-review.
-echo "next" >> "$work/README.md"
+echo "next" >>"$work/README.md"
 git -C "$work" add README.md
 git -C "$work" -c user.name=test -c user.email=test@example.com commit -m "feat: next" -q
 set +e
@@ -236,13 +240,13 @@ set +e
 code_stale_head=$?
 set -e
 if [[ "$code_stale_head" -eq 0 ]]; then
-  eprint "Expected stale reviewed HEAD to fail"
-  exit 1
+	eprint "Expected stale reviewed HEAD to fail"
+	exit 1
 fi
 if ! grep -q "Current HEAD differs from reviewed HEAD" "$tmpdir/stderr_stale_head"; then
-  eprint "Expected stale HEAD error message, got:"
-  cat "$tmpdir/stderr_stale_head" >&2
-  exit 1
+	eprint "Expected stale HEAD error message, got:"
+	cat "$tmpdir/stderr_stale_head" >&2
+	exit 1
 fi
 
 # Refresh metadata for current head.
@@ -252,7 +256,7 @@ write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
 
 # Stale base should fail and require re-review.
 git -C "$work" checkout main -q
-echo "main-update" >> "$work/README.md"
+echo "main-update" >>"$work/README.md"
 git -C "$work" add README.md
 git -C "$work" -c user.name=test -c user.email=test@example.com commit -m "chore: main update" -q
 git -C "$work" push origin main -q
@@ -264,13 +268,13 @@ set +e
 code_stale_base=$?
 set -e
 if [[ "$code_stale_base" -eq 0 ]]; then
-  eprint "Expected moved base ref to fail"
-  exit 1
+	eprint "Expected moved base ref to fail"
+	exit 1
 fi
 if ! grep -q "Base ref 'origin/main' moved since /test-review" "$tmpdir/stderr_stale_base"; then
-  eprint "Expected stale base error message, got:"
-  cat "$tmpdir/stderr_stale_base" >&2
-  exit 1
+	eprint "Expected stale base error message, got:"
+	cat "$tmpdir/stderr_stale_base" >&2
+	exit 1
 fi
 
 # Refresh metadata after base/head drift fixes.
@@ -304,13 +308,13 @@ set +e
 code_base_branch_mismatch=$?
 set -e
 if [[ "$code_base_branch_mismatch" -eq 0 ]]; then
-  eprint "Expected reviewed base branch mismatch to fail"
-  exit 1
+	eprint "Expected reviewed base branch mismatch to fail"
+	exit 1
 fi
 if ! grep -q "PR base 'develop' differs from reviewed base 'main'" "$tmpdir/stderr_base_branch_mismatch"; then
-  eprint "Expected base branch mismatch error message, got:"
-  cat "$tmpdir/stderr_base_branch_mismatch" >&2
-  exit 1
+	eprint "Expected base branch mismatch error message, got:"
+	cat "$tmpdir/stderr_base_branch_mismatch" >&2
+	exit 1
 fi
 
 write_review_metadata "$head_sha" "origin/main" "$base_sha"
@@ -320,13 +324,13 @@ set +e
 code_test_base_branch_mismatch=$?
 set -e
 if [[ "$code_test_base_branch_mismatch" -eq 0 ]]; then
-  eprint "Expected test-reviewed base branch mismatch to fail"
-  exit 1
+	eprint "Expected test-reviewed base branch mismatch to fail"
+	exit 1
 fi
 if ! grep -q "PR base 'main' differs from test-reviewed base 'develop'" "$tmpdir/stderr_test_base_branch_mismatch"; then
-  eprint "Expected test-reviewed base branch mismatch error message, got:"
-  cat "$tmpdir/stderr_test_base_branch_mismatch" >&2
-  exit 1
+	eprint "Expected test-reviewed base branch mismatch error message, got:"
+	cat "$tmpdir/stderr_test_base_branch_mismatch" >&2
+	exit 1
 fi
 
 write_test_review_metadata "$head_sha" "develop" "$develop_sha" "worktree"
@@ -335,13 +339,13 @@ set +e
 code_test_worktree_diff_mode=$?
 set -e
 if [[ "$code_test_worktree_diff_mode" -eq 0 ]]; then
-  eprint "Expected non-range test-review diff_mode to fail"
-  exit 1
+	eprint "Expected non-range test-review diff_mode to fail"
+	exit 1
 fi
 if ! grep -q "diff_mode must be 'range'" "$tmpdir/stderr_test_worktree_diff_mode"; then
-  eprint "Expected non-range test-review diff_mode error message, got:"
-  cat "$tmpdir/stderr_test_worktree_diff_mode" >&2
-  exit 1
+	eprint "Expected non-range test-review diff_mode error message, got:"
+	cat "$tmpdir/stderr_test_worktree_diff_mode" >&2
+	exit 1
 fi
 
 write_test_review_metadata "$head_sha" "origin/main" "$base_sha" "unknown"
@@ -350,13 +354,13 @@ set +e
 code_test_invalid_diff_mode=$?
 set -e
 if [[ "$code_test_invalid_diff_mode" -eq 0 ]]; then
-  eprint "Expected invalid test-review diff_mode to fail"
-  exit 1
+	eprint "Expected invalid test-review diff_mode to fail"
+	exit 1
 fi
 if ! grep -q "diff_mode must be 'range'" "$tmpdir/stderr_test_invalid_diff_mode"; then
-  eprint "Expected invalid test-review diff_mode error message, got:"
-  cat "$tmpdir/stderr_test_invalid_diff_mode" >&2
-  exit 1
+	eprint "Expected invalid test-review diff_mode error message, got:"
+	cat "$tmpdir/stderr_test_invalid_diff_mode" >&2
+	exit 1
 fi
 
 write_test_review_metadata "$head_sha" "origin/main" "" "range"
@@ -365,13 +369,13 @@ set +e
 code_test_range_missing_base_sha=$?
 set -e
 if [[ "$code_test_range_missing_base_sha" -eq 0 ]]; then
-  eprint "Expected missing test-review base_sha for range mode to fail"
-  exit 1
+	eprint "Expected missing test-review base_sha for range mode to fail"
+	exit 1
 fi
 if ! grep -q "Invalid test-review metadata (diff_mode=range requires base_sha)" "$tmpdir/stderr_test_range_missing_base_sha"; then
-  eprint "Expected missing test-review base_sha error message, got:"
-  cat "$tmpdir/stderr_test_range_missing_base_sha" >&2
-  exit 1
+	eprint "Expected missing test-review base_sha error message, got:"
+	cat "$tmpdir/stderr_test_range_missing_base_sha" >&2
+	exit 1
 fi
 
 write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
@@ -381,13 +385,13 @@ set +e
 code_review_diff_source_not_range=$?
 set -e
 if [[ "$code_review_diff_source_not_range" -eq 0 ]]; then
-  eprint "Expected non-range review diff_source to fail"
-  exit 1
+	eprint "Expected non-range review diff_source to fail"
+	exit 1
 fi
 if ! grep -q "diff_source must be 'range'" "$tmpdir/stderr_review_diff_source_not_range"; then
-  eprint "Expected non-range review diff_source error message, got:"
-  cat "$tmpdir/stderr_review_diff_source_not_range" >&2
-  exit 1
+	eprint "Expected non-range review diff_source error message, got:"
+	cat "$tmpdir/stderr_review_diff_source_not_range" >&2
+	exit 1
 fi
 
 write_review_metadata "$head_sha" "origin/main" "" "range"
@@ -396,13 +400,13 @@ set +e
 code_review_range_missing_base_sha=$?
 set -e
 if [[ "$code_review_range_missing_base_sha" -eq 0 ]]; then
-  eprint "Expected missing review base_sha for range diff_source to fail"
-  exit 1
+	eprint "Expected missing review base_sha for range diff_source to fail"
+	exit 1
 fi
 if ! grep -q "Invalid review metadata (diff_source=range requires base_sha)" "$tmpdir/stderr_review_range_missing_base_sha"; then
-  eprint "Expected missing review base_sha error message, got:"
-  cat "$tmpdir/stderr_review_range_missing_base_sha" >&2
-  exit 1
+	eprint "Expected missing review base_sha error message, got:"
+	cat "$tmpdir/stderr_review_range_missing_base_sha" >&2
+	exit 1
 fi
 
 write_review_metadata "$head_sha" "origin/main" "$base_sha" "range"
@@ -411,15 +415,15 @@ write_review_metadata "$head_sha" "origin/main" "$base_sha" "range"
 
 out="$(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --issue 1 2>/dev/null)"
 if [[ "$out" != "https://example.invalid/pull/1" ]]; then
-  eprint "Expected PR URL, got: $out"
-  exit 1
+	eprint "Expected PR URL, got: $out"
+	exit 1
 fi
 
 # Second run should reuse existing PR (same URL)
 out2="$(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --issue 1 2>/dev/null)"
 if [[ "$out2" != "https://example.invalid/pull/1" ]]; then
-  eprint "Expected existing PR URL, got: $out2"
-  exit 1
+	eprint "Expected existing PR URL, got: $out2"
+	exit 1
 fi
 
 # --- Decision Index validation gate tests ---
@@ -427,35 +431,7 @@ fi
 # Reset PR state so gh stub creates fresh
 rm -f "$tmpdir/bin/pr_state"
 
-# Copy the real validate-decision-index.py into the temp repo
-mkdir -p "$work/scripts"
-cp "$repo_root/scripts/validate-decision-index.py" "$work/scripts/validate-decision-index.py"
-
-# Create valid decision fixtures so validation passes
-mkdir -p "$work/docs/decisions"
-cat > "$work/docs/decisions/_template.md" <<'TMPL'
-## Decision-ID
-
-## Context
-
-## Rationale
-
-## Alternatives
-
-## Impact
-
-## Verification
-
-## Supersedes
-
-## Inputs Fingerprint
-TMPL
-
-cat > "$work/docs/decisions.md" <<'IDX'
-# Decisions
-
-## Decision Index
-IDX
+setup_decision_fixtures
 
 # Refresh metadata for current head (required after prior test mutations)
 head_sha="$(git -C "$work" rev-parse HEAD)"
@@ -463,11 +439,28 @@ base_sha="$(git -C "$work" rev-parse origin/main)"
 write_review_metadata "$head_sha" "origin/main" "$base_sha"
 write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
 
+rm -f "$work/scripts/validate-decision-index.py"
+set +e
+(cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>"$tmpdir/stderr_decision_validator_missing"
+code_decision_validator_missing=$?
+set -e
+if [[ "$code_decision_validator_missing" -eq 0 ]]; then
+	eprint "Expected missing decision validator to fail create-pr"
+	exit 1
+fi
+if ! grep -q "Missing decision validator" "$tmpdir/stderr_decision_validator_missing"; then
+	eprint "Expected missing decision validator message, got:"
+	cat "$tmpdir/stderr_decision_validator_missing" >&2
+	exit 1
+fi
+
+setup_decision_fixtures
+
 # Decision validation should pass (no body files, no index entries = valid empty state)
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
 
 # Now create an orphan body file (no matching index entry) -> should fail
-cat > "$work/docs/decisions/d-2026-01-01-test-orphan.md" <<'BODY'
+cat >"$work/docs/decisions/d-2026-01-01-test-orphan.md" <<'BODY'
 ## Decision-ID
 
 D-2026-01-01-TEST_ORPHAN
@@ -506,17 +499,17 @@ set +e
 code_decision_orphan=$?
 set -e
 if [[ "$code_decision_orphan" -eq 0 ]]; then
-  eprint "Expected orphan decision body to fail create-pr"
-  exit 1
+	eprint "Expected orphan decision body to fail create-pr"
+	exit 1
 fi
 if ! grep -q "Decision Index validation failed" "$tmpdir/stderr_decision_orphan"; then
-  eprint "Expected Decision Index validation failed message, got:"
-  cat "$tmpdir/stderr_decision_orphan" >&2
-  exit 1
+	eprint "Expected Decision Index validation failed message, got:"
+	cat "$tmpdir/stderr_decision_orphan" >&2
+	exit 1
 fi
 
 # Fix by adding the entry to the index -> should pass
-cat > "$work/docs/decisions.md" <<'IDX'
+cat >"$work/docs/decisions.md" <<'IDX'
 # Decisions
 
 ## Decision Index
