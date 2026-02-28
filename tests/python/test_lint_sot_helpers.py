@@ -188,3 +188,26 @@ def test_extract_meta_info_ignores_status_after_escaped_backtick_comment() -> No
     )
     meta = EXTRACT_EPIC_CONFIG_MODULE.extract_meta_info(text)
     assert meta["status"] is None
+
+
+def test_extract_meta_info_code_span_backslash_before_comment() -> None:
+    r"""Code span ```` `\` ```` closes at the inner backtick per CommonMark.
+
+    Inside a code span backslash is literal, so ``\`` is a code span
+    containing just a backslash.  The ``<!--`` that follows is a real
+    HTML comment opener and the Approved status after it must be
+    stripped.
+    """
+    text = (
+        "# Epic: Test\n"
+        "\n"
+        "## メタ情報\n"
+        "\n"
+        "- 作成日: 2026-02-20\n"
+        "\n"
+        "`\\`<!--`\n"
+        "\n"
+        "- ステータス: Approved\n"
+    )
+    meta = EXTRACT_EPIC_CONFIG_MODULE.extract_meta_info(text)
+    assert meta["status"] is None

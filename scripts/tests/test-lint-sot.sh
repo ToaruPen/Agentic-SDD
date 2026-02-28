@@ -3676,4 +3676,27 @@ if ! (cd "$r41" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
 	exit 1
 fi
 
+# r42: Code span `\` closes at inner backtick; <!-- after it is a real comment
+# In CommonMark, backslash is literal inside code spans, so `\` is a code span
+# containing just a backslash.  The <!-- that follows is outside the code span
+# and acts as a genuine HTML comment opener that hides the Approved status.
+r42="$(new_repo case-code-span-backslash-html-comment)"
+write_base_docs "$r42"
+mkdir -p "$r42/docs/epics"
+cat >"$r42/docs/epics/test.md" <<'EPICEOF'
+# Epic: Test
+
+- ステータス: Draft
+- 参照PRD: docs/prd/test.md
+
+Example: `\`<!--`
+
+- ステータス: Approved
+EPICEOF
+
+if ! (cd "$r42" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+	eprint "Expected lint-sot OK: code span closes at inner backtick, <!-- is a real comment that hides Approved status"
+	exit 1
+fi
+
 printf '%s\n' "OK"
