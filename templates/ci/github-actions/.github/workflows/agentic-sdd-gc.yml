@@ -4,7 +4,7 @@ name: agentic-sdd-gc
 #
 # What this workflow does:
 # - Runs repo-local checks (currently: docs/SoT lint) on a schedule.
-# - Leaves evidence in the GitHub Actions logs.
+# - Leaves evidence in the GitHub Actions logs and Job Summary.
 #
 # What this workflow intentionally does NOT do:
 # - It does not open Issues/PRs or push commits.
@@ -33,4 +33,23 @@ jobs:
         run: |
           set -euo pipefail
           test -f ./scripts/lint-sot.py
-          python3 ./scripts/lint-sot.py docs
+
+          # Run lint; capture stderr for structured Job Summary on failure
+          lint_stderr="$(mktemp)"
+          if python3 ./scripts/lint-sot.py docs 2>"$lint_stderr"; then
+            echo '### Docs / SoT lint: passed' >> "$GITHUB_STEP_SUMMARY"
+          else
+            rc=$?
+            {
+              echo '### Docs / SoT lint: FAILED'
+              echo ''
+              echo '```'
+              cat "$lint_stderr"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            # Also emit to stderr so the raw log shows the errors
+            cat "$lint_stderr" >&2
+            rm -f "$lint_stderr"
+            exit "$rc"
+          fi
+          rm -f "$lint_stderr"

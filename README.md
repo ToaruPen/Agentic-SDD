@@ -708,6 +708,36 @@ Repository quality baseline (this repo itself):
 - `pytest -q tests/python --cov=scripts --cov-report=term-missing`  
   (threshold is managed in `pyproject.toml` via `tool.coverage.report.fail_under`)
 
+### Docs lint (SoT contract checks)
+
+Agentic-SDD includes a docs linter (`scripts/lint-sot.py`) that checks Markdown documents for SoT contract violations:
+
+- Placeholder HTML comments in Approved PRD/Epic
+- Missing or malformed research candidate fields
+- Broken relative links
+- Missing `参照PRD:` in Approved Epics
+
+**Local execution:**
+
+```bash
+python3 scripts/lint-sot.py docs
+```
+
+Pass additional root paths to lint specific directories:
+
+```bash
+python3 scripts/lint-sot.py docs templates
+```
+
+**CI execution (GC template):**
+
+A scheduled GitHub Actions workflow template is provided at `templates/ci/github-actions/.github/workflows/agentic-sdd-gc.yml`.
+Copy it into your repo's `.github/workflows/` directory. By default it runs weekly (Monday 03:17 UTC) and on `workflow_dispatch`.
+
+On failure, the workflow writes a structured error summary (check name, failed file, failure reason) to the GitHub Actions Job Summary.
+
+To customize the schedule, edit the `cron` expression in the workflow file.
+
 ---
 
 ## First-cycle Guide
