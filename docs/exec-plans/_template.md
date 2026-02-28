@@ -77,7 +77,7 @@
 - 他のIssueや将来の実装に影響する判断（アーキテクチャ・技術選定・廃止方針など）
 - 「なぜそうしたか」を数ヶ月後に再現できる必要がある判断
 - 上記に該当する場合は `docs/decisions/` に Decision 本文を作成し、ここにリンクを張る
-- 詳細: [`docs/decisions/README.md`](../decisions/README.md)
+- 詳細: `docs/decisions/README.md`
 
 例:
 
