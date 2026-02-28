@@ -19,7 +19,7 @@ Note: User-facing interactions and generated artifacts (PRDs/Epics/Issues/PRs) r
 ## Workflow
 
 ```
-/agentic-sdd* -> /create-prd -> /create-epic -> /generate-project-config** -> /create-issues -> /estimation -> /impl|/tdd -> /ui-iterate*** -> /test-review -> /review-cycle -> /final-review -> /test-review -> /create-pr -> /pr-bots-review (default in autonomous mode) -> [Merge] -> /cleanup
+/agentic-sdd* -> /create-prd -> /create-epic -> /generate-project-config** -> /create-issues -> /estimation -> /impl|/tdd -> /ui-iterate*** -> /test-review -> /review-cycle -> /final-review -> /test-review -> /create-pr -> /pr-bots-review (autonomous mode, when bot config is available) -> [Merge] -> /cleanup
      |            |              |              |                            |              |            |              |              |             |              |             |            |                 |          |
      v            v              v              v                            v              v            v              v              v             v              v             v            v                 v          v
      Install       7 questions    3-layer guard  Generate project            LOC-based       Full estimate Implement      UI round loop  Fail-fast     Local loop     DoD gate      Range recheck Push + PR create  Bot review  Remove worktree
@@ -42,7 +42,8 @@ Required gate notes:
 
 Autonomous default policy:
 
-- For implementation Issues, once the approval record exists, run `/impl` or `/tdd` and continue through `/create-pr` and `/pr-bots-review` without step-by-step prompts.
+- For implementation Issues, once the approval record exists, run `/impl` or `/tdd` and continue through `/create-pr` without step-by-step prompts.
+- Run `/pr-bots-review` only when review-bot configuration is present (`AGENTIC_SDD_PR_REVIEW_MENTION` plus bot login filtering settings). If config is missing, end the autonomous chain at PR creation and record setup follow-up.
 - Stop only on fail-fast gates: missing approval, unresolved estimate questions, scope lock mismatch, failing review/test gates, or metadata mismatch.
 - Keep human intervention focused on requirements decisions (PRD/Epic/Issue intent) and final PR review/merge decision.
 

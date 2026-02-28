@@ -69,8 +69,9 @@ Skipping is an exception path that requires explicit operator override and a rec
 
 ### Phase 6: Finish
 
-Report actual vs estimated, then proceed to `/final-review` automatically.
-After `/final-review` is approved, re-run `/test-review` on committed `HEAD` with `TEST_REVIEW_DIFF_MODE=range`, then run `/create-pr` and `/pr-bots-review`.
+Report actual vs estimated, then proceed to `/final-review` automatically in autonomous default mode.
+After `/final-review` is approved, re-run `/test-review` on committed `HEAD` with `TEST_REVIEW_DIFF_MODE=range`, then run `/create-pr`.
+Run `/pr-bots-review` only when review-bot configuration is present (`AGENTIC_SDD_PR_REVIEW_MENTION` plus bot login filtering settings); otherwise end at PR creation and record setup follow-up.
 
 Example (Japanese):
 
@@ -80,9 +81,10 @@ Example (Japanese):
 - 実際の行数: [75行]（見積もり: 50-100行 → 範囲内）
 - 実際の工数: [3h]（見積もり: 3-6h → 範囲内）
 
-次のステップ:
-1. /final-review を実行して最終セルフレビュー
-2. /create-pr を実行して push + PR作成
+次のステップ（autonomous default）:
+1. /final-review を実行（fail-fast 条件に該当しない限り継続）
+2. 承認後に /test-review（range）-> /create-pr を連鎖実行
+3. AGENTIC_SDD_PR_REVIEW_MENTION が設定済みの場合のみ /pr-bots-review を実行
 ```
 
 ## Related
@@ -100,4 +102,4 @@ Example (Japanese):
 
 ## Next command
 
-After implementation, run `/final-review`.
+In autonomous default mode, run `/final-review` and then continue to `/create-pr` (and `/pr-bots-review` when configured).

@@ -4,7 +4,7 @@ Request a review-bot check on a GitHub Pull Request and iterate until resolved.
 
 Autonomous default policy:
 
-- After `/create-pr`, run `/pr-bots-review` as the default next step.
+- After `/create-pr`, run `/pr-bots-review` as the default next step when review-bot configuration is present (`AGENTIC_SDD_PR_REVIEW_MENTION` plus bot login filtering settings).
 - If event-driven autofix is configured, treat this command as the verification/control loop while automation handles routine bot feedback.
 
 User-facing output remains in Japanese.

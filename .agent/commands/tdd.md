@@ -83,7 +83,7 @@ After `/final-review` is approved:
 
 - Re-run `/test-review` on committed `HEAD` with `TEST_REVIEW_DIFF_MODE=range`.
 - Run `/create-pr` to push and create the PR.
-- In autonomous default mode, run `/pr-bots-review <PR_NUMBER_OR_URL>` immediately after PR creation.
+- In autonomous default mode, run `/pr-bots-review <PR_NUMBER_OR_URL>` after PR creation only when review-bot configuration is present (`AGENTIC_SDD_PR_REVIEW_MENTION` plus bot login filtering settings).
 
 ## Related
 
