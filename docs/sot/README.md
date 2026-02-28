@@ -46,6 +46,7 @@
 
 - コマンド定義: [`.agent/commands/`](../../.agent/commands/)
 - ルール定義: [`.agent/rules/`](../../.agent/rules/)
+- runtime controls 規約: [`.agent/rules/runtime-controls.md`](../../.agent/rules/runtime-controls.md)
 
 ### 意思決定 / 用語
 

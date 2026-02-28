@@ -47,6 +47,7 @@ Release hygiene (when publishing a release)
 0) Bootstrap
 - Read AGENTS.md (this section + command list). Read README.md only if needed (Workflow section).
 - Read `.agent/commands/`, `.agent/rules/`, and `skills/` on-demand for the next command only.
+- Prefer a small Context Pack from `.agent/agents/docs.md` before opening large command docs end-to-end; read full command text only when the pack indicates uncertainty.
 
 1) Entry decision (where to start)
 

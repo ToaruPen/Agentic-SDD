@@ -18,10 +18,12 @@ COMMANDS = [
     "/estimation",
     "/impl",
     "/tdd",
+    "/test-review",
     "/review-cycle",
     "/final-review",
     "/sync-docs",
     "/create-pr",
+    "/pr-bots-review",
     "/worktree",
 ]
 

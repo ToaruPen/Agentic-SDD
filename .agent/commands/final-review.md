@@ -171,6 +171,7 @@ Write a short Japanese review with:
 - `.agent/rules/dod.md` - Definition of Done
 - `.agent/rules/docs-sync.md` - documentation sync rules
 - `.agent/commands/sync-docs.md` - sync-docs command
+- `.agent/rules/runtime-controls.md` - prompt caching/compaction/context management runbook
 
 ## Next steps
 
