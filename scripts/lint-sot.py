@@ -9,6 +9,12 @@ import sys
 from dataclasses import dataclass
 from typing import Iterable, List, Optional
 
+from md_sanitize import (
+    strip_fenced_code_blocks,
+    strip_html_comment_blocks,
+    strip_indented_code_blocks,
+)
+
 
 @dataclass(frozen=True)
 class LintError:
@@ -435,7 +441,10 @@ def is_approved_prd_or_epic(rel_path: str, text: str) -> bool:
     if rel_path.startswith("docs/prd/") or rel_path.startswith("docs/epics/"):
         if os.path.basename(rel_path) == "_template.md":
             return False
-        return _STATUS_APPROVED_RE.search(text) is not None
+        status_text = strip_html_comment_blocks(
+            strip_indented_code_blocks(strip_fenced_code_blocks(text))
+        )
+        return _STATUS_APPROVED_RE.search(status_text) is not None
     return False
 
 
@@ -762,59 +771,6 @@ _MD_LINK_RE = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 _MD_REF_DEF_RE = re.compile(r"^[ \t]{0,3}\[[^\]]+\]:\s*(\S+)", re.MULTILINE)
 
 
-_FENCE_OPEN_RE = re.compile(r"^[ \t]{0,3}((?:`{3,})|(?:~{3,}))")
-_FENCE_CLOSE_RE = re.compile(r"^[ \t]{0,3}((?:`{3,})|(?:~{3,}))[ \t]*$")
-
-
-def strip_fenced_code_blocks(text: str) -> str:
-    out_lines: List[str] = []
-    in_fence = False
-    fence_char = ""
-    fence_len = 0
-
-    for line in text.splitlines(keepends=True):
-        if not in_fence:
-            m_open = _FENCE_OPEN_RE.match(line)
-            if m_open:
-                seq = m_open.group(1)
-                in_fence = True
-                fence_char = seq[0]
-                fence_len = len(seq)
-                continue
-        else:
-            m_close = _FENCE_CLOSE_RE.match(line)
-            if m_close:
-                seq = m_close.group(1)
-                if seq[0] == fence_char and len(seq) >= fence_len:
-                    in_fence = False
-                    fence_char = ""
-                    fence_len = 0
-                    continue
-
-        if not in_fence:
-            out_lines.append(line)
-
-    return "".join(out_lines)
-
-
-_INDENTED_CODE_RE = re.compile(r"^(?:\t| {4,})")
-
-
-def strip_indented_code_blocks(text: str) -> str:
-    out_lines: List[str] = []
-    in_code = False
-    for line in text.splitlines(keepends=True):
-        if _INDENTED_CODE_RE.match(line):
-            in_code = True
-            continue
-
-        if in_code:
-            in_code = False
-
-        out_lines.append(line)
-    return "".join(out_lines)
-
-
 def strip_inline_code_spans(text: str) -> str:
     out: List[str] = []
     i = 0
@@ -840,17 +796,6 @@ def strip_inline_code_spans(text: str) -> str:
         i = k + len(delim)
 
     return "".join(out)
-
-
-_HTML_COMMENT_BLOCK_RE = re.compile(r"<!--.*?-->", re.DOTALL)
-
-
-def strip_html_comment_blocks(text: str) -> str:
-    out = _HTML_COMMENT_BLOCK_RE.sub("", text)
-    i = out.find("<!--")
-    if i == -1:
-        return out
-    return out[:i]
 
 
 def parse_md_link_targets(text: str) -> List[str]:
