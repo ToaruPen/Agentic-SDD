@@ -740,7 +740,12 @@ def lint_sot_reference_contract(repo: str, rel_path: str, text: str) -> List[Lin
             )
         ]
 
-    if not os.path.isfile(os.path.join(repo, normalized)):
+    # Resolve real path to guard against symlinks pointing outside docs/prd/
+    prd_root_abs = os.path.realpath(os.path.join(repo, "docs/prd"))
+    ref_abs = os.path.realpath(os.path.join(repo, normalized))
+    if os.path.commonpath(
+        [ref_abs, prd_root_abs]
+    ) != prd_root_abs or not os.path.isfile(ref_abs):
         return [
             LintError(
                 path=rel_path,

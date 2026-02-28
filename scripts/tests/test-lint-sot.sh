@@ -3338,6 +3338,37 @@ if ! grep -q "見つかりません" "$r29c/stderr"; then
   exit 1
 fi
 
+r29d="$(new_repo case-sot-ref-symlink)"
+write_base_docs "$r29d"
+mkdir -p "$r29d/docs/epics" "$r29d/docs/prd" "$r29d/outside"
+cat > "$r29d/outside/secret.md" <<'EOF'
+# Not a PRD
+EOF
+ln -s "$r29d/outside/secret.md" "$r29d/docs/prd/symlinked.md"
+cat > "$r29d/docs/epics/test.md" <<'EOF'
+# Epic: Test
+
+- ステータス: Approved
+- 参照PRD: docs/prd/symlinked.md
+EOF
+
+set +e
+(cd "$r29d" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r29d/stderr"
+code_sot_ref_symlink=$?
+set -e
+
+if [[ "$code_sot_ref_symlink" -eq 0 ]]; then
+  eprint "Expected lint-sot failure for symlink escaping docs/prd/"
+  cat "$r29d/stderr" >&2 || true
+  exit 1
+fi
+
+if ! grep -q "見つかりません" "$r29d/stderr"; then
+  eprint "Expected missing file message for symlink 参照PRD, got:"
+  cat "$r29d/stderr" >&2 || true
+  exit 1
+fi
+
 r30="$(new_repo case-sot-ref-multiple)"
 write_base_docs "$r30"
 mkdir -p "$r30/docs/epics" "$r30/docs/prd"
