@@ -16,6 +16,9 @@ _INDENTED_CODE_RE = re.compile(r"^(?:\t| {4,})")
 # Regex pattern for HTML comment blocks
 _HTML_COMMENT_BLOCK_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 
+# Regex pattern for inline code spans (backtick sequences)
+_INLINE_CODE_RE = re.compile(r"(`+)(.+?)\1", re.DOTALL)
+
 
 def strip_fenced_code_blocks(text: str) -> str:
     """Strip fenced code blocks (``` or ~~~) from markdown text."""
@@ -66,9 +69,18 @@ def strip_indented_code_blocks(text: str) -> str:
 
 
 def strip_html_comment_blocks(text: str) -> str:
-    """Strip HTML comment blocks from markdown text."""
+    """Strip HTML comment blocks from markdown text.
+
+    Matched ``<!-- ... -->`` pairs are removed.  For an unmatched ``<!--``
+    (no closing ``-->``), everything from that opener onward is removed —
+    unless the ``<!--`` sits inside an inline code span (backticks),
+    in which case it is not a real HTML comment opener and is left intact.
+    """
     out = _HTML_COMMENT_BLOCK_RE.sub("", text)
-    i = out.find("<!--")
+    # Mask inline code spans with same-length whitespace to preserve offsets,
+    # then search the masked text for a genuine unmatched <!--.
+    masked = _INLINE_CODE_RE.sub(lambda m: " " * len(m.group()), out)
+    i = masked.find("<!--")
     if i == -1:
         return out
     return out[:i]

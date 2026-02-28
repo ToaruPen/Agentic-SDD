@@ -3539,4 +3539,36 @@ if [[ "$code_sot_ref_regression" -ne 0 ]]; then
 	exit 1
 fi
 
+# r37: Approved Epic with inline code `<!--` must still be detected as Approved
+# (strip_html_comment_blocks must not truncate after unmatched <!--)
+r37="$(new_repo case-inline-html-comment-approved)"
+write_base_docs "$r37"
+mkdir -p "$r37/docs/epics"
+cat >"$r37/docs/epics/test.md" <<'EPICEOF'
+# Epic: Test
+
+HTMLコメントの例: `<!--` はインラインコードです。
+
+- ステータス: Approved
+- 参照PRD:
+EPICEOF
+
+# An Approved Epic without valid 参照PRD must fail lint
+set +e
+(cd "$r37" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r37/stderr"
+code_inline_comment=$?
+set -e
+
+if [[ "$code_inline_comment" -eq 0 ]]; then
+	eprint "Expected lint-sot failure for Approved Epic with inline <!--  and missing 参照PRD"
+	cat "$r37/stderr" >&2 || true
+	exit 1
+fi
+
+if ! grep -q "参照PRD" "$r37/stderr"; then
+	eprint "Expected 参照PRD message for Approved Epic with inline <!-- , got:"
+	cat "$r37/stderr" >&2 || true
+	exit 1
+fi
+
 printf '%s\n' "OK"
