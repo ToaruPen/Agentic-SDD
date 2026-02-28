@@ -7,7 +7,7 @@ DEFAULT_REPO_URL="https://github.com/ToaruPen/Agentic-SDD.git"
 # Fallback is used when `latest` can't be resolved (e.g. no semver tags).
 # Keep this pinned to a known-good *release tag* for reproducibility.
 # (Assumption: release tags are immutable; do not move tags.)
-DEFAULT_REF_FALLBACK="v0.3.15"
+DEFAULT_REF_FALLBACK="v0.4.0.0"
 
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/agentic-sdd"
 DEFAULT_REF_FILE="$CONFIG_DIR/default-ref"
@@ -134,10 +134,10 @@ resolve_latest_release_tag() {
 
     local tags
     tags="$(printf '%s\n' "$out" | sed -n 's|^[0-9a-f]*\trefs/tags/||p' \
-        | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' || true)"
+        | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$' || true)"
     [ -n "$tags" ] || return 1
 
-    # Pick the highest semver tag (supports vX.Y.Z and X.Y.Z).
+    # Pick the highest semver tag (supports vX.Y.Z[.W] and X.Y.Z[.W]).
     local best
     best="$(printf '%s\n' "$tags" \
         | awk '{
@@ -146,11 +146,13 @@ resolve_latest_release_tag() {
             sub(/^v/, "", v);
             split(v, a, ".");
             if (a[1] == "" || a[2] == "" || a[3] == "") next;
-            printf "%d\t%d\t%d\t%s\n", a[1], a[2], a[3], orig;
+            p4 = a[4];
+            if (p4 == "") p4 = 0;
+            printf "%d\t%d\t%d\t%d\t%s\n", a[1], a[2], a[3], p4, orig;
         }' \
-        | sort -t $'\t' -k1,1n -k2,2n -k3,3n \
+        | sort -t $'\t' -k1,1n -k2,2n -k3,3n -k4,4n \
         | tail -n 1 \
-        | cut -f4)"
+        | cut -f5)"
     [ -n "$best" ] || return 1
 
     printf '%s\n' "$best"
@@ -346,7 +348,7 @@ if [ "$REF" = "latest" ]; then
     if [ -z "$latest_tag" ]; then
         if [ "$REF_EXPLICIT" = true ]; then
             log_error "Failed to resolve latest release tag from: $REPO"
-            log_error "Expected a semver tag like X.Y.Z or vX.Y.Z"
+            log_error "Expected a semver tag like X.Y.Z, vX.Y.Z, X.Y.Z.W, or vX.Y.Z.W"
             exit 1
         fi
 
