@@ -10,6 +10,7 @@ Exception: machine-readable keys/tokens used for automation may remain in Englis
 
 ```
 /create-issues [epic-file]
+/create-issues --mode epic
 /create-issues --mode generic
 /create-issues --mode bugfix
 /create-issues --mode ops
@@ -18,6 +19,7 @@ Exception: machine-readable keys/tokens used for automation may remain in Englis
 Backward compatibility:
 
 - Existing Epic batch path remains valid: `/create-issues [epic-file]`
+- Explicit Epic mode is supported: `/create-issues --mode epic`
 - If `epic-file` is provided, treat mode as `epic`.
 
 ## Flow
@@ -26,7 +28,7 @@ Backward compatibility:
 
 Choose one mode and fail fast if required inputs are missing.
 
-- `epic`: create multiple Issues from an Epic split plan
+- `epic` (`/create-issues --mode epic` or `/create-issues [epic-file]`): create multiple Issues from an Epic split plan
 - `generic`: create a single improvement/chore Issue
 - `bugfix`: create a bug fix / urgent response Issue
 - `ops`: create an operations/runbook/process Issue
@@ -56,7 +58,7 @@ Choose one mode and fail fast if required inputs are missing.
 3. Define `検証条件` (observable fix confirmation)
 4. Select exactly one priority (P0-P4); do not select multiple priorities
 5. Add matching `priority:P[0-4]` label
-6. Stop if evidence, impact, purpose, or verification condition is missing, or if priority is missing or multiple priorities are selected
+6. Stop if evidence, impact, purpose, reproduction or incident context, or verification condition is missing, or if priority is missing or multiple priorities are selected
 
 ### Phase 3: Granularity check
 
