@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0.1] - 2026-02-28
+
+- fix(release): Remove `--ref latest` fallback in `scripts/agentic-sdd` and enforce fail-fast when no semver release tag can be resolved.
+- test(release): Add regression coverage for `--ref latest` fail-fast behavior when the upstream repository has no semver tags.
+- docs(release): Update `docs/releasing.md` to treat `--ref latest` as fail-fast and remove fallback-based guidance.
+
 ## [0.4.0.0] - 2026-02-28
 
 - feat(create-pr): Enforce decision index validation gate before PR creation.

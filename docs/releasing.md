@@ -11,8 +11,8 @@ Automation:
 ## Create a release
 
 1. Update `CHANGELOG.md`.
-2. Update pinned defaults to the new tag:
-   - `scripts/agentic-sdd` (`DEFAULT_REF_FALLBACK`)
+2. Update release resolver/docs references to the new tag:
+   - `scripts/agentic-sdd` latest semver matcher + fail-fast behavior (`--ref latest` must not fallback)
    - `README.md` subtree update examples (`git subtree add/pull`, `update-agentic-sdd.sh --ref`)
    - `scripts/update-agentic-sdd.sh` usage example ref
 3. Create and push a tag:
