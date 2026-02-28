@@ -54,9 +54,9 @@ Choose one mode and fail fast if required inputs are missing.
 1. Collect bug evidence (`根拠リンク`) and impact
 2. Include `起票目的` and reproduction or incident context
 3. Define `検証条件` (observable fix confirmation)
-4. Select exactly one priority (P0-P4)
+4. Select exactly one priority (P0-P4); do not select multiple priorities
 5. Add matching `priority:P[0-4]` label
-6. Stop if evidence, impact, purpose, priority, or verification condition is missing
+6. Stop if evidence, impact, purpose, or verification condition is missing, or if priority is missing or multiple priorities are selected
 
 ### Phase 3: Granularity check
 
