@@ -350,6 +350,21 @@ set -e
 run_test "AC2: wrong-directory link fails (exit!=0)" test "$code_ac2_wrong_dir" -ne 0
 run_test "AC2: wrong-directory error is reported" grep -q "docs/decisions/\*.md" "$r5e/stderr"
 
+eprint "--- AC2: case-subdir-shadowing-same-filename ---"
+r5f="$(new_repo case-subdir-shadowing-same-filename)"
+write_template "$r5f"
+write_valid_decision "$r5f" "D-2026-02-28-SHADOW" "d-2026-02-28-shadow.md"
+mkdir -p "$r5f/docs/decisions/subdir"
+cp "$r5f/docs/decisions/d-2026-02-28-shadow.md" "$r5f/docs/decisions/subdir/d-2026-02-28-shadow.md"
+write_valid_index "$r5f" "- D-2026-02-28-SHADOW: [\`docs/decisions/d-2026-02-28-shadow.md\`](./decisions/subdir/d-2026-02-28-shadow.md)"
+set +e
+(cd "$r5f" && python3 ./scripts/validate-decision-index.py) >"$r5f/stdout" 2>"$r5f/stderr"
+code_ac2_subdir_shadow=$?
+set -e
+
+run_test "AC2: subdir shadowing path fails (exit!=0)" test "$code_ac2_subdir_shadow" -ne 0
+run_test "AC2: unmanaged-file error is reported" grep -q "Index references unmanaged file" "$r5f/stderr"
+
 # ===========================================================================
 # AC3: Supersedes references point to existing Decision-IDs
 # ===========================================================================

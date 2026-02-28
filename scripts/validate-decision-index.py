@@ -158,10 +158,12 @@ def validate(repo_root: Path) -> list[str]:
 
     # --- Collect body files ---
     body_files: dict[str, Path] = {}
+    body_repo_paths: dict[str, Path] = {}
     if decisions_dir.exists():
         for f in sorted(decisions_dir.iterdir()):
             if f.is_file() and f.name not in SKIP_FILES and f.suffix == ".md":
                 body_files[f.name] = f
+                body_repo_paths[f"docs/decisions/{f.name}"] = f
 
     # --- Collect all known Decision-IDs (from body files) ---
     body_decision_ids: dict[str, str] = {}
@@ -225,9 +227,9 @@ def validate(repo_root: Path) -> list[str]:
             )
             continue
 
+        resolved_repo_rel = str(PurePosixPath(*repo_rel.parts))
         resolved_path = repo_root.joinpath(*repo_rel.parts)
-        fname = resolved_path.name
-        index_files.add(fname)
+        index_files.add(resolved_repo_rel)
 
         if not resolved_path.exists():
             errors.append(
@@ -235,12 +237,13 @@ def validate(repo_root: Path) -> list[str]:
             )
             continue
 
-        if fname not in body_files:
+        if resolved_repo_rel not in body_repo_paths:
             errors.append(
                 f"Index references unmanaged file: {ref_path} (Decision-ID: {did})"
             )
             continue
 
+        fname = body_repo_paths[resolved_repo_rel].name
         body_did = body_decision_ids.get(fname)
         if body_did and body_did != did:
             errors.append(
@@ -249,8 +252,9 @@ def validate(repo_root: Path) -> list[str]:
             )
 
     # --- AC2: Check body -> index (orphan files) ---
-    for fname in body_files:
-        if fname not in index_files:
+    for body_repo_rel in body_repo_paths:
+        if body_repo_rel not in index_files:
+            fname = Path(body_repo_rel).name
             errors.append(
                 f"Body file not in index: docs/decisions/{fname} "
                 f"— add it to docs/decisions.md ## Decision Index"
