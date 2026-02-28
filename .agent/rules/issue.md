@@ -199,6 +199,23 @@ If file targets are unknown or overlaps exist, do NOT use `parallel-ok`; mark as
 
 ---
 
+### Tracking-only child completion criteria (parent implementation unit)
+
+When using a parent Issue as the implementation unit, child Issues are tracking-only and must stay branch-less.
+
+Required for each child Issue before closing:
+
+- Parent linkage is explicit in the child body (Issue number + reason).
+- Child AC is checked with concrete evidence (parent PR link, checklist items, or review notes).
+- Closure reference is explicit: use `Refs #<child>` while in progress and `Fixes #<child>` only when all child AC is satisfied by the parent PR.
+
+Parent closure rule:
+
+- Close the parent Issue only after all linked tracking-only child Issues are completed and final integration checks pass.
+- The parent PR must use `Refs #<parent>` (not `Fixes #<parent>`) to prevent GitHub from auto-closing the parent Issue on merge.
+
+---
+
 ## Issue body template (Japanese output)
 
 ```markdown
