@@ -239,7 +239,7 @@ Example (Japanese):
 エージェントがヒューリスティックに基づきモードを選択しました:
 - 選択モード: [/impl]
 - 選択根拠: [mode_source: agent-heuristic]
-- 選択理由: [mode_reason: ...]
+- 選択理由: [mode_reason: 受け入れ条件が実装中心で既存テスト拡張で十分なため、standard実装を選択]
 
 承認: この見積もり内容で実装を開始してよいですか？（Yes/No）
 ```
@@ -263,7 +263,7 @@ If section 10 contains questions:
 
 When Phase 2.5 is approved, stop and point to the next command:
 
-- If the selected mode is normal: run `/impl`
+- If the selected mode is standard (default): run `/impl`
 - If the selected mode is strict TDD: run `/tdd`
 
 ## N/A examples
@@ -279,7 +279,7 @@ When Phase 2.5 is approved, stop and point to the next command:
 - `skills/estimation.md` - estimation skill details
 - `skills/testing.md` - test strategy and design
 - `skills/tdd-protocol.md` - TDD execution protocol
-- `.agent/commands/impl.md` - normal implementation flow
+- `.agent/commands/impl.md` - standard implementation flow
 - `.agent/commands/tdd.md` - strict TDD execution loop
 - `.agent/rules/impl-gate.md` - mandatory gates (estimate/test/quality)
 - `.agent/rules/dod.md` - Definition of Done

@@ -158,8 +158,11 @@ def validate_approval(obj: Dict[str, Any], expected_issue_number: int) -> None:
     if not isinstance(mode_source, str) or mode_source not in MODE_SOURCE_ALLOWED:
         raise ValueError(f"mode_source must be one of {sorted(MODE_SOURCE_ALLOWED)}")
 
-    mode_reason = obj.get("mode_reason")
-    if not isinstance(mode_reason, str) or not mode_reason:
+    mode_reason_raw = obj.get("mode_reason")
+    if not isinstance(mode_reason_raw, str):
+        raise ValueError("mode_reason must be a non-empty string")
+    mode_reason = mode_reason_raw.strip()
+    if not mode_reason:
         raise ValueError("mode_reason must be a non-empty string")
 
     approved_at = obj.get("approved_at")

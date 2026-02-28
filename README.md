@@ -693,8 +693,8 @@ Approvals are stored locally (gitignored) under:
 After Phase 2.5 is approved, create the record:
 
 ```bash
-python3 scripts/agentic-sdd/create-approval.py --issue <n> --mode <impl|tdd|custom> --mode-source <agent-heuristic|user-choice|operator-override> --mode-reason '<reason>'
-python3 scripts/agentic-sdd/validate-approval.py
+python3 scripts/create-approval.py --issue <n> --mode <impl|tdd|custom> --mode-source <agent-heuristic|user-choice|operator-override> --mode-reason '<reason>'
+python3 scripts/validate-approval.py
 ```
 
 Repository quality baseline (this repo itself):
