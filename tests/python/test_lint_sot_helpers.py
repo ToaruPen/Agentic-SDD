@@ -1,14 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
-import sys
 from pathlib import Path
 from types import ModuleType
-
-# Add scripts directory to path for md_sanitize import
-_REPO_ROOT = Path(__file__).resolve().parents[2]
-if str(_REPO_ROOT / "scripts") not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT / "scripts"))
 
 
 def _load_script_module(module_name: str, script_name: str) -> ModuleType:
