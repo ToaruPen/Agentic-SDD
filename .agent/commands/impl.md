@@ -40,7 +40,7 @@ Stop conditions:
 
 - If the estimate is not approved: stop.
 - If section 10 has open questions: stop and wait for answers (then re-run `/estimation`).
-- If the user chose strict TDD mode: stop and run `/tdd [issue-number]` instead.
+- If the selected mode is strict TDD: stop and run `/tdd [issue-number]` instead.
 
 Note:
 

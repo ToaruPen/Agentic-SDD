@@ -69,7 +69,7 @@ cat > "$wt/.agentic-sdd/approvals/issue-123/estimate.md" <<'EOF'
 テスト用見積もり
 EOF
 
-(cd "$wt" && python3 scripts/create-approval.py --issue 123 --mode impl >/dev/null)
+(cd "$wt" && python3 scripts/create-approval.py --issue 123 --mode impl --mode-source agent-heuristic --mode-reason 'test: default impl mode' >/dev/null)
 (cd "$wt" && python3 scripts/validate-approval.py >/dev/null)
 
 git -C "$wt" commit -m "test: should pass" -q
@@ -92,7 +92,7 @@ if [[ "$rc" -eq 0 ]]; then
 fi
 
 # Refresh approval and push should pass.
-(cd "$wt" && python3 scripts/create-approval.py --issue 123 --mode impl --force >/dev/null)
+(cd "$wt" && python3 scripts/create-approval.py --issue 123 --mode impl --mode-source agent-heuristic --mode-reason 'test: refreshed after drift' --force >/dev/null)
 (cd "$wt" && python3 scripts/validate-approval.py >/dev/null)
 
 git -C "$wt" push -q

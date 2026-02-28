@@ -216,6 +216,7 @@ Create a worktree for the Issue (required):
 Then run implementation inside that worktree.
 
 Implementation requires a Full estimate + explicit user approval gate.
+The agent selects the implementation mode (`/impl` or `/tdd`) using deterministic heuristics during `/estimation`.
 If an approved estimate does not exist yet, `/impl` and `/tdd` will run `/estimation` first and stop for approval.
 
 ```
@@ -232,13 +233,9 @@ If estimate assumptions are still unclear, run estimation research first:
 /impl [issue-number]
 ```
 
-`/impl` is the normal implementation flow. `/tdd` is the strict TDD flow.
-
-To run strict TDD directly:
-
-```
-/tdd [issue-number]
-```
+`/impl` is the normal implementation flow (default). `/tdd` is the strict TDD flow.
+The agent selects the mode automatically based on Issue characteristics (see `.agent/rules/impl-gate.md` Gate 0).
+The mode, selection source, and reason are recorded in the approval record.
 
 Both `/impl` and `/tdd` require the same Full estimate + user approval gate (via `/estimation`).
 
@@ -696,7 +693,7 @@ Approvals are stored locally (gitignored) under:
 After Phase 2.5 is approved, create the record:
 
 ```bash
-python3 scripts/agentic-sdd/create-approval.py --issue <n> --mode <impl|tdd|custom>
+python3 scripts/agentic-sdd/create-approval.py --issue <n> --mode <impl|tdd|custom> --mode-source <agent-heuristic|user-choice|operator-override> --mode-reason '<reason>'
 python3 scripts/agentic-sdd/validate-approval.py
 ```
 

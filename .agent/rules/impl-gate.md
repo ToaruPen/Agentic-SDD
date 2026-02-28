@@ -20,11 +20,17 @@ Rationale:
 
 ## Gate 0: Mode selection (required)
 
-- [ ] Ask the user which mode to use (do not choose on your own):
-  1. /impl (normal)
-  2. /tdd (strict Red -> Green -> Refactor loop)
-  3. Custom (user-written conditions)
-- [ ] Record the user's choice.
+- [ ] The agent selects the mode using deterministic heuristics:
+  - Default: `/impl` (normal implementation).
+  - Select `/tdd` when ANY of these conditions are met:
+    1. The Issue is a bug fix with a reproducible failing test.
+    2. The Issue AC explicitly requires TDD.
+    3. The operator/user explicitly requests `/tdd`.
+  - Select `custom` only when the operator/user explicitly provides custom conditions.
+- [ ] Record the selection in the approval record:
+  - `mode`: impl | tdd | custom
+  - `mode_source`: agent-heuristic | user-choice | operator-override
+  - `mode_reason`: free-text explanation of why this mode was selected
 
 Implementation note:
 

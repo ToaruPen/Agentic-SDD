@@ -54,7 +54,10 @@ For new development:
 - No PRD: /research prd -> /create-prd
 - PRD exists but no Epic: /research epic -> /create-epic
 - Epic exists but no Issues / not split: /create-issues
-- Issues exist: ask the user to choose /impl vs /tdd (do not choose on your own)
+- Issues exist: the agent selects /impl or /tdd via deterministic heuristics (see `.agent/rules/impl-gate.md` Gate 0)
+  - Default: /impl (normal). Use /tdd when the Issue is a bug fix with a reproducible failing test,
+    or when the Issue AC explicitly requires TDD.
+  - Record mode, source, and reason in the approval record.
   - Then run: /impl <issue-id> or /tdd <issue-id>
 
 For bug fix / refactoring:
@@ -67,7 +70,7 @@ Bug fix Issues require Priority (P0-P4). See `.agent/rules/issue.md` for details
 
 2) Complete one Issue (iterate)
 - /impl or /tdd: pass the implementation gates (.agent/rules/impl-gate.md)
-  - Full estimate (11 sections) -> user approval -> implement -> add/run tests
+  - Full estimate (11 sections) -> agent mode selection -> user approval -> implement -> add/run tests
   - Worktree is required for Issue branches (see `.agent/rules/impl-gate.md` Gate -1)
 - /test-review: run fail-fast test review before /review-cycle
 - /review-cycle: run locally via `codex exec` before committing (fix -> re-run)

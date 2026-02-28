@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 from typing import Any, Dict, List, Optional, Tuple
@@ -12,6 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 EXIT_GATE_BLOCKED = 2
 
 MODE_ALLOWED = {"impl", "tdd", "custom"}
+MODE_SOURCE_ALLOWED = {"agent-heuristic", "user-choice", "operator-override"}
 
 
 def eprint(msg: str) -> None:
@@ -119,6 +121,8 @@ def validate_approval(obj: Dict[str, Any], expected_issue_number: int) -> None:
         "schema_version",
         "issue_number",
         "mode",
+        "mode_source",
+        "mode_reason",
         "approved_at",
         "approver",
     }
@@ -130,7 +134,7 @@ def validate_approval(obj: Dict[str, Any], expected_issue_number: int) -> None:
     # estimate_hash/estimate_sha256 is validated separately.
     _field, _value = pick_estimate_hash_field(obj)
 
-    extra_allowed = {"estimate_hash", "estimate_sha256"}
+    extra_allowed = {"estimate_hash", "estimate_sha256", "mode_source", "mode_reason"}
     extra = set(obj.keys()) - required - extra_allowed
     if extra:
         raise KeyError(f"unexpected keys: {sorted(extra)}")
@@ -149,6 +153,14 @@ def validate_approval(obj: Dict[str, Any], expected_issue_number: int) -> None:
     mode = obj.get("mode")
     if not isinstance(mode, str) or mode not in MODE_ALLOWED:
         raise ValueError(f"mode must be one of {sorted(MODE_ALLOWED)}")
+
+    mode_source = obj.get("mode_source")
+    if not isinstance(mode_source, str) or mode_source not in MODE_SOURCE_ALLOWED:
+        raise ValueError(f"mode_source must be one of {sorted(MODE_SOURCE_ALLOWED)}")
+
+    mode_reason = obj.get("mode_reason")
+    if not isinstance(mode_reason, str) or not mode_reason:
+        raise ValueError("mode_reason must be a non-empty string")
 
     approved_at = obj.get("approved_at")
     if not isinstance(approved_at, str) or not approved_at:
@@ -173,7 +185,9 @@ def gate_blocked(msg: str) -> int:
     eprint("2) Save the approved estimate to:")
     eprint("   .agentic-sdd/approvals/issue-<n>/estimate.md")
     eprint("3) Create/refresh approval.json:")
-    eprint("   python3 scripts/create-approval.py --issue <n> --mode <impl|tdd|custom>")
+    eprint(
+        "   python3 scripts/create-approval.py --issue <n> --mode <impl|tdd|custom> --mode-source <agent-heuristic|user-choice|operator-override> --mode-reason '<reason>'"
+    )
     eprint("4) Validate:")
     eprint("   python3 scripts/validate-approval.py")
     return EXIT_GATE_BLOCKED
@@ -231,12 +245,15 @@ def main() -> int:
         if not re.match(r"^sha256:[0-9a-f]{64}$", recorded_hash):
             raise ValueError(f"{field} must be 'sha256:<64 lowercase hex>'")
         if recorded_hash != computed_hash:
+            mode_for_cmd = shlex.quote(str(obj.get("mode") or "<mode>"))
+            mode_source_for_cmd = shlex.quote(str(obj.get("mode_source") or "<source>"))
+            mode_reason_for_cmd = shlex.quote(str(obj.get("mode_reason") or "<reason>"))
             return gate_blocked(
                 "Estimate drift detected.\n"
                 f"- recorded: {recorded_hash}\n"
                 f"- computed: {computed_hash}\n"
                 "If you updated the estimate, re-run Phase 2.5 and recreate approval.json:\n"
-                f"  python3 scripts/create-approval.py --issue {issue_number} --mode {obj.get('mode')} --force"
+                f"  python3 scripts/create-approval.py --issue {issue_number} --mode {mode_for_cmd} --mode-source {mode_source_for_cmd} --mode-reason {mode_reason_for_cmd} --force"
             )
     except KeyError as exc:
         return gate_blocked(f"Invalid approval.json: {exc}")
