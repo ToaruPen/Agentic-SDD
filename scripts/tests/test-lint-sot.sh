@@ -3654,4 +3654,26 @@ if ! grep -q "ステータス行がインデント" "$r40/stderr"; then
 	exit 1
 fi
 
+# r41: Epic with escaped backtick (\`) around <!-- must still treat <!-- as real comment
+# The \` is NOT a code span delimiter, so <!-- is a genuine HTML comment opener.
+# The Approved status is inside the comment and should be stripped.
+r41="$(new_repo case-escaped-backtick-html-comment)"
+write_base_docs "$r41"
+mkdir -p "$r41/docs/epics"
+cat >"$r41/docs/epics/test.md" <<'EPICEOF'
+# Epic: Test
+
+- ステータス: Draft
+- 参照PRD: docs/prd/test.md
+
+Here is an escaped backtick \`<!-- and another \`
+
+- ステータス: Approved
+EPICEOF
+
+if ! (cd "$r41" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+	eprint "Expected lint-sot OK: escaped backticks do not create inline code span, so <!-- starts a real comment that hides Approved status"
+	exit 1
+fi
+
 printf '%s\n' "OK"

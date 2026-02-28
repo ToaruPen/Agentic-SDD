@@ -166,3 +166,25 @@ def test_lint_status_format_ok_for_toplevel_status() -> None:
 """
     errs = MODULE.lint_status_format("docs/epics/test.md", text)
     assert len(errs) == 0
+
+
+def test_extract_meta_info_ignores_status_after_escaped_backtick_comment() -> None:
+    """Escaped backticks (\\`) do not form inline code spans.
+
+    So `\\`<!-- ... \\`` should NOT mask the `<!--`; the `<!--`
+    is a genuine HTML comment opener and everything after it is
+    stripped.  The Approved status that follows should be invisible.
+    """
+    text = (
+        "# Epic: Test\n"
+        "\n"
+        "## メタ情報\n"
+        "\n"
+        "- 作成日: 2026-02-20\n"
+        "\n"
+        "Here is an escaped backtick \\`<!-- and another \\`\n"
+        "\n"
+        "- ステータス: Approved\n"
+    )
+    meta = EXTRACT_EPIC_CONFIG_MODULE.extract_meta_info(text)
+    assert meta["status"] is None
