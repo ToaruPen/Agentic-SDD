@@ -64,6 +64,10 @@ status_max_iters='Autofix stopped: reached max iterations'
 printf '%s\n' "$*" >> "$log_file"
 
 if [[ "${1:-}" == "pr" && "${2:-}" == "view" ]]; then
+  if [[ "$*" == *"--json headRepository,headRefName,baseRefName"* ]]; then
+    printf '%s\t%s\t%s\n' "$head_repo" "$head_ref" "$base_ref"
+    exit 0
+  fi
   if [[ "$*" == *"--json headRepository"* ]]; then
     printf '%s\n' "$head_repo"
     exit 0
