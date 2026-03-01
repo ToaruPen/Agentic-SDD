@@ -76,7 +76,10 @@ def has_conflicting_tools(
 
     recommended_linter = lang_config.get("linter", {}).get("name", "")
     existing_linters = [
-        c["tool"] for c in existing_configs if c.get("tool", "") != recommended_linter
+        tool
+        for c in existing_configs
+        for tool in [c.get("tool")]
+        if tool and tool != recommended_linter
     ]
 
     linter_names = {recommended_linter} | set(existing_linters)
@@ -475,9 +478,16 @@ def run_setup(
     # CI コマンド
     ci_commands = generate_ci_commands(unique_lang_names, registry, lang_sources)
 
-    # 証跡ファイル
+    # 証跡ファイル（確定検出のみ）
+    confirmed_languages = [
+        lang for lang in languages if lang.get("confidence", "confirmed") != "inferred"
+    ]
+    confirmed_detection: Dict[str, Any] = {
+        **detection,
+        "languages": confirmed_languages,
+    }
     evidence_path = generate_evidence_trail(
-        detection,
+        confirmed_detection,
         registry,
         ci_commands,
         target_dir,

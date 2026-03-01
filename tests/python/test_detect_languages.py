@@ -152,6 +152,18 @@ def test_detect_not_monorepo(tmp_path: Path) -> None:
     assert result["is_monorepo"] is False
     assert result["subprojects"] == []
 
+def test_detect_monorepo_with_root_config(tmp_path: Path) -> None:
+    """Root-level config plus multiple subprojects should still be detected as monorepo."""
+    write_file(tmp_path / "package.json", "{}")
+    write_file(tmp_path / "backend" / "go.mod", "module example.com/backend\n")
+    write_file(tmp_path / "frontend" / "package.json", "{}")
+
+    result = MODULE.detect_project(tmp_path)
+
+    assert result["is_monorepo"] is True
+    subprojects = result["subprojects"]
+    assert {"path": "backend", "languages": ["go"]} in subprojects
+    assert {"path": "frontend", "languages": ["javascript"]} in subprojects
 
 def test_cli_path_option(tmp_path: Path) -> None:
     write_file(

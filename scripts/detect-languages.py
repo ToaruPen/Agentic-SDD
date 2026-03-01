@@ -254,16 +254,12 @@ def detect_project(root: Path) -> Dict[str, Any]:
         path_to_languages.setdefault(top, set()).add(entry["name"])
 
     top_keys = set(path_to_languages.keys())
-    if "." in top_keys:
-        is_monorepo = False
-    else:
-        is_monorepo = len(top_keys) > 1
+    non_root_keys = top_keys - {"."}
+    is_monorepo = len(non_root_keys) > 1
 
     subprojects: List[Dict[str, Any]] = []
     if is_monorepo:
-        for path_key in sorted(path_to_languages):
-            if path_key == ".":
-                continue
+        for path_key in sorted(non_root_keys):
             subprojects.append(
                 {
                     "path": path_key,
