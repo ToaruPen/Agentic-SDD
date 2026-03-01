@@ -4,7 +4,6 @@ import os
 import re
 import subprocess
 import sys
-from typing import List, Optional
 
 EXIT_GATE_BLOCKED = 2
 
@@ -14,16 +13,15 @@ def eprint(msg: str) -> None:
 
 
 def run(
-    cmd: List[str],
-    cwd: Optional[str] = None,
+    cmd: list[str],
+    cwd: str | None = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(  # noqa: S603
         cmd,
         cwd=cwd,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=check,
     )
 
@@ -31,8 +29,8 @@ def run(
 def git_repo_root() -> str:
     try:
         p = run(["git", "rev-parse", "--show-toplevel"], check=True)
-    except subprocess.CalledProcessError:
-        raise RuntimeError("Not in a git repository; cannot locate repo root.")
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError("Not in a git repository; cannot locate repo root.") from exc
     root = p.stdout.strip()
     if not root:
         raise RuntimeError("Failed to locate repo root via git.")
@@ -47,7 +45,7 @@ def current_branch(repo_root: str) -> str:
     return p.stdout.strip()
 
 
-def extract_issue_number_from_branch(branch: str) -> Optional[int]:
+def extract_issue_number_from_branch(branch: str) -> int | None:
     m = re.search(r"\bissue-(\d+)\b", branch)
     if not m:
         return None
@@ -87,7 +85,7 @@ def main() -> int:
     git_path = os.path.join(repo_root, ".git")
     if os.path.isfile(git_path):
         try:
-            with open(git_path, "r", encoding="utf-8") as fh:
+            with open(git_path, encoding="utf-8") as fh:
                 content = fh.read()
         except OSError as exc:
             return gate_blocked(f"Failed to read .git file.\n- error: {exc}")

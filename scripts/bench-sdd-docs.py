@@ -8,13 +8,13 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SUPPORTED_COMMANDS_HEADER = "Supported command tokens:"
 SUPPORTED_COMMANDS_END = "Alias:"
 
-NON_PACK_COMMAND_DOCS: Set[str] = {
+NON_PACK_COMMAND_DOCS: set[str] = {
     "cleanup.md",
     "debug.md",
     "generate-project-config.md",
@@ -22,8 +22,8 @@ NON_PACK_COMMAND_DOCS: Set[str] = {
 }
 
 
-def _parse_supported_command_tokens(docs_text: str) -> List[str]:
-    commands: List[str] = []
+def _parse_supported_command_tokens(docs_text: str) -> list[str]:
+    commands: list[str] = []
     in_section = False
     saw_item = False
     for raw_line in docs_text.splitlines():
@@ -53,7 +53,7 @@ def _parse_supported_command_tokens(docs_text: str) -> List[str]:
     return commands
 
 
-def _load_supported_commands(repo_root: Path) -> List[str]:
+def _load_supported_commands(repo_root: Path) -> list[str]:
     docs_path = repo_root / ".agent/agents/docs.md"
     if not docs_path.is_file():
         raise RuntimeError(f"SoT file not found: {docs_path}")
@@ -76,8 +76,8 @@ def _token_to_command_doc_name(command_name: str) -> str:
 
 
 def _command_doc_coverage(
-    repo_root: Path, supported_tokens: List[str]
-) -> Tuple[List[str], List[str]]:
+    repo_root: Path, supported_tokens: list[str]
+) -> tuple[list[str], list[str]]:
     commands_dir = repo_root / ".agent/commands"
     doc_names = sorted(p.name for p in commands_dir.glob("*.md") if p.is_file())
     supported_doc_names = {
@@ -116,7 +116,7 @@ CONTRACT = _contract_module.load_context_pack_contract(REPO_ROOT)
 class Result:
     command: str
     ok: bool
-    duration_ms: Optional[int]
+    duration_ms: int | None
     out_chars: int
     out_lines: int
     has_template: bool
@@ -125,24 +125,24 @@ class Result:
     has_evidence_paths: bool
     has_code_fence: bool
     has_triple_dash: bool
-    error: Optional[str]
+    error: str | None
 
 
-def _loads_json_lines(text: str) -> List[Dict[str, Any]]:
-    out: List[Dict[str, Any]] = []
-    for line in text.splitlines():
-        line = line.strip()
-        if not line:
+def _loads_json_lines(text: str) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for raw_line in text.splitlines():
+        stripped_line = raw_line.strip()
+        if not stripped_line:
             continue
         # Some OpenCode builds may print non-JSON logs; ignore them.
-        if not line.startswith("{"):
+        if not stripped_line.startswith("{"):
             continue
-        out.append(json.loads(line))
+        out.append(json.loads(stripped_line))
     return out
 
 
-def _extract_last_text(events: List[Dict[str, Any]]) -> Optional[str]:
-    last: Optional[str] = None
+def _extract_last_text(events: list[dict[str, Any]]) -> str | None:
+    last: str | None = None
     for e in events:
         if e.get("type") != "text":
             continue
@@ -153,7 +153,7 @@ def _extract_last_text(events: List[Dict[str, Any]]) -> Optional[str]:
     return last
 
 
-def _check_output(s: str) -> Tuple[bool, bool, bool, bool, bool, bool]:
+def _check_output(s: str) -> tuple[bool, bool, bool, bool, bool, bool]:
     repo_root = REPO_ROOT
 
     lines = s.splitlines()
@@ -251,9 +251,9 @@ def run_one(
         proc = subprocess.run(  # noqa: S603
             cmd,
             text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             timeout=timeout_s,
+            check=False,
         )
     except subprocess.TimeoutExpired:
         return Result(
@@ -291,7 +291,7 @@ def run_one(
 
     try:
         events = _loads_json_lines(proc.stdout)
-    except Exception as e:  # noqa: BLE001
+    except Exception as e:
         return Result(
             command=command,
             ok=False,
@@ -411,9 +411,7 @@ def main() -> int:
             print(f"unknown --only: {', '.join(missing)}", file=sys.stderr)
             return 2
 
-    results: List[Result] = []
-    for c in targets:
-        results.append(run_one(args.agent, args.model, c, args.timeout))
+    results = [run_one(args.agent, args.model, c, args.timeout) for c in targets]
 
     print(
         "command\tok\tduration_s\tchars\tlines\ttemplate\tkeys\tfixed7\tevidence_path\tno_code_fence\tno_triple_dash"

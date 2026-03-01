@@ -10,7 +10,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from md_sanitize import (
     sanitize_status_text,
@@ -22,11 +22,11 @@ def eprint(msg: str) -> None:
 
 
 def read_text(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         return fh.read()
 
 
-def extract_section(text: str, section_pattern: str) -> Optional[str]:
+def extract_section(text: str, section_pattern: str) -> str | None:
     """指定されたセクションの内容を抽出する"""
     # セクションヘッダーから次のセクションヘッダーまでを抽出
     # section_pattern は「3.2 技術選定」のような形式を想定
@@ -38,7 +38,7 @@ def extract_section(text: str, section_pattern: str) -> Optional[str]:
     return None
 
 
-def extract_key_value_block(text: str, block_prefix: str) -> List[Dict[str, str]]:
+def extract_key_value_block(text: str, block_prefix: str) -> list[dict[str, str]]:
     """
     技術選定-1, 技術選定-2 のようなブロックを抽出する
 
@@ -64,7 +64,7 @@ def extract_key_value_block(text: str, block_prefix: str) -> List[Dict[str, str]
     return results
 
 
-def extract_tech_stack(text: str) -> Dict[str, Any]:
+def extract_tech_stack(text: str) -> dict[str, Any]:
     """技術選定情報（セクション3.2）を抽出"""
     section = extract_section(text, r"3\.2\s+技術選定")
     if not section:
@@ -72,7 +72,7 @@ def extract_tech_stack(text: str) -> Dict[str, Any]:
 
     tech_items = extract_key_value_block(section, "技術選定")
 
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         "language": None,
         "framework": None,
         "database": None,
@@ -97,9 +97,9 @@ def extract_tech_stack(text: str) -> Dict[str, Any]:
     return result
 
 
-def extract_q6_requirements(text: str) -> Dict[str, Any]:
+def extract_q6_requirements(text: str) -> dict[str, Any]:
     """Q6要件（セクション5のプロダクション品質設計）を抽出"""
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         "security": False,
         "performance": False,
         "observability": False,
@@ -155,9 +155,9 @@ def extract_q6_requirements(text: str) -> Dict[str, Any]:
     return result
 
 
-def extract_security_details(section: str) -> Dict[str, Any]:
+def extract_security_details(section: str) -> dict[str, Any]:
     """セキュリティセクションの詳細を抽出"""
-    details: Dict[str, Any] = {
+    details: dict[str, Any] = {
         "auth_method": None,
         "authz_model": None,
         "auth_expiry": None,
@@ -179,10 +179,10 @@ def extract_security_details(section: str) -> Dict[str, Any]:
     # 扱うデータ
     data_section = re.search(r"扱うデータ:\n((?:- [^\n]+\n?)+)", section)
     if data_section:
-        for line in data_section.group(1).strip().split("\n"):
-            line = line.strip("- ").strip()
-            if ": " in line:
-                data_type, protection = line.split(": ", 1)
+        for raw_line in data_section.group(1).strip().split("\n"):
+            cleaned_line = raw_line.strip("- ").strip()
+            if ": " in cleaned_line:
+                data_type, protection = cleaned_line.split(": ", 1)
                 details["data_protection"].append(
                     {"type": data_type.strip(), "protection": protection.strip()}
                 )
@@ -212,17 +212,17 @@ def extract_security_details(section: str) -> Dict[str, Any]:
     return details
 
 
-def extract_performance_details(section: str) -> Dict[str, Any]:
+def extract_performance_details(section: str) -> dict[str, Any]:
     """パフォーマンスセクションの詳細を抽出"""
-    details: Dict[str, Any] = {"targets": [], "measurement": {}, "bottlenecks": []}
+    details: dict[str, Any] = {"targets": [], "measurement": {}, "bottlenecks": []}
 
     # 対象操作
     target_section = re.search(r"対象操作:\n((?:- [^\n]+\n?)+)", section)
     if target_section:
-        for line in target_section.group(1).strip().split("\n"):
-            line = line.strip("- ").strip()
-            if ": " in line:
-                operation, target = line.split(": ", 1)
+        for raw_line in target_section.group(1).strip().split("\n"):
+            cleaned_line = raw_line.strip("- ").strip()
+            if ": " in cleaned_line:
+                operation, target = cleaned_line.split(": ", 1)
                 details["targets"].append(
                     {"operation": operation.strip(), "target": target.strip()}
                 )
@@ -239,9 +239,9 @@ def extract_performance_details(section: str) -> Dict[str, Any]:
     return details
 
 
-def extract_observability_details(section: str) -> Dict[str, Any]:
+def extract_observability_details(section: str) -> dict[str, Any]:
     """観測性セクションの詳細を抽出"""
-    details: Dict[str, Any] = {"logging": {}, "metrics": [], "alerts": []}
+    details: dict[str, Any] = {"logging": {}, "metrics": [], "alerts": []}
 
     # ログ設定
     output_match = re.search(r"出力先:\s*\[?([^\]\n]+)\]?", section)
@@ -259,9 +259,9 @@ def extract_observability_details(section: str) -> Dict[str, Any]:
     return details
 
 
-def extract_availability_details(section: str) -> Dict[str, Any]:
+def extract_availability_details(section: str) -> dict[str, Any]:
     """可用性セクションの詳細を抽出"""
-    details: Dict[str, Any] = {"slo": {}, "recovery": {}, "rollback": {}}
+    details: dict[str, Any] = {"slo": {}, "recovery": {}, "rollback": {}}
 
     # SLO
     uptime_match = re.search(r"稼働率:\s*\[?([^\]\n]+)\]?", section)
@@ -280,7 +280,7 @@ def extract_availability_details(section: str) -> Dict[str, Any]:
     return details
 
 
-def extract_api_design(text: str) -> List[Dict[str, str]]:
+def extract_api_design(text: str) -> list[dict[str, str]]:
     """API設計情報（セクション3.4）を抽出"""
     section = extract_section(text, r"3\.4\s+API設計")
     if not section:
@@ -303,9 +303,9 @@ def extract_api_design(text: str) -> List[Dict[str, str]]:
     return apis
 
 
-def extract_meta_info(text: str) -> Dict[str, Optional[str]]:
+def extract_meta_info(text: str) -> dict[str, str | None]:
     """メタ情報を抽出"""
-    meta: Dict[str, Optional[str]] = {
+    meta: dict[str, str | None] = {
         "prd_path": None,
         "created_date": None,
         "status": None,
@@ -330,19 +330,17 @@ def extract_meta_info(text: str) -> Dict[str, Optional[str]]:
     return meta
 
 
-def extract_epic_config(epic_path: str) -> Dict[str, Any]:
+def extract_epic_config(epic_path: str) -> dict[str, Any]:
     """Epicファイルから設定情報を抽出"""
     text = read_text(epic_path)
 
-    config = {
+    return {
         "epic_path": epic_path,
         "meta": extract_meta_info(text),
         "tech_stack": extract_tech_stack(text),
         "requirements": extract_q6_requirements(text),
         "api_design": extract_api_design(text),
     }
-
-    return config
 
 
 def main() -> int:

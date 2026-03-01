@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from sot_refs import find_issue_ref, resolve_ref_to_repo_path
 
@@ -18,21 +18,20 @@ def eprint(msg: str) -> None:
 
 
 def read_text(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         return fh.read()
 
 
 def run(
-    cmd: List[str],
-    cwd: Optional[str] = None,
+    cmd: list[str],
+    cwd: str | None = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(  # noqa: S603
         cmd,
         cwd=cwd,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=check,
     )
 
@@ -43,8 +42,8 @@ def git_repo_root() -> str:
         raise RuntimeError("git not found on PATH")
     try:
         p = run([git_bin, "rev-parse", "--show-toplevel"], check=True)
-    except subprocess.CalledProcessError:
-        raise RuntimeError("Not in a git repository; cannot locate repo root.")
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError("Not in a git repository; cannot locate repo root.") from exc
     root = p.stdout.strip()
     if not root:
         raise RuntimeError("Failed to locate repo root via git.")
@@ -62,7 +61,7 @@ def current_branch(repo_root: str) -> str:
     return p.stdout.strip()
 
 
-def extract_issue_number_from_branch(branch: str) -> Optional[str]:
+def extract_issue_number_from_branch(branch: str) -> str | None:
     m = re.search(r"\bissue-(\d+)\b", branch)
     if not m:
         return None
@@ -73,12 +72,10 @@ def is_placeholder_ref(ref: str) -> bool:
     r = ref.strip()
     if not r:
         return True
-    if "<!--" in r:
-        return True
-    return False
+    return "<!--" in r
 
 
-def parse_issue_body_for_refs(body: str) -> Tuple[str, str]:
+def parse_issue_body_for_refs(body: str) -> tuple[str, str]:
     prd_ref = find_issue_ref(body, "PRD")
     epic_ref = find_issue_ref(body, "Epic")
 
@@ -95,10 +92,10 @@ def parse_issue_body_for_refs(body: str) -> Tuple[str, str]:
 
 def resolve_issue_refs(
     repo_root: str,
-    issue_number: Optional[str],
+    issue_number: str | None,
     gh_repo: str,
     issue_body_file: str,
-) -> Tuple[str, str, Optional[str]]:
+) -> tuple[str, str, str | None]:
     # Returns: prd_path, epic_path, issue_url
     if issue_body_file:
         body = read_text(issue_body_file)
@@ -120,12 +117,12 @@ def resolve_issue_refs(
         p = run(cmd, cwd=repo_root, check=True)
     except subprocess.CalledProcessError as exc:
         msg = exc.stderr.strip() or exc.stdout.strip() or str(exc)
-        raise RuntimeError(f"Failed to fetch Issue via gh: {msg}")
+        raise RuntimeError(f"Failed to fetch Issue via gh: {msg}") from exc
 
     try:
         data = json.loads(p.stdout)
-    except Exception as exc:  # noqa: BLE001
-        raise RuntimeError(f"Invalid JSON from gh issue view: {exc}")
+    except Exception as exc:
+        raise RuntimeError(f"Invalid JSON from gh issue view: {exc}") from exc
 
     body = str(data.get("body") or "")
     issue_url = str(data.get("url") or "")
@@ -138,7 +135,7 @@ def resolve_issue_refs(
 
 def find_epic_by_prd(repo_root: str, prd_path: str) -> str:
     epics_root = os.path.join(repo_root, "docs", "epics")
-    candidates: List[str] = []
+    candidates: list[str] = []
 
     if not os.path.isdir(epics_root):
         raise RuntimeError("docs/epics/ not found; cannot auto-resolve Epic.")
@@ -189,7 +186,7 @@ def ensure_file_exists(repo_root: str, rel_path: str, label: str) -> None:
         raise RuntimeError(f"{label} file not found: {rel_path}")
 
 
-def detect_pr_number(repo_root: str, gh_repo: str) -> Optional[str]:
+def detect_pr_number(repo_root: str, gh_repo: str) -> str | None:
     if not shutil_which("gh"):
         return None
     cmd = ["gh"]
@@ -210,7 +207,7 @@ def detect_pr_number(repo_root: str, gh_repo: str) -> Optional[str]:
     return None
 
 
-def shutil_which(cmd: str) -> Optional[str]:
+def shutil_which(cmd: str) -> str | None:
     path = os.environ.get("PATH", "")
     for d in path.split(os.pathsep):
         p = os.path.join(d, cmd)
@@ -219,23 +216,23 @@ def shutil_which(cmd: str) -> Optional[str]:
     return None
 
 
-def git_has_diff(repo_root: str, args: List[str]) -> bool:
+def git_has_diff(repo_root: str, args: list[str]) -> bool:
     git_bin = shutil.which("git")
     if not git_bin:
         raise RuntimeError("git not found on PATH")
     cp = run(
-        [git_bin, "diff", "--quiet"] + args,
+        [git_bin, "diff", "--quiet", *args],
         cwd=repo_root,
         check=False,
     )
     return cp.returncode != 0
 
 
-def git_diff_text(repo_root: str, args: List[str]) -> str:
+def git_diff_text(repo_root: str, args: list[str]) -> str:
     git_bin = shutil.which("git")
     if not git_bin:
         raise RuntimeError("git not found on PATH")
-    p = run([git_bin, "diff", "--no-color"] + args, cwd=repo_root, check=True)
+    p = run([git_bin, "diff", "--no-color", *args], cwd=repo_root, check=True)
     return p.stdout
 
 
@@ -254,10 +251,10 @@ def git_ref_exists(repo_root: str, ref: str) -> bool:
 def resolve_diff(
     repo_root: str,
     gh_repo: str,
-    pr_number: Optional[str],
+    pr_number: str | None,
     diff_mode: str,
     base_ref: str,
-) -> Tuple[str, str, Optional[str]]:
+) -> tuple[str, str, str | None]:
     # Returns: diff_source, diff_text, detail
     # detail: base ref for range or pr number for pr
     if diff_mode == "pr":
@@ -273,7 +270,7 @@ def resolve_diff(
             p = run(cmd, cwd=repo_root, check=True)
         except subprocess.CalledProcessError as exc:
             msg = exc.stderr.strip() or exc.stdout.strip() or str(exc)
-            raise RuntimeError(f"Failed to fetch PR diff via gh: {msg}")
+            raise RuntimeError(f"Failed to fetch PR diff via gh: {msg}") from exc
         if not p.stdout.strip():
             raise RuntimeError("PR diff is empty.")
         return "pr", p.stdout, pr_number
@@ -353,7 +350,7 @@ def main() -> int:
         repo_root = (
             os.path.realpath(args.repo_root) if args.repo_root else git_repo_root()
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         eprint(str(exc))
         return 1
 
@@ -376,7 +373,7 @@ def main() -> int:
 
     prd_path = ""
     epic_path = ""
-    issue_url: Optional[str] = None
+    issue_url: str | None = None
 
     try:
         if args.prd:
@@ -384,28 +381,29 @@ def main() -> int:
         if args.epic:
             epic_path = resolve_ref_to_repo_path(repo_root, args.epic)
 
-        if not prd_path or not epic_path:
+        if (not prd_path or not epic_path) and (issue_number or issue_body_file):
             # Prefer Issue refs when available.
-            if issue_number or issue_body_file:
-                iprd, iepic, url = resolve_issue_refs(
-                    repo_root=repo_root,
-                    issue_number=issue_number or None,
-                    gh_repo=gh_repo,
-                    issue_body_file=issue_body_file,
-                )
-                issue_url = url
-                if not prd_path:
-                    prd_path = iprd
-                if not epic_path:
-                    epic_path = iepic
+            iprd, iepic, url = resolve_issue_refs(
+                repo_root=repo_root,
+                issue_number=issue_number or None,
+                gh_repo=gh_repo,
+                issue_body_file=issue_body_file,
+            )
+            issue_url = url
+            if not prd_path:
+                prd_path = iprd
+            if not epic_path:
+                epic_path = iepic
 
         if not prd_path:
             prd_root = os.path.join(repo_root, "docs", "prd")
-            prds = []
+            prds: list[str] = []
             if os.path.isdir(prd_root):
-                for name in os.listdir(prd_root):
-                    if name.endswith(".md"):
-                        prds.append(f"docs/prd/{name}")
+                prds.extend(
+                    f"docs/prd/{name}"
+                    for name in os.listdir(prd_root)
+                    if name.endswith(".md")
+                )
             if len(prds) == 1:
                 prd_path = prds[0]
             elif len(prds) == 0:
@@ -455,7 +453,7 @@ def main() -> int:
         out_diff = os.path.join(out_dir, "diff.patch")
         out_json = os.path.join(out_dir, "inputs.json")
 
-        out: Dict[str, Any] = {
+        out: dict[str, Any] = {
             "repo_root": repo_root,
             "scope_id": scope_id,
             "run_id": run_id,
@@ -483,7 +481,7 @@ def main() -> int:
         json.dump(out, sys.stdout, ensure_ascii=True, indent=2)
         sys.stdout.write("\n")
         return 0
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         eprint(str(exc))
         return 2
 

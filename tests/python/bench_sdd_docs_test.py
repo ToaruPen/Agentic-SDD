@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from collections.abc import Generator
 from pathlib import Path
 from types import ModuleType
-from typing import Generator
 
 pytest = importlib.import_module("pytest")
 
@@ -114,7 +114,7 @@ def test_bench_uses_shared_contract(
 
 
 def test_check_output_accepts_research_pack(bench_module: ModuleType) -> None:
-    output = "\n".join(
+    output = "\n".join(  # noqa: FLY002
         [
             "[Context Pack v1]",
             "phase: estimation prep (.agent/commands/research.md)",

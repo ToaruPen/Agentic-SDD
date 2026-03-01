@@ -6,8 +6,8 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, List, Optional
 
 from md_sanitize import (
     sanitize_status_text,
@@ -36,9 +36,8 @@ def repo_root() -> str:
         p = subprocess.run(  # noqa: S603
             [git_bin, "rev-parse", "--show-toplevel"],
             text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,  # noqa: S603
+            capture_output=True,
+            check=False,
         )
     except Exception:
         return os.path.realpath(os.getcwd())
@@ -66,20 +65,17 @@ def is_safe_repo_relative_root(root: str) -> bool:
     if os.path.isabs(root):
         return False
     p = root.replace("\\", "/").strip()
-    if p.startswith("./"):
-        p = p[2:]
+    p = p.removeprefix("./")
     if p in {".", ".."}:
         return False
     parts = [x for x in p.split("/") if x]
     if not parts:
         return False
-    if ".." in parts:
-        return False
-    return True
+    return ".." not in parts
 
 
 def read_text(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         return fh.read()
 
 
@@ -165,8 +161,8 @@ _RESEARCH_EPIC_REQUIRED_TABLE_COLUMNS = [
 ]
 
 
-def _unique_ints(ms: Iterable[re.Match[str]]) -> List[int]:
-    out: List[int] = []
+def _unique_ints(ms: Iterable[re.Match[str]]) -> list[int]:
+    out: list[int] = []
     seen = set()
     for m in ms:
         v = None
@@ -212,18 +208,19 @@ def has_candidate_evidence_url(block: str) -> bool:
                 in_evidence = True
             continue
 
-        if any(s.startswith(x) for x in _RESEARCH_CANDIDATE_REQUIRED_LABELS):
-            if not s.startswith("根拠リンク:"):
-                break
+        if any(
+            s.startswith(x) for x in _RESEARCH_CANDIDATE_REQUIRED_LABELS
+        ) and not s.startswith("根拠リンク:"):
+            break
 
         if _RESEARCH_EVIDENCE_URL_RE.search(line):
             return True
     return False
 
 
-def extract_labeled_block(section: str, start_label: str, end_labels: List[str]) -> str:
+def extract_labeled_block(section: str, start_label: str, end_labels: list[str]) -> str:
     in_block = False
-    out: List[str] = []
+    out: list[str] = []
     for line in section.splitlines():
         s = line.strip()
         if not in_block:
@@ -238,13 +235,12 @@ def extract_labeled_block(section: str, start_label: str, end_labels: List[str])
 
 
 def count_markdown_table_rows_with_headers(
-    section: str, required_headers: List[str]
+    section: str, required_headers: list[str]
 ) -> int:
-    def parse_table_cells(row: str) -> List[str]:
+    def parse_table_cells(row: str) -> list[str]:
         s = row.strip()
         body = s[1:]
-        if body.endswith("|"):
-            body = body[:-1]
+        body = body.removesuffix("|")
         return [c.strip() for c in body.split("|")]
 
     lines = section.splitlines()
@@ -281,8 +277,8 @@ def count_markdown_table_rows_with_headers(
 
 def lint_epic_external_service_comparison(
     rel_path: str, contract_text: str
-) -> List[LintError]:
-    errs: List[LintError] = []
+) -> list[LintError]:
+    errs: list[LintError] = []
     section = extract_h2_section(contract_text, _RESEARCH_EPIC_COMPARISON_H2_RE)
     if not section.strip():
         errs.append(
@@ -331,14 +327,13 @@ def lint_epic_external_service_comparison(
         "定量比較表:",
         "判定理由:",
     ]
-    for label in labels:
-        if re.search(rf"^\s*{re.escape(label)}\s*$", section, re.MULTILINE) is None:
-            errs.append(
-                LintError(
-                    path=rel_path,
-                    message=f"外部サービス比較ゲートに '{label}' がありません",
-                )
-            )
+    errs.extend(
+        LintError(
+            path=rel_path, message=f"外部サービス比較ゲートに '{label}' がありません"
+        )
+        for label in labels
+        if re.search(rf"^\s*{re.escape(label)}\s*$", section, re.MULTILINE) is None
+    )
 
     service_block = extract_labeled_block(
         section,
@@ -440,7 +435,7 @@ def lint_epic_external_service_comparison(
 
 
 def is_approved_prd_or_epic(rel_path: str, text: str) -> bool:
-    if rel_path.startswith("docs/prd/") or rel_path.startswith("docs/epics/"):
+    if rel_path.startswith(("docs/prd/", "docs/epics/")):
         if os.path.basename(rel_path) == "_template.md":
             return False
         status_text = sanitize_status_text(text)
@@ -448,7 +443,7 @@ def is_approved_prd_or_epic(rel_path: str, text: str) -> bool:
     return False
 
 
-def lint_status_format(rel_path: str, text: str) -> List[LintError]:
+def lint_status_format(rel_path: str, text: str) -> list[LintError]:
     """Detect status lines lost during indented code block stripping.
 
     If a ステータス line exists after fenced/HTML-comment stripping but
@@ -457,7 +452,7 @@ def lint_status_format(rel_path: str, text: str) -> List[LintError]:
     from indented code blocks.  Emit an explicit error instead of
     silently skipping Approved-only checks.
     """
-    if not (rel_path.startswith("docs/prd/") or rel_path.startswith("docs/epics/")):
+    if not rel_path.startswith(("docs/prd/", "docs/epics/")):
         return []
     if os.path.basename(rel_path) == "_template.md":
         return []
@@ -480,7 +475,7 @@ def lint_status_format(rel_path: str, text: str) -> List[LintError]:
     return []
 
 
-def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
+def lint_research_contract(rel_path: str, text: str) -> list[LintError]:
     if not rel_path.startswith("docs/research/"):
         return []
 
@@ -513,7 +508,7 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
             )
         ]
 
-    errs: List[LintError] = []
+    errs: list[LintError] = []
 
     contract_text = strip_html_comment_blocks(
         strip_inline_code_spans(
@@ -538,17 +533,17 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
         n_raw = m.group(1)
         block = m.group(0)
         cand = f"候補-{n_raw}"
-        for label in required_field_labels:
-            if re.search(rf"^\s*{re.escape(label)}", block, re.MULTILINE) is None:
-                errs.append(
-                    LintError(
-                        path=rel_path,
-                        message=(
-                            "調査ドキュメントの候補フォーマットが不完全です。 "
-                            f"{cand} に '{label}' がありません"
-                        ),
-                    )
-                )
+        errs.extend(
+            LintError(
+                path=rel_path,
+                message=(
+                    "調査ドキュメントの候補フォーマットが不完全です。 "
+                    f"{cand} に '{label}' がありません"
+                ),
+            )
+            for label in required_field_labels
+            if re.search(rf"^\s*{re.escape(label)}", block, re.MULTILINE) is None
+        )
 
         if not is_template:
             applicability_lines = re.findall(
@@ -604,16 +599,15 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
         )
 
     novelty = extract_h2_section(contract_text, _RESEARCH_NOVELTY_H2_RE)
-    if not novelty.strip():
-        if not is_template:
-            errs.append(
-                LintError(
-                    path=rel_path,
-                    message=(
-                        "調査ドキュメントには見出し '## 新規性判定（発火条件）'（番号は任意）を含めてください"
-                    ),
-                )
+    if (not novelty.strip()) and (not is_template):
+        errs.append(
+            LintError(
+                path=rel_path,
+                message=(
+                    "調査ドキュメントには見出し '## 新規性判定（発火条件）'（番号は任意）を含めてください"
+                ),
             )
+        )
 
     if (not is_template) and re.search(r":\s*Yes\s*/\s*No\s*$", novelty, re.MULTILINE):
         errs.append(
@@ -626,24 +620,22 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
         )
 
     if (not is_template) and novelty.strip():
-        for s in _RESEARCH_NOVELTY_REQUIRED_TRIGGER_SUBSTRINGS:
-            if (
-                re.search(
-                    rf"^\s*-\s*.*{re.escape(s)}.*:\s*(Yes|No)\s*$",
-                    novelty,
-                    re.MULTILINE,
-                )
-                is None
-            ):
-                errs.append(
-                    LintError(
-                        path=rel_path,
-                        message=(
-                            "新規性判定（発火条件）に必須トリガがありません（'Yes' または 'No' で記載してください）: "
-                            f"{s}"
-                        ),
-                    )
-                )
+        errs.extend(
+            LintError(
+                path=rel_path,
+                message=(
+                    "新規性判定（発火条件）に必須トリガがありません（'Yes' または 'No' で記載してください）: "
+                    f"{s}"
+                ),
+            )
+            for s in _RESEARCH_NOVELTY_REQUIRED_TRIGGER_SUBSTRINGS
+            if re.search(
+                rf"^\s*-\s*.*{re.escape(s)}.*:\s*(Yes|No)\s*$",
+                novelty,
+                re.MULTILINE,
+            )
+            is None
+        )
 
     adjacent_section = extract_h2_section(contract_text, _RESEARCH_ADJACENT_H2_RE)
     has_adjacent_na = (
@@ -718,8 +710,8 @@ def lint_research_contract(rel_path: str, text: str) -> List[LintError]:
     return errs
 
 
-def lint_placeholders(_repo: str, rel_path: str, text: str) -> List[LintError]:
-    errs: List[LintError] = []
+def lint_placeholders(_repo: str, rel_path: str, text: str) -> list[LintError]:
+    errs: list[LintError] = []
     if is_approved_prd_or_epic(rel_path, text):
         scrubbed = strip_inline_code_spans(strip_fenced_code_blocks(text))
         if "<!--" in scrubbed and not _ALLOW_HTML_COMMENTS_RE.search(scrubbed):
@@ -735,7 +727,7 @@ def lint_placeholders(_repo: str, rel_path: str, text: str) -> List[LintError]:
     return errs
 
 
-def lint_sot_reference_contract(repo: str, rel_path: str, text: str) -> List[LintError]:
+def lint_sot_reference_contract(repo: str, rel_path: str, text: str) -> list[LintError]:
     if not rel_path.startswith("docs/epics/"):
         return []
     if not is_approved_prd_or_epic(rel_path, text):
@@ -812,7 +804,7 @@ def strip_inline_code_spans(text: str) -> str:
     and placeholder detection — precise escaped-backtick handling
     is unnecessary for that purpose.
     """
-    out: List[str] = []
+    out: list[str] = []
     i = 0
     n = len(text)
     while i < n:
@@ -838,8 +830,8 @@ def strip_inline_code_spans(text: str) -> str:
     return "".join(out)
 
 
-def parse_md_link_targets(text: str) -> List[str]:
-    out: List[str] = []
+def parse_md_link_targets(text: str) -> list[str]:
+    out: list[str] = []
     scrubbed = strip_inline_code_spans(strip_fenced_code_blocks(text))
     for m in _MD_LINK_RE.finditer(scrubbed):
         target = (m.group(1) or "").strip()
@@ -862,9 +854,7 @@ def is_external_or_fragment(target: str) -> bool:
         return True
     if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", t):
         return True
-    if t.startswith("mailto:"):
-        return True
-    return False
+    return bool(t.startswith("mailto:"))
 
 
 def normalize_target(target: str) -> str:
@@ -877,11 +867,10 @@ def normalize_target(target: str) -> str:
         t = t[1:-1].strip()
     if " " in t or "\t" in t or "\n" in t:
         t = t.split()[0]
-    t = t.split("#", 1)[0].split("?", 1)[0].strip()
-    return t
+    return t.split("#", 1)[0].split("?", 1)[0].strip()
 
 
-def resolve_to_repo_relative(repo: str, file_abs: str, target: str) -> Optional[str]:
+def resolve_to_repo_relative(repo: str, file_abs: str, target: str) -> str | None:
     t = normalize_target(target)
     if not t:
         return None
@@ -895,12 +884,11 @@ def resolve_to_repo_relative(repo: str, file_abs: str, target: str) -> Optional[
     if not abs_candidate.startswith(repo_abs + os.sep) and abs_candidate != repo_abs:
         return None
 
-    rel = os.path.relpath(abs_candidate, repo_abs).replace(os.sep, "/")
-    return rel
+    return os.path.relpath(abs_candidate, repo_abs).replace(os.sep, "/")
 
 
-def lint_relative_links(repo: str, rel_path: str, text: str) -> List[LintError]:
-    errs: List[LintError] = []
+def lint_relative_links(repo: str, rel_path: str, text: str) -> list[LintError]:
+    errs: list[LintError] = []
 
     file_abs = os.path.join(repo, rel_path)
     for raw in parse_md_link_targets(text):
@@ -925,8 +913,8 @@ def lint_relative_links(repo: str, rel_path: str, text: str) -> List[LintError]:
     return errs
 
 
-def lint_paths(repo: str, roots: List[str]) -> List[LintError]:
-    errs: List[LintError] = []
+def lint_paths(repo: str, roots: list[str]) -> list[LintError]:
+    errs: list[LintError] = []
     for root in roots:
         if not is_safe_repo_relative_root(root):
             errs.append(
@@ -960,7 +948,7 @@ def lint_paths(repo: str, roots: List[str]) -> List[LintError]:
     return errs
 
 
-def main(argv: List[str]) -> int:
+def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(
         description="Lint Agentic-SDD SoT/docs for determinism and link integrity"
     )

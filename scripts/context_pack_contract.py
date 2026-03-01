@@ -5,15 +5,14 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple
 
 
 @dataclass(frozen=True)
 class ContextPackContract:
     header: str
-    keys: Tuple[str, ...]
+    keys: tuple[str, ...]
     line_count: int
-    forbidden_markers: Tuple[str, ...]
+    forbidden_markers: tuple[str, ...]
 
 
 def _extract_key(line: str) -> str:

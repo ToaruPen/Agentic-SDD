@@ -4,7 +4,7 @@ import argparse
 import json
 import os
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 STATUS_ALLOWED = {"Approved", "Approved with nits", "Blocked", "Question"}
 PRIORITY_ALLOWED = {"P0", "P1", "P2", "P3"}
@@ -14,7 +14,7 @@ def eprint(msg: str) -> None:
     print(msg, file=sys.stderr)
 
 
-def die(errors: List[str]) -> int:
+def die(errors: list[str]) -> int:
     for err in errors:
         eprint(f"- {err}")
     return 1
@@ -32,10 +32,10 @@ def is_repo_relative_path(path: str) -> bool:
 
 
 def validate_review(
-    obj: Dict[str, Any],
-    expected_scope_id: Optional[str],
-) -> List[str]:
-    errors: List[str] = []
+    obj: dict[str, Any],
+    expected_scope_id: str | None,
+) -> list[str]:
+    errors: list[str] = []
 
     required = {
         "schema_version",
@@ -92,9 +92,11 @@ def validate_review(
             errors.append(f"findings[{idx}] is not an object")
             continue
         required_finding_keys = {"title", "body", "priority", "code_location"}
-        for k in sorted(required_finding_keys):
-            if k not in item:
-                errors.append(f"findings[{idx}] missing key: {k}")
+        errors.extend(
+            f"findings[{idx}] missing key: {k}"
+            for k in sorted(required_finding_keys)
+            if k not in item
+        )
 
         extra_finding = set(item.keys()) - required_finding_keys
         if extra_finding:
@@ -200,9 +202,8 @@ def validate_review(
         if not blocking:
             errors.append("Blocked must include at least one P0/P1 finding")
 
-    if status == "Question":
-        if len(questions) == 0:
-            errors.append("Question must include at least one question")
+    if status == "Question" and len(questions) == 0:
+        errors.append("Question must include at least one question")
 
     return errors
 
@@ -221,7 +222,7 @@ def main() -> int:
         return 1
 
     try:
-        with open(args.path, "r", encoding="utf-8") as fh:
+        with open(args.path, encoding="utf-8") as fh:
             data = json.load(fh)
     except Exception as exc:
         eprint(f"invalid JSON: {exc}")

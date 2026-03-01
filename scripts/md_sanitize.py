@@ -4,7 +4,6 @@ Markdown sanitization utilities for stripping code blocks and comments.
 """
 
 import re
-from typing import List
 
 # Regex patterns for fenced code blocks (``` or ~~~)
 _FENCE_OPEN_RE = re.compile(r"^[ \t]{0,3}((?:`{3,})|(?:~{3,}))")
@@ -19,7 +18,7 @@ _HTML_COMMENT_BLOCK_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 
 def strip_fenced_code_blocks(text: str) -> str:
     """Strip fenced code blocks (``` or ~~~) from markdown text."""
-    out_lines: List[str] = []
+    out_lines: list[str] = []
     in_fence = False
     fence_char = ""
     fence_len = 0
@@ -51,7 +50,7 @@ def strip_fenced_code_blocks(text: str) -> str:
 
 def strip_indented_code_blocks(text: str) -> str:
     """Strip indented code blocks (tab or 4+ spaces) from markdown text."""
-    out_lines: List[str] = []
+    out_lines: list[str] = []
     for line in text.splitlines(keepends=True):
         if _INDENTED_CODE_RE.match(line):
             continue
@@ -121,7 +120,7 @@ def strip_html_comment_blocks(text: str) -> str:
     masked = _mask_inline_code_spans(text)
     # Find matched <!-- ... --> spans in the masked copy, then splice
     # the *original* text around those ranges to preserve inline code.
-    parts: List[str] = []
+    parts: list[str] = []
     last_end = 0
     for m in _HTML_COMMENT_BLOCK_RE.finditer(masked):
         parts.append(text[last_end : m.start()])
