@@ -90,12 +90,14 @@ def gh_issue_body(issue: str, gh_repo: str) -> str:
     cmd.extend(["issue", "view", issue, "--json", "body"])
 
     try:
-        out = check_output_cmd(cmd, stderr=subprocess.STDOUT, text=True)
+        out = check_output_cmd(cmd, stderr=subprocess.STDOUT, text=True, timeout=30)
     except FileNotFoundError as exc:
         raise RuntimeError("gh not found (required for --issue)") from exc
     except subprocess.CalledProcessError as exc:
         msg = exc.output or ""
         raise RuntimeError(f"gh issue view failed: {msg.strip()}") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("gh issue view timed out") from exc
 
     data = json.loads(out)
     if not isinstance(data, dict):
