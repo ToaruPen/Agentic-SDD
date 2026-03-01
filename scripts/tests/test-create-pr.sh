@@ -309,12 +309,12 @@ if ! grep -q "Parallel integration conflict detected by worktree check" "$tmpdir
 	exit 1
 fi
 
-(cd "$work" && PATH="$tmpdir/bin:$PATH" AGENTIC_SDD_PARALLEL_ISSUES='2' "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
-
 # Refresh metadata for current head.
 head_sha="$(git -C "$work" rev-parse HEAD)"
 write_review_metadata "$head_sha" "origin/main" "$base_sha"
 write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
+
+(cd "$work" && PATH="$tmpdir/bin:$PATH" AGENTIC_SDD_PARALLEL_ISSUES='2' "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
 
 # Stale base should fail and require re-review.
 git -C "$work" checkout main -q
