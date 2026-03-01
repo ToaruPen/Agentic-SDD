@@ -4,6 +4,7 @@ import importlib.util
 import sys
 from pathlib import Path
 from types import ModuleType
+from typing import Generator
 
 pytest = importlib.import_module("pytest")
 
@@ -40,7 +41,7 @@ def bench_module() -> ModuleType:
 
 
 @pytest.fixture(scope="module")
-def contract_module() -> ModuleType:
+def contract_module() -> Generator[ModuleType, None, None]:
     repo_root = Path(__file__).resolve().parents[2]
     module_path = repo_root / "scripts" / "context_pack_contract.py"
     module_name = "context_pack_contract"
@@ -50,7 +51,10 @@ def contract_module() -> ModuleType:
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
-    return module
+    try:
+        yield module
+    finally:
+        sys.modules.pop(module_name, None)
 
 
 @pytest.mark.parametrize("command", EXPECTED_COMMANDS)
