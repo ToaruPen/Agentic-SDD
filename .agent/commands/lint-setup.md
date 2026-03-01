@@ -94,7 +94,7 @@ Fail-fast: If official documentation cannot be fetched, STOP with error:
 
 ### Phase 5: Agent-driven configuration generation
 
-1. Run `scripts/lint-setup.py --path <dir> --json` to get recommendation data (input for the agent).
+1. Run `scripts/lint-setup.py <detection.json> --target-dir <dir> --json` to get recommendation data (input for the agent).
 2. The script only outputs recommendations and never generates config files.
 3. The agent is responsible for generating/updating configuration files by combining:
    - User preference from Phase 3.5
