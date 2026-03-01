@@ -76,12 +76,13 @@ def has_conflicting_tools(
         return False
 
     recommended_linter = lang_config.get("linter", {}).get("name", "")
-    existing_linters = [
-        tool
-        for c in existing_configs
-        for tool in [c.get("tool")]
-        if tool and tool != recommended_linter
-    ]
+    existing_linters: List[str] = []
+    for c in existing_configs:
+        if not isinstance(c, dict):
+            continue
+        tool = c.get("tool")
+        if tool and tool != recommended_linter:
+            existing_linters.append(tool)
 
     linter_names = {recommended_linter} | set(existing_linters)
     conflict_groups = registry.get("conflict_groups", {})
@@ -258,9 +259,12 @@ def _render_evidence_plaintext(
         "",
     ]
     for lang in context.get("languages", []):
-        lines.append(
-            f"- **{lang['name']}** (検出元: `{lang['source']}`, パス: `{lang['path']}`)"
-        )
+        if not isinstance(lang, dict):
+            continue
+        name = lang.get("name", "unknown")
+        source = lang.get("source", "unknown")
+        path = lang.get("path", ".")
+        lines.append(f"- **{name}** (検出元: `{source}`, パス: `{path}`)")
     lines.append("")
     lines.append("## 選定されたツールチェーン")
     lines.append("")
@@ -298,7 +302,9 @@ def _render_evidence_plaintext(
         lines.append("以下の既存 linter 設定を検出しました（上書き不可）:")
         lines.append("")
         for cfg in existing:
-            lines.append(f"- `{cfg['path']}` ({cfg['tool']})")
+            if not isinstance(cfg, dict):
+                continue
+            lines.append(f"- `{cfg.get('path', 'N/A')}` ({cfg.get('tool', 'unknown')})")
     else:
         lines.append("既存の linter 設定は検出されませんでした。")
     lines.append("")
