@@ -159,7 +159,7 @@ if [[ "$epic_path2" != "docs/epics/epic.md" ]]; then
 	exit 1
 fi
 
-# Placeholder refs should fail-fast
+# Placeholder refs should fail-fast (placeholder PRD → auto-detect → multiple PRDs)
 cat >"$tmpdir/issue-placeholder.md" <<'EOF'
 ## 背景
 
@@ -178,8 +178,8 @@ if [[ "$code" -eq 0 ]]; then
 	exit 1
 fi
 
-if ! grep -q "PRD reference is required" "$tmpdir/stderr-placeholder"; then
-	eprint "Expected placeholder error message, got:"
+if ! grep -q "Multiple PRDs exist" "$tmpdir/stderr-placeholder"; then
+	eprint "Expected multiple PRDs error for placeholder ref, got:"
 	cat "$tmpdir/stderr-placeholder" >&2
 	exit 1
 fi
