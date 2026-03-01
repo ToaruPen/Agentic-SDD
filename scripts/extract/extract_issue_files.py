@@ -62,7 +62,7 @@ def resolve_ref_to_repo_path(repo_root: str, ref: str) -> str:
         raise ValueError("empty reference")
 
     # Ignore URLs
-    if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*://", ref):
+    if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", ref):
         raise ValueError(f"unsupported URL reference: {ref}")
 
     if os.path.isabs(ref):

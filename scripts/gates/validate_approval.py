@@ -270,7 +270,7 @@ def main() -> int:
 
     try:
         estimate_text = read_utf8_text(estimate_md)
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         return gate_blocked(
             f"Failed to read estimate.md (utf-8 required): {exc}",
             create_script,

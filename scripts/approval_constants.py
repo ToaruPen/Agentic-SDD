@@ -1,5 +1,8 @@
-try:
-    from _lib.approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
-except ModuleNotFoundError:
-    MODE_ALLOWED = {"impl", "tdd", "custom"}
-    MODE_SOURCE_ALLOWED = {"agent-heuristic", "user-choice", "operator-override"}
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+from _lib.approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
+
+__all__ = ["MODE_ALLOWED", "MODE_SOURCE_ALLOWED"]
