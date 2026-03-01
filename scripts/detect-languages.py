@@ -49,7 +49,9 @@ def iter_files(root: Path) -> Iterator[Path]:
         ) from err
 
     for dirpath, dirnames, filenames in os.walk(root, onerror=onerror):
-        dirnames[:] = [d for d in dirnames if d not in skip_dirs]
+        dirnames[:] = [
+            d for d in dirnames if d not in skip_dirs and not d.startswith(".")
+        ]
         base = Path(dirpath)
         for filename in filenames:
             yield base / filename

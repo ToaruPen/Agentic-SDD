@@ -434,7 +434,9 @@ def main() -> int:
                         f"[WARN] lint-setup failed (exit {lint_proc.returncode}): "
                         f"{lint_proc.stderr.strip()}"
                     )
-                    result["lint_setup_error"] = lint_proc.stderr.strip()
+                    result["lint_setup_error"] = (
+                        lint_proc.stderr.strip() or f"exit code {lint_proc.returncode}"
+                    )
             else:
                 eprint("[WARN] Language detection failed; skipping lint-setup")
                 result["lint_setup_error"] = "Language detection failed"

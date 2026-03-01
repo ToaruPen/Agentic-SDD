@@ -304,6 +304,13 @@ def run_setup(
             "[WARN] Monorepo で複数言語を検出しました。自動生成を中断し、提案のみ出力します。"
         )
 
+    # 既存 linter 設定がある場合は提案モードに格下げ（上書き防止）
+    if existing_configs and mode != "proposal":
+        mode = "proposal"
+        eprint(
+            "[WARN] 既存の linter 設定を検出しました。上書き防止のため、提案のみ出力します。"
+        )
+
     for lang_info in languages:
         lang_name = lang_info["name"]
         if lang_name in processed_languages:
