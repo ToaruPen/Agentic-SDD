@@ -854,7 +854,7 @@ def is_external_or_fragment(target: str) -> bool:
         return True
     if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", t):
         return True
-    return bool(t.startswith("mailto:"))
+    return t.startswith("mailto:")
 
 
 def normalize_target(target: str) -> str:
