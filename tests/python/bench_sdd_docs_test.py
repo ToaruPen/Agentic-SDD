@@ -71,6 +71,7 @@ def test_contract_loader_returns_v1_shape(contract_module: ModuleType) -> None:
         "next:",
     )
     assert contract.line_count == 7
+    assert contract.forbidden_markers == ("```", "---")
 
 
 def test_bench_uses_shared_contract(
