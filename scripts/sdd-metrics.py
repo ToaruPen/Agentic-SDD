@@ -322,18 +322,30 @@ def cmd_report(args: argparse.Namespace) -> int:
     cp_avg_bytes = _avg_bytes(cp_records)
     fd_avg_bytes = _avg_bytes(fd_records)
 
-    # Guard: if neither mode has valid token data, comparison is meaningless
+    # Guard: if either mode lacks valid token data, comparison is unreliable
     cp_has_tokens = any(r.get("tokens_approx") is not None for r in cp_records)
     fd_has_tokens = any(r.get("tokens_approx") is not None for r in fd_records)
-    if not cp_has_tokens and not fd_has_tokens:
+    if not cp_has_tokens or not fd_has_tokens:
+        missing_token_modes = []
+        if not cp_has_tokens:
+            missing_token_modes.append("context-pack")
+        if not fd_has_tokens:
+            missing_token_modes.append("full-docs")
         _eprint(
-            "no token data in either mode — comparison skipped. "
+            f"no token data for {', '.join(missing_token_modes)} — comparison skipped. "
             "Ensure review-cycle/test-review metadata includes token counts."
         )
         print(f"=== Plan B Metrics Report: {scope_id or '(all scopes)'} ===")
         print()
-        print(f"  context-pack: {len(cp_records)} samples (no token data)")
-        print(f"  full-docs: {len(fd_records)} samples (no token data)")
+        for mode_name, recs in (
+            ("context-pack", cp_records),
+            ("full-docs", fd_records),
+        ):
+            has = any(r.get("tokens_approx") is not None for r in recs)
+            label = (
+                "no token data" if not has else f"avg {_avg_tokens(recs):.0f} tokens"
+            )
+            print(f"  {mode_name}: {len(recs)} samples ({label})")
         print()
         print("NOTE: No token data available for reduction calculation.")
         return 0

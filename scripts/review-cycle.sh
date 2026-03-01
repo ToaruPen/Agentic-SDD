@@ -188,14 +188,24 @@ _record_metrics_on_exit() {
 	if [[ -n "${out_meta:-}" ]]; then
 		_meta_args=(--metadata-file "$out_meta")
 	fi
-	python3 "$_script" record \
-		--repo-root "${repo_root:-}" \
-		--command review-cycle \
-		--scope-id "${scope_id:-unknown}" \
-		--run-id "${run_id:-$(date +%Y%m%d_%H%M%S)}" \
-		"${_meta_args[@]+${_meta_args[@]}}" \
-		--status "${_status:-unknown}" \
-		2>/dev/null || true
+	if [[ ${#_meta_args[@]} -gt 0 ]]; then
+		python3 "$_script" record \
+			--repo-root "${repo_root:-}" \
+			--command review-cycle \
+			--scope-id "${scope_id:-unknown}" \
+			--run-id "${run_id:-$(date +%Y%m%d_%H%M%S)}" \
+			"${_meta_args[@]}" \
+			--status "${_status:-unknown}" \
+			2>/dev/null || true
+	else
+		python3 "$_script" record \
+			--repo-root "${repo_root:-}" \
+			--command review-cycle \
+			--scope-id "${scope_id:-unknown}" \
+			--run-id "${run_id:-$(date +%Y%m%d_%H%M%S)}" \
+			--status "${_status:-unknown}" \
+			2>/dev/null || true
+	fi
 }
 trap '_record_metrics_on_exit' EXIT
 

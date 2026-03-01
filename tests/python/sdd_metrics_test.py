@@ -490,3 +490,30 @@ class TestCmdReport:
 
         out = capsys.readouterr().out
         assert "No token data available" in out
+
+    def test_report_one_sided_no_token_data(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Report with one mode having token data and the other not skips reduction."""
+        scope = "issue-3"
+        # context-pack has token data
+        _write_metric(tmp_path, scope, "r1", "review-cycle", "context-pack", 300)
+        # full-docs has NO token data
+        metrics_dir = tmp_path / ".agentic-sdd" / "metrics" / scope
+        metrics_dir.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "mode": "full-docs",
+            "command": "create-pr",
+            "tokens_approx": None,
+            "prompt_bytes": None,
+        }
+        (metrics_dir / "r2-create-pr.json").write_text(
+            json.dumps(payload), encoding="utf-8"
+        )
+
+        args = argparse.Namespace(repo_root=str(tmp_path), scope_id=scope, scale=10)
+        result = M.cmd_report(args)
+        assert result == 0
+
+        out = capsys.readouterr().out
+        assert "No token data available" in out
