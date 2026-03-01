@@ -906,6 +906,8 @@ def test_cli_rejects_target_dir_and_output_dir_together(tmp_path: Path) -> None:
     )
 
     assert proc.returncode != 0
+    assert "--target-dir" in proc.stderr
+    assert "--output-dir" in proc.stderr
 
 
 def test_generate_ci_commands_gradle_uses_gradle_command() -> None:
@@ -980,6 +982,25 @@ def test_generate_ci_commands_gradle_module_with_java_source_emits_single_comman
     # Gradle should win — only one command per path
     assert lint_cmd["value"] == "./gradlew checkstyleMain --project-dir app"
     assert "mvn" not in lint_cmd["value"]
+
+
+def test_generate_ci_commands_skips_source_only_java_paths() -> None:
+    """Source-only Java paths (e.g. src/main/java with only .java files) should be
+    skipped — the build tool at the project root already covers them."""
+    registry = load_real_registry()
+
+    commands = MODULE.generate_ci_commands(
+        ["java"],
+        registry,
+        lang_sources={"java": ["build.gradle", "Main.java"]},
+        lang_paths={"java": [".", "src/main/java/com/example"]},
+    )
+    lint_cmd = next(c for c in commands if c["key"] == "AGENTIC_SDD_CI_LINT_CMD")
+
+    # Only root Gradle command; source-only path should NOT produce Maven command
+    assert "./gradlew checkstyleMain" in lint_cmd["value"]
+    assert "mvn" not in lint_cmd["value"]
+    assert "src/main/java" not in lint_cmd["value"]
 
 
 def test_run_setup_mixed_inferred_and_confirmed_excludes_confirmed_from_inferred(

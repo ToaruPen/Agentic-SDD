@@ -103,6 +103,30 @@ def lookup_toolchain(
     return languages.get(language)
 
 
+# Source-file extensions that do NOT define project build boundaries.
+# Paths where ALL detected sources match these extensions are skipped —
+# the build tool at the project root already covers them.
+_SOURCE_FILE_EXTENSIONS: frozenset[str] = frozenset({".java", ".kt", ".kts"})
+
+
+def _is_source_only_path(sources: List[str]) -> bool:
+    """Return True if all sources at a path are bare source files (not build/config files).
+
+    Source files (.java, .kt, .kts) just confirm a language but do not define
+    build boundaries.  Paths with only source files are covered by the build tool
+    at their project root, so generating a separate CI command would be invalid.
+    """
+    non_empty = [s for s in sources if s]
+    if not non_empty:
+        return False  # no info → assume build file (safe default)
+    for s in non_empty:
+        if s.endswith(".gradle.kts"):
+            return False  # build file
+        if not any(s.endswith(ext) for ext in _SOURCE_FILE_EXTENSIONS):
+            return False  # not a source-file extension → build/config file
+    return True  # all sources are bare source files
+
+
 def _pick_ci_command(
     tool: Dict[str, Any],
     lang: str,
@@ -139,7 +163,9 @@ def _scope_command(
 ) -> str:
     """CI コマンドをサブプロジェクトパスにスコーピングする。
 
-    末尾 ' .' を持つコマンドのみパスで置換する。
+    scoped_template が指定された場合は ``{path}`` を各パスで展開し、
+    複数パス時は ``&&`` で連結する。
+    scoped_template がない場合は、末尾 ' .' を持つコマンドのみパスで置換する。
     シェル構造を持つコマンド（サブシェル、パイプなど）を壊さないよう、
     末尾 ' .' 以外のコマンドには追記しない。
     """
@@ -197,6 +223,16 @@ def generate_ci_commands(
         path_sources: Dict[str, List[str]] = {}
         for path, source in zip(paths, sources):
             path_sources.setdefault(path, []).append(source)
+
+        # Skip source-file-only paths (e.g. src/main/java with only .java files).
+        # The build tool at the project root already covers these.
+        path_sources = {
+            p: srcs
+            for p, srcs in path_sources.items()
+            if not _is_source_only_path(srcs)
+        }
+        if not path_sources:
+            path_sources = {".": [""]}  # fallback: use root
 
         for path in sorted(path_sources):
             per_source = {lang: path_sources[path]}
