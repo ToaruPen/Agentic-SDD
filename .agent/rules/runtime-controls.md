@@ -58,6 +58,13 @@ Rollout order:
 2. prompt caching enablement
 3. compaction/context editing enablement
 
+Context Pack contract update procedure:
+
+1. Update the canonical contract text in `.agent/agents/docs.md`.
+2. Run `python3 scripts/bench-sdd-docs.py --only /research` to validate parser/contract integrity.
+3. Run `python3 -m pytest -q tests/python/bench_sdd_docs_test.py` to verify docs/validator contract alignment.
+4. If any step fails, stop and fix the contract drift before enabling runtime-control changes.
+
 Rollback triggers:
 
 - Increased `Blocked`/`Question` outcomes without corresponding diff changes
