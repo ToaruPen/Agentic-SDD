@@ -963,6 +963,25 @@ def test_generate_ci_commands_mixed_maven_gradle_per_path() -> None:
     assert "mvn checkstyle:check -f maven-app/pom.xml" in lint_cmd["value"]
 
 
+def test_generate_ci_commands_gradle_module_with_java_source_emits_single_command() -> (
+    None
+):
+    """build.gradle + Main.java at same path should emit only Gradle command, not Maven."""
+    registry = load_real_registry()
+
+    commands = MODULE.generate_ci_commands(
+        ["java"],
+        registry,
+        lang_sources={"java": ["build.gradle", "Main.java"]},
+        lang_paths={"java": ["app", "app"]},
+    )
+    lint_cmd = next(c for c in commands if c["key"] == "AGENTIC_SDD_CI_LINT_CMD")
+
+    # Gradle should win — only one command per path
+    assert lint_cmd["value"] == "./gradlew checkstyleMain --project-dir app"
+    assert "mvn" not in lint_cmd["value"]
+
+
 def test_run_setup_mixed_inferred_and_confirmed_excludes_confirmed_from_inferred(
     tmp_path: Path,
 ) -> None:

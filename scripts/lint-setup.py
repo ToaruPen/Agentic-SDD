@@ -192,8 +192,14 @@ def generate_ci_commands(
         if len(sources) < len(paths):
             sources = sources + [""] * (len(paths) - len(sources))
 
+        # Group sources by path so each unique path gets one command
+        # (e.g. build.gradle + Main.java at same path → Gradle wins)
+        path_sources: Dict[str, List[str]] = {}
         for path, source in zip(paths, sources):
-            per_source = {lang: [source]}
+            path_sources.setdefault(path, []).append(source)
+
+        for path in sorted(path_sources):
+            per_source = {lang: path_sources[path]}
 
             lint_cmd = _pick_ci_command(linter, lang, per_source)
             lint_scoped_template = _pick_scoped_template(linter, lang, per_source)
