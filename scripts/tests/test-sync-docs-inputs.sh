@@ -87,6 +87,41 @@ out_json="$(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" OUTPUT_RO
 out_json_legacy="$(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" OUTPUT_ROOT="$tmpdir/out-legacy" \
 	python3 ./scripts/resolve-sync-docs-inputs.py --diff-mode auto)"
 
+cat >"$tmpdir/sitecustomize.py" <<'EOF'
+import sys
+
+
+class _StderrProxy:
+    def __init__(self, stream):
+        self._stream = stream
+
+    def isatty(self):
+        return True
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+
+sys.stderr = _StderrProxy(sys.stderr)
+EOF
+
+set +e
+(cd "$tmpdir" && PYTHONPATH="$tmpdir${PYTHONPATH:+:$PYTHONPATH}" GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" OUTPUT_ROOT="$tmpdir/out-legacy-warn" \
+	python3 ./scripts/resolve-sync-docs-inputs.py --diff-mode auto >/dev/null 2>"$tmpdir/stderr-legacy")
+legacy_rc=$?
+set -e
+
+if [[ "$legacy_rc" -ne 0 ]]; then
+	eprint "Expected legacy wrapper to exit successfully, got: $legacy_rc"
+	exit 1
+fi
+
+if ! grep -qi "deprecated" "$tmpdir/stderr-legacy"; then
+	eprint "Expected deprecation warning from legacy wrapper"
+	cat "$tmpdir/stderr-legacy" >&2
+	exit 1
+fi
+
 prd_path="$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["prd_path"])' <<<"$out_json")"
 epic_path="$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["epic_path"])' <<<"$out_json")"
 diff_source="$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["diff_source"])' <<<"$out_json")"
