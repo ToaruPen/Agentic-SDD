@@ -48,12 +48,10 @@ def setup_jinja_env(template_dir: Path) -> JinjaEnvironmentLike:
     """Jinja2環境をセットアップ"""
     try:
         jinja2 = importlib.import_module("jinja2")
-    except ImportError:
-        print(
-            "Error: jinja2 is required. Install with: pip install jinja2",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    except ImportError as exc:
+        raise RuntimeError(
+            "jinja2 is required. Install with: pip install jinja2"
+        ) from exc
 
     return jinja2.Environment(
         loader=jinja2.FileSystemLoader(str(template_dir)),

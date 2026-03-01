@@ -8,7 +8,25 @@ import subprocess
 import sys
 from collections.abc import Sequence
 
-from _lib.subprocess_utils import check_output_cmd
+try:
+    from _lib.subprocess_utils import check_output_cmd
+except ModuleNotFoundError:
+
+    def check_output_cmd(
+        cmd: list[str],
+        *,
+        cwd: str | None = None,
+        stderr: int | None = None,
+        text: bool = True,
+        timeout: float | None = None,
+    ) -> str:
+        return subprocess.check_output(  # noqa: S603
+            cmd,
+            cwd=cwd,
+            stderr=stderr,
+            text=text,
+            timeout=timeout,
+        )
 
 
 def eprint(msg: str) -> None:
