@@ -140,6 +140,32 @@ if [[ "${1:-}" != "check" ]]; then
 	exit 2
 fi
 
+shift
+dup_issue=0
+seen_issues=" "
+while [[ "$#" -gt 0 ]]; do
+	if [[ "${1:-}" != "--issue" ]]; then
+		echo "invalid worktree check args" >&2
+		exit 2
+	fi
+	issue="${2:-}"
+	if [[ -z "$issue" ]]; then
+		echo "missing issue value" >&2
+		exit 2
+	fi
+	if [[ "$seen_issues" == *" $issue "* ]]; then
+		dup_issue=1
+	else
+		seen_issues+="$issue "
+	fi
+	shift 2
+done
+
+if [[ "${AGENTIC_SDD_TEST_WORKTREE_FAIL_ON_DUPLICATE:-0}" == "1" && "$dup_issue" -eq 1 ]]; then
+	echo "duplicate issue id" >&2
+	exit 9
+fi
+
 case "${AGENTIC_SDD_TEST_WORKTREE_CHECK_EXIT:-0}" in
 	0)
 		echo "OK: no overlaps"
@@ -158,6 +184,17 @@ case "${AGENTIC_SDD_TEST_WORKTREE_CHECK_EXIT:-0}" in
 esac
 EOF
 	chmod +x "$work/scripts/agentic-sdd/worktree.sh"
+}
+
+setup_repo_worktree_check_stub() {
+	mkdir -p "$work/scripts"
+	cat >"$work/scripts/worktree.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+echo "repo-level worktree stub invoked" >&2
+exit "${AGENTIC_SDD_TEST_REPO_WORKTREE_EXIT:-9}"
+EOF
+	chmod +x "$work/scripts/worktree.sh"
 }
 
 base_sha="$(git -C "$work" rev-parse origin/main)"
@@ -315,6 +352,19 @@ write_review_metadata "$head_sha" "origin/main" "$base_sha"
 write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
 
 (cd "$work" && PATH="$tmpdir/bin:$PATH" AGENTIC_SDD_PARALLEL_ISSUES='2' "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
+
+setup_repo_worktree_check_stub
+(cd "$work" && PATH="$tmpdir/bin:$PATH" AGENTIC_SDD_PARALLEL_ISSUES='2' AGENTIC_SDD_TEST_REPO_WORKTREE_EXIT=9 "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
+
+set +e
+(cd "$work" && PATH="$tmpdir/bin:$PATH" AGENTIC_SDD_PARALLEL_ISSUES='2,2' AGENTIC_SDD_TEST_WORKTREE_FAIL_ON_DUPLICATE=1 "$script_src" --dry-run --issue 1) >/dev/null 2>"$tmpdir/stderr_parallel_duplicate"
+code_parallel_duplicate=$?
+set -e
+if [[ "$code_parallel_duplicate" -ne 0 ]]; then
+	eprint "Expected duplicate AGENTIC_SDD_PARALLEL_ISSUES entries to be deduplicated"
+	cat "$tmpdir/stderr_parallel_duplicate" >&2
+	exit 1
+fi
 
 # Stale base should fail and require re-review.
 git -C "$work" checkout main -q
