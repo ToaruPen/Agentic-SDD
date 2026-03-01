@@ -68,6 +68,6 @@
 
 ```bash
 {% for cmd in ci_commands %}
-{{ cmd.key }}: {{ cmd.value }}
+export {{ cmd.key }}="{{ cmd.value }}"
 {% endfor %}
 ```

@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import pytest
 import subprocess
 import sys
 from pathlib import Path
@@ -115,7 +116,7 @@ def ensure_jinja2_available(tmp_path: Path) -> Path | None:
     shim = """
 from __future__ import annotations
 
-import json
+import re
 from pathlib import Path
 
 
@@ -129,7 +130,10 @@ class _Template:
         self.content = content
 
     def render(self, **context: object) -> str:
-        return self.content + "\\n" + json.dumps(context, ensure_ascii=False)
+        result = self.content
+        for key, value in context.items():
+            result = re.sub(r"\\{\\{\\s*" + re.escape(key) + r"\\s*\\}\\}", str(value), result)
+        return result
 
 
 class Environment:
@@ -148,14 +152,12 @@ class Environment:
     return shim_root
 
 
-def test_find_repo_root_returns_current_git_root(tmp_path: Path) -> None:
-    original_cwd = Path.cwd()
+def test_find_repo_root_returns_current_git_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     (tmp_path / ".git").mkdir()
-    os.chdir(tmp_path)
-    try:
-        assert MODULE.find_repo_root() == tmp_path
-    finally:
-        os.chdir(original_cwd)
+    monkeypatch.chdir(tmp_path)
+    assert MODULE.find_repo_root() == tmp_path
 
 
 def test_load_registry_valid_file(tmp_path: Path) -> None:
@@ -170,8 +172,6 @@ def test_load_registry_valid_file(tmp_path: Path) -> None:
 
 def test_load_registry_missing_file_exits(tmp_path: Path) -> None:
     missing = tmp_path / "missing-registry.json"
-
-    import pytest
 
     with pytest.raises(SystemExit) as exc_info:
         MODULE.load_registry(missing)
@@ -196,10 +196,28 @@ def test_load_detection_result_valid_file(tmp_path: Path) -> None:
 def test_load_detection_result_missing_file_exits(tmp_path: Path) -> None:
     missing = tmp_path / "missing-detection.json"
 
-    import pytest
-
     with pytest.raises(SystemExit) as exc_info:
         MODULE.load_detection_result(str(missing))
+
+    assert exc_info.value.code == 1
+
+
+def test_load_registry_malformed_json_exits(tmp_path: Path) -> None:
+    bad_json = tmp_path / "bad-registry.json"
+    write_file(bad_json, "{not valid json!!!")
+
+    with pytest.raises(SystemExit) as exc_info:
+        MODULE.load_registry(bad_json)
+
+    assert exc_info.value.code == 1
+
+
+def test_load_detection_result_malformed_json_exits(tmp_path: Path) -> None:
+    bad_json = tmp_path / "bad-detection.json"
+    write_file(bad_json, "{not valid json!!!")
+
+    with pytest.raises(SystemExit) as exc_info:
+        MODULE.load_detection_result(str(bad_json))
 
     assert exc_info.value.code == 1
 

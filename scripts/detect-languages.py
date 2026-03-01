@@ -11,9 +11,8 @@ import tomllib
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
 
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_utils import eprint  # noqa: E402
 
 
 def to_rel_dir(path: Path, root: Path) -> str:

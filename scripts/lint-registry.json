@@ -110,7 +110,7 @@
         "docs_url": "https://pkg.go.dev/cmd/gofmt",
         "conflict_docs_url": null,
         "conflict_rules": [],
-        "ci_command": "gofmt -l ."
+        "ci_command": "test -z \"$(gofmt -l .)\""
       },
       "type_checker": {
         "name": null,
@@ -227,6 +227,16 @@
         "ci_command": null
       },
       "framework_rules": {}
+    }
+  },
+  "conflict_groups": {
+    "python_linters": {
+      "tools": ["ruff", "flake8", "pylint"],
+      "languages": ["python"]
+    },
+    "js_linters": {
+      "tools": ["eslint", "biome"],
+      "languages": ["javascript", "typescript"]
     }
   }
 }

@@ -16,9 +16,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_utils import eprint  # noqa: E402
 
 
 def find_repo_root() -> Path:
@@ -37,7 +36,11 @@ def load_registry(registry_path: Path) -> Dict[str, Any]:
         eprint(f"Error: Registry file not found: {registry_path}")
         sys.exit(1)
     with open(registry_path, encoding="utf-8") as fh:
-        return json.load(fh)
+        try:
+            return json.load(fh)
+        except json.JSONDecodeError as exc:
+            eprint(f"Error: Failed to parse registry JSON: {registry_path}: {exc}")
+            sys.exit(1)
 
 
 def load_detection_result(detection_path: str) -> Dict[str, Any]:
@@ -47,7 +50,11 @@ def load_detection_result(detection_path: str) -> Dict[str, Any]:
         eprint(f"Error: Detection result file not found: {path}")
         sys.exit(1)
     with open(path, encoding="utf-8") as fh:
-        return json.load(fh)
+        try:
+            return json.load(fh)
+        except json.JSONDecodeError as exc:
+            eprint(f"Error: Failed to parse detection JSON: {path}: {exc}")
+            sys.exit(1)
 
 
 def check_existing_configs(
@@ -72,16 +79,13 @@ def has_conflicting_tools(
         c["tool"] for c in existing_configs if c.get("tool", "") != recommended_linter
     ]
 
-    # 同一目的の異なるツールが存在する場合
     linter_names = {recommended_linter} | set(existing_linters)
-    # Python: ruff vs flake8 vs pylint
-    python_linters = {"ruff", "flake8", "pylint"}
-    if language == "python" and len(linter_names & python_linters) > 1:
-        return True
-    # JS/TS: eslint vs biome
-    js_linters = {"eslint", "biome"}
-    if language in ("typescript", "javascript") and len(linter_names & js_linters) > 1:
-        return True
+    conflict_groups = registry.get("conflict_groups", {})
+    for group in conflict_groups.values():
+        if language in group.get("languages", []):
+            group_tools = set(group.get("tools", []))
+            if len(linter_names & group_tools) > 1:
+                return True
     return False
 
 
@@ -276,7 +280,7 @@ def _render_evidence_plaintext(
     lines.append("")
     lines.append("```bash")
     for cmd in context.get("ci_commands", []):
-        lines.append(f"{cmd['key']}: {cmd['value']}")
+        lines.append(f'export {cmd["key"]}="{cmd["value"]}"')
     lines.append("```")
     return "\n".join(lines) + "\n"
 
@@ -305,7 +309,11 @@ def generate_evidence_trail(
     # jinja2 でレンダリングを試み、失敗時はプレーンテキストでフォールバック
     content: Optional[str] = None
     try:
-        from jinja2 import Environment, FileSystemLoader
+        import importlib
+
+        jinja2 = importlib.import_module("jinja2")
+        Environment = jinja2.Environment
+        FileSystemLoader = jinja2.FileSystemLoader
 
         if template_dir is None:
             script_dir = Path(__file__).parent

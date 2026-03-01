@@ -82,6 +82,14 @@ def test_detect_java_language(tmp_path: Path) -> None:
     assert "java" in language_names(result)
 
 
+def test_detect_kotlin_language(tmp_path: Path) -> None:
+    write_file(tmp_path / "Main.kt", "fun main() {}\n")
+
+    result = MODULE.detect_project(tmp_path)
+
+    assert "kotlin" in language_names(result)
+
+
 def test_detect_existing_linter_configs(tmp_path: Path) -> None:
     write_file(
         tmp_path / "pyproject.toml",
@@ -197,7 +205,7 @@ def test_settings_gradle_kts_does_not_confirm_kotlin(tmp_path: Path) -> None:
 
 def test_build_gradle_kts_infers_kotlin_and_java(tmp_path: Path) -> None:
     """build.gradle.kts should infer both Kotlin and Java, not confirm either."""
-    write_file(tmp_path / "build.gradle.kts", "plugins { kotlin(\"jvm\") }\n")
+    write_file(tmp_path / "build.gradle.kts", 'plugins { kotlin("jvm") }\n')
 
     result = MODULE.detect_project(tmp_path)
 
@@ -207,9 +215,7 @@ def test_build_gradle_kts_infers_kotlin_and_java(tmp_path: Path) -> None:
     assert len(kotlin_detections) == 1
     assert kotlin_detections[0]["confidence"] == "inferred"
 
-    java_detections = [
-        lang for lang in result["languages"] if lang["name"] == "java"
-    ]
+    java_detections = [lang for lang in result["languages"] if lang["name"] == "java"]
     assert len(java_detections) == 1
     assert java_detections[0]["confidence"] == "inferred"
 
@@ -252,9 +258,7 @@ def test_build_gradle_infers_java(tmp_path: Path) -> None:
 
     result = MODULE.detect_project(tmp_path)
 
-    java_detections = [
-        lang for lang in result["languages"] if lang["name"] == "java"
-    ]
+    java_detections = [lang for lang in result["languages"] if lang["name"] == "java"]
     assert len(java_detections) == 1
     assert java_detections[0]["confidence"] == "inferred"
 
@@ -265,8 +269,6 @@ def test_java_source_confirms_java(tmp_path: Path) -> None:
 
     result = MODULE.detect_project(tmp_path)
 
-    java_detections = [
-        lang for lang in result["languages"] if lang["name"] == "java"
-    ]
+    java_detections = [lang for lang in result["languages"] if lang["name"] == "java"]
     assert len(java_detections) == 1
     assert "confidence" not in java_detections[0]  # confirmed = no confidence key
