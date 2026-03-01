@@ -15,7 +15,7 @@ Required:
 - [ ] 重要な判断（why）を追加/変更した場合、Decision Snapshot が `docs/decisions/` に追記され、`docs/decisions.md` の index が更新されている（`python3 scripts/validate-decision-index.py` で検証。`/create-pr` 前に必須実行）
 - [ ] Code review is complete
 - [ ] CI passes (when applicable)
-- [ ] `lsp_diagnostics` is error-free on all changed files (see `.agent/rules/impl-gate.md` LSP verification gate)
+- [ ] `lsp_diagnostics` is error-free on all changed files (see `.agent/rules/impl-gate.md` LSP verification gate). If LSP checks cannot be run, the exception path in impl-gate.md applies (record reason/impact/alternative evidence + explicit approval).
 
 CI note:
 - If you choose to enforce CI, require it via branch protection (required status checks).
