@@ -5,7 +5,7 @@
 Patterns and checklists for using Language Server Protocol (LSP) tools during implementation
 to ensure type safety, impact analysis, and safe refactoring.
 
-This skill is designed to be loaded via `load_skills` when delegating implementation tasks
+This skill is designed to be loaded via the `skill` tool when delegating implementation tasks
 to sub-agents. It complements the LSP verification gate in `.agent/rules/impl-gate.md`.
 
 ---

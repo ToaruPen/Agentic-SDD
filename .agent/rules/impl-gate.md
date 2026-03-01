@@ -84,6 +84,12 @@ Applied after each file edit, not just post-implementation.
 
 - [ ] Run `lsp_diagnostics` on all edited files and confirm error count is 0.
 - [ ] Before refactoring or renaming, run `lsp_find_references` to confirm impact scope.
+- [ ] If LSP checks cannot be run (unsupported file type / tool outage / environment limits),
+      record:
+      - reason
+      - impact
+      - alternative evidence used (if any)
+      and get explicit approval before proceeding.
 
 ### Recommended
 
