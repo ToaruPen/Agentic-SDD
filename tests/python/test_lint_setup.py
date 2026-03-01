@@ -287,7 +287,7 @@ def test_generate_ci_commands_single_language() -> None:
     ]
 
 
-def test_generate_ci_commands_multiple_languages_deduplicates_keys() -> None:
+def test_generate_ci_commands_multiple_languages_concatenates() -> None:
     registry = minimal_registry()
 
     commands = MODULE.generate_ci_commands(
@@ -295,9 +295,12 @@ def test_generate_ci_commands_multiple_languages_deduplicates_keys() -> None:
     )
 
     assert commands == [
-        {"key": "AGENTIC_SDD_CI_LINT_CMD", "value": "ruff check ."},
-        {"key": "AGENTIC_SDD_CI_FORMAT_CMD", "value": "ruff format --check ."},
-        {"key": "AGENTIC_SDD_CI_TYPECHECK_CMD", "value": "mypy ."},
+        {"key": "AGENTIC_SDD_CI_LINT_CMD", "value": "ruff check . && npx eslint ."},
+        {
+            "key": "AGENTIC_SDD_CI_FORMAT_CMD",
+            "value": "ruff format --check . && npx prettier --check .",
+        },
+        {"key": "AGENTIC_SDD_CI_TYPECHECK_CMD", "value": "mypy . && npx tsc --noEmit"},
     ]
 
 

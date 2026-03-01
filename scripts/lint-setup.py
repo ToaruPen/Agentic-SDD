@@ -98,9 +98,10 @@ def generate_ci_commands(
     languages: List[str],
     registry: Dict[str, Any],
 ) -> List[Dict[str, str]]:
-    """CI 推奨コマンドを生成"""
-    commands: List[Dict[str, str]] = []
-    seen_keys: set[str] = set()
+    """CI 推奨コマンドを生成（複数言語時は && で連結）"""
+    lint_cmds: List[str] = []
+    fmt_cmds: List[str] = []
+    tc_cmds: List[str] = []
 
     for lang in languages:
         toolchain = lookup_toolchain(lang, registry)
@@ -112,19 +113,30 @@ def generate_ci_commands(
         type_checker = toolchain.get("type_checker", {})
 
         lint_cmd = linter.get("ci_command")
-        if lint_cmd and "LINT" not in seen_keys:
-            commands.append({"key": "AGENTIC_SDD_CI_LINT_CMD", "value": lint_cmd})
-            seen_keys.add("LINT")
+        if lint_cmd and lint_cmd not in lint_cmds:
+            lint_cmds.append(lint_cmd)
 
         fmt_cmd = formatter.get("ci_command")
-        if fmt_cmd and "FORMAT" not in seen_keys:
-            commands.append({"key": "AGENTIC_SDD_CI_FORMAT_CMD", "value": fmt_cmd})
-            seen_keys.add("FORMAT")
+        if fmt_cmd and fmt_cmd not in fmt_cmds:
+            fmt_cmds.append(fmt_cmd)
 
         tc_cmd = type_checker.get("ci_command")
-        if tc_cmd and "TYPECHECK" not in seen_keys:
-            commands.append({"key": "AGENTIC_SDD_CI_TYPECHECK_CMD", "value": tc_cmd})
-            seen_keys.add("TYPECHECK")
+        if tc_cmd and tc_cmd not in tc_cmds:
+            tc_cmds.append(tc_cmd)
+
+    commands: List[Dict[str, str]] = []
+    if lint_cmds:
+        commands.append(
+            {"key": "AGENTIC_SDD_CI_LINT_CMD", "value": " && ".join(lint_cmds)}
+        )
+    if fmt_cmds:
+        commands.append(
+            {"key": "AGENTIC_SDD_CI_FORMAT_CMD", "value": " && ".join(fmt_cmds)}
+        )
+    if tc_cmds:
+        commands.append(
+            {"key": "AGENTIC_SDD_CI_TYPECHECK_CMD", "value": " && ".join(tc_cmds)}
+        )
 
     return commands
 

@@ -162,7 +162,7 @@
         "docs_url": "https://docs.rubocop.org/rubocop/cops_layout.html",
         "conflict_docs_url": null,
         "conflict_rules": [],
-        "ci_command": "rubocop --auto-correct-all --fail-level E"
+        "ci_command": "rubocop --format progress --fail-level E"
       },
       "type_checker": {
         "name": "sorbet",
