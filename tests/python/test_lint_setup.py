@@ -348,8 +348,12 @@ def test_generate_ci_commands_scopes_to_subproject_paths() -> None:
     assert "frontend" in lint_cmd["value"]
 
 
-def test_generate_ci_commands_scopes_non_dot_commands() -> None:
-    """Commands without trailing ' .' (e.g. golangci-lint run) should also be scoped."""
+def test_generate_ci_commands_does_not_scope_non_dot_commands() -> None:
+    """Commands without trailing ' .' (e.g. golangci-lint run, shell subcommands) must not be scoped.
+
+    Appending paths to shell-structured commands like ``test -z "$(gofmt -l .)"``
+    would break them, so _scope_command only replaces trailing ' .' patterns.
+    """
     registry: dict[str, Any] = {
         "languages": {
             "go": {
@@ -373,10 +377,13 @@ def test_generate_ci_commands_scopes_non_dot_commands() -> None:
     )
 
     lint_cmd = next(c for c in commands if c["key"] == "AGENTIC_SDD_CI_LINT_CMD")
-    assert lint_cmd["value"] == "golangci-lint run backend"
+    assert lint_cmd["value"] == "golangci-lint run", (
+        "non-dot command must not be path-scoped"
+    )
     fmt_cmd = next(c for c in commands if c["key"] == "AGENTIC_SDD_CI_FORMAT_CMD")
-    # trailing ' .' pattern still works
-    assert "backend" in fmt_cmd["value"]
+    assert fmt_cmd["value"] == 'test -z "$(gofmt -l .)"', (
+        "shell subcommand must not be path-scoped"
+    )
 
 
 def test_generate_ci_commands_skips_unknown_language() -> None:

@@ -409,7 +409,7 @@ def main() -> int:
                         str(lint_script),
                         tmp_path,
                         "--target-dir",
-                        str(target),
+                        str(output_dir),
                     ]
                     if args.dry_run:
                         lint_args.append("--dry-run")

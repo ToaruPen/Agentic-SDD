@@ -120,7 +120,9 @@ def _pick_ci_command(
 def _scope_command(cmd: str, paths: List[str]) -> str:
     """CI コマンドをサブプロジェクトパスにスコーピングする。
 
-    末尾 ' .' を持つコマンドはパスで置換し、持たないコマンドはパスを末尾に追記する。
+    末尾 ' .' を持つコマンドのみパスで置換する。
+    シェル構造を持つコマンド（サブシェル、パイプなど）を壊さないよう、
+    末尾 ' .' 以外のコマンドには追記しない。
     """
     if not paths or set(paths) == {"."}:
         return cmd
@@ -130,7 +132,7 @@ def _scope_command(cmd: str, paths: List[str]) -> str:
     path_args = " ".join(shlex.quote(p) for p in unique_paths)
     if cmd.endswith(" ."):
         return cmd[:-2] + " " + path_args
-    return cmd + " " + path_args
+    return cmd
 
 
 def generate_ci_commands(
