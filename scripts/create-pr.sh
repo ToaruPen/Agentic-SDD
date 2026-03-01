@@ -95,17 +95,29 @@ normalize_base_branch_for_compare() {
   printf '%s\n' "$normalized"
 }
 
+resolve_worktree_script() {
+  local repo_root="$1"
+  local candidate=""
+  for candidate in     "$repo_root/scripts/worktree.sh"     "$repo_root/scripts/agentic-sdd/worktree.sh"; do
+    if [[ -x "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
 run_parallel_integration_guard() {
   local repo_root="$1"
   local issue="$2"
   local peers_raw="${AGENTIC_SDD_PARALLEL_ISSUES:-}"
-  local worktree_cmd="$repo_root/scripts/worktree.sh"
+  local worktree_cmd=""
 
   if [[ -z "$peers_raw" ]]; then
     return 0
   fi
-  if [[ ! -x "$worktree_cmd" ]]; then
-    eprint "Parallel integration guard enabled, but missing executable: $worktree_cmd"
+  if ! worktree_cmd="$(resolve_worktree_script "$repo_root")"; then
+    eprint "Parallel integration guard enabled, but missing executable: scripts/worktree.sh or scripts/agentic-sdd/worktree.sh"
     exit 2
   fi
 
