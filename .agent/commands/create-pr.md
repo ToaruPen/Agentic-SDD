@@ -47,7 +47,11 @@ Required:
       - `diff_mode` must be `range`
       - if `base_sha` is present, the same `base_ref` still points to that `base_sha`
       - if `base_sha` is present, the PR target base (`--base` or default base) must match the reviewed base branch
-6. Decision Index validation: `python3 scripts/validate-decision-index.py` must pass.
+6. Parallel integration conflict check is cleared when applicable:
+   - If this PR belongs to a parallel implementation set, follow the fixed rule in `.agent/commands/worktree.md` (Phase 4.5).
+   - If overlap/conflict is detected against other active parallel PRs, STOP and serialize until conflict is cleared.
+   - Optional hard gate: set `AGENTIC_SDD_PARALLEL_ISSUES='176,177'` (peer issues). `create-pr.sh` runs `scripts/worktree.sh check` and fail-fast on overlap.
+7. Decision Index validation: `python3 scripts/validate-decision-index.py` must pass.
    - This validates: required sections in `docs/decisions/_template.md`, index/body 1:1 correspondence, and Supersedes reference integrity.
    - If the script fails, stop and fix the reported errors before proceeding.
    - The helper script `create-pr.sh` runs this check automatically.

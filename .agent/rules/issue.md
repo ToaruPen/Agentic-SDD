@@ -190,12 +190,20 @@ Required:
 
 - The Issue body includes `### 変更対象ファイル（推定）` with repo-relative paths.
 - The declared file set does NOT overlap with other parallel Issues.
+- Integration-risk is continuously re-evaluated while parallel PRs are open.
 
 Validation:
 
 - Use `./scripts/agentic-sdd/worktree.sh check ...` to detect overlaps before starting.
+- If open parallel PRs start overlapping in actual diff files, remove `parallel-ok`, mark as `blocked`, and serialize.
 
 If file targets are unknown or overlaps exist, do NOT use `parallel-ok`; mark as `blocked` and serialize.
+
+Fixed rule for integration conflicts:
+
+- Even if initial `parallel-ok` was valid, treat newly detected overlap/conflict during integration rehearsal as fail-fast.
+- Conflicts must be resolved (or merge order changed and re-verified) before `/create-pr`.
+- Unresolved integration conflict means the Issue cannot remain `parallel-ok`.
 
 ---
 

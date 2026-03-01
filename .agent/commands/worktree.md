@@ -99,6 +99,27 @@ Open one terminal per worktree directory and implement independently.
 
 Merge in a "finish one, merge one" manner to reduce conflicts.
 
+### Phase 4.5: Integration conflict rule (fixed)
+
+Before merging or creating a later PR in a parallel set, enforce this rule:
+
+1. Detect overlap again between active Issues/PRs (do not rely on the first check only).
+   - Use `./scripts/agentic-sdd/worktree.sh check --issue <n> --issue <m> ...` for declared targets.
+   - If open PR diffs overlap in real files, treat it as integration-risk even when Issue declarations were initially disjoint.
+2. If integration-risk exists, run an integration rehearsal on latest base (`origin/main`):
+   - Create a temporary integration branch/worktree.
+   - Merge candidate branches in intended merge order.
+   - If conflicts occur, resolve or serialize.
+3. Re-run review/test gates on the surviving branch before `/create-pr`:
+   - `/review-cycle` (range)
+   - `/test-review` (`TEST_REVIEW_DIFF_MODE=range`)
+4. Fail-fast behavior:
+   - If conflicts remain unresolved, remove `parallel-ok`, mark as `blocked`, and serialize.
+   - Do not proceed to `/create-pr` until the integration-risk is cleared.
+5. Optional hard gate on `/create-pr`:
+   - Set `AGENTIC_SDD_PARALLEL_ISSUES='<peer-issue>,<peer-issue>'`.
+   - `create-pr.sh` then runs `scripts/worktree.sh check` against current issue + peers and fails on overlap.
+
 ### Phase 5: Review gate
 
 For each Issue, run:
@@ -113,6 +134,7 @@ See `./scripts/agentic-sdd/worktree.sh --help`.
 ## Related
 
 - `.agent/rules/issue.md` - dependency + `parallel-ok` rules
+- `.agent/commands/create-pr.md` - PR preconditions and fail-fast checks
 - `.agent/rules/branch.md` - branch naming
 - `skills/worktree-parallel.md` - patterns/checklists
 - `scripts/agentic-sdd/worktree.sh` - deterministic wrapper
