@@ -134,8 +134,8 @@ def generate_python_ruff_config(
     config_content = "\n".join(lines) + "\n"
 
     if dry_run:
-        print(f"[DRY-RUN] Would generate ruff config in {target_dir}/pyproject.toml")
-        print(config_content)
+        eprint(f"[DRY-RUN] Would generate ruff config in {target_dir}/pyproject.toml")
+        eprint(config_content)
         return None
 
     return config_content
@@ -260,7 +260,7 @@ def generate_evidence_trail(
     output_dir = target_dir / ".agentic-sdd" / "project" / "rules"
 
     if dry_run:
-        print(f"[DRY-RUN] Would generate evidence trail: {output_dir / 'lint.md'}")
+        eprint(f"[DRY-RUN] Would generate evidence trail: {output_dir / 'lint.md'}")
         return content
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -326,6 +326,14 @@ def run_setup(
                 toolchain, target_dir, dry_run, existing_configs
             )
             if config:
+                # 設定内容をファイルに書き込む
+                pyproject_path = target_dir / "pyproject.toml"
+                if pyproject_path.exists():
+                    eprint(
+                        f"[SKIP] 既存の pyproject.toml を検出: {pyproject_path}（上書き不可）"
+                    )
+                else:
+                    pyproject_path.write_text(config, encoding="utf-8")
                 generated_files.append("pyproject.toml [tool.ruff]")
 
     # CI コマンド
@@ -410,6 +418,8 @@ def main() -> int:
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
+        if result.get("error"):
+            return 1
     else:
         if result.get("error"):
             eprint(f"\n[ERROR] {result['error']}")
