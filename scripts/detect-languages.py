@@ -116,6 +116,8 @@ def detect_languages_for_file(file_path: Path, root: Path) -> List[Dict[str, str
 
     if name in {"pom.xml", "build.gradle", "build.gradle.kts"}:
         detections.append({"name": "java", "source": name, "path": rel_dir})
+        if name == "build.gradle.kts":
+            detections.append({"name": "kotlin", "source": name, "path": rel_dir})
 
     return detections
 

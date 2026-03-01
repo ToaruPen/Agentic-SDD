@@ -382,6 +382,11 @@ def run_setup(
     if evidence_path and not dry_run:
         generated_files.append(evidence_path)
 
+    # 設定ファイルが生成されずに提案のみの場合はモードを proposal に変更
+    config_files = [f for f in generated_files if not f.endswith("lint.md")]
+    if proposals and not config_files and mode == "generate":
+        mode = "proposal"
+
     result: Dict[str, Any] = {
         "mode": mode,
         "languages": lang_names,
