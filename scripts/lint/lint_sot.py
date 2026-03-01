@@ -761,7 +761,8 @@ def lint_sot_reference_contract(repo: str, rel_path: str, text: str) -> list[Lin
         ]
 
     # Normalize to prevent path traversal (e.g. docs/prd/../epics/foo.md)
-    normalized = PurePath(ref_path).as_posix()
+    # PurePath.as_posix() does not collapse '..'; use os.path.normpath.
+    normalized = os.path.normpath(ref_path).replace(os.sep, "/")  # noqa: PTH
     if not normalized.startswith("docs/prd/"):
         return [
             LintError(
