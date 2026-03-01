@@ -198,6 +198,7 @@ while [[ $# -gt 0 ]]; do
 		            ;;
 		        --ref)
 		            REF="$2"
+	                # shellcheck disable=SC2034  # reserved for future ref-source detection
 	                REF_EXPLICIT=true
 		            shift 2
 		            ;;
