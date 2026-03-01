@@ -103,33 +103,93 @@ def lookup_toolchain(
     return languages.get(language)
 
 
+# Source-file extensions that do NOT define project build boundaries.
+# Paths where ALL detected sources match these extensions are skipped —
+# the build tool at the project root already covers them.
+_SOURCE_FILE_EXTENSIONS: frozenset[str] = frozenset({".java", ".kt", ".kts"})
+
+
+def _is_source_only_path(sources: List[str]) -> bool:
+    """Return True if all sources at a path are bare source files (not build/config files).
+
+    Source files (.java, .kt, .kts) just confirm a language but do not define
+    build boundaries.  Paths with only source files are covered by the build tool
+    at their project root, so generating a separate CI command would be invalid.
+    """
+    non_empty = [s for s in sources if s]
+    if not non_empty:
+        return False  # no info → assume build file (safe default)
+    for s in non_empty:
+        if s.endswith(".gradle.kts"):
+            return False  # build file
+        if not any(s.endswith(ext) for ext in _SOURCE_FILE_EXTENSIONS):
+            return False  # not a source-file extension → build/config file
+    return True  # all sources are bare source files
+
+
+_GRADLE_SOURCES: frozenset[str] = frozenset({"build.gradle", "build.gradle.kts"})
+
+
+def _has_gradle_sources(lang: str, lang_sources: Dict[str, List[str]]) -> bool:
+    """lang_sources に Gradle ビルドファイルが含まれるか判定する。"""
+    return any(src in _GRADLE_SOURCES for src in lang_sources.get(lang, []))
+
+
 def _pick_ci_command(
     tool: Dict[str, Any],
     lang: str,
     lang_sources: Dict[str, List[str]],
 ) -> Optional[str]:
     """ビルドツール固有のCI コマンドがあれば優先する。"""
-    sources = lang_sources.get(lang, [])
-    gradle_sources = {"build.gradle", "build.gradle.kts"}
-    if any(src in gradle_sources for src in sources):
+    if _has_gradle_sources(lang, lang_sources):
         gradle_cmd = tool.get("ci_command_gradle")
         if gradle_cmd:
             return gradle_cmd
     return tool.get("ci_command")
 
 
-def _scope_command(cmd: str, paths: List[str]) -> str:
+def _pick_scoped_template(
+    tool: Dict[str, Any],
+    lang: str,
+    lang_sources: Dict[str, List[str]],
+) -> Optional[str]:
+    if _has_gradle_sources(lang, lang_sources):
+        gradle_scoped = tool.get("ci_command_gradle_scoped")
+        if gradle_scoped:
+            return gradle_scoped
+    return tool.get("ci_command_scoped")
+
+
+def _scope_command(
+    cmd: str,
+    paths: List[str],
+    scoped_template: Optional[str] = None,
+) -> str:
     """CI コマンドをサブプロジェクトパスにスコーピングする。
 
-    末尾 ' .' を持つコマンドのみパスで置換する。
+    scoped_template が指定された場合は ``{path}`` を各パスで展開し、
+    複数パス時は ``&&`` で連結する。
+    scoped_template がない場合は、末尾 ' .' を持つコマンドのみパスで置換する。
     シェル構造を持つコマンド（サブシェル、パイプなど）を壊さないよう、
     末尾 ' .' 以外のコマンドには追記しない。
     """
-    if not paths or set(paths) == {"."}:
+    if not paths:
+        return cmd
+    if scoped_template:
+        unique_paths = sorted(set(paths))
+        if not unique_paths:
+            return cmd
+        return " && ".join(
+            scoped_template.replace("{path}", shlex.quote(path))
+            for path in unique_paths
+        )
+
+    if set(paths) == {"."}:
         return cmd
     unique_paths = sorted(set(p for p in paths if p != "."))
     if not unique_paths:
         return cmd
+
     path_args = " ".join(shlex.quote(p) for p in unique_paths)
     if cmd.endswith(" ."):
         return cmd[:-2] + " " + path_args
@@ -158,24 +218,49 @@ def generate_ci_commands(
         formatter = toolchain.get("formatter", {})
         type_checker = toolchain.get("type_checker", {})
         paths = lang_paths.get(lang, ["."]) if lang_paths else ["."]
+        sources = (lang_sources or {}).get(lang, [])
+        if len(sources) < len(paths):
+            sources = sources + [""] * (len(paths) - len(sources))
 
-        lint_cmd = _pick_ci_command(linter, lang, lang_sources)
-        if lint_cmd:
-            lint_cmd = _scope_command(lint_cmd, paths)
-        if lint_cmd and lint_cmd not in lint_cmds:
-            lint_cmds.append(lint_cmd)
+        # Group sources by path so each unique path gets one command
+        # (e.g. build.gradle + Main.java at same path → Gradle wins)
+        path_sources: Dict[str, List[str]] = {}
+        for path, source in zip(paths, sources):
+            path_sources.setdefault(path, []).append(source)
 
-        fmt_cmd = _pick_ci_command(formatter, lang, lang_sources)
-        if fmt_cmd:
-            fmt_cmd = _scope_command(fmt_cmd, paths)
-        if fmt_cmd and fmt_cmd not in fmt_cmds:
-            fmt_cmds.append(fmt_cmd)
+        # Skip source-file-only paths (e.g. src/main/java with only .java files).
+        # The build tool at the project root already covers these.
+        path_sources = {
+            p: srcs
+            for p, srcs in path_sources.items()
+            if not _is_source_only_path(srcs)
+        }
+        if not path_sources:
+            path_sources = {".": [""]}  # fallback: use root
 
-        tc_cmd = _pick_ci_command(type_checker, lang, lang_sources)
-        if tc_cmd:
-            tc_cmd = _scope_command(tc_cmd, paths)
-        if tc_cmd and tc_cmd not in tc_cmds:
-            tc_cmds.append(tc_cmd)
+        for path in sorted(path_sources):
+            per_source = {lang: path_sources[path]}
+
+            lint_cmd = _pick_ci_command(linter, lang, per_source)
+            lint_scoped_template = _pick_scoped_template(linter, lang, per_source)
+            if lint_cmd:
+                scoped = _scope_command(lint_cmd, [path], lint_scoped_template)
+                if scoped not in lint_cmds:
+                    lint_cmds.append(scoped)
+
+            fmt_cmd = _pick_ci_command(formatter, lang, per_source)
+            fmt_scoped_template = _pick_scoped_template(formatter, lang, per_source)
+            if fmt_cmd:
+                scoped = _scope_command(fmt_cmd, [path], fmt_scoped_template)
+                if scoped not in fmt_cmds:
+                    fmt_cmds.append(scoped)
+
+            tc_cmd = _pick_ci_command(type_checker, lang, per_source)
+            tc_scoped_template = _pick_scoped_template(type_checker, lang, per_source)
+            if tc_cmd:
+                scoped = _scope_command(tc_cmd, [path], tc_scoped_template)
+                if scoped not in tc_cmds:
+                    tc_cmds.append(scoped)
 
     commands: List[Dict[str, str]] = []
     if lint_cmds:
@@ -329,10 +414,17 @@ def generate_evidence_trail(
     registry: Dict[str, Any],
     ci_commands: List[Dict[str, str]],
     target_dir: Path,
+    output_dir_override: Optional[Path] = None,
     template_dir: Optional[Path] = None,
     dry_run: bool = False,
 ) -> Optional[str]:
-    """証跡ファイル (.agentic-sdd/project/rules/lint.md) を生成。jinja2 がなければプレーンテキストでフォールバック。"""
+    """証跡ファイルを生成する。
+
+    output_dir_override 指定時は ``<output_dir_override>/rules/lint.md`` へ出力し、
+    未指定時は ``<target_dir>/.agentic-sdd/project/rules/lint.md`` へ出力する。
+    jinja2 が利用可能ならテンプレートでレンダリングし、利用不可時はプレーンテキストで
+    フォールバックする。dry_run=True の場合はファイルを書き込まず内容を返す。
+    """
     toolchains, existing_configs = _build_toolchains(detection, registry)
 
     context: Dict[str, Any] = {
@@ -382,7 +474,10 @@ def generate_evidence_trail(
     if content is None:
         content = _render_evidence_plaintext(context)
 
-    output_dir = target_dir / ".agentic-sdd" / "project" / "rules"
+    if output_dir_override is not None:
+        output_dir = output_dir_override / "rules"
+    else:
+        output_dir = target_dir / ".agentic-sdd" / "project" / "rules"
 
     if dry_run:
         eprint(f"[DRY-RUN] Would generate evidence trail: {output_dir / 'lint.md'}")
@@ -400,6 +495,7 @@ def run_setup(
     target_dir: Path,
     dry_run: bool = False,
     template_dir: Optional[Path] = None,
+    output_dir_override: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """メインのセットアップ処理 — 推奨出力のみ（設定ファイル書き込みなし）"""
     if not target_dir.is_dir():
@@ -536,6 +632,7 @@ def run_setup(
         registry,
         ci_commands,
         target_dir,
+        output_dir_override,
         template_dir,
         dry_run,
     )
@@ -581,10 +678,16 @@ def main() -> int:
         default=None,
         help="lint-registry.json のパス（デフォルト: 自動検出）",
     )
-    parser.add_argument(
+    output_group = parser.add_mutually_exclusive_group()
+    output_group.add_argument(
         "--target-dir",
         default=".",
-        help="証跡ファイルの出力先ディレクトリ（デフォルト: カレントディレクトリ）",
+        help="証跡ファイルの出力先基準ディレクトリ（デフォルト: カレントディレクトリ）",
+    )
+    output_group.add_argument(
+        "--output-dir",
+        default=None,
+        help="証跡ファイルの直接出力先（<output-dir>/rules/lint.md）",
     )
     parser.add_argument(
         "--template-dir",
@@ -614,10 +717,20 @@ def main() -> int:
     registry = load_registry(registry_path)
     detection = load_detection_result(args.detection_file)
     target_dir = Path(args.target_dir).resolve()
+    output_dir_override = (
+        Path(args.output_dir).resolve() if args.output_dir is not None else None
+    )
 
     template_dir = Path(args.template_dir) if args.template_dir else None
 
-    result = run_setup(detection, registry, target_dir, args.dry_run, template_dir)
+    result = run_setup(
+        detection,
+        registry,
+        target_dir,
+        args.dry_run,
+        template_dir,
+        output_dir_override,
+    )
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))

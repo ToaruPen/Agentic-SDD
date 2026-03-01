@@ -57,7 +57,8 @@
         "docs_url": "https://www.typescriptlang.org/tsconfig/",
         "config_file": "tsconfig.json",
         "config_section": null,
-        "ci_command": "npx tsc --noEmit"
+        "ci_command": "npx tsc --noEmit",
+        "ci_command_scoped": "npx tsc --noEmit -p {path}/tsconfig.json"
       },
       "framework_rules": {
         "react": {"rules": ["eslint-plugin-react", "eslint-plugin-react-hooks"], "detect": ["react"]},
@@ -103,7 +104,8 @@
         "config_section": null,
         "essential_rules": ["errcheck", "gosimple", "govet", "ineffassign", "staticcheck", "unused"],
         "recommended_rules": ["gofmt", "goimports", "misspell", "bodyclose", "exhaustive"],
-        "ci_command": "golangci-lint run"
+        "ci_command": "golangci-lint run",
+        "ci_command_scoped": "golangci-lint run {path}/..."
       },
       "formatter": {
         "name": "gofmt",
@@ -129,14 +131,16 @@
         "config_section": null,
         "essential_rules": ["warnings"],
         "recommended_rules": ["clippy::pedantic"],
-        "ci_command": "cargo clippy -- -D warnings"
+        "ci_command": "cargo clippy -- -D warnings",
+        "ci_command_scoped": "cargo clippy --manifest-path {path}/Cargo.toml -- -D warnings"
       },
       "formatter": {
         "name": "rustfmt",
         "docs_url": "https://rust-lang.github.io/rustfmt/",
         "conflict_docs_url": null,
         "conflict_rules": [],
-        "ci_command": "cargo fmt -- --check"
+        "ci_command": "cargo fmt -- --check",
+        "ci_command_scoped": "cargo fmt --manifest-path {path}/Cargo.toml -- --check"
       },
       "type_checker": {
         "name": null,
@@ -155,21 +159,24 @@
         "config_section": null,
         "essential_rules": ["Style", "Lint", "Layout"],
         "recommended_rules": ["Metrics", "Naming"],
-        "ci_command": "rubocop"
+        "ci_command": "rubocop",
+        "ci_command_scoped": "rubocop {path}"
       },
       "formatter": {
         "name": "rubocop",
         "docs_url": "https://docs.rubocop.org/rubocop/cops_layout.html",
         "conflict_docs_url": null,
         "conflict_rules": [],
-        "ci_command": "rubocop --format progress --fail-level E"
+        "ci_command": "rubocop --format progress --fail-level E",
+        "ci_command_scoped": "rubocop --format progress --fail-level E {path}"
       },
       "type_checker": {
         "name": "sorbet",
         "docs_url": "https://sorbet.org/docs/overview",
         "config_file": "sorbet/config",
         "config_section": null,
-        "ci_command": "srb tc"
+        "ci_command": "srb tc",
+        "ci_command_scoped": "srb tc --dir {path}"
       },
       "framework_rules": {
         "rails": {"rules": ["rubocop-rails"], "detect": ["rails"]}
@@ -184,7 +191,9 @@
         "essential_rules": ["google_checks"],
         "recommended_rules": [],
         "ci_command": "mvn checkstyle:check",
-        "ci_command_gradle": "./gradlew checkstyleMain"
+        "ci_command_scoped": "mvn checkstyle:check -f {path}/pom.xml",
+        "ci_command_gradle": "./gradlew checkstyleMain",
+        "ci_command_gradle_scoped": "./gradlew checkstyleMain --project-dir {path}"
       },
       "formatter": {
         "name": "google-java-format",
@@ -210,14 +219,16 @@
         "config_section": null,
         "essential_rules": ["complexity", "coroutines", "empty-blocks", "exceptions", "potential-bugs"],
         "recommended_rules": ["naming", "performance", "style"],
-        "ci_command": "detekt"
+        "ci_command": "detekt",
+        "ci_command_scoped": "detekt --input {path}"
       },
       "formatter": {
         "name": "ktlint",
         "docs_url": "https://pinterest.github.io/ktlint/latest/",
         "conflict_docs_url": null,
         "conflict_rules": [],
-        "ci_command": "ktlint"
+        "ci_command": "ktlint",
+        "ci_command_scoped": "ktlint {path}"
       },
       "type_checker": {
         "name": null,
