@@ -210,7 +210,7 @@ def detect_pr_number(repo_root: str, gh_repo: str) -> str | None:
         cmd += ["-R", gh_repo]
     cmd += ["pr", "view", "--json", "number"]
     try:
-        p = run(cmd, cwd=repo_root, check=True)
+        p = run(cmd, cwd=repo_root, check=True, timeout=GH_CMD_TIMEOUT)
     except subprocess.CalledProcessError:
         return None
     try:
@@ -283,7 +283,7 @@ def resolve_diff(
             cmd += ["-R", gh_repo]
         cmd += ["pr", "diff", pr_number, "--patch"]
         try:
-            p = run(cmd, cwd=repo_root, check=True)
+            p = run(cmd, cwd=repo_root, check=True, timeout=GH_CMD_TIMEOUT)
         except subprocess.CalledProcessError as exc:
             msg = exc.stderr.strip() or exc.stdout.strip() or str(exc)
             raise RuntimeError(f"Failed to fetch PR diff via gh: {msg}") from exc
@@ -493,11 +493,8 @@ def main() -> int:
 
         if not args.dry_run:
             out_dir_path.mkdir(parents=True, exist_ok=True)
-            (out_dir_path / "diff.patch").write_text(diff_text, encoding="utf-8")
-            if not diff_text.endswith("\n"):
-                (out_dir_path / "diff.patch").write_text(
-                    diff_text + "\n", encoding="utf-8"
-                )
+            patch_text = diff_text if diff_text.endswith("\n") else diff_text + "\n"
+            (out_dir_path / "diff.patch").write_text(patch_text, encoding="utf-8")
             (out_dir_path / "inputs.json").write_text(
                 json.dumps(out, ensure_ascii=True, indent=2) + "\n", encoding="utf-8"
             )

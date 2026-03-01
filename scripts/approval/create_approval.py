@@ -111,10 +111,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    if args.issue < 0:
-        eprint("Issue number must be >= 0")
+    if args.issue <= 0:
+        eprint("Issue number must be > 0")
         return 2
-
     mode = str(args.mode)
     if mode not in MODE_ALLOWED:
         eprint(f"Invalid --mode: {mode} (expected one of {sorted(MODE_ALLOWED)})")

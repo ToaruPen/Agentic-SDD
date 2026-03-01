@@ -56,8 +56,16 @@ def main() -> int:
     if not root:
         return 0
 
-    worktree_gate = Path(root) / "scripts" / "validate-worktree.py"
-    if worktree_gate.is_file():
+    worktree_gate = None
+    for rel in (
+        Path("scripts", "gates", "validate_worktree.py"),
+        Path("scripts", "validate-worktree.py"),
+    ):
+        candidate = Path(root) / rel
+        if candidate.is_file():
+            worktree_gate = candidate
+            break
+    if worktree_gate is not None:
         try:
             p = run([sys.executable, str(worktree_gate)], cwd=root, check=False)
         except OSError as exc:
@@ -74,13 +82,20 @@ def main() -> int:
         # Allow writing Agentic-SDD local artifacts (approvals/reviews), but still enforce worktree.
         return 0
 
-    script = Path(root) / "scripts" / "validate-approval.py"
-    if not script.is_file():
+    script = None
+    for rel in (
+        Path("scripts", "gates", "validate_approval.py"),
+        Path("scripts", "validate-approval.py"),
+    ):
+        candidate = Path(root) / rel
+        if candidate.is_file():
+            script = candidate
+            break
+    if script is None:
         return 0
 
     try:
         p = run([sys.executable, str(script)], cwd=root, check=False)
-
     except OSError as exc:
         eprint(f"[agentic-sdd gate] error: {exc}")
         return 1

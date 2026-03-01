@@ -33,7 +33,7 @@ def find_repo_root() -> Path:
 
 def load_registry(registry_path: Path) -> dict[str, Any]:
     """lint-registry.json を読み込む"""
-    if not registry_path.exists():
+    if not registry_path.is_file():
         eprint(f"Error: Registry file not found: {registry_path}")
         sys.exit(1)
     with registry_path.open(encoding="utf-8") as fh:
@@ -47,7 +47,7 @@ def load_registry(registry_path: Path) -> dict[str, Any]:
 def load_detection_result(detection_path: str) -> dict[str, Any]:
     """detect-languages.py の JSON 出力を読み込む"""
     path = Path(detection_path)
-    if not path.exists():
+    if not path.is_file():
         eprint(f"Error: Detection result file not found: {path}")
         sys.exit(1)
     with path.open(encoding="utf-8") as fh:
