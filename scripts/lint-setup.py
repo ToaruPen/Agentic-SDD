@@ -255,14 +255,17 @@ def run_setup(
         eprint("[ERROR] 言語を検出できませんでした。")
         return {"error": "no_languages_detected"}
 
-    # 言語名リスト（重複排除、順序維持）
+    # 言語名リスト（重複排除、順序維持）とパス情報の収集
     seen: set[str] = set()
     unique_lang_names: List[str] = []
+    lang_paths: Dict[str, List[str]] = {}
     for lang in languages:
         name = lang["name"]
+        path = lang.get("path", ".")
         if name not in seen:
             seen.add(name)
             unique_lang_names.append(name)
+        lang_paths.setdefault(name, []).append(path)
 
     # 各言語の推奨ツールチェーンを構築
     recommendations: List[Dict[str, Any]] = []
@@ -291,6 +294,7 @@ def run_setup(
 
         rec: Dict[str, Any] = {
             "language": lang_name,
+            "paths": sorted(set(lang_paths.get(lang_name, ["."]))),
             "linter": {
                 "name": linter.get("name"),
                 "docs_url": linter.get("docs_url"),

@@ -411,6 +411,7 @@ def test_run_setup_normal_single_language_flow(tmp_path: Path) -> None:
     assert len(result["recommendations"]) == 1
     assert result["recommendations"][0]["language"] == "python"
     assert result["recommendations"][0]["linter"]["name"] == "ruff"
+    assert result["recommendations"][0]["paths"] == ["."]
     assert result["ci_commands"]
 
 
@@ -443,6 +444,11 @@ def test_run_setup_monorepo_multilanguage_returns_recommendations(
     assert "javascript" in lang_names
     assert "python" in result["languages"]
     assert "javascript" in result["languages"]
+    # Verify paths are preserved for subproject context
+    python_rec = next(r for r in result["recommendations"] if r["language"] == "python")
+    assert python_rec["paths"] == ["backend"]
+    js_rec = next(r for r in result["recommendations"] if r["language"] == "javascript")
+    assert js_rec["paths"] == ["frontend"]
 
 
 def test_run_setup_empty_languages_returns_error(tmp_path: Path) -> None:
