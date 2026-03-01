@@ -464,6 +464,13 @@ def main() -> int:
             for f in result["generated_files"]:
                 print(f"  - {f}")
 
+    if result.get("lint_setup_error") and not args.skip_lint:
+        eprint(
+            f"[ERROR] lint-setup failed: {result['lint_setup_error']}. "
+            "Use --skip-lint to skip this step."
+        )
+        return 1
+
     return 0
 
 

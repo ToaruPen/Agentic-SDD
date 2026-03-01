@@ -278,6 +278,11 @@ def run_setup(
     template_dir: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """メインのセットアップ処理"""
+    if not target_dir.is_dir():
+        eprint(
+            f"[ERROR] target-dir が存在しないか、ディレクトリではありません: {target_dir}"
+        )
+        return {"error": "invalid_target_dir", "generated_files": []}
     languages = detection.get("languages", [])
     existing_configs = detection.get("existing_linter_configs", [])
     is_monorepo = detection.get("is_monorepo", False)
@@ -358,7 +363,7 @@ def run_setup(
         template_dir,
         dry_run,
     )
-    if evidence_path:
+    if evidence_path and not dry_run:
         generated_files.append(evidence_path)
 
     result: Dict[str, Any] = {

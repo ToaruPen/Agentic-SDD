@@ -491,6 +491,21 @@ def test_run_setup_empty_languages_returns_error(tmp_path: Path) -> None:
     assert result == {"error": "no_languages_detected", "generated_files": []}
 
 
+def test_run_setup_invalid_target_dir_returns_error(tmp_path: Path) -> None:
+    """target_dir が存在しない場合にエラーを返すことを確認する。"""
+    registry = load_real_registry()
+    detection = {
+        "languages": [{"name": "python", "source": "pyproject.toml", "path": "."}],
+        "existing_linter_configs": [],
+        "is_monorepo": False,
+    }
+    nonexistent = tmp_path / "nonexistent_subdir"
+
+    result = MODULE.run_setup(detection, registry, nonexistent)
+
+    assert result == {"error": "invalid_target_dir", "generated_files": []}
+
+
 def test_run_setup_conflicting_tools_downgrades_to_proposal(tmp_path: Path) -> None:
     ensure_jinja2_available(tmp_path)
     registry = load_real_registry()
