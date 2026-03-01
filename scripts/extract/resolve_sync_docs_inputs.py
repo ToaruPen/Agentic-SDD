@@ -75,19 +75,17 @@ def is_placeholder_ref(ref: str) -> bool:
     return "<!--" in r
 
 
-def parse_issue_body_for_refs(body: str) -> tuple[str, str]:
+def parse_issue_body_for_refs(body: str) -> tuple[str | None, str | None]:
     prd_ref = find_issue_ref(body, "PRD")
     epic_ref = find_issue_ref(body, "Epic")
 
-    if prd_ref is None or is_placeholder_ref(prd_ref):
-        raise RuntimeError(
-            "PRD reference is required in the Issue body (line like '- PRD: docs/prd/xxx.md')."
-        )
-    if epic_ref is None or is_placeholder_ref(epic_ref):
-        raise RuntimeError(
-            "Epic reference is required in the Issue body (line like '- Epic: docs/epics/xxx.md')."
-        )
-    return prd_ref.strip(), epic_ref.strip()
+    resolved_prd = None
+    resolved_epic = None
+    if prd_ref is not None and not is_placeholder_ref(prd_ref):
+        resolved_prd = prd_ref.strip()
+    if epic_ref is not None and not is_placeholder_ref(epic_ref):
+        resolved_epic = epic_ref.strip()
+    return resolved_prd, resolved_epic
 
 
 def resolve_issue_refs(
@@ -95,13 +93,21 @@ def resolve_issue_refs(
     issue_number: str | None,
     gh_repo: str,
     issue_body_file: str,
-) -> tuple[str, str, str | None]:
+) -> tuple[str | None, str | None, str | None]:
     # Returns: prd_path, epic_path, issue_url
     if issue_body_file:
         body = read_text(issue_body_file)
         prd_ref, epic_ref = parse_issue_body_for_refs(body)
-        prd_path = resolve_ref_to_repo_path(repo_root, prd_ref)
-        epic_path = resolve_ref_to_repo_path(repo_root, epic_ref)
+        prd_path = (
+            resolve_ref_to_repo_path(repo_root, prd_ref)
+            if prd_ref is not None
+            else None
+        )
+        epic_path = (
+            resolve_ref_to_repo_path(repo_root, epic_ref)
+            if epic_ref is not None
+            else None
+        )
         return prd_path, epic_path, None
 
     if not issue_number:
@@ -128,8 +134,12 @@ def resolve_issue_refs(
     issue_url = str(data.get("url") or "")
 
     prd_ref, epic_ref = parse_issue_body_for_refs(body)
-    prd_path = resolve_ref_to_repo_path(repo_root, prd_ref)
-    epic_path = resolve_ref_to_repo_path(repo_root, epic_ref)
+    prd_path = (
+        resolve_ref_to_repo_path(repo_root, prd_ref) if prd_ref is not None else None
+    )
+    epic_path = (
+        resolve_ref_to_repo_path(repo_root, epic_ref) if epic_ref is not None else None
+    )
     return prd_path, epic_path, issue_url or None
 
 
@@ -371,8 +381,8 @@ def main() -> int:
     if pr_number is not None and diff_mode == "auto":
         diff_mode = "pr"
 
-    prd_path = ""
-    epic_path = ""
+    prd_path: str | None = None
+    epic_path: str | None = None
     issue_url: str | None = None
 
     try:
@@ -418,6 +428,11 @@ def main() -> int:
 
         if not epic_path:
             epic_path = find_epic_by_prd(repo_root, prd_path)
+
+        if prd_path is None:
+            raise RuntimeError("PRD could not be resolved.")
+        if epic_path is None:
+            raise RuntimeError("Epic could not be resolved.")
 
         ensure_file_exists(repo_root, prd_path, "PRD")
         ensure_file_exists(repo_root, epic_path, "Epic")

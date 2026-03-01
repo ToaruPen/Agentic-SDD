@@ -120,7 +120,7 @@ ensure_symlink_with_backup() {
 	local dst="$2"
 	local dry_run="$3"
 
-	if [ ! -e "$src" ]; then
+	if [ "$dry_run" != true ] && [ ! -e "$src" ]; then
 		log_error "Missing symlink source: $src"
 		exit 1
 	fi

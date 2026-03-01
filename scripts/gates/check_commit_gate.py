@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import json
 import os
+import shlex
 import subprocess
 
 from _lib.subprocess_utils import run_cmd
@@ -38,8 +39,48 @@ def repo_root() -> str | None:
 
 def should_check_command(command: str) -> bool:
     """Check if the command is a git commit or git push command."""
-    keywords = ["git commit", "git push"]
-    return any(keyword in command for keyword in keywords)
+    try:
+        tokens = shlex.split(command)
+    except ValueError:
+        return False
+    if not tokens:
+        return False
+
+    git_index = -1
+    for i, part in enumerate(tokens):
+        if os.path.basename(part) == "git":
+            git_index = i
+            break
+    if git_index < 0:
+        return False
+
+    value_opts = {
+        "-c",
+        "-C",
+        "--git-dir",
+        "--work-tree",
+        "--namespace",
+        "--super-prefix",
+        "--exec-path",
+        "--config-env",
+    }
+
+    i = git_index + 1
+    while i < len(tokens):
+        part = tokens[i]
+        if part == "--":
+            i += 1
+            break
+        if not part.startswith("-"):
+            return part in {"commit", "push"}
+        if part in value_opts and i + 1 < len(tokens):
+            i += 2
+            continue
+        i += 1
+
+    if i < len(tokens):
+        return tokens[i] in {"commit", "push"}
+    return False
 
 
 def main() -> int:
@@ -60,8 +101,16 @@ def main() -> int:
     if not root:
         return 0
 
-    worktree_gate = os.path.join(root, "scripts", "validate-worktree.py")
-    if os.path.isfile(worktree_gate):
+    worktree_gate = None
+    for rel in (
+        os.path.join("scripts", "gates", "validate_worktree.py"),
+        os.path.join("scripts", "validate-worktree.py"),
+    ):
+        candidate = os.path.join(root, rel)
+        if os.path.isfile(candidate):
+            worktree_gate = candidate
+            break
+    if worktree_gate is not None:
         try:
             p = run([sys.executable, worktree_gate], cwd=root, check=False)
         except OSError as exc:
@@ -74,8 +123,16 @@ def main() -> int:
         if p.returncode != 0:
             return p.returncode
 
-    script = os.path.join(root, "scripts", "validate-approval.py")
-    if not os.path.isfile(script):
+    script = None
+    for rel in (
+        os.path.join("scripts", "gates", "validate_approval.py"),
+        os.path.join("scripts", "validate-approval.py"),
+    ):
+        candidate = os.path.join(root, rel)
+        if os.path.isfile(candidate):
+            script = candidate
+            break
+    if script is None:
         return 0
 
     try:

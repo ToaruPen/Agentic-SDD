@@ -38,4 +38,4 @@ jobs:
         run: |
           set -euo pipefail
           : "${CODEX_BOT_LOGINS:?Set repository variable CODEX_BOT_LOGINS}"
-          bash ./scripts/codex-review-event.sh
+          bash ./scripts/shell/codex-review-event.sh
