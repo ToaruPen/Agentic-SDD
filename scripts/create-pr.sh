@@ -154,7 +154,7 @@ run_parallel_integration_guard() {
 
 	local check_out=""
 	local check_status=0
-	check_out="$($worktree_cmd check "${check_args[@]}" 2>&1)" || check_status=$?
+	check_out="$("$worktree_cmd" check "${check_args[@]}" 2>&1)" || check_status=$?
 	if [[ "$check_status" -eq 0 ]]; then
 		return 0
 	fi
