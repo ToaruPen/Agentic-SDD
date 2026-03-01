@@ -288,6 +288,27 @@ if [[ ! "$run_id" =~ ^[A-Za-z0-9._-]+$ || "$run_id" == "." || "$run_id" == ".." 
 	exit 2
 fi
 
+# Metrics EXIT trap (non-blocking, never affects the original exit code).
+# Set early so ALL subsequent fail-fast exits are captured.
+# No --metadata-file: create-pr does not consume its own LLM context.
+_metrics_script="$(dirname "${BASH_SOURCE[0]}")/sdd-metrics.py"
+_metrics_exit_code=0
+_record_metrics() {
+	local _code=${_metrics_exit_code:-$?}
+	local _status="success"
+	[[ "$_code" -ne 0 ]] && _status="failed (exit $_code)"
+	if [[ -f "$_metrics_script" ]]; then
+		python3 "$_metrics_script" record \
+			--repo-root "$repo_root" \
+			--command create-pr \
+			--scope-id "$scope_id" \
+			--run-id "$run_id" \
+			--status "$_status" \
+			2>/dev/null || true
+	fi
+}
+trap '_metrics_exit_code=$?; _record_metrics' EXIT
+
 review_json="$review_root/$run_id/review.json"
 if [[ ! -f "$review_json" ]]; then
 	eprint "Missing review.json: $review_json"
@@ -607,27 +628,6 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
 	exit 0
 fi
 
-# Metrics hook via EXIT trap: fires on ALL exits (success, push failure, etc.)
-# Non-blocking, never affects the original exit code.
-# No --metadata-file: create-pr does not consume its own LLM context;
-# passing review metadata would double-count prompt_bytes from review-cycle.
-_metrics_script="$(dirname "${BASH_SOURCE[0]}")/sdd-metrics.py"
-_metrics_exit_code=0
-_record_metrics() {
-	local _code=${_metrics_exit_code:-$?}
-	local _status="success"
-	[[ "$_code" -ne 0 ]] && _status="failed (exit $_code)"
-	if [[ -f "$_metrics_script" ]]; then
-		python3 "$_metrics_script" record \
-			--repo-root "$repo_root" \
-			--command create-pr \
-			--scope-id "$scope_id" \
-			--run-id "$run_id" \
-			--status "$_status" \
-			2>/dev/null || true
-	fi
-}
-trap '_metrics_exit_code=$?; _record_metrics' EXIT
 
 # 1) Push (keep stdout clean; PR URL is printed on stdout)
 git -C "$repo_root" push -u origin HEAD >&2
