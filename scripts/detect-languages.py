@@ -24,13 +24,32 @@ def to_rel_dir(path: Path, root: Path) -> str:
 
 
 def iter_files(root: Path) -> Iterator[Path]:
+    """Walk the file tree, skipping dependency/vendor/hidden directories."""
+    skip_dirs = {
+        ".venv",
+        "venv",
+        "node_modules",
+        ".git",
+        "__pycache__",
+        ".tox",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        "vendor",
+        "dist",
+        "build",
+        ".next",
+        "target",
+    }
+
     def onerror(err: OSError) -> None:
         filename = err.filename or "<unknown>"
         raise RuntimeError(
             f"Failed to read directory: {filename}: {err.strerror}"
         ) from err
 
-    for dirpath, _, filenames in os.walk(root, onerror=onerror):
+    for dirpath, dirnames, filenames in os.walk(root, onerror=onerror):
+        dirnames[:] = [d for d in dirnames if d not in skip_dirs]
         base = Path(dirpath)
         for filename in filenames:
             yield base / filename

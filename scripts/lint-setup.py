@@ -327,27 +327,18 @@ def run_setup(
             )
             if config:
                 pyproject_path = target_dir / "pyproject.toml"
-                if pyproject_path.exists():
-                    # 既存ファイルは上書きしない — 提案ファイルとして保存
-                    proposal_dir = (
-                        target_dir / ".agentic-sdd" / "project" / "lint-proposals"
-                    )
-                    if not dry_run:
-                        proposal_dir.mkdir(parents=True, exist_ok=True)
-                        proposal_path = proposal_dir / "ruff-pyproject.toml"
-                        proposal_path.write_text(config, encoding="utf-8")
-                        eprint(
-                            f"[PROPOSAL] 既存 pyproject.toml 検出のため提案ファイルを生成: {proposal_path}"
+                if not dry_run:
+                    if pyproject_path.exists():
+                        # pyproject.toml があるが [tool.ruff] がない → 末尾に追記
+                        existing_content = pyproject_path.read_text(encoding="utf-8")
+                        separator = "\n" if existing_content.endswith("\n") else "\n\n"
+                        pyproject_path.write_text(
+                            existing_content + separator + config,
+                            encoding="utf-8",
                         )
-                        generated_files.append(str(proposal_path))
                     else:
-                        eprint(
-                            f"[DRY-RUN] Would save proposal to {proposal_dir / 'ruff-pyproject.toml'}"
-                        )
-                else:
-                    if not dry_run:
                         pyproject_path.write_text(config, encoding="utf-8")
-                    generated_files.append("pyproject.toml [tool.ruff]")
+                generated_files.append("pyproject.toml [tool.ruff]")
 
     # CI コマンド
     ci_commands = generate_ci_commands(lang_names, registry)
