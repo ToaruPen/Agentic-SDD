@@ -403,6 +403,18 @@ printf '%s' "$run_id" >"$current_run_file"
 eprint "Wrote: $out_json"
 eprint "Wrote: $out_meta"
 
+# Metrics hook (non-blocking, never affects exit code)
+_metrics_script="$(dirname "${BASH_SOURCE[0]}")/sdd-metrics.py"
+if [[ -f "$_metrics_script" ]]; then
+	python3 "$_metrics_script" record \
+		--repo-root "$repo_root" \
+		--command test-review \
+		--scope-id "$scope_id" \
+		--run-id "$run_id" \
+		--metadata-file "$out_meta" \
+		2>/dev/null || true
+fi
+
 if [[ "$status" == "Blocked" ]]; then
 	exit 3
 fi

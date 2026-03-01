@@ -73,6 +73,27 @@ Rollback triggers:
 
 If any rollback trigger appears, disable the latest runtime control first and return to the previous stable stage.
 
+## Metrics pipeline
+
+Agentic-SDD automatically records per-run metrics when `scripts/sdd-metrics.py` is present.
+Hooks in `/review-cycle`, `/test-review`, and `/create-pr` call the script after normal completion.
+Metrics are non-blocking: failures never affect gate exit codes.
+
+Data is stored under `.agentic-sdd/metrics/<scope_id>/<run_id>-<command>.json` (gitignored).
+
+Aggregate and compare:
+
+```bash
+# Aggregate by mode (TSV output)
+python3 scripts/sdd-metrics.py aggregate --repo-root . [--scope-id issue-123]
+
+# Comparison report with 10x/100x projection
+python3 scripts/sdd-metrics.py report --repo-root . [--scope-id issue-123] [--scale 100]
+```
+
+Mode detection (`context-pack` vs `full-docs`) is automatic:
+if `.agent/agents/docs.md` contains the `[Context Pack v1]` header, mode is `context-pack`; otherwise `full-docs`.
+
 ## Related
 
 - `.agent/commands/review-cycle.md`

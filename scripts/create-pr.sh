@@ -654,3 +654,15 @@ fi
 
 pr_url="$("${create_cmd[@]}")"
 printf '%s\n' "$pr_url"
+
+# Metrics hook (non-blocking, never affects exit code)
+_metrics_script="$(dirname "${BASH_SOURCE[0]}")/sdd-metrics.py"
+if [[ -f "$_metrics_script" ]]; then
+	python3 "$_metrics_script" record \
+		--repo-root "$repo_root" \
+		--command create-pr \
+		--scope-id "$scope_id" \
+		--run-id "$run_id" \
+		--metadata-file "$review_meta" \
+		2>/dev/null || true
+fi

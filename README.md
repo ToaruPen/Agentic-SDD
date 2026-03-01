@@ -520,6 +520,7 @@ scripts/
 ├── install-agentic-sdd.sh
 ├── lint-sot.py
 ├── resolve-sync-docs-inputs.py
+├── sdd-metrics.py
 ├── review-cycle.sh
 ├── setup-githooks.sh
 ├── setup-global-agentic-sdd.sh
@@ -771,6 +772,23 @@ Copy it into your repo's `.github/workflows/` directory. By default it runs week
 On failure, the workflow writes a structured error summary (check name, failed file, failure reason) to the GitHub Actions Job Summary.
 
 To customize the schedule, edit the `cron` expression in the workflow file.
+
+---
+
+### Metrics (Plan B measurement)
+
+Gate scripts (`/review-cycle`, `/test-review`, `/create-pr`) automatically record per-run metrics
+when `scripts/sdd-metrics.py` is present. Metrics are non-blocking and never affect gate results.
+
+```bash
+# Aggregate metrics by mode (TSV)
+python3 scripts/sdd-metrics.py aggregate --repo-root .
+
+# Comparison report (context-pack vs full-docs) with 10x projection
+python3 scripts/sdd-metrics.py report --repo-root . --scale 10
+```
+
+Data is stored under `.agentic-sdd/metrics/` (gitignored). See `.agent/rules/runtime-controls.md` for details.
 
 ---
 

@@ -1936,3 +1936,15 @@ printf '%s' "$run_id" >"$tmp_run_file"
 mv "$tmp_run_file" "$current_run_file"
 
 printf '%s\n' "$out_json"
+
+# Metrics hook (non-blocking, never affects exit code)
+_metrics_script="$(dirname "${BASH_SOURCE[0]}")/sdd-metrics.py"
+if [[ -f "$_metrics_script" ]]; then
+	python3 "$_metrics_script" record \
+		--repo-root "$repo_root" \
+		--command review-cycle \
+		--scope-id "$scope_id" \
+		--run-id "$run_id" \
+		--metadata-file "$out_meta" \
+		2>/dev/null || true
+fi
