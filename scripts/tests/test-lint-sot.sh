@@ -23,7 +23,7 @@ new_repo() {
 	git -C "$r" init -q
 	mkdir -p "$r/scripts" "$r/docs/prd" "$r/docs/sot" "$r/docs"
 	cp -p "$lint_py_src" "$r/scripts/lint-sot.py"
-	cp -p "$repo_root/scripts/md_sanitize.py" "$r/scripts/md_sanitize.py"
+	cp -rp "$repo_root/scripts/_lib" "$r/scripts/_lib"
 	chmod +x "$r/scripts/lint-sot.py"
 	printf '%s\n' "$r"
 }

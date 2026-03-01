@@ -21,6 +21,16 @@ fi
 lib_init_src="$repo_root/scripts/_lib/__init__.py"
 subprocess_utils_src="$repo_root/scripts/_lib/subprocess_utils.py"
 
+if [[ ! -f "$lib_init_src" ]]; then
+  eprint "Missing _lib init: $lib_init_src"
+  exit 1
+fi
+
+if [[ ! -f "$subprocess_utils_src" ]]; then
+  eprint "Missing subprocess_utils: $subprocess_utils_src"
+  exit 1
+fi
+
 tmpdir="$(mktemp -d 2>/dev/null || mktemp -d -t agentic-sdd-sync-docs-test)"
 cleanup() { rm -rf "$tmpdir"; }
 trap cleanup EXIT

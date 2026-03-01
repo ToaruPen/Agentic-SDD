@@ -4,37 +4,17 @@ import argparse
 import hashlib
 import json
 import os
+import pathlib
 import re
 import shlex
 import subprocess
 import sys
 from typing import Any
 
-try:
-    from _lib.approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
-    from _lib.subprocess_utils import run_cmd
-except ModuleNotFoundError:
-    MODE_ALLOWED = {"impl", "tdd", "custom"}
-    MODE_SOURCE_ALLOWED = {"agent-heuristic", "user-choice", "operator-override"}
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-    def run_cmd(
-        cmd: list[str],
-        *,
-        cwd: str | None = None,
-        check: bool = True,
-        text: bool = True,
-        capture_output: bool = True,
-        timeout: float | None = None,
-    ) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(  # noqa: S603
-            cmd,
-            cwd=cwd,
-            check=check,
-            text=text,
-            capture_output=capture_output,
-            timeout=timeout,
-        )
-
+from _lib.approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
+from _lib.subprocess_utils import run_cmd
 
 EXIT_GATE_BLOCKED = 2
 
@@ -273,7 +253,7 @@ def main() -> int:
 
     try:
         estimate_text = read_utf8_text(estimate_md)
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         return gate_blocked(
             f"Failed to read estimate.md (utf-8 required): {exc}",
             create_script,

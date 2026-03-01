@@ -3,32 +3,15 @@
 import argparse
 import json
 import os
+import pathlib
 import re
 import subprocess
 import sys
 from collections.abc import Sequence
 
-try:
-    from _lib.subprocess_utils import check_output_cmd
-except ModuleNotFoundError as exc:
-    if exc.name not in {"_lib", "_lib.subprocess_utils"}:
-        raise
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-    def check_output_cmd(
-        cmd: list[str],
-        *,
-        cwd: str | None = None,
-        stderr: int | None = None,
-        text: bool = True,
-        timeout: float | None = None,
-    ) -> str:
-        return subprocess.check_output(  # noqa: S603
-            cmd,
-            cwd=cwd,
-            stderr=stderr,
-            text=text,
-            timeout=timeout,
-        )
+from _lib.subprocess_utils import check_output_cmd
 
 
 def eprint(msg: str) -> None:
@@ -77,7 +60,7 @@ def resolve_ref_to_repo_path(repo_root: str, ref: str) -> str:
         raise ValueError("empty reference")
 
     # Ignore URLs
-    if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*://", ref):
+    if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", ref):
         raise ValueError(f"unsupported URL reference: {ref}")
 
     if os.path.isabs(ref):

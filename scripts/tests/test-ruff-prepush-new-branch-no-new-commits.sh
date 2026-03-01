@@ -24,6 +24,7 @@ git -C "$work" config user.email "test@example.com"
 git -C "$work" config user.name "Test"
 
 mkdir -p "$work/scripts" "$work/.githooks"
+cp -rp "$repo_root/scripts/_lib" "$work/scripts/_lib"
 cp -p "$repo_root/scripts/validate-approval.py" "$work/scripts/validate-approval.py"
 cp -p "$repo_root/scripts/approval_constants.py" "$work/scripts/approval_constants.py"
 cp -p "$repo_root/scripts/validate-worktree.py" "$work/scripts/validate-worktree.py"

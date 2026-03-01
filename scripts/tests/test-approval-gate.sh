@@ -24,6 +24,7 @@ git -C "$work" add init.txt
 git -C "$work" commit -m "test: init" -q
 
 mkdir -p "$work/scripts" "$work/.githooks"
+cp -rp "$repo_root/scripts/_lib" "$work/scripts/_lib"
 cp -p "$repo_root/scripts/validate-approval.py" "$work/scripts/validate-approval.py"
 cp -p "$repo_root/scripts/validate-worktree.py" "$work/scripts/validate-worktree.py"
 cp -p "$repo_root/scripts/create-approval.py" "$work/scripts/create-approval.py"
@@ -40,6 +41,7 @@ git -C "$work" config core.hooksPath .githooks
 git -C "$work" worktree add "$wt" -b "feature/issue-123-approval-gate" -q
 
 mkdir -p "$wt/scripts" "$wt/.githooks"
+cp -rp "$repo_root/scripts/_lib" "$wt/scripts/_lib"
 cp -p "$repo_root/scripts/validate-approval.py" "$wt/scripts/validate-approval.py"
 cp -p "$repo_root/scripts/validate-worktree.py" "$wt/scripts/validate-worktree.py"
 cp -p "$repo_root/scripts/create-approval.py" "$wt/scripts/create-approval.py"

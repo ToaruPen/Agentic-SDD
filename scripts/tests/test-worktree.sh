@@ -26,6 +26,7 @@ trap cleanup EXIT
 git -C "$tmpdir" init -q
 
 mkdir -p "$tmpdir/scripts"
+cp -rp "$repo_root/scripts/_lib" "$tmpdir/scripts/_lib"
 cp -p "$worktree_sh_src" "$tmpdir/scripts/worktree.sh"
 cp -p "$extractor_src" "$tmpdir/scripts/extract-issue-files.py"
 chmod +x "$tmpdir/scripts/worktree.sh"

@@ -2,46 +2,22 @@
 
 import argparse
 import os
+import pathlib
 import re
 import shutil
-import subprocess
 import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-try:
-    from _lib.md_sanitize import (
-        sanitize_status_text,
-        strip_fenced_code_blocks,
-        strip_html_comment_blocks,
-        strip_indented_code_blocks,
-    )
-    from _lib.subprocess_utils import run_cmd
-except ModuleNotFoundError:
-    from md_sanitize import (
-        sanitize_status_text,
-        strip_fenced_code_blocks,
-        strip_html_comment_blocks,
-        strip_indented_code_blocks,
-    )
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-    def run_cmd(
-        cmd: list[str],
-        *,
-        cwd: str | None = None,
-        check: bool = True,
-        text: bool = True,
-        capture_output: bool = True,
-        timeout: float | None = None,
-    ) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(  # noqa: S603
-            cmd,
-            cwd=cwd,
-            check=check,
-            text=text,
-            capture_output=capture_output,
-            timeout=timeout,
-        )
+from _lib.md_sanitize import (
+    sanitize_status_text,
+    strip_fenced_code_blocks,
+    strip_html_comment_blocks,
+    strip_indented_code_blocks,
+)
+from _lib.subprocess_utils import run_cmd
 
 
 @dataclass(frozen=True)

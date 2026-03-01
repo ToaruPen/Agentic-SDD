@@ -1,32 +1,14 @@
 #!/usr/bin/env python3
 
 import os
+import pathlib
 import re
 import subprocess
 import sys
 
-try:
-    from _lib.subprocess_utils import run_cmd
-except ModuleNotFoundError:
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
-    def run_cmd(
-        cmd: list[str],
-        *,
-        cwd: str | None = None,
-        check: bool = True,
-        text: bool = True,
-        capture_output: bool = True,
-        timeout: float | None = None,
-    ) -> subprocess.CompletedProcess[str]:
-        return subprocess.run(  # noqa: S603
-            cmd,
-            cwd=cwd,
-            check=check,
-            text=text,
-            capture_output=capture_output,
-            timeout=timeout,
-        )
-
+from _lib.subprocess_utils import run_cmd
 
 EXIT_GATE_BLOCKED = 2
 
