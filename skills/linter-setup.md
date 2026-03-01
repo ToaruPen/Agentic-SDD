@@ -11,13 +11,45 @@ and official documentation URLs for each supported language.
 
 When `/lint-setup` Phase 4 runs, follow these steps for each detected language:
 
-1. **Identify the recommended toolchain** from `scripts/lint-registry.json`
-2. **Fetch the official documentation** using `webfetch` or `librarian`:
+1. **Receive user preference** from `どのようなlint設定を希望しますか？`
+2. **Identify the recommended toolchain** from `scripts/lint-registry.json`
+3. **Fetch the official documentation** using `webfetch` or `librarian`:
    - Use the `docs_url` from the registry entry
    - Fetch the rules/configuration reference page
-3. **Classify rules** into Essential / Recommended / Framework-specific (see criteria below)
-4. **Check formatter conflicts** using the official conflict documentation
-5. **Generate configuration** based on classified rules
+4. **Interpret preference and classify/select rules** into Essential / Recommended / Framework-specific (see criteria below)
+5. **Generate configuration based on user preference and official documentation**
+6. **Check formatter conflicts** against the generated configuration using official conflict documentation
+
+---
+
+## User preference interpretation
+
+Treat `essential_rules` / `recommended_rules` in `scripts/lint-registry.json` as
+REFERENCE HINTS, not rigid categories. Final configuration must be decided from:
+
+1. user preference intent
+2. official tool documentation
+3. project context (new vs existing codebase, framework presence)
+
+Preference mapping guide:
+
+- `厳しめ` / `strict`
+  - Enable all Essential + Recommended rules
+  - Add strict/pedantic presets where available (`@typescript-eslint/strict`, `clippy::pedantic`, etc.)
+- `最低限` / `minimal`
+  - Enable Essential rules only
+  - Prefer warning mode for initial rollout in existing projects
+- `セキュリティ重視` / `security-focused`
+  - Prioritize security-focused rule groups/plugins first
+  - Python: include `S` (flake8-bandit/ruff security)
+  - TypeScript/JavaScript: include security plugins/rules in ESLint stack
+- `チーム標準` / `team standard`
+  - Ask what the team currently uses and match existing conventions
+  - If existing config is present, align with it and propose additive diffs only
+- Free-form descriptions
+  - Interpret intent (strictness, security, readability, performance, migration safety)
+  - Map intent to available official categories/presets/rules per language
+  - Document the mapping rationale in the evidence trail
 
 ---
 
@@ -172,34 +204,38 @@ Exclude: `W191`, `E111`, `E114`, `E117`, `D206`, `D300`, `Q000`, `Q001`, `Q002`,
 
 ## Graduated application strategy
 
+Apply these strategies after interpreting the user preference profile.
+If preference is ambiguous, default to conservative rollout (`最低限` baseline) and document why.
+
 ### New project (no existing linter config, no existing code)
 
-1. Enable Essential + Recommended rules
+1. Enable rule sets according to preference (`strict` => Essential + Recommended + strict presets)
 2. Enable Framework-specific rules for detected frameworks
 3. Set type checker to strict mode
 4. Generate full configuration file
 
 ### Existing project (has code, no linter config)
 
-1. Enable Essential rules only
+1. Start from preference baseline (`minimal` => Essential only; `strict` => stage strict presets later)
 2. Run linter to assess violation count
 3. Add this guidance to the evidence trail:
 
 ```text
 段階的適用ガイダンス:
-1. まず Essential ルールのみで CI を設定（warning モード推奨）
-2. 既存の違反を段階的に修正
-3. 違反が一定数以下になったら Recommended ルールを追加
-4. フレームワーク固有ルールを追加
+1. ユーザー希望に対応するベースラインを決定（例: 最低限=Essential のみ、厳しめ=段階適用）
+2. まず CI は warning モードで導入（既存違反の可視化）
+3. 既存の違反を段階的に修正
+4. 修正進捗に応じて Recommended/strict/security ルールを追加
+5. フレームワーク固有ルールを追加
 ```
 
 ### Existing project (has linter config)
 
 1. Do NOT overwrite existing config
-2. Compare existing config with recommended config
+2. Compare existing config with preference-aligned recommended config
 3. Output diff proposal:
    - Missing Essential rules → suggest adding
-   - Missing Recommended rules → note as optional
+   - Missing preference-driven rules (Recommended/strict/security) → note as staged optional
    - Conflicting rules → note conflicts
 
 ---
@@ -216,6 +252,6 @@ Exclude: `W191`, `E111`, `E114`, `E117`, `D206`, `D300`, `Q000`, `Q001`, `Q002`,
 ## Related
 
 - `.agent/commands/lint-setup.md` — command definition
-- `scripts/lint-registry.json` — language-to-linter mapping
+- `scripts/lint-registry.json` — language-to-linter mapping and rule hints
 - `scripts/detect-languages.py` — language detection
-- `scripts/lint-setup.py` — configuration generation
+- `scripts/lint-setup.py` — recommendation output (agent generates config files)

@@ -165,7 +165,7 @@ A workflow template to help non-engineers run AI-driven development while preven
 - `/estimation`: create a Full estimate (11 sections) and get approval
 - `/impl`: implement an Issue (Full estimate required)
 - `/tdd`: implement via TDD (Red -> Green -> Refactor)
-- `/lint-setup`: detect project languages and generate recommended linter configurations
+- `/lint-setup`: detect project languages and output recommended linter toolchains (agent configures based on user preference + official docs)
 - `/ui-iterate`: iterate UI redesign in short loops (capture -> patch -> verify)
 - `/test-review`: run fail-fast test review checks before review/PR gates
 - `/review-cycle`: local review loop (default: codex exec -> review.json, fallback: Claude)

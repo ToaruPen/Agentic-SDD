@@ -275,39 +275,6 @@ def test_lookup_toolchain_missing_language_returns_none() -> None:
     assert result is None
 
 
-def test_generate_python_ruff_config_generates_content(tmp_path: Path) -> None:
-    toolchain = minimal_registry()["languages"]["python"]
-
-    config = MODULE.generate_python_ruff_config(toolchain, tmp_path)
-
-    assert isinstance(config, str)
-    assert "[tool.ruff]" in config
-    assert 'target-version = "py311"' in config
-    assert '"E4"' in config
-    assert '"F"' in config
-    assert "ignore = [" in config
-    assert '"ISC001"' in config
-
-
-def test_generate_python_ruff_config_skips_when_existing_ruff(tmp_path: Path) -> None:
-    toolchain = minimal_registry()["languages"]["python"]
-    existing = [{"tool": "ruff", "path": "pyproject.toml", "section": "tool.ruff"}]
-
-    config = MODULE.generate_python_ruff_config(
-        toolchain, tmp_path, existing_configs=existing
-    )
-
-    assert config is None
-
-
-def test_generate_python_ruff_config_dry_run_returns_none(tmp_path: Path) -> None:
-    toolchain = minimal_registry()["languages"]["python"]
-
-    config = MODULE.generate_python_ruff_config(toolchain, tmp_path, dry_run=True)
-
-    assert config is None
-
-
 def test_generate_ci_commands_single_language() -> None:
     registry = minimal_registry()
 
@@ -354,13 +321,11 @@ def test_generate_evidence_trail_generates_file(tmp_path: Path) -> None:
         "existing_linter_configs": [],
         "is_monorepo": False,
     }
-    generated_files = ["pyproject.toml [tool.ruff]"]
     ci_commands = [{"key": "AGENTIC_SDD_CI_LINT_CMD", "value": "ruff check ."}]
 
     output_path = MODULE.generate_evidence_trail(
         detection,
         registry,
-        generated_files,
         ci_commands,
         tmp_path,
         template_dir=TEMPLATE_DIR,
@@ -388,7 +353,6 @@ def test_generate_evidence_trail_dry_run_returns_rendered_content(
     content = MODULE.generate_evidence_trail(
         detection,
         registry,
-        generated_files=[],
         ci_commands=[],
         target_dir=tmp_path,
         template_dir=TEMPLATE_DIR,
@@ -414,7 +378,6 @@ def test_generate_evidence_trail_missing_template_dir_returns_none(
     content = MODULE.generate_evidence_trail(
         detection,
         registry,
-        generated_files=[],
         ci_commands=[],
         target_dir=tmp_path,
         template_dir=tmp_path / "missing-template-dir",
@@ -440,17 +403,15 @@ def test_run_setup_normal_single_language_flow(tmp_path: Path) -> None:
         template_dir=TEMPLATE_DIR,
     )
 
-    assert result["mode"] == "generate"
     assert result["languages"] == ["python"]
-    assert "pyproject.toml [tool.ruff]" in result["generated_files"]
-    assert any(
-        str(path).endswith(".agentic-sdd/project/rules/lint.md")
-        for path in result["generated_files"]
-    )
+    assert "recommendations" in result
+    assert len(result["recommendations"]) == 1
+    assert result["recommendations"][0]["language"] == "python"
+    assert result["recommendations"][0]["linter"]["name"] == "ruff"
     assert result["ci_commands"]
 
 
-def test_run_setup_monorepo_multilanguage_downgrades_to_proposal(
+def test_run_setup_monorepo_multilanguage_returns_recommendations(
     tmp_path: Path,
 ) -> None:
     ensure_jinja2_available(tmp_path)
@@ -472,10 +433,13 @@ def test_run_setup_monorepo_multilanguage_downgrades_to_proposal(
         template_dir=TEMPLATE_DIR,
     )
 
-    assert result["mode"] == "proposal"
-    assert "proposals" in result
-    assert len(result["proposals"]) == 2
-    assert "pyproject.toml [tool.ruff]" not in result["generated_files"]
+    assert "recommendations" in result
+    assert len(result["recommendations"]) == 2
+    lang_names = [r["language"] for r in result["recommendations"]]
+    assert "python" in lang_names
+    assert "javascript" in lang_names
+    assert "python" in result["languages"]
+    assert "javascript" in result["languages"]
 
 
 def test_run_setup_empty_languages_returns_error(tmp_path: Path) -> None:
@@ -488,7 +452,7 @@ def test_run_setup_empty_languages_returns_error(tmp_path: Path) -> None:
 
     result = MODULE.run_setup(detection, registry, tmp_path)
 
-    assert result == {"error": "no_languages_detected", "generated_files": []}
+    assert result == {"error": "no_languages_detected"}
 
 
 def test_run_setup_invalid_target_dir_returns_error(tmp_path: Path) -> None:
@@ -503,10 +467,10 @@ def test_run_setup_invalid_target_dir_returns_error(tmp_path: Path) -> None:
 
     result = MODULE.run_setup(detection, registry, nonexistent)
 
-    assert result == {"error": "invalid_target_dir", "generated_files": []}
+    assert result == {"error": "invalid_target_dir"}
 
 
-def test_run_setup_conflicting_tools_downgrades_to_proposal(tmp_path: Path) -> None:
+def test_run_setup_conflicting_tools_reports_conflicts(tmp_path: Path) -> None:
     ensure_jinja2_available(tmp_path)
     registry = load_real_registry()
     detection = {
@@ -525,9 +489,10 @@ def test_run_setup_conflicting_tools_downgrades_to_proposal(tmp_path: Path) -> N
         template_dir=TEMPLATE_DIR,
     )
 
-    assert result["mode"] == "proposal"
-    assert "proposals" in result
-    assert len(result["proposals"]) == 1
+    assert "conflicts" in result
+    assert len(result["conflicts"]) == 1
+    assert result["conflicts"][0]["language"] == "python"
+    assert "recommendations" in result
     assert "existing_configs" in result
 
 
@@ -553,10 +518,9 @@ def test_run_setup_deduplicates_duplicate_languages(tmp_path: Path) -> None:
         template_dir=TEMPLATE_DIR,
     )
 
-    assert result["mode"] == "generate"
-    # languages フィールドは入力をそのまま返すが、設定ファイルは 1 回だけ生成されるべき
-    ruff_entries = [f for f in result["generated_files"] if "ruff" in f.lower()]
-    assert len(ruff_entries) == 1
+    assert result["languages"] == ["python"]
+    assert len(result["recommendations"]) == 1
+    assert result["recommendations"][0]["language"] == "python"
 
 
 def test_evidence_trail_uses_registered_at_field(tmp_path: Path) -> None:
@@ -573,7 +537,6 @@ def test_evidence_trail_uses_registered_at_field(tmp_path: Path) -> None:
     trail_content = MODULE.generate_evidence_trail(
         detection,
         registry,
-        [],
         [],
         tmp_path,
         dry_run=True,
@@ -622,9 +585,7 @@ def test_cli_integration_json_output(tmp_path: Path) -> None:
 
     assert proc.returncode == 0
     output = json.loads(proc.stdout)
-    assert output["mode"] == "generate"
     assert output["languages"] == ["python"]
-    assert any(
-        str(path).endswith(".agentic-sdd/project/rules/lint.md")
-        for path in output["generated_files"]
-    )
+    assert "recommendations" in output
+    assert len(output["recommendations"]) >= 1
+    assert output["recommendations"][0]["linter"]["name"] == "ruff"

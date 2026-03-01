@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-Linter設定生成スクリプト
+Linter推奨出力スクリプト
 
 detect-languages.py の出力と lint-registry.json を組み合わせて、
-推奨 linter 設定ファイルと証跡ドキュメントを生成する。
+推奨 linter ツールチェーンと公式ドキュメントURLを出力する。
+
+設定ファイルの生成はエージェントが公式ドキュメントを調査した上で実施する。
+このスクリプトはファイル書き込みを行わない（証跡ファイルのみ例外）。
 """
 
 import argparse
@@ -91,56 +94,6 @@ def lookup_toolchain(
     return languages.get(language)
 
 
-def generate_python_ruff_config(
-    toolchain: Dict[str, Any],
-    target_dir: Path,
-    dry_run: bool = False,
-    existing_configs: Optional[List[Dict[str, str]]] = None,
-) -> Optional[str]:
-    """Python 用の ruff 設定を pyproject.toml に生成"""
-    existing = existing_configs or []
-
-    # 既に ruff 設定がある場合はスキップ
-    for config in existing:
-        if config.get("tool") == "ruff":
-            eprint(f"[SKIP] 既存の ruff 設定を検出: {config.get('path')}（上書き不可）")
-            return None
-
-    linter = toolchain.get("linter", {})
-    formatter = toolchain.get("formatter", {})
-
-    essential = linter.get("essential_rules", [])
-    conflict_rules = formatter.get("conflict_rules", [])
-
-    # pyproject.toml の [tool.ruff] セクションを生成
-    lines = [
-        "[tool.ruff]",
-        'target-version = "py311"',
-        "",
-        "[tool.ruff.lint]",
-        "select = [",
-    ]
-    for rule in essential:
-        lines.append(f'  "{rule}",')
-    lines.append("]")
-    lines.append("")
-
-    if conflict_rules:
-        lines.append("ignore = [")
-        for rule in conflict_rules:
-            lines.append(f'  "{rule}",')
-        lines.append("]")
-
-    config_content = "\n".join(lines) + "\n"
-
-    if dry_run:
-        eprint(f"[DRY-RUN] Would generate ruff config in {target_dir}/pyproject.toml")
-        eprint(config_content)
-        return None
-
-    return config_content
-
-
 def generate_ci_commands(
     languages: List[str],
     registry: Dict[str, Any],
@@ -179,7 +132,6 @@ def generate_ci_commands(
 def generate_evidence_trail(
     detection: Dict[str, Any],
     registry: Dict[str, Any],
-    generated_files: List[str],
     ci_commands: List[Dict[str, str]],
     target_dir: Path,
     template_dir: Optional[Path] = None,
@@ -251,7 +203,7 @@ def generate_evidence_trail(
         "languages": languages,
         "toolchains": toolchains,
         "existing_configs": existing_configs,
-        "generated_files": generated_files,
+        "generated_files": [],
         "ci_commands": ci_commands,
     }
 
@@ -277,45 +229,34 @@ def run_setup(
     dry_run: bool = False,
     template_dir: Optional[Path] = None,
 ) -> Dict[str, Any]:
-    """メインのセットアップ処理"""
+    """メインのセットアップ処理 — 推奨出力のみ（設定ファイル書き込みなし）"""
     if not target_dir.is_dir():
         eprint(
             f"[ERROR] target-dir が存在しないか、ディレクトリではありません: {target_dir}"
         )
-        return {"error": "invalid_target_dir", "generated_files": []}
+        return {"error": "invalid_target_dir"}
+
     languages = detection.get("languages", [])
     existing_configs = detection.get("existing_linter_configs", [])
-    is_monorepo = detection.get("is_monorepo", False)
 
     if not languages:
         eprint("[ERROR] 言語を検出できませんでした。")
-        return {"error": "no_languages_detected", "generated_files": []}
+        return {"error": "no_languages_detected"}
 
-    lang_names = [lang["name"] for lang in languages]
-    generated_files: List[str] = []
-    proposals: List[str] = []
-    mode = "generate"
-    processed_languages: set[str] = set()
+    # 言語名リスト（重複排除、順序維持）
+    seen: set[str] = set()
+    unique_lang_names: List[str] = []
+    for lang in languages:
+        name = lang["name"]
+        if name not in seen:
+            seen.add(name)
+            unique_lang_names.append(name)
 
-    # monorepo で複数言語の場合は提案モードに格下げ
-    if is_monorepo and len(set(lang_names)) > 1:
-        mode = "proposal"
-        eprint(
-            "[WARN] Monorepo で複数言語を検出しました。自動生成を中断し、提案のみ出力します。"
-        )
+    # 各言語の推奨ツールチェーンを構築
+    recommendations: List[Dict[str, Any]] = []
+    conflicts: List[Dict[str, Any]] = []
 
-    # 既存 linter 設定がある場合は提案モードに格下げ（上書き防止）
-    if existing_configs and mode != "proposal":
-        mode = "proposal"
-        eprint(
-            "[WARN] 既存の linter 設定を検出しました。上書き防止のため、提案のみ出力します。"
-        )
-
-    for lang_info in languages:
-        lang_name = lang_info["name"]
-        if lang_name in processed_languages:
-            continue
-        processed_languages.add(lang_name)
+    for lang_name in unique_lang_names:
         toolchain = lookup_toolchain(lang_name, registry)
         if not toolchain:
             eprint(
@@ -325,85 +266,82 @@ def run_setup(
 
         # 競合チェック
         if has_conflicting_tools(existing_configs, lang_name, registry):
-            eprint(
-                f"[WARN] {lang_name}: 複数の競合する linter 設定を検出しました。提案のみ出力します。"
+            conflicts.append(
+                {
+                    "language": lang_name,
+                    "message": "複数の競合する linter 設定を検出しました。",
+                }
             )
-            mode = "proposal"
 
-        if mode == "proposal":
-            linter = toolchain.get("linter", {})
-            proposals.append(
-                f"  - {lang_name}: {linter.get('name')} を推奨 (docs: {linter.get('docs_url')})"
-            )
-            continue
+        linter = toolchain.get("linter", {})
+        formatter = toolchain.get("formatter", {})
+        type_checker = toolchain.get("type_checker", {})
 
-        # Python の場合は ruff 設定を生成
-        if lang_name == "python":
-            config = generate_python_ruff_config(
-                toolchain, target_dir, dry_run, existing_configs
-            )
-            if config:
-                pyproject_path = target_dir / "pyproject.toml"
-                if not dry_run:
-                    if pyproject_path.exists():
-                        # pyproject.toml があるが [tool.ruff] がない → 末尾に追記
-                        existing_content = pyproject_path.read_text(encoding="utf-8")
-                        separator = "\n" if existing_content.endswith("\n") else "\n\n"
-                        pyproject_path.write_text(
-                            existing_content + separator + config,
-                            encoding="utf-8",
-                        )
-                    else:
-                        pyproject_path.write_text(config, encoding="utf-8")
-                generated_files.append("pyproject.toml [tool.ruff]")
-        else:
-            # Python 以外の言語は自動生成未対応 → 提案を出力
-            linter = toolchain.get("linter", {})
-            proposals.append(
-                f"  - {lang_name}: {linter.get('name')} を推奨 (docs: {linter.get('docs_url')})"
-            )
-            eprint(
-                f"[INFO] {lang_name}: 自動設定生成は未対応です。提案を参照してください。"
-            )
+        rec: Dict[str, Any] = {
+            "language": lang_name,
+            "linter": {
+                "name": linter.get("name"),
+                "docs_url": linter.get("docs_url"),
+                "config_file": linter.get("config_file"),
+                "essential_rules": linter.get("essential_rules", []),
+                "recommended_rules": linter.get("recommended_rules", []),
+                "ci_command": linter.get("ci_command"),
+            },
+            "formatter": {
+                "name": formatter.get("name"),
+                "docs_url": formatter.get("docs_url"),
+                "ci_command": formatter.get("ci_command"),
+            },
+        }
+
+        tc_name = type_checker.get("name")
+        if tc_name:
+            rec["type_checker"] = {
+                "name": tc_name,
+                "docs_url": type_checker.get("docs_url"),
+                "ci_command": type_checker.get("ci_command"),
+            }
+
+        # フレームワーク固有ルール
+        framework_rules = toolchain.get("framework_rules", {})
+        if framework_rules:
+            rec["framework_rules"] = framework_rules
+
+        recommendations.append(rec)
 
     # CI コマンド
-    ci_commands = generate_ci_commands(lang_names, registry)
+    ci_commands = generate_ci_commands(unique_lang_names, registry)
 
     # 証跡ファイル
     evidence_path = generate_evidence_trail(
         detection,
         registry,
-        generated_files,
         ci_commands,
         target_dir,
         template_dir,
         dry_run,
     )
-    if evidence_path and not dry_run:
-        generated_files.append(evidence_path)
-
-    # 設定ファイルが生成されずに提案のみの場合はモードを proposal に変更
-    config_files = [f for f in generated_files if not f.endswith("lint.md")]
-    if proposals and not config_files and mode == "generate":
-        mode = "proposal"
 
     result: Dict[str, Any] = {
-        "mode": mode,
-        "languages": lang_names,
-        "generated_files": generated_files,
+        "languages": unique_lang_names,
+        "recommendations": recommendations,
         "ci_commands": ci_commands,
     }
 
-    if proposals:
-        result["proposals"] = proposals
     if existing_configs:
         result["existing_configs"] = existing_configs
+    if conflicts:
+        result["conflicts"] = conflicts
+    if evidence_path and not dry_run:
+        result["evidence_trail"] = evidence_path
 
     return result
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Linter設定を生成する")
+    parser = argparse.ArgumentParser(
+        description="検出された言語に対する推奨 linter ツールチェーンを出力する"
+    )
     parser.add_argument(
         "detection_file",
         help="detect-languages.py の JSON 出力ファイル",
@@ -416,7 +354,7 @@ def main() -> int:
     parser.add_argument(
         "--target-dir",
         default=".",
-        help="設定ファイルの出力先ディレクトリ（デフォルト: カレントディレクトリ）",
+        help="証跡ファイルの出力先ディレクトリ（デフォルト: カレントディレクトリ）",
     )
     parser.add_argument(
         "--template-dir",
@@ -426,7 +364,7 @@ def main() -> int:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="ファイルを生成せずプレビューのみ",
+        help="証跡ファイルを生成せずプレビューのみ",
     )
     parser.add_argument(
         "--json",
@@ -460,22 +398,31 @@ def main() -> int:
             eprint(f"\n[ERROR] {result['error']}")
             return 1
 
-        mode = result.get("mode", "generate")
-        print(
-            f"\n=== Linter セットアップ {'（プレビュー）' if args.dry_run else '完了'} ==="
-        )
-        print(f"モード: {mode}")
+        print("\n=== Linter 推奨ツールチェーン ===")
         print(f"検出言語: {', '.join(result.get('languages', []))}")
 
-        if result.get("generated_files"):
-            print("\n生成ファイル:")
-            for f in result["generated_files"]:
-                print(f"  - {f}")
+        if result.get("recommendations"):
+            print("\n推奨ツール:")
+            for rec in result["recommendations"]:
+                linter = rec.get("linter", {})
+                print(f"  {rec['language']}:")
+                print(f"    Linter: {linter.get('name')} ({linter.get('docs_url')})")
+                fmt = rec.get("formatter", {})
+                if fmt.get("name"):
+                    print(f"    Formatter: {fmt.get('name')} ({fmt.get('docs_url')})")
+                tc = rec.get("type_checker", {})
+                if tc and tc.get("name"):
+                    print(f"    Type Checker: {tc.get('name')} ({tc.get('docs_url')})")
 
-        if result.get("proposals"):
-            print("\n提案:")
-            for p in result["proposals"]:
-                print(p)
+        if result.get("existing_configs"):
+            print("\n既存設定（上書き不可）:")
+            for config in result["existing_configs"]:
+                print(f"  - {config.get('path')} ({config.get('tool')})")
+
+        if result.get("conflicts"):
+            print("\n競合検出:")
+            for conflict in result["conflicts"]:
+                print(f"  - {conflict['language']}: {conflict['message']}")
 
         if result.get("ci_commands"):
             print("\n推奨CIコマンド:")

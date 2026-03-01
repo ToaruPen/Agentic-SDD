@@ -419,16 +419,19 @@ def main() -> int:
                     lint_result = json.loads(lint_proc.stdout)
                     result["lint_setup"] = lint_result
                     if not args.json:
-                        lint_files = lint_result.get("generated_files", [])
-                        if lint_files:
-                            print("\nLinter設定:")
-                            for lf in lint_files:
-                                print(f"  - {lf}")
-                        proposals = lint_result.get("proposals", [])
-                        if proposals:
-                            print("\nLinter提案:")
-                            for p in proposals:
-                                print(p)
+                        recommendations = lint_result.get("recommendations", [])
+                        if recommendations:
+                            print("\nLinter推奨ツール:")
+                            for rec in recommendations:
+                                linter = rec.get("linter", {})
+                                print(
+                                    f"  - {rec['language']}: {linter.get('name')} ({linter.get('docs_url')})"
+                                )
+                        conflicts = lint_result.get("conflicts", [])
+                        if conflicts:
+                            print("\nLinter競合:")
+                            for c in conflicts:
+                                print(f"  - {c['language']}: {c['message']}")
                 else:
                     eprint(
                         f"[WARN] lint-setup failed (exit {lint_proc.returncode}): "

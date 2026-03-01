@@ -68,17 +68,17 @@ Use `scripts/agentic-sdd/generate-project-config.py`:
 
 ### Phase 4.5: Linter setup (optional)
 
-If the project has detectable languages, optionally run `/lint-setup` to generate linter configurations:
+If the project has detectable languages, optionally run `/lint-setup` to output recommended linter toolchains:
 
 ```bash
-# Detect languages and generate linter configs
+# Detect languages and output linter recommendations
 python3 scripts/detect-languages.py --path . --json > /tmp/detection.json
-python3 scripts/lint-setup.py /tmp/detection.json --target-dir . --dry-run
+python3 scripts/lint-setup.py /tmp/detection.json --target-dir . --json
 ```
 
 - Skipped when `--skip-lint` is passed to `generate-project-config.py`
-- If existing linter configs are detected, `/lint-setup` outputs proposals only (no overwrite)
-- In monorepo with 2+ languages, `/lint-setup` downgrades to proposal mode
+- The script only outputs recommendations; the agent generates config files based on user preference + official docs
+- If existing linter configs are detected, they are reported in the output but never overwritten
 
 ### Phase 5: Review generated outputs
 
