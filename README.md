@@ -96,7 +96,7 @@ Fixed integration-conflict rule (parallel PRs):
 - If active parallel PRs overlap in actual diff files, run an integration rehearsal on latest `origin/main` (temporary integration branch/worktree) before proceeding.
 - If conflict remains unresolved, remove `parallel-ok`, mark `blocked`, and serialize; do not proceed to `/create-pr`.
 - See `.agent/commands/worktree.md` (Phase 4.5) for the canonical procedure.
-- Optional hard gate: set `AGENTIC_SDD_PARALLEL_ISSUES='<peer-issue>,<peer-issue>'` when running `/create-pr` to enforce `scripts/shell/worktree.sh check` fail-fast.
+- オプションのハードゲート: `/create-pr` 実行時に `AGENTIC_SDD_PARALLEL_ISSUES='<peer-issue>,<peer-issue>'` を設定すると、`scripts/shell/worktree.sh check` による fail-fast を強制できます。
 
 When using the parent-unit model, close child Issues only after their AC is satisfied with evidence from the parent PR, and close the parent Issue after all children are complete. To keep the parent Issue open, use `Refs #<parent>` in the parent PR body (not `Closes/Fixes #<parent>`).
 
@@ -369,7 +369,7 @@ It also validates `/test-review` metadata for the current branch state
 - Working tree must be clean.
 - Run on the Issue-linked branch/worktree.
 - If this PR is part of a parallel set, ensure integration-conflict check is cleared per `.agent/commands/worktree.md` before creating the PR.
-- If `AGENTIC_SDD_PARALLEL_ISSUES` is set, `/create-pr` will fail-fast on overlap detected by `scripts/shell/worktree.sh check`.
+- `AGENTIC_SDD_PARALLEL_ISSUES` が設定されている場合、`/create-pr` は `scripts/shell/worktree.sh check` で重複が検出されると fail-fast します。
 
 If you enable CI (optional), wait for CI checks and fix failures before merging.
 
@@ -752,7 +752,7 @@ Repository quality baseline (this repo itself):
 
 ### Docs lint (SoT contract checks)
 
-Agentic-SDD includes a docs linter (`scripts/lint/lint_sot.py`) that checks Markdown documents for SoT contract violations:
+Agentic-SDD には、MarkdownドキュメントのSoT契約違反を検査する docs linter（`scripts/lint/lint_sot.py`）が含まれています:
 
 - Placeholder HTML comments in Approved PRD/Epic
 - Missing or malformed research candidate fields

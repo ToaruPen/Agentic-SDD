@@ -134,6 +134,11 @@ def main() -> int:
     if not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", approved_at):
         eprint("Invalid --approved-at (expected format: YYYY-MM-DDTHH:mm:ssZ)")
         return 2
+    try:
+        datetime.strptime(approved_at, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        eprint("Invalid --approved-at (invalid date/time value)")
+        return 2
 
     try:
         repo_root = (
