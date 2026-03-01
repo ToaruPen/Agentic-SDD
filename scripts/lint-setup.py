@@ -13,12 +13,12 @@ import argparse
 import json
 import shlex
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from cli_utils import eprint  # noqa: E402
+from cli_utils import eprint
 
 
 def find_repo_root() -> Path:
@@ -31,12 +31,12 @@ def find_repo_root() -> Path:
     return Path.cwd()
 
 
-def load_registry(registry_path: Path) -> Dict[str, Any]:
+def load_registry(registry_path: Path) -> dict[str, Any]:
     """lint-registry.json を読み込む"""
     if not registry_path.exists():
         eprint(f"Error: Registry file not found: {registry_path}")
         sys.exit(1)
-    with open(registry_path, encoding="utf-8") as fh:
+    with registry_path.open(encoding="utf-8") as fh:
         try:
             return json.load(fh)
         except json.JSONDecodeError as exc:
@@ -44,13 +44,13 @@ def load_registry(registry_path: Path) -> Dict[str, Any]:
             sys.exit(1)
 
 
-def load_detection_result(detection_path: str) -> Dict[str, Any]:
+def load_detection_result(detection_path: str) -> dict[str, Any]:
     """detect-languages.py の JSON 出力を読み込む"""
     path = Path(detection_path)
     if not path.exists():
         eprint(f"Error: Detection result file not found: {path}")
         sys.exit(1)
-    with open(path, encoding="utf-8") as fh:
+    with path.open(encoding="utf-8") as fh:
         try:
             return json.load(fh)
         except json.JSONDecodeError as exc:
@@ -59,16 +59,16 @@ def load_detection_result(detection_path: str) -> Dict[str, Any]:
 
 
 def check_existing_configs(
-    detection: Dict[str, Any],
-) -> List[Dict[str, str]]:
+    detection: dict[str, Any],
+) -> list[dict[str, str]]:
     """既存 linter 設定の競合を検出"""
     return detection.get("existing_linter_configs", [])
 
 
 def has_conflicting_tools(
-    existing_configs: List[Dict[str, str]],
+    existing_configs: list[dict[str, str]],
     language: str,
-    registry: Dict[str, Any],
+    registry: dict[str, Any],
 ) -> bool:
     """同一言語に対して複数の競合する linter があるか判定"""
     lang_config = registry.get("languages", {}).get(language)
@@ -76,7 +76,7 @@ def has_conflicting_tools(
         return False
 
     recommended_linter = lang_config.get("linter", {}).get("name", "")
-    existing_linters: List[str] = []
+    existing_linters: list[str] = []
     for c in existing_configs:
         if not isinstance(c, dict):
             continue
@@ -96,18 +96,18 @@ def has_conflicting_tools(
 
 def lookup_toolchain(
     language: str,
-    registry: Dict[str, Any],
-) -> Optional[Dict[str, Any]]:
+    registry: dict[str, Any],
+) -> dict[str, Any] | None:
     """レジストリから言語のツールチェーンを取得"""
     languages = registry.get("languages", {})
     return languages.get(language)
 
 
 def _pick_ci_command(
-    tool: Dict[str, Any],
+    tool: dict[str, Any],
     lang: str,
-    lang_sources: Dict[str, List[str]],
-) -> Optional[str]:
+    lang_sources: dict[str, list[str]],
+) -> str | None:
     """ビルドツール固有のCI コマンドがあれば優先する。"""
     sources = lang_sources.get(lang, [])
     gradle_sources = {"build.gradle", "build.gradle.kts"}
@@ -118,7 +118,7 @@ def _pick_ci_command(
     return tool.get("ci_command")
 
 
-def _scope_command(cmd: str, paths: List[str]) -> str:
+def _scope_command(cmd: str, paths: list[str]) -> str:
     """CI コマンドをサブプロジェクトパスにスコーピングする。
 
     末尾 ' .' を持つコマンドのみパスで置換する。
@@ -137,17 +137,17 @@ def _scope_command(cmd: str, paths: List[str]) -> str:
 
 
 def generate_ci_commands(
-    languages: List[str],
-    registry: Dict[str, Any],
-    lang_sources: Optional[Dict[str, List[str]]] = None,
-    lang_paths: Optional[Dict[str, List[str]]] = None,
-) -> List[Dict[str, str]]:
+    languages: list[str],
+    registry: dict[str, Any],
+    lang_sources: dict[str, list[str]] | None = None,
+    lang_paths: dict[str, list[str]] | None = None,
+) -> list[dict[str, str]]:
     """CI 推奨コマンドを生成（複数言語時は && で連結）"""
     if lang_sources is None:
         lang_sources = {}
-    lint_cmds: List[str] = []
-    fmt_cmds: List[str] = []
-    tc_cmds: List[str] = []
+    lint_cmds: list[str] = []
+    fmt_cmds: list[str] = []
+    tc_cmds: list[str] = []
 
     for lang in languages:
         toolchain = lookup_toolchain(lang, registry)
@@ -177,7 +177,7 @@ def generate_ci_commands(
         if tc_cmd and tc_cmd not in tc_cmds:
             tc_cmds.append(tc_cmd)
 
-    commands: List[Dict[str, str]] = []
+    commands: list[dict[str, str]] = []
     if lint_cmds:
         commands.append(
             {"key": "AGENTIC_SDD_CI_LINT_CMD", "value": " && ".join(lint_cmds)}
@@ -195,14 +195,14 @@ def generate_ci_commands(
 
 
 def _build_toolchains(
-    detection: Dict[str, Any],
-    registry: Dict[str, Any],
-) -> tuple[list[Dict[str, Any]], list[Dict[str, str]]]:
+    detection: dict[str, Any],
+    registry: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
     """証跡用ツールチェーンデータを構築。(toolchains, existing_configs) を返す。"""
     languages = detection.get("languages", [])
     existing_configs = detection.get("existing_linter_configs", [])
 
-    toolchains: list[Dict[str, Any]] = []
+    toolchains: list[dict[str, Any]] = []
     for lang_info in languages:
         if not isinstance(lang_info, dict) or "name" not in lang_info:
             eprint(f"[WARN] malformed language entry skipped: {lang_info!r}")
@@ -228,7 +228,7 @@ def _build_toolchains(
                 "references": [
                     {
                         "url": linter.get("docs_url", ""),
-                        "registered_at": datetime.now(tz=timezone.utc).isoformat(),
+                        "registered_at": datetime.now(tz=UTC).isoformat(),
                         "note": "URL from registry; agent fetches actual docs at runtime via webfetch/librarian",
                     }
                 ],
@@ -242,10 +242,10 @@ def _build_toolchains(
 
 
 def _render_evidence_plaintext(
-    context: Dict[str, Any],
+    context: dict[str, Any],
 ) -> str:
     """証跡 Markdown を jinja2 なしで生成（フォールバック）。"""
-    lines: List[str] = [
+    lines: list[str] = [
         "# Linter設定 証跡",
         "",
         "> このファイルは `/lint-setup` コマンドにより自動生成されました。",
@@ -283,8 +283,11 @@ def _render_evidence_plaintext(
             )
         lines.append("")
         lines.append("**参照した公式ドキュメント:**")
-        for ref in tc.get("references", []):
-            lines.append(f"- {ref['url']} (証跡生成日時: {ref['registered_at']})")
+        lines.extend(
+            f"- {ref['url']} (証跡生成日時: {ref['registered_at']})"
+            for ref in tc.get("references", [])
+        )
+
         lines.append("")
         lines.append("**適用ルール分類:**")
         lines.append(f"- Essential: {', '.join(tc.get('essential_rules', []))}")
@@ -318,25 +321,28 @@ def _render_evidence_plaintext(
     lines.append("## 推奨CIコマンド")
     lines.append("")
     lines.append("```bash")
-    for cmd in context.get("ci_commands", []):
-        lines.append(f'export {cmd["key"]}="{cmd["value"]}"')
+    lines.extend(
+        f'export {cmd["key"]}="{cmd["value"]}"'
+        for cmd in context.get("ci_commands", [])
+    )
+
     lines.append("```")
     return "\n".join(lines) + "\n"
 
 
 def generate_evidence_trail(
-    detection: Dict[str, Any],
-    registry: Dict[str, Any],
-    ci_commands: List[Dict[str, str]],
+    detection: dict[str, Any],
+    registry: dict[str, Any],
+    ci_commands: list[dict[str, str]],
     target_dir: Path,
-    template_dir: Optional[Path] = None,
+    template_dir: Path | None = None,
     dry_run: bool = False,
-) -> Optional[str]:
+) -> str | None:
     """証跡ファイル (.agentic-sdd/project/rules/lint.md) を生成。jinja2 がなければプレーンテキストでフォールバック。"""
     toolchains, existing_configs = _build_toolchains(detection, registry)
 
-    context: Dict[str, Any] = {
-        "generated_at": datetime.now(tz=timezone.utc).isoformat(),
+    context: dict[str, Any] = {
+        "generated_at": datetime.now(tz=UTC).isoformat(),
         "target_path": str(target_dir),
         "languages": detection.get("languages", []),
         "toolchains": toolchains,
@@ -346,9 +352,9 @@ def generate_evidence_trail(
     }
 
     # jinja2 でレンダリングを試み、失敗時はプレーンテキストでフォールバック
-    content: Optional[str] = None
+    content: str | None = None
     try:
-        import importlib
+        import importlib  # noqa: PLC0415
 
         jinja2 = importlib.import_module("jinja2")
         Environment = jinja2.Environment
@@ -364,7 +370,7 @@ def generate_evidence_trail(
                 loader=FileSystemLoader(str(template_dir)),
                 trim_blocks=True,
                 lstrip_blocks=True,
-                autoescape=False,  # noqa: S701 -- Markdown template, no XSS risk
+                autoescape=False,
             )
             template = env.get_template("rules/lint.md.j2")
             content = template.render(**context)
@@ -376,7 +382,7 @@ def generate_evidence_trail(
         eprint(
             "[INFO] jinja2 not available; using plaintext fallback for evidence trail"
         )
-    except Exception as exc:  # noqa: BLE001 -- template load/render failure should fall back
+    except Exception as exc:
         eprint(f"[WARN] jinja2 template error: {exc}; using plaintext fallback")
 
     if content is None:
@@ -395,12 +401,12 @@ def generate_evidence_trail(
 
 
 def run_setup(
-    detection: Dict[str, Any],
-    registry: Dict[str, Any],
+    detection: dict[str, Any],
+    registry: dict[str, Any],
     target_dir: Path,
     dry_run: bool = False,
-    template_dir: Optional[Path] = None,
-) -> Dict[str, Any]:
+    template_dir: Path | None = None,
+) -> dict[str, Any]:
     """メインのセットアップ処理 — 推奨出力のみ（設定ファイル書き込みなし）"""
     if not target_dir.is_dir():
         eprint(
@@ -418,10 +424,10 @@ def run_setup(
     # 言語名リスト（重複排除、順序維持）とパス情報の収集
     # confidence フィールドで確定検出と推測検出を区別する
     seen: set[str] = set()
-    unique_lang_names: List[str] = []
-    inferred_lang_names: List[str] = []
-    lang_paths: Dict[str, List[str]] = {}
-    lang_sources: Dict[str, List[str]] = {}  # 検出ソースファイル名を記録
+    unique_lang_names: list[str] = []
+    inferred_lang_names: list[str] = []
+    lang_paths: dict[str, list[str]] = {}
+    lang_sources: dict[str, list[str]] = {}  # 検出ソースファイル名を記録
     for lang in languages:
         if not isinstance(lang, dict) or "name" not in lang:
             eprint(f"[WARN] malformed language entry skipped: {lang!r}")
@@ -444,7 +450,7 @@ def run_setup(
 
     if not unique_lang_names:
         eprint("[ERROR] 確定検出の言語がありません（推測のみ）。")
-        early_result: Dict[str, Any] = {"error": "no_confirmed_languages"}
+        early_result: dict[str, Any] = {"error": "no_confirmed_languages"}
         if inferred_lang_names:
             early_result["inferred_languages"] = [
                 {
@@ -457,8 +463,8 @@ def run_setup(
         return early_result
 
     # 各言語の推奨ツールチェーンを構築
-    recommendations: List[Dict[str, Any]] = []
-    conflicts: List[Dict[str, Any]] = []
+    recommendations: list[dict[str, Any]] = []
+    conflicts: list[dict[str, Any]] = []
 
     for lang_name in unique_lang_names:
         toolchain = lookup_toolchain(lang_name, registry)
@@ -481,7 +487,7 @@ def run_setup(
         formatter = toolchain.get("formatter", {})
         type_checker = toolchain.get("type_checker", {})
 
-        rec: Dict[str, Any] = {
+        rec: dict[str, Any] = {
             "language": lang_name,
             "paths": sorted(set(lang_paths.get(lang_name, ["."]))),
             "linter": {
@@ -527,7 +533,7 @@ def run_setup(
         and "name" in lang
         and lang.get("confidence", "confirmed") != "inferred"
     ]
-    confirmed_detection: Dict[str, Any] = {
+    confirmed_detection: dict[str, Any] = {
         **detection,
         "languages": confirmed_languages,
     }
@@ -540,7 +546,7 @@ def run_setup(
         dry_run,
     )
 
-    result: Dict[str, Any] = {
+    result: dict[str, Any] = {
         "languages": unique_lang_names,
         "recommendations": recommendations,
         "ci_commands": ci_commands,

@@ -15,11 +15,12 @@ except ModuleNotFoundError:
         import tomli as tomllib  # type: ignore[no-redef]
     except ModuleNotFoundError:
         tomllib = None  # type: ignore[assignment]
+from collections.abc import Iterable, Iterator, Sequence
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from cli_utils import eprint  # noqa: E402
+from cli_utils import eprint
 
 
 def to_rel_dir(path: Path, root: Path) -> str:
@@ -63,7 +64,7 @@ def iter_files(root: Path) -> Iterator[Path]:
             yield base / filename
 
 
-def load_toml(path: Path) -> Dict[str, Any]:
+def load_toml(path: Path) -> dict[str, Any]:
     if tomllib is None:
         eprint(
             "[WARN] tomllib/tomli unavailable (Python <3.11 without tomli); "
@@ -94,7 +95,7 @@ def load_setup_cfg(path: Path) -> configparser.ConfigParser:
     return parser
 
 
-def has_toml_section(data: Dict[str, Any], dotted_path: Sequence[str]) -> bool:
+def has_toml_section(data: dict[str, Any], dotted_path: Sequence[str]) -> bool:
     current: Any = data
     for key in dotted_path:
         if not isinstance(current, dict) or key not in current:
@@ -103,10 +104,10 @@ def has_toml_section(data: Dict[str, Any], dotted_path: Sequence[str]) -> bool:
     return True
 
 
-def detect_languages_for_file(file_path: Path, root: Path) -> List[Dict[str, str]]:
+def detect_languages_for_file(file_path: Path, root: Path) -> list[dict[str, str]]:
     rel_dir = to_rel_dir(file_path.parent, root)
     name = file_path.name
-    detections: List[Dict[str, str]] = []
+    detections: list[dict[str, str]] = []
 
     if name in {"pyproject.toml", "setup.py", "setup.cfg", "requirements.txt"}:
         detections.append({"name": "python", "source": name, "path": rel_dir})
@@ -159,23 +160,23 @@ def detect_languages_for_file(file_path: Path, root: Path) -> List[Dict[str, str
 
 
 def maybe_add_section(
-    output: List[Dict[str, str]],
+    output: list[dict[str, str]],
     tool: str,
     rel_path: str,
-    section: Optional[str] = None,
+    section: str | None = None,
 ) -> None:
-    item: Dict[str, str] = {"tool": tool, "path": rel_path}
+    item: dict[str, str] = {"tool": tool, "path": rel_path}
     if section is not None:
         item["section"] = section
     output.append(item)
 
 
-def detect_linter_configs_for_file(file_path: Path, root: Path) -> List[Dict[str, str]]:
+def detect_linter_configs_for_file(file_path: Path, root: Path) -> list[dict[str, str]]:
     rel_path = file_path.relative_to(root).as_posix()
     name = file_path.name
-    detections: List[Dict[str, str]] = []
+    detections: list[dict[str, str]] = []
 
-    if name.startswith(".eslintrc") or name.startswith("eslint.config."):
+    if name.startswith((".eslintrc", "eslint.config.")):
         maybe_add_section(detections, "eslint", rel_path)
 
     if name == "ruff.toml":
@@ -190,7 +191,7 @@ def detect_linter_configs_for_file(file_path: Path, root: Path) -> List[Dict[str
     if name in {"biome.json", "biome.jsonc"}:
         maybe_add_section(detections, "biome", rel_path)
 
-    if name.startswith(".prettierrc") or name.startswith("prettier.config."):
+    if name.startswith((".prettierrc", "prettier.config.")):
         maybe_add_section(detections, "prettier", rel_path)
 
     if name == ".flake8":
@@ -224,10 +225,10 @@ def detect_linter_configs_for_file(file_path: Path, root: Path) -> List[Dict[str
 
 
 def dedupe_entries(
-    entries: Iterable[Dict[str, str]], keys: Tuple[str, ...]
-) -> List[Dict[str, str]]:
-    seen: Set[Tuple[str, ...]] = set()
-    result: List[Dict[str, str]] = []
+    entries: Iterable[dict[str, str]], keys: tuple[str, ...]
+) -> list[dict[str, str]]:
+    seen: set[tuple[str, ...]] = set()
+    result: list[dict[str, str]] = []
     for entry in entries:
         marker = tuple(entry.get(key, "") for key in keys)
         if marker in seen:
@@ -255,7 +256,7 @@ _PROJECT_INDICATORS: frozenset[str] = frozenset(
 )
 
 
-def _find_project_root(path: str, project_roots: Set[str]) -> str:
+def _find_project_root(path: str, project_roots: set[str]) -> str:
     if path in project_roots:
         return path
     parts = path.split("/")
@@ -268,14 +269,14 @@ def _find_project_root(path: str, project_roots: Set[str]) -> str:
     return parts[0]
 
 
-def detect_project(root: Path) -> Dict[str, Any]:
+def detect_project(root: Path) -> dict[str, Any]:
     if not root.exists():
         raise RuntimeError(f"Path not found: {root}")
     if not root.is_dir():
         raise RuntimeError(f"Path is not a directory: {root}")
 
-    languages: List[Dict[str, str]] = []
-    linters: List[Dict[str, str]] = []
+    languages: list[dict[str, str]] = []
+    linters: list[dict[str, str]] = []
 
     for file_path in iter_files(root):
         languages.extend(detect_languages_for_file(file_path, root))
@@ -287,12 +288,12 @@ def detect_project(root: Path) -> Dict[str, Any]:
     linters = dedupe_entries(linters, ("tool", "path", "section"))
     linters.sort(key=lambda item: (item["path"], item["tool"], item.get("section", "")))
 
-    project_roots: Set[str] = set()
+    project_roots: set[str] = set()
     for entry in languages:
         if entry.get("source", "") in _PROJECT_INDICATORS:
             project_roots.add(entry["path"])
 
-    path_to_languages: Dict[str, Set[str]] = {}
+    path_to_languages: dict[str, set[str]] = {}
     for entry in languages:
         group_key = _find_project_root(entry["path"], project_roots)
         path_to_languages.setdefault(group_key, set()).add(entry["name"])
@@ -301,15 +302,13 @@ def detect_project(root: Path) -> Dict[str, Any]:
     non_root_keys = top_keys - {"."}
     is_monorepo = len(non_root_keys) > 1
 
-    subprojects: List[Dict[str, Any]] = []
-    if is_monorepo:
-        for path_key in sorted(non_root_keys):
-            subprojects.append(
-                {
-                    "path": path_key,
-                    "languages": sorted(path_to_languages[path_key]),
-                }
-            )
+    subprojects = [
+        {
+            "path": path_key,
+            "languages": sorted(path_to_languages[path_key]),
+        }
+        for path_key in sorted(non_root_keys)
+    ]
 
     return {
         "languages": languages,
@@ -319,7 +318,7 @@ def detect_project(root: Path) -> Dict[str, Any]:
     }
 
 
-def print_text_report(result: Dict[str, Any]) -> None:
+def print_text_report(result: dict[str, Any]) -> None:
     print("Detected languages:")
     for item in result["languages"]:
         print(f"- {item['name']} (source={item['source']}, path={item['path']})")
@@ -356,7 +355,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
