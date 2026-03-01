@@ -375,12 +375,7 @@ def main() -> int:
         lint_script = script_dir / "lint-setup.py"
 
         if detect_script.exists() and lint_script.exists():
-            target = Path(
-                args.output_dir
-            ).parent.parent  # .agentic-sdd/project -> repo root
-            if target == Path(".agentic-sdd"):
-                target = Path(".")
-            target = target.resolve()
+            target = find_repo_root()
 
             detect_proc = _sp.run(  # noqa: S603
                 [sys.executable, str(detect_script), "--path", str(target), "--json"],

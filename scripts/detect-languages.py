@@ -114,10 +114,14 @@ def detect_languages_for_file(file_path: Path, root: Path) -> List[Dict[str, str
     if name == "Gemfile" or file_path.suffix == ".gemspec":
         detections.append({"name": "ruby", "source": name, "path": rel_dir})
 
-    if name in {"pom.xml", "build.gradle", "build.gradle.kts"}:
+    if name in {"pom.xml", "build.gradle"}:
         detections.append({"name": "java", "source": name, "path": rel_dir})
-        if name == "build.gradle.kts":
-            detections.append({"name": "kotlin", "source": name, "path": rel_dir})
+
+    if name == "build.gradle.kts":
+        # build.gradle.kts は Kotlin DSL — Java プロジェクトの可能性が高いが、
+        # Kotlin ソースの存在は保証しない。検出元を明示し、推奨は参考情報扱いとする。
+        detections.append({"name": "java", "source": name, "path": rel_dir})
+        detections.append({"name": "kotlin", "source": name, "path": rel_dir})
 
     return detections
 
@@ -217,7 +221,7 @@ def detect_project(root: Path) -> Dict[str, Any]:
     is_monorepo = False
     for i, left in enumerate(languages):
         for right in languages[i + 1 :]:
-            if left["path"] != right["path"] and left["name"] != right["name"]:
+            if left["path"] != right["path"]:
                 is_monorepo = True
                 break
         if is_monorepo:
