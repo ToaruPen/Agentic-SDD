@@ -117,14 +117,19 @@ def _pick_ci_command(
 
 
 def _scope_command(cmd: str, paths: List[str]) -> str:
+    """CI コマンドをサブプロジェクトパスにスコーピングする。
+
+    末尾 ' .' を持つコマンドはパスで置換し、持たないコマンドはパスを末尾に追記する。
+    """
     if not paths or set(paths) == {"."}:
         return cmd
     unique_paths = sorted(set(p for p in paths if p != "."))
     if not unique_paths:
         return cmd
+    path_args = " ".join(unique_paths)
     if cmd.endswith(" ."):
-        return cmd[:-2] + " " + " ".join(unique_paths)
-    return cmd
+        return cmd[:-2] + " " + path_args
+    return cmd + " " + path_args
 
 
 def generate_ci_commands(

@@ -348,6 +348,37 @@ def test_generate_ci_commands_scopes_to_subproject_paths() -> None:
     assert "frontend" in lint_cmd["value"]
 
 
+def test_generate_ci_commands_scopes_non_dot_commands() -> None:
+    """Commands without trailing ' .' (e.g. golangci-lint run) should also be scoped."""
+    registry: dict[str, Any] = {
+        "languages": {
+            "go": {
+                "linter": {
+                    "name": "golangci-lint",
+                    "docs_url": "https://golangci-lint.run/",
+                    "ci_command": "golangci-lint run",
+                },
+                "formatter": {
+                    "name": "gofmt",
+                    "docs_url": "https://pkg.go.dev/cmd/gofmt",
+                    "ci_command": 'test -z "$(gofmt -l .)"',
+                },
+                "type_checker": {"name": None, "docs_url": None, "ci_command": None},
+            }
+        }
+    }
+
+    commands = MODULE.generate_ci_commands(
+        ["go"], registry, lang_paths={"go": ["backend"]}
+    )
+
+    lint_cmd = next(c for c in commands if c["key"] == "AGENTIC_SDD_CI_LINT_CMD")
+    assert lint_cmd["value"] == "golangci-lint run backend"
+    fmt_cmd = next(c for c in commands if c["key"] == "AGENTIC_SDD_CI_FORMAT_CMD")
+    # trailing ' .' pattern still works
+    assert "backend" in fmt_cmd["value"]
+
+
 def test_generate_ci_commands_skips_unknown_language() -> None:
     registry = minimal_registry()
 
