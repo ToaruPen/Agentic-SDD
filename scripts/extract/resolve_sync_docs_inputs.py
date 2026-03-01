@@ -24,8 +24,7 @@ def eprint(msg: str) -> None:
 
 
 def read_text(path: str) -> str:
-    with open(path, encoding="utf-8") as fh:
-        return fh.read()
+    return Path(path).read_text(encoding="utf-8")
 
 
 def run(
@@ -47,7 +46,7 @@ def git_repo_root() -> str:
     root = p.stdout.strip()
     if not root:
         raise RuntimeError("Failed to locate repo root via git.")
-    return os.path.realpath(root)
+    return str(Path(root).resolve())
 
 
 def current_branch(repo_root: str) -> str:
@@ -134,41 +133,35 @@ def resolve_issue_refs(
 
 
 def find_epic_by_prd(repo_root: str, prd_path: str) -> str:
-    epics_root = os.path.join(repo_root, "docs", "epics")
+    epics_root = Path(repo_root) / "docs" / "epics"
     candidates: list[str] = []
 
-    if not os.path.isdir(epics_root):
+    if not epics_root.is_dir():
         raise RuntimeError("docs/epics/ not found; cannot auto-resolve Epic.")
 
-    for root, _dirs, files in os.walk(epics_root):
-        for name in files:
-            if not name.endswith(".md"):
+    for entry in epics_root.rglob("*.md"):
+        rel = str(entry.relative_to(repo_root)).replace(os.sep, "/")
+        text = read_text(str(Path(repo_root) / rel))
+        for line in text.splitlines():
+            if "参照PRD" not in line:
                 continue
-            rel = os.path.relpath(os.path.join(root, name), repo_root).replace(
-                os.sep, "/"
-            )
-            text = read_text(os.path.join(repo_root, rel))
-            for line in text.splitlines():
-                if "参照PRD" not in line:
-                    continue
-                m = re.search(r"参照PRD\s*:\s*(.+)$", line)
-                if not m:
-                    continue
-                ref = m.group(1).strip()
-                if is_placeholder_ref(ref):
-                    continue
+            m = re.search(r"参照PRD\s*:\s*(.+)$", line)
+            if not m:
+                continue
+            ref = m.group(1).strip()
+            if is_placeholder_ref(ref):
+                continue
+            resolved = None
+            try:
+                resolved = resolve_ref_to_repo_path(repo_root, ref)
+            except ValueError:
                 resolved = None
-                try:
-                    resolved = resolve_ref_to_repo_path(repo_root, ref)
-                except ValueError:
-                    resolved = None
-                if resolved is None:
-                    continue
-                if resolved == prd_path:
-                    candidates.append(rel)
-                    break
+            if resolved is None:
+                continue
+            if resolved == prd_path:
+                candidates.append(rel)
+                break
 
-    if len(candidates) == 1:
         return candidates[0]
     if len(candidates) == 0:
         raise RuntimeError(
@@ -181,8 +174,8 @@ def find_epic_by_prd(repo_root: str, prd_path: str) -> str:
 
 
 def ensure_file_exists(repo_root: str, rel_path: str, label: str) -> None:
-    abs_path = os.path.join(repo_root, rel_path)
-    if not os.path.isfile(abs_path):
+    abs_path = Path(repo_root) / rel_path
+    if not abs_path.is_file():
         raise RuntimeError(f"{label} file not found: {rel_path}")
 
 
@@ -208,11 +201,11 @@ def detect_pr_number(repo_root: str, gh_repo: str) -> str | None:
 
 
 def shutil_which(cmd: str) -> str | None:
-    path = os.environ.get("PATH", "")
-    for d in path.split(os.pathsep):
-        p = os.path.join(d, cmd)
-        if os.path.isfile(p) and os.access(p, os.X_OK):
-            return p
+    path_env = os.environ.get("PATH", "")
+    for d in path_env.split(os.pathsep):
+        p = Path(d) / cmd
+        if p.is_file() and os.access(str(p), os.X_OK):
+            return str(p)
     return None
 
 
@@ -348,8 +341,9 @@ def main() -> int:
 
     try:
         repo_root = (
-            os.path.realpath(args.repo_root) if args.repo_root else git_repo_root()
+            str(Path(args.repo_root).resolve()) if args.repo_root else git_repo_root()
         )
+
     except RuntimeError as exc:
         eprint(str(exc))
         return 1
@@ -396,14 +390,15 @@ def main() -> int:
                 epic_path = iepic
 
         if not prd_path:
-            prd_root = os.path.join(repo_root, "docs", "prd")
+            prd_root = Path(repo_root) / "docs" / "prd"
             prds: list[str] = []
-            if os.path.isdir(prd_root):
+            if prd_root.is_dir():
                 prds.extend(
-                    f"docs/prd/{name}"
-                    for name in os.listdir(prd_root)
-                    if name.endswith(".md")
+                    f"docs/prd/{entry.name}"
+                    for entry in prd_root.iterdir()
+                    if entry.name.endswith(".md")
                 )
+
             if len(prds) == 1:
                 prd_path = prds[0]
             elif len(prds) == 0:
@@ -445,13 +440,13 @@ def main() -> int:
             run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         output_root = (
-            os.path.realpath(args.output_root)
+            str(Path(args.output_root).resolve())
             if args.output_root
-            else os.path.join(repo_root, ".agentic-sdd", "sync-docs")
+            else str(Path(repo_root) / ".agentic-sdd" / "sync-docs")
         )
-        out_dir = os.path.join(output_root, scope_id, run_id)
-        out_diff = os.path.join(out_dir, "diff.patch")
-        out_json = os.path.join(out_dir, "inputs.json")
+        out_dir_path = Path(output_root) / scope_id / run_id
+        out_diff = str(out_dir_path / "diff.patch")
+        out_json = str(out_dir_path / "inputs.json")
 
         out: dict[str, Any] = {
             "repo_root": repo_root,
@@ -464,19 +459,24 @@ def main() -> int:
             "pr_number": pr_number,
             "diff_source": diff_source,
             "diff_detail": diff_detail,
-            "diff_path": os.path.relpath(out_diff, repo_root).replace(os.sep, "/"),
-            "inputs_path": os.path.relpath(out_json, repo_root).replace(os.sep, "/"),
+            "diff_path": str(Path(out_diff).relative_to(repo_root)).replace(
+                os.sep, "/"
+            ),
+            "inputs_path": str(Path(out_json).relative_to(repo_root)).replace(
+                os.sep, "/"
+            ),
         }
 
         if not args.dry_run:
-            os.makedirs(out_dir, exist_ok=True)
-            with open(out_diff, "w", encoding="utf-8") as fh:
-                fh.write(diff_text)
-                if not diff_text.endswith("\n"):
-                    fh.write("\n")
-            with open(out_json, "w", encoding="utf-8") as fh:
-                json.dump(out, fh, ensure_ascii=True, indent=2)
-                fh.write("\n")
+            out_dir_path.mkdir(parents=True, exist_ok=True)
+            (out_dir_path / "diff.patch").write_text(diff_text, encoding="utf-8")
+            if not diff_text.endswith("\n"):
+                (out_dir_path / "diff.patch").write_text(
+                    diff_text + "\n", encoding="utf-8"
+                )
+            (out_dir_path / "inputs.json").write_text(
+                json.dumps(out, ensure_ascii=True, indent=2) + "\n", encoding="utf-8"
+            )
 
         json.dump(out, sys.stdout, ensure_ascii=True, indent=2)
         sys.stdout.write("\n")

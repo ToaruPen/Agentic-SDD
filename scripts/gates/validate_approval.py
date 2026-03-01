@@ -80,24 +80,23 @@ def sha256_prefixed(data: bytes) -> str:
 
 
 def read_utf8_text(path: str) -> str:
-    with open(path, encoding="utf-8") as fh:
-        return fh.read()
+    return Path(path).read_text(encoding="utf-8")
 
 
 def approval_paths(repo_root: str, issue_number: int) -> tuple[str, str]:
-    base = os.path.join(repo_root, ".agentic-sdd", "approvals", f"issue-{issue_number}")
-    return os.path.join(base, "approval.json"), os.path.join(base, "estimate.md")
+    base = Path(repo_root) / ".agentic-sdd" / "approvals" / f"issue-{issue_number}"
+    return str(base / "approval.json"), str(base / "estimate.md")
 
 
 def resolve_approval_script(repo_root: str, script_name: str) -> str:
     candidates = (
-        os.path.join("scripts", "agentic-sdd", script_name),
-        os.path.join("scripts", script_name),
+        str(Path("scripts") / "agentic-sdd" / script_name),
+        str(Path("scripts") / script_name),
     )
     for rel in candidates:
-        if os.path.isfile(os.path.join(repo_root, rel)):
+        if (Path(repo_root) / rel).is_file():
             return rel
-    return os.path.join("scripts", script_name)
+    return str(Path("scripts") / script_name)
 
 
 def load_approval_json(path: str) -> dict[str, Any]:
@@ -239,14 +238,14 @@ def main() -> int:
 
     approval_json, estimate_md = approval_paths(repo_root, issue_number)
 
-    if not os.path.isfile(estimate_md):
+    if not Path(estimate_md).is_file():
         return gate_blocked(
             f"Missing estimate snapshot file: {os.path.relpath(estimate_md, repo_root)}",
             create_script,
             validate_script,
         )
 
-    if not os.path.isfile(approval_json):
+    if not Path(approval_json).is_file():
         return gate_blocked(
             f"Missing approval record file: {os.path.relpath(approval_json, repo_root)}",
             create_script,

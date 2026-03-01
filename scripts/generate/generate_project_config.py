@@ -44,8 +44,7 @@ def find_repo_root() -> Path:
 
 def load_config(config_path: str) -> dict[str, Any]:
     """設定ファイルを読み込む"""
-    with open(config_path, encoding="utf-8") as fh:
-        return json.load(fh)
+    return json.loads(Path(config_path).read_text(encoding="utf-8"))
 
 
 def setup_jinja_env(template_dir: Path) -> JinjaEnvironmentLike:

@@ -26,8 +26,7 @@ def eprint(msg: str) -> None:
 
 
 def read_text(path: str) -> str:
-    with open(path, encoding="utf-8") as fh:
-        return fh.read()
+    return Path(path).read_text(encoding="utf-8")
 
 
 def extract_section(text: str, section_pattern: str) -> str | None:
@@ -372,9 +371,7 @@ def main() -> int:
     output = json.dumps(config, ensure_ascii=False, indent=indent)
 
     if args.output:
-        with open(args.output, "w", encoding="utf-8") as fh:
-            fh.write(output)
-            fh.write("\n")
+        Path(args.output).write_text(output + "\n", encoding="utf-8")
         eprint(f"Output written to: {args.output}")
     else:
         print(output)

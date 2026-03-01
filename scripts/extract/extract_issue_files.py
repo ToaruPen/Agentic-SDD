@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
-from pathlib import Path
+from pathlib import Path, PurePath
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -21,8 +21,7 @@ def eprint(msg: str) -> None:
 
 
 def read_text(path: str) -> str:
-    with open(path, encoding="utf-8") as fh:
-        return fh.read()
+    return Path(path).read_text(encoding="utf-8")
 
 
 def is_safe_repo_relative(path: str) -> bool:
@@ -65,12 +64,12 @@ def resolve_ref_to_repo_path(repo_root: str, ref: str) -> str:
     if ref.startswith(("http://", "https://")):
         raise ValueError(f"unsupported URL reference: {ref}")
 
-    if os.path.isabs(ref):
-        abs_path = os.path.realpath(ref)
-        repo_abs = os.path.realpath(repo_root)
+    if PurePath(ref).is_absolute():
+        abs_path = str(Path(ref).resolve())
+        repo_abs = str(Path(repo_root).resolve())
         if not abs_path.startswith(repo_abs + os.sep):
             raise ValueError(f"absolute path outside repo: {ref}")
-        rel = os.path.relpath(abs_path, repo_abs).replace(os.sep, "/")
+        rel = str(Path(abs_path).relative_to(repo_abs)).replace(os.sep, "/")
         if not is_safe_repo_relative(rel):
             raise ValueError(f"unsafe repo-relative path: {rel}")
         return rel
@@ -204,8 +203,8 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    repo_root = os.path.realpath(args.repo_root)
-    if not os.path.isdir(repo_root):
+    repo_root = str(Path(args.repo_root).resolve())
+    if not Path(repo_root).is_dir():
         eprint(f"repo root not found: {repo_root}")
         return 2
 

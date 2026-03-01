@@ -222,13 +222,12 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    if not os.path.isfile(args.path):
+    if not Path(args.path).is_file():
         eprint(f"file not found: {args.path}")
         return 1
 
     try:
-        with open(args.path, encoding="utf-8") as fh:
-            data = json.load(fh)
+        data = json.loads(Path(args.path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         eprint(f"invalid JSON: {exc}")
         return 1
@@ -244,11 +243,11 @@ def main() -> int:
         return die(errors)
 
     if args.format:
-        tmp = f"{args.path}.tmp.{os.getpid()}"
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(data, fh, ensure_ascii=False, indent=2)
-            fh.write("\n")
-        os.replace(tmp, args.path)
+        tmp = Path(f"{args.path}.tmp.{os.getpid()}")
+        tmp.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        tmp.replace(Path(args.path))
 
     print(f"OK: {args.path}")
     return 0

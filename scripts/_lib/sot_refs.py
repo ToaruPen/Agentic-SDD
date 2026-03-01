@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import os
 import re
+from pathlib import Path, PurePath
 from urllib.parse import urlparse
 
 
@@ -77,22 +77,21 @@ def resolve_ref_to_repo_path(repo_root: str, ref: str) -> str:
 
         raise ValueError(f"unsupported URL reference: {ref}")
 
-    if os.path.isabs(ref):
-        abs_path = os.path.realpath(ref)
-        repo_abs = os.path.realpath(repo_root)
-        if not abs_path.startswith(repo_abs + os.sep):
-            raise ValueError(f"absolute path outside repo: {ref}")
-        rel = os.path.relpath(abs_path, repo_abs)
-        rel = rel.replace(os.sep, "/")
+    if PurePath(ref).is_absolute():
+        abs_path = Path(ref).resolve()
+        repo_abs = Path(repo_root).resolve()
+        try:
+            rel = str(abs_path.relative_to(repo_abs))
+        except ValueError:
+            raise ValueError(f"absolute path outside repo: {ref}") from None
         if not is_safe_repo_relative(rel):
             raise ValueError(f"unsafe repo-relative path: {rel}")
         return rel
-
     rel = ref
     rel = rel.removeprefix("./")
     rel = rel.strip()
     rel = rel.replace("\\", "/")
-    rel = os.path.normpath(rel).replace(os.sep, "/")
+    rel = str(PurePath(rel).as_posix())
     if not is_safe_repo_relative(rel):
         raise ValueError(f"unsafe repo-relative path: {rel}")
     return rel

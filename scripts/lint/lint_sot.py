@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
-from pathlib import Path
+from pathlib import Path, PurePath
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -35,17 +35,17 @@ def eprint(msg: str) -> None:
 def repo_root() -> str:
     git_bin = shutil.which("git")
     if not git_bin:
-        return os.path.realpath(os.getcwd())
+        return str(Path.cwd().resolve())
 
     try:
         p = run_cmd([git_bin, "rev-parse", "--show-toplevel"], check=False)
     except OSError:
-        return os.path.realpath(os.getcwd())
+        return str(Path.cwd().resolve())
 
     root = (p.stdout or "").strip()
     if not root:
-        return os.path.realpath(os.getcwd())
-    return os.path.realpath(root)
+        return str(Path.cwd().resolve())
+    return str(Path(root).resolve())
 
 
 def iter_markdown_files(root: str) -> Iterable[str]:
@@ -56,13 +56,13 @@ def iter_markdown_files(root: str) -> Iterable[str]:
         for name in filenames:
             if not name.endswith(".md"):
                 continue
-            yield os.path.join(dirpath, name)
+            yield str(Path(dirpath) / name)
 
 
 def is_safe_repo_relative_root(root: str) -> bool:
     if not root:
         return False
-    if os.path.isabs(root):
+    if PurePath(root).is_absolute():
         return False
     p = root.replace("\\", "/").strip()
     p = p.removeprefix("./")
@@ -75,8 +75,7 @@ def is_safe_repo_relative_root(root: str) -> bool:
 
 
 def read_text(path: str) -> str:
-    with open(path, encoding="utf-8") as fh:
-        return fh.read()
+    return Path(path).read_text(encoding="utf-8")
 
 
 _STATUS_APPROVED_RE = re.compile(r"^\s*-\s*ステータス\s*:\s*Approved\s*$", re.MULTILINE)
@@ -436,7 +435,7 @@ def lint_epic_external_service_comparison(
 
 def is_approved_prd_or_epic(rel_path: str, text: str) -> bool:
     if rel_path.startswith(("docs/prd/", "docs/epics/")):
-        if os.path.basename(rel_path) == "_template.md":
+        if Path(rel_path).name == "_template.md":
             return False
         status_text = sanitize_status_text(text)
         return _STATUS_APPROVED_RE.search(status_text) is not None
@@ -454,7 +453,7 @@ def lint_status_format(rel_path: str, text: str) -> list[LintError]:
     """
     if not rel_path.startswith(("docs/prd/", "docs/epics/")):
         return []
-    if os.path.basename(rel_path) == "_template.md":
+    if Path(rel_path).name == "_template.md":
         return []
 
     fenced_stripped = strip_fenced_code_blocks(text)
@@ -482,7 +481,7 @@ def lint_research_contract(rel_path: str, text: str) -> list[LintError]:
     if not rel_path.endswith(".md"):
         return []
 
-    base = os.path.basename(rel_path)
+    base = Path(rel_path).name
 
     if base == "README.md":
         return []
@@ -762,7 +761,7 @@ def lint_sot_reference_contract(repo: str, rel_path: str, text: str) -> list[Lin
         ]
 
     # Normalize to prevent path traversal (e.g. docs/prd/../epics/foo.md)
-    normalized = os.path.normpath(ref_path).replace("\\", "/")
+    normalized = PurePath(ref_path).as_posix()
     if not normalized.startswith("docs/prd/"):
         return [
             LintError(
@@ -772,11 +771,15 @@ def lint_sot_reference_contract(repo: str, rel_path: str, text: str) -> list[Lin
         ]
 
     # Resolve real path to guard against symlinks pointing outside docs/prd/
-    prd_root_abs = os.path.realpath(os.path.join(repo, "docs/prd"))
-    ref_abs = os.path.realpath(os.path.join(repo, normalized))
-    if os.path.commonpath(
-        [ref_abs, prd_root_abs]
-    ) != prd_root_abs or not os.path.isfile(ref_abs):
+    prd_root_abs = str(Path(repo, "docs/prd").resolve())
+    ref_abs = str(Path(repo, normalized).resolve())
+    try:
+        Path(ref_abs).relative_to(Path(prd_root_abs))
+    except ValueError:
+        is_under_prd_root = False
+    else:
+        is_under_prd_root = True
+    if not is_under_prd_root or not Path(ref_abs).is_file():
         return [
             LintError(
                 path=rel_path,
@@ -876,11 +879,11 @@ def resolve_to_repo_relative(repo: str, file_abs: str, target: str) -> str | Non
         return None
 
     if t.startswith("/"):
-        abs_candidate = os.path.realpath(os.path.join(repo, t[1:]))
+        abs_candidate = str(Path(repo, t[1:]).resolve())
     else:
-        file_dir = os.path.dirname(file_abs)
-        abs_candidate = os.path.realpath(os.path.join(file_dir, t))
-    repo_abs = os.path.realpath(repo)
+        file_dir = str(Path(file_abs).parent)
+        abs_candidate = str(Path(file_dir, t).resolve())
+    repo_abs = str(Path(repo).resolve())
     if not abs_candidate.startswith(repo_abs + os.sep) and abs_candidate != repo_abs:
         return None
 
@@ -890,7 +893,7 @@ def resolve_to_repo_relative(repo: str, file_abs: str, target: str) -> str | Non
 def lint_relative_links(repo: str, rel_path: str, text: str) -> list[LintError]:
     errs: list[LintError] = []
 
-    file_abs = os.path.join(repo, rel_path)
+    file_abs = str(Path(repo) / rel_path)
     for raw in parse_md_link_targets(text):
         if is_external_or_fragment(raw):
             continue
@@ -903,7 +906,7 @@ def lint_relative_links(repo: str, rel_path: str, text: str) -> list[LintError]:
                 )
             )
             continue
-        if not os.path.exists(os.path.join(repo, rel)):
+        if not (Path(repo) / rel).exists():
             errs.append(
                 LintError(
                     path=rel_path,
@@ -924,8 +927,8 @@ def lint_paths(repo: str, roots: list[str]) -> list[LintError]:
                 )
             )
             continue
-        root_abs = os.path.realpath(os.path.join(repo, root))
-        repo_abs = os.path.realpath(repo)
+        root_abs = str(Path(repo, root).resolve())
+        repo_abs = str(Path(repo).resolve())
         if not root_abs.startswith(repo_abs + os.sep) and root_abs != repo_abs:
             errs.append(
                 LintError(
@@ -934,11 +937,11 @@ def lint_paths(repo: str, roots: list[str]) -> list[LintError]:
                 )
             )
             continue
-        if not os.path.exists(root_abs):
+        if not Path(root_abs).exists():
             errs.append(LintError(path=root, message="Path does not exist"))
             continue
         for path_abs in iter_markdown_files(root_abs):
-            rel_path = os.path.relpath(path_abs, repo).replace(os.sep, "/")
+            rel_path = str(Path(path_abs).relative_to(repo)).replace(os.sep, "/")
             text = read_text(path_abs)
             errs.extend(lint_placeholders(repo, rel_path, text))
             errs.extend(lint_status_format(rel_path, text))

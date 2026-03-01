@@ -83,11 +83,10 @@ def main() -> int:
     if issue_number is None:
         return 0
 
-    git_path = os.path.join(repo_root, ".git")
-    if os.path.isfile(git_path):
+    git_path = Path(repo_root) / ".git"
+    if git_path.is_file():
         try:
-            with open(git_path, encoding="utf-8") as fh:
-                content = fh.read()
+            content = git_path.read_text(encoding="utf-8")
         except OSError as exc:
             return gate_blocked(f"Failed to read .git file.\n- error: {exc}")
 
@@ -100,7 +99,7 @@ def main() -> int:
             f"- path: {git_path}"
         )
 
-    if os.path.isdir(git_path):
+    if git_path.is_dir():
         return gate_blocked(
             "Worktree is required for Issue branches.\n"
             f"- branch: {branch}\n"

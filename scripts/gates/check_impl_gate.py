@@ -7,8 +7,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 import json
-import os
 import subprocess
+from pathlib import Path
 from typing import Any
 
 from _lib.subprocess_utils import run_cmd
@@ -34,7 +34,7 @@ def repo_root() -> str | None:
     root = (p.stdout or "").strip()
     if not root:
         return None
-    return os.path.realpath(root)
+    return str(Path(root).resolve())
 
 
 def read_stdin_json() -> dict[str, Any]:
@@ -83,10 +83,10 @@ def main() -> int:
     if not root:
         return 0
 
-    worktree_gate = os.path.join(root, "scripts", "validate-worktree.py")
-    if os.path.isfile(worktree_gate):
+    worktree_gate = Path(root) / "scripts" / "validate-worktree.py"
+    if worktree_gate.is_file():
         try:
-            p = run([sys.executable, worktree_gate], cwd=root, check=False)
+            p = run([sys.executable, str(worktree_gate)], cwd=root, check=False)
         except OSError as exc:
             eprint(f"[agentic-sdd gate] error: {exc}")
             return 1
@@ -101,12 +101,13 @@ def main() -> int:
         # Allow writing Agentic-SDD local artifacts (approvals/reviews), but still enforce worktree.
         return 0
 
-    script = os.path.join(root, "scripts", "validate-approval.py")
-    if not os.path.isfile(script):
+    script = Path(root) / "scripts" / "validate-approval.py"
+    if not script.is_file():
         return 0
 
     try:
-        p = run([sys.executable, script], cwd=root, check=False)
+        p = run([sys.executable, str(script)], cwd=root, check=False)
+
     except OSError as exc:
         eprint(f"[agentic-sdd gate] error: {exc}")
         return 1

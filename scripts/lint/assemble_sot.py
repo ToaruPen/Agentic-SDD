@@ -8,7 +8,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import argparse
 import json
-import os
 import re
 
 from _lib.sot_refs import find_issue_ref, resolve_ref_to_repo_path
@@ -19,8 +18,7 @@ def eprint(msg: str) -> None:
 
 
 def read_text(path: str) -> str:
-    with open(path, encoding="utf-8") as fh:
-        return fh.read()
+    return Path(path).read_text(encoding="utf-8")
 
 
 def truncate_keep_tail(text: str, max_chars: int, tail_chars: int = 2048) -> str:
@@ -162,12 +160,13 @@ def build_sot(
                 )
 
             prd_path = resolve_ref_to_repo_path(repo_root, prd_ref)
-            abs_prd = os.path.join(repo_root, prd_path)
-            if not os.path.isfile(abs_prd):
+            abs_prd = Path(repo_root) / prd_path
+            if not abs_prd.is_file():
                 raise FileNotFoundError(
                     f"PRD file not found: {prd_path} (from: {prd_ref})"
                 )
-            prd_text = read_text(abs_prd)
+            prd_text = read_text(str(abs_prd))
+
             blocks.append("== PRD (wide excerpt) ==\n")
             blocks.append(f"Path: {prd_path}\n\n")
             blocks.append(extract_wide_markdown(prd_text) + "\n")
@@ -180,23 +179,23 @@ def build_sot(
                 )
 
             epic_path = resolve_ref_to_repo_path(repo_root, epic_ref)
-            abs_epic = os.path.join(repo_root, epic_path)
-            if not os.path.isfile(abs_epic):
+            abs_epic = Path(repo_root) / epic_path
+            if not abs_epic.is_file():
                 raise FileNotFoundError(
                     f"Epic file not found: {epic_path} (from: {epic_ref})"
                 )
-            epic_text = read_text(abs_epic)
+            epic_text = read_text(str(abs_epic))
             blocks.append("== Epic (wide excerpt) ==\n")
             blocks.append(f"Path: {epic_path}\n\n")
             blocks.append(extract_wide_markdown(epic_text) + "\n")
 
     for rel in extra_files:
-        abs_path = os.path.join(repo_root, rel)
-        if not os.path.isfile(abs_path):
+        abs_path = Path(repo_root) / rel
+        if not abs_path.is_file():
             raise FileNotFoundError(f"SoT file not found: {rel}")
         blocks.append("== Extra SoT File ==\n")
         blocks.append(f"Path: {rel}\n\n")
-        blocks.append(read_text(abs_path).rstrip() + "\n\n")
+        blocks.append(read_text(str(abs_path)).rstrip() + "\n\n")
 
     if manual_sot.strip():
         blocks.append("== Manual SoT ==\n")
@@ -226,8 +225,8 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    repo_root = os.path.realpath(args.repo_root)
-    if not os.path.isdir(repo_root):
+    repo_root = str(Path(args.repo_root).resolve())
+    if not Path(repo_root).is_dir():
         eprint(f"repo root not found: {repo_root}")
         return 1
 
