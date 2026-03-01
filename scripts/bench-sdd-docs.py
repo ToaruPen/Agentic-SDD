@@ -24,6 +24,7 @@ NON_PACK_COMMAND_DOCS: Set[str] = {
 def _parse_supported_command_tokens(docs_text: str) -> List[str]:
     commands: List[str] = []
     in_section = False
+    saw_item = False
     for raw_line in docs_text.splitlines():
         line = raw_line.strip()
         if line == SUPPORTED_COMMANDS_HEADER:
@@ -33,17 +34,32 @@ def _parse_supported_command_tokens(docs_text: str) -> List[str]:
             continue
         if line == SUPPORTED_COMMANDS_END:
             break
-        if not line.startswith("- /"):
+        if not line:
+            if saw_item:
+                break
             continue
-        token = line[2:].strip().split()[0]
-        if token and token.startswith("/") and token not in commands:
+        if not line.startswith("- /"):
+            if saw_item:
+                break
+            continue
+        token_parts = line[2:].strip().split()
+        if not token_parts:
+            continue
+        token = token_parts[0]
+        if token.startswith("/") and len(token) > 1 and token not in commands:
             commands.append(token)
+            saw_item = True
     return commands
 
 
 def _load_supported_commands(repo_root: Path) -> List[str]:
     docs_path = repo_root / ".agent/agents/docs.md"
-    docs_text = docs_path.read_text(encoding="utf-8")
+    if not docs_path.is_file():
+        raise RuntimeError(f"SoT file not found: {docs_path}")
+    try:
+        docs_text = docs_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise RuntimeError(f"failed to read SoT file: {docs_path}: {exc}") from exc
     commands = _parse_supported_command_tokens(docs_text)
     if not commands:
         raise RuntimeError(

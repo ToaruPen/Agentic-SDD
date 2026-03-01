@@ -27,6 +27,7 @@ def test_commands_loaded_from_docs_are_non_empty(bench_module: ModuleType) -> No
 
 
 def test_commands_include_core_flow_tokens(bench_module: ModuleType) -> None:
+    # Core workflow guard: keep these tokens explicit to catch accidental removal.
     for token in [
         "/sdd-init",
         "/research",
@@ -40,6 +41,20 @@ def test_commands_include_core_flow_tokens(bench_module: ModuleType) -> None:
         "/pr-bots-review",
     ]:
         assert token in bench_module.COMMANDS
+
+
+def test_parse_supported_command_tokens_empty_returns_empty(
+    bench_module: ModuleType,
+) -> None:
+    result = bench_module._parse_supported_command_tokens("")
+    assert result == []
+
+
+def test_parse_supported_command_tokens_no_header_returns_empty(
+    bench_module: ModuleType,
+) -> None:
+    result = bench_module._parse_supported_command_tokens("- /foo\n- /bar")
+    assert result == []
 
 
 def test_command_docs_are_classified(bench_module: ModuleType) -> None:
