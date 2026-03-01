@@ -5,6 +5,8 @@ import re
 import subprocess
 import sys
 
+from _lib.subprocess_utils import run_cmd
+
 EXIT_GATE_BLOCKED = 2
 
 
@@ -17,13 +19,7 @@ def run(
     cwd: str | None = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(  # noqa: S603
-        cmd,
-        cwd=cwd,
-        text=True,
-        capture_output=True,
-        check=check,
-    )
+    return run_cmd(cmd, cwd=cwd, check=check)
 
 
 def git_repo_root() -> str:
@@ -73,7 +69,7 @@ def is_linked_worktree_gitfile(content: str) -> bool:
 def main() -> int:
     try:
         repo_root = git_repo_root()
-    except Exception:
+    except RuntimeError:
         return 0
 
     branch = current_branch(repo_root)

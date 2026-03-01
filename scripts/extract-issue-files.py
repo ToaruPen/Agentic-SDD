@@ -8,6 +8,8 @@ import subprocess
 import sys
 from collections.abc import Sequence
 
+from _lib.subprocess_utils import check_output_cmd
+
 
 def eprint(msg: str) -> None:
     print(msg, file=sys.stderr)
@@ -84,14 +86,14 @@ def gh_issue_body(issue: str, gh_repo: str) -> str:
     cmd.extend(["issue", "view", issue, "--json", "body"])
 
     try:
-        out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)  # noqa: S603
+        out = check_output_cmd(cmd, stderr=subprocess.STDOUT, text=True)
     except FileNotFoundError as exc:
         raise RuntimeError("gh not found (required for --issue)") from exc
     except subprocess.CalledProcessError as exc:
-        msg = exc.output.decode("utf-8", errors="replace")
+        msg = exc.output or ""
         raise RuntimeError(f"gh issue view failed: {msg.strip()}") from exc
 
-    data = json.loads(out.decode("utf-8"))
+    data = json.loads(out)
     if not isinstance(data, dict):
         raise RuntimeError("gh output must be a JSON object")
     return str(data.get("body") or "")
@@ -224,7 +226,7 @@ def main() -> int:
             body = str(data.get("body") or "")
         else:
             raise ValueError("no input")
-    except Exception as exc:
+    except (json.JSONDecodeError, OSError, RuntimeError, ValueError) as exc:
         eprint(str(exc))
         return 2
 

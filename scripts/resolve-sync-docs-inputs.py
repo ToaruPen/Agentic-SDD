@@ -10,7 +10,8 @@ import sys
 from datetime import datetime
 from typing import Any
 
-from sot_refs import find_issue_ref, resolve_ref_to_repo_path
+from _lib.sot_refs import find_issue_ref, resolve_ref_to_repo_path
+from _lib.subprocess_utils import run_cmd
 
 
 def eprint(msg: str) -> None:
@@ -27,13 +28,7 @@ def run(
     cwd: str | None = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(  # noqa: S603
-        cmd,
-        cwd=cwd,
-        text=True,
-        capture_output=True,
-        check=check,
-    )
+    return run_cmd(cmd, cwd=cwd, check=check)
 
 
 def git_repo_root() -> str:
@@ -121,7 +116,7 @@ def resolve_issue_refs(
 
     try:
         data = json.loads(p.stdout)
-    except Exception as exc:
+    except json.JSONDecodeError as exc:
         raise RuntimeError(f"Invalid JSON from gh issue view: {exc}") from exc
 
     body = str(data.get("body") or "")
@@ -199,7 +194,7 @@ def detect_pr_number(repo_root: str, gh_repo: str) -> str | None:
         return None
     try:
         data = json.loads(p.stdout)
-    except Exception:
+    except json.JSONDecodeError:
         return None
     n = data.get("number")
     if isinstance(n, int) and n > 0:
@@ -350,7 +345,7 @@ def main() -> int:
         repo_root = (
             os.path.realpath(args.repo_root) if args.repo_root else git_repo_root()
         )
-    except Exception as exc:
+    except RuntimeError as exc:
         eprint(str(exc))
         return 1
 
@@ -481,7 +476,7 @@ def main() -> int:
         json.dump(out, sys.stdout, ensure_ascii=True, indent=2)
         sys.stdout.write("\n")
         return 0
-    except Exception as exc:
+    except (json.JSONDecodeError, OSError, RuntimeError, ValueError) as exc:
         eprint(str(exc))
         return 2
 

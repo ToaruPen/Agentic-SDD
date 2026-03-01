@@ -6,7 +6,7 @@ import os
 import re
 import sys
 
-from sot_refs import find_issue_ref, resolve_ref_to_repo_path
+from _lib.sot_refs import find_issue_ref, resolve_ref_to_repo_path
 
 
 def eprint(msg: str) -> None:
@@ -250,7 +250,7 @@ def main() -> int:
             extra_files=extra,
             max_chars=args.max_chars,
         )
-    except Exception as exc:
+    except (FileNotFoundError, OSError, ValueError) as exc:
         eprint(str(exc))
         return 2
 

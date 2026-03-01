@@ -5,6 +5,8 @@ import os
 import subprocess
 import sys
 
+from _lib.subprocess_utils import run_cmd
+
 
 def eprint(msg: str) -> None:
     print(msg, file=sys.stderr)
@@ -15,19 +17,13 @@ def run(
     cwd: str | None = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(  # noqa: S603
-        cmd,
-        cwd=cwd,
-        text=True,
-        capture_output=True,
-        check=check,
-    )
+    return run_cmd(cmd, cwd=cwd, check=check)
 
 
 def repo_root() -> str | None:
     try:
         p = run(["git", "rev-parse", "--show-toplevel"], check=False)
-    except Exception:
+    except OSError:
         return None
     root = (p.stdout or "").strip()
     if not root:
@@ -63,7 +59,7 @@ def main() -> int:
     if os.path.isfile(worktree_gate):
         try:
             p = run([sys.executable, worktree_gate], cwd=root, check=False)
-        except Exception as exc:
+        except OSError as exc:
             eprint(f"[agentic-sdd gate] error: {exc}")
             return 1
         if p.stdout:
@@ -79,7 +75,7 @@ def main() -> int:
 
     try:
         p = run([sys.executable, script], cwd=root, check=False)
-    except Exception as exc:
+    except OSError as exc:
         eprint(f"[agentic-sdd gate] error: {exc}")
         return 1
 

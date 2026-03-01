@@ -24,7 +24,7 @@ def bench_module() -> ModuleType:
 @pytest.fixture(scope="module")
 def contract_module() -> Generator[ModuleType, None, None]:
     repo_root = Path(__file__).resolve().parents[2]
-    module_path = repo_root / "scripts" / "context_pack_contract.py"
+    module_path = repo_root / "scripts" / "_lib" / "context_pack_contract.py"
     module_name = "context_pack_contract"
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     if spec is None or spec.loader is None:

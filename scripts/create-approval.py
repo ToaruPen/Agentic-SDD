@@ -6,12 +6,12 @@ import json
 import os
 import re
 import shutil
-import subprocess
 import sys
 from datetime import UTC, datetime
 from typing import Any
 
-from approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
+from _lib.approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
+from _lib.subprocess_utils import run_cmd
 
 
 def eprint(msg: str) -> None:
@@ -28,12 +28,7 @@ def git_repo_root() -> str:
     if not git_bin:
         raise RuntimeError("git not found on PATH")
 
-    p = subprocess.run(  # noqa: S603
-        [git_bin, "rev-parse", "--show-toplevel"],
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+    p = run_cmd([git_bin, "rev-parse", "--show-toplevel"], check=False)
     root = (p.stdout or "").strip()
     if p.returncode != 0 or not root:
         raise RuntimeError("Not in a git repository; cannot locate repo root.")
@@ -139,7 +134,7 @@ def main() -> int:
         repo_root = (
             os.path.realpath(args.repo_root) if args.repo_root else git_repo_root()
         )
-    except Exception as exc:
+    except RuntimeError as exc:
         eprint(f"Failed to locate repo root: {exc}")
         return 1
 
@@ -154,7 +149,7 @@ def main() -> int:
 
     try:
         estimate_text = read_utf8_text(estimate_md)
-    except Exception as exc:
+    except OSError as exc:
         eprint(f"Failed to read estimate.md (utf-8 required): {exc}")
         return 2
 
@@ -176,7 +171,7 @@ def main() -> int:
     except FileExistsError as exc:
         eprint(str(exc))
         return 2
-    except Exception as exc:
+    except OSError as exc:
         eprint(f"Failed to write approval.json: {exc}")
         return 1
 

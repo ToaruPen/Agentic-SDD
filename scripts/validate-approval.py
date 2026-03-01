@@ -10,7 +10,8 @@ import subprocess
 import sys
 from typing import Any
 
-from approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
+from _lib.approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
+from _lib.subprocess_utils import run_cmd
 
 EXIT_GATE_BLOCKED = 2
 
@@ -24,13 +25,7 @@ def run(
     cwd: str | None = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(  # noqa: S603
-        cmd,
-        cwd=cwd,
-        text=True,
-        capture_output=True,
-        check=check,
-    )
+    return run_cmd(cmd, cwd=cwd, check=check)
 
 
 def git_repo_root() -> str:
@@ -223,7 +218,7 @@ def main() -> int:
         repo_root = (
             os.path.realpath(args.repo_root) if args.repo_root else git_repo_root()
         )
-    except Exception as exc:
+    except RuntimeError as exc:
         eprint(f"[agentic-sdd gate] error: {exc}")
         return 1
 
@@ -255,7 +250,7 @@ def main() -> int:
 
     try:
         estimate_text = read_utf8_text(estimate_md)
-    except Exception as exc:
+    except OSError as exc:
         return gate_blocked(
             f"Failed to read estimate.md (utf-8 required): {exc}",
             create_script,

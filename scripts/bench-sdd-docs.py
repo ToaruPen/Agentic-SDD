@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from _lib.subprocess_utils import run_cmd
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SUPPORTED_COMMANDS_HEADER = "Supported command tokens:"
 SUPPORTED_COMMANDS_END = "Alias:"
@@ -97,7 +99,7 @@ COMMANDS = _load_supported_commands(REPO_ROOT)
 
 
 def _load_contract_module() -> Any:
-    module_path = REPO_ROOT / "scripts" / "context_pack_contract.py"
+    module_path = REPO_ROOT / "scripts" / "_lib" / "context_pack_contract.py"
     module_name = "context_pack_contract"
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     if spec is None or spec.loader is None:
@@ -248,13 +250,7 @@ def run_one(
 
     start = time.monotonic()
     try:
-        proc = subprocess.run(  # noqa: S603
-            cmd,
-            text=True,
-            capture_output=True,
-            timeout=timeout_s,
-            check=False,
-        )
+        proc = run_cmd(cmd, check=False, timeout=timeout_s)
     except subprocess.TimeoutExpired:
         return Result(
             command=command,
@@ -291,7 +287,7 @@ def run_one(
 
     try:
         events = _loads_json_lines(proc.stdout)
-    except Exception as e:
+    except json.JSONDecodeError as exc:
         return Result(
             command=command,
             ok=False,
@@ -304,7 +300,7 @@ def run_one(
             has_evidence_paths=False,
             has_code_fence=False,
             has_triple_dash=False,
-            error=f"failed to parse json events: {e}",
+            error=f"failed to parse json events: {exc}",
         )
 
     out = _extract_last_text(events)

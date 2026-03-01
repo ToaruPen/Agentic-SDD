@@ -224,7 +224,7 @@ def main() -> int:
     try:
         with open(args.path, encoding="utf-8") as fh:
             data = json.load(fh)
-    except Exception as exc:
+    except (OSError, json.JSONDecodeError) as exc:
         eprint(f"invalid JSON: {exc}")
         return 1
 

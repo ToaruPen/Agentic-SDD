@@ -4,17 +4,17 @@ import argparse
 import os
 import re
 import shutil
-import subprocess
 import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from md_sanitize import (
+from _lib.md_sanitize import (
     sanitize_status_text,
     strip_fenced_code_blocks,
     strip_html_comment_blocks,
     strip_indented_code_blocks,
 )
+from _lib.subprocess_utils import run_cmd
 
 
 @dataclass(frozen=True)
@@ -33,13 +33,8 @@ def repo_root() -> str:
         return os.path.realpath(os.getcwd())
 
     try:
-        p = subprocess.run(  # noqa: S603
-            [git_bin, "rev-parse", "--show-toplevel"],
-            text=True,
-            capture_output=True,
-            check=False,
-        )
-    except Exception:
+        p = run_cmd([git_bin, "rev-parse", "--show-toplevel"], check=False)
+    except OSError:
         return os.path.realpath(os.getcwd())
 
     root = (p.stdout or "").strip()

@@ -8,11 +8,12 @@ extract-epic-config.py の出力を受け取り、テンプレートに変数置
 import argparse
 import importlib
 import json
-import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Protocol
+
+from _lib.subprocess_utils import run_cmd
 
 
 class TemplateLike(Protocol):
@@ -330,10 +331,8 @@ def main() -> int:
             eprint(f"Error: extract-epic-config.py not found at {extract_script}")
             return 1
 
-        proc = subprocess.run(  # noqa: S603
+        proc = run_cmd(
             [sys.executable, str(extract_script), str(config_path)],
-            capture_output=True,
-            text=True,
             check=False,
         )
         if proc.returncode != 0:
@@ -366,8 +365,8 @@ def main() -> int:
 
     try:
         result = generate_all(config, template_dir, output_dir, args.dry_run)
-    except Exception as e:
-        eprint(f"Error: Failed to generate files: {e}")
+    except (OSError, RuntimeError, ValueError) as exc:
+        eprint(f"Error: Failed to generate files: {exc}")
         return 1
 
     if args.json:

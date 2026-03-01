@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from md_sanitize import (
+from _lib.md_sanitize import (
     sanitize_status_text,
 )
 
@@ -360,8 +360,8 @@ def main() -> int:
 
     try:
         config = extract_epic_config(str(epic_path))
-    except Exception as e:
-        eprint(f"Error: Failed to extract config: {e}")
+    except OSError as exc:
+        eprint(f"Error: Failed to extract config: {exc}")
         return 1
 
     indent = 2 if args.pretty else None
