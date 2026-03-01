@@ -223,11 +223,11 @@ def validate(repo_root: Path) -> list[str]:
         )
     else:
         template_sections = find_sections(template_path.read_text(encoding="utf-8"))
-        for req in REQUIRED_SECTIONS:
-            if req not in template_sections:
-                errors.append(
-                    f"docs/decisions/_template.md: missing required section '## {req}'"
-                )
+        errors.extend(
+            f"docs/decisions/_template.md: missing required section '## {req}'"
+            for req in REQUIRED_SECTIONS
+            if req not in template_sections
+        )
 
     # --- Collect all known Decision-IDs (from body files) ---
     body_decision_ids: dict[str, str] = {}
@@ -325,40 +325,37 @@ def validate(repo_root: Path) -> list[str]:
     for fname, fpath in body_files.items():
         text = fpath.read_text(encoding="utf-8")
         sections = find_sections(text)
-        for req in REQUIRED_SECTIONS:
-            if req not in sections:
-                errors.append(
-                    f"docs/decisions/{fname}: missing required section '## {req}' "
-                    f"(Rationale etc. — see _template.md)"
-                )
+        errors.extend(
+            f"docs/decisions/{fname}: missing required section '## {req}' "
+            f"(Rationale etc. — see _template.md)"
+            for req in REQUIRED_SECTIONS
+            if req not in sections
+        )
 
     # --- AC3: Check Supersedes references ---
     for fname, fpath in body_files.items():
         text = fpath.read_text(encoding="utf-8")
         supersedes_refs, invalid_supersedes_entries = extract_supersedes(text)
-        for invalid_entry in invalid_supersedes_entries:
-            errors.append(
-                f"docs/decisions/{fname}: invalid Supersedes entry '{invalid_entry}'. "
-                f"修正指針: D-YYYY-MM-DD-UPPER_SNAKE 形式のDecision-IDを指定してください。"
-            )
+        errors.extend(
+            f"docs/decisions/{fname}: invalid Supersedes entry '{invalid_entry}'. "
+            f"修正指針: D-YYYY-MM-DD-UPPER_SNAKE 形式のDecision-IDを指定してください。"
+            for invalid_entry in invalid_supersedes_entries
+        )
 
-        for ref_id in supersedes_refs:
-            if ref_id not in all_decision_ids:
-                errors.append(
-                    f"docs/decisions/{fname}: Supersedes references non-existent "
-                    f"Decision-ID '{ref_id}'. "
-                    f"修正指針: Supersedes先のDecision-IDが正しいか確認し、"
-                    f"該当ファイルが docs/decisions/ に存在することを確認してください。"
-                )
+        errors.extend(
+            f"docs/decisions/{fname}: Supersedes references non-existent "
+            f"Decision-ID '{ref_id}'. "
+            f"修正指針: Supersedes先のDecision-IDが正しいか確認し、"
+            f"該当ファイルが docs/decisions/ に存在することを確認してください。"
+            for ref_id in supersedes_refs
+            if ref_id not in all_decision_ids
+        )
 
     return errors
 
 
 def main() -> None:
-    if len(sys.argv) > 1:
-        repo_root = Path(sys.argv[1])
-    else:
-        repo_root = Path.cwd()
+    repo_root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
 
     errors = validate(repo_root)
     if errors:

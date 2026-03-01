@@ -5,7 +5,6 @@ import json
 import os
 import re
 import sys
-from typing import Dict, List, Optional, Tuple
 
 from sot_refs import find_issue_ref, resolve_ref_to_repo_path
 
@@ -15,7 +14,7 @@ def eprint(msg: str) -> None:
 
 
 def read_text(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         return fh.read()
 
 
@@ -64,13 +63,13 @@ def truncate_keep_tail(text: str, max_chars: int, tail_chars: int = 2048) -> str
     return out
 
 
-def split_level2_sections(text: str) -> Tuple[str, List[Tuple[str, str]]]:
+def split_level2_sections(text: str) -> tuple[str, list[tuple[str, str]]]:
     lines = text.splitlines(keepends=True)
-    pre: List[str] = []
-    sections: List[Tuple[str, str]] = []
+    pre: list[str] = []
+    sections: list[tuple[str, str]] = []
 
-    current_title: Optional[str] = None
-    current_body: List[str] = []
+    current_title: str | None = None
+    current_body: list[str] = []
 
     def flush() -> None:
         nonlocal current_title, current_body
@@ -97,7 +96,7 @@ def split_level2_sections(text: str) -> Tuple[str, List[Tuple[str, str]]]:
 
 def extract_wide_markdown(text: str) -> str:
     pre, sections = split_level2_sections(text)
-    out: List[str] = []
+    out: list[str] = []
 
     if pre.strip():
         out.append(pre.rstrip() + "\n\n")
@@ -113,7 +112,7 @@ def extract_wide_markdown(text: str) -> str:
     return "".join(out).rstrip() + "\n"
 
 
-def read_issue_json(path: str) -> Dict[str, str]:
+def read_issue_json(path: str) -> dict[str, str]:
     raw = read_text(path)
     data = json.loads(raw)
     if not isinstance(data, dict):
@@ -128,12 +127,12 @@ def read_issue_json(path: str) -> Dict[str, str]:
 
 def build_sot(
     repo_root: str,
-    issue: Optional[Dict[str, str]],
+    issue: dict[str, str] | None,
     manual_sot: str,
-    extra_files: List[str],
+    extra_files: list[str],
     max_chars: int,
 ) -> str:
-    blocks: List[str] = []
+    blocks: list[str] = []
 
     if issue is not None:
         blocks.append("== Issue ==\n")
@@ -227,7 +226,7 @@ def main() -> int:
         eprint(f"repo root not found: {repo_root}")
         return 1
 
-    issue: Optional[Dict[str, str]] = None
+    issue: dict[str, str] | None = None
     if args.issue_json:
         issue = read_issue_json(args.issue_json)
     elif args.issue_body_file:
@@ -238,7 +237,7 @@ def main() -> int:
             "body": read_text(args.issue_body_file),
         }
 
-    extra: List[str] = []
+    extra: list[str] = []
     for raw in args.sot_file:
         rel = resolve_ref_to_repo_path(repo_root, raw)
         extra.append(rel)

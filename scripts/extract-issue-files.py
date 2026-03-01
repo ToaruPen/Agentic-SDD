@@ -6,7 +6,7 @@ import os
 import re
 import subprocess
 import sys
-from typing import List, Sequence, Set, Tuple
+from collections.abc import Sequence
 
 
 def eprint(msg: str) -> None:
@@ -14,7 +14,7 @@ def eprint(msg: str) -> None:
 
 
 def read_text(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         return fh.read()
 
 
@@ -26,9 +26,7 @@ def is_safe_repo_relative(path: str) -> bool:
     parts = [p for p in path.split("/") if p]
     if ".." in parts:
         return False
-    if path in {".", ".."}:
-        return False
-    return True
+    return path not in {".", ".."}
 
 
 def normalize_reference(ref: str) -> str:
@@ -48,8 +46,7 @@ def normalize_reference(ref: str) -> str:
         ref = ref[1:-1].strip()
 
     # Strip fragment
-    ref = ref.split("#", 1)[0].strip()
-    return ref
+    return ref.split("#", 1)[0].strip()
 
 
 def resolve_ref_to_repo_path(repo_root: str, ref: str) -> str:
@@ -58,7 +55,7 @@ def resolve_ref_to_repo_path(repo_root: str, ref: str) -> str:
         raise ValueError("empty reference")
 
     # Ignore URLs
-    if ref.startswith("http://") or ref.startswith("https://"):
+    if ref.startswith(("http://", "https://")):
         raise ValueError(f"unsupported URL reference: {ref}")
 
     if os.path.isabs(ref):
@@ -72,8 +69,7 @@ def resolve_ref_to_repo_path(repo_root: str, ref: str) -> str:
         return rel
 
     rel = ref
-    if rel.startswith("./"):
-        rel = rel[2:]
+    rel = rel.removeprefix("./")
     rel = rel.replace("\\", "/")
     rel = os.path.normpath(rel).replace(os.sep, "/")
     if not is_safe_repo_relative(rel):
@@ -82,24 +78,23 @@ def resolve_ref_to_repo_path(repo_root: str, ref: str) -> str:
 
 
 def gh_issue_body(issue: str, gh_repo: str) -> str:
-    cmd: List[str] = ["gh"]
+    cmd: list[str] = ["gh"]
     if gh_repo:
         cmd.extend(["-R", gh_repo])
     cmd.extend(["issue", "view", issue, "--json", "body"])
 
     try:
         out = subprocess.check_output(cmd, stderr=subprocess.STDOUT)  # noqa: S603
-    except FileNotFoundError:
-        raise RuntimeError("gh not found (required for --issue)")
+    except FileNotFoundError as exc:
+        raise RuntimeError("gh not found (required for --issue)") from exc
     except subprocess.CalledProcessError as exc:
         msg = exc.output.decode("utf-8", errors="replace")
-        raise RuntimeError(f"gh issue view failed: {msg.strip()}")
+        raise RuntimeError(f"gh issue view failed: {msg.strip()}") from exc
 
     data = json.loads(out.decode("utf-8"))
     if not isinstance(data, dict):
         raise RuntimeError("gh output must be a JSON object")
-    body = str(data.get("body") or "")
-    return body
+    return str(data.get("body") or "")
 
 
 HEADING_RE = re.compile(
@@ -115,7 +110,7 @@ BULLET_PATH_RE = re.compile(
 )
 
 
-def extract_section_lines(body: str) -> Tuple[List[str], bool]:
+def extract_section_lines(body: str) -> tuple[list[str], bool]:
     lines = body.splitlines()
     for i, line in enumerate(lines):
         m = HEADING_RE.match(line)
@@ -135,8 +130,8 @@ def extract_section_lines(body: str) -> Tuple[List[str], bool]:
     return lines, False
 
 
-def extract_paths(repo_root: str, lines: Sequence[str]) -> List[str]:
-    out: Set[str] = set()
+def extract_paths(repo_root: str, lines: Sequence[str]) -> list[str]:
+    out: set[str] = set()
 
     for line in lines:
         for raw in BACKTICK_RE.findall(line):

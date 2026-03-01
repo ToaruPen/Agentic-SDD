@@ -8,7 +8,7 @@ import re
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
@@ -20,9 +20,7 @@ def eprint(msg: str) -> None:
 
 def now_utc_z() -> str:
     # Agentic-SDD datetime rule: YYYY-MM-DDTHH:mm:ssZ (UTC, no milliseconds).
-    return (
-        datetime.now(timezone.utc).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
-    )
+    return datetime.now(UTC).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def git_repo_root() -> str:
@@ -33,9 +31,8 @@ def git_repo_root() -> str:
     p = subprocess.run(  # noqa: S603
         [git_bin, "rev-parse", "--show-toplevel"],
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=False,  # noqa: S603
+        capture_output=True,
+        check=False,
     )
     root = (p.stdout or "").strip()
     if p.returncode != 0 or not root:
@@ -65,7 +62,7 @@ def ensure_parent_dir(path: str) -> None:
 
 
 def read_utf8_text(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         return fh.read()
 
 
@@ -142,7 +139,7 @@ def main() -> int:
         repo_root = (
             os.path.realpath(args.repo_root) if args.repo_root else git_repo_root()
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         eprint(f"Failed to locate repo root: {exc}")
         return 1
 
@@ -157,7 +154,7 @@ def main() -> int:
 
     try:
         estimate_text = read_utf8_text(estimate_md)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         eprint(f"Failed to read estimate.md (utf-8 required): {exc}")
         return 2
 
@@ -179,7 +176,7 @@ def main() -> int:
     except FileExistsError as exc:
         eprint(str(exc))
         return 2
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         eprint(f"Failed to write approval.json: {exc}")
         return 1
 

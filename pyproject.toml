@@ -3,17 +3,41 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = [
-  "E4",
-  "E7",
-  "E9",
+  # Core (existing)
+  "E",
+  "W",
   "F",
   "I",
   "S",
+  # Required additions
+  "B",
+  "UP",
+  "RUF",
+  "PLE",
+  # Recommended additions
+  "SIM",
+  "PIE",
+  "PLW",
+  "PLC",
+  "FURB",
+  "PERF",
+  "PGH",
+  "RET",
+  "RSE",
+  "FLY",
 ]
 
 ignore = [
   "E501",
+  # Japanese text intentional usage
+  "RUF001",
+  "RUF002",
+  "RUF003",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+"scripts/tests/**" = ["S101"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]

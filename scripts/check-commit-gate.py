@@ -4,7 +4,6 @@ import json
 import os
 import subprocess
 import sys
-from typing import List, Optional
 
 
 def eprint(msg: str) -> None:
@@ -12,21 +11,20 @@ def eprint(msg: str) -> None:
 
 
 def run(
-    cmd: List[str],
-    cwd: Optional[str] = None,
+    cmd: list[str],
+    cwd: str | None = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(  # noqa: S603
         cmd,
         cwd=cwd,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=check,
     )
 
 
-def repo_root() -> Optional[str]:
+def repo_root() -> str | None:
     try:
         p = run(["git", "rev-parse", "--show-toplevel"], check=False)
     except Exception:
@@ -65,7 +63,7 @@ def main() -> int:
     if os.path.isfile(worktree_gate):
         try:
             p = run([sys.executable, worktree_gate], cwd=root, check=False)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             eprint(f"[agentic-sdd gate] error: {exc}")
             return 1
         if p.stdout:
@@ -81,7 +79,7 @@ def main() -> int:
 
     try:
         p = run([sys.executable, script], cwd=root, check=False)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         eprint(f"[agentic-sdd gate] error: {exc}")
         return 1
 

@@ -6,19 +6,21 @@ extract-epic-config.py の出力を受け取り、テンプレートに変数置
 """
 
 import argparse
+import importlib
 import json
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Protocol
 
-try:
-    from jinja2 import Environment, FileSystemLoader, select_autoescape
-except ImportError:
-    print(
-        "Error: jinja2 is required. Install with: pip install jinja2", file=sys.stderr
-    )
-    sys.exit(1)
+
+class TemplateLike(Protocol):
+    def render(self, **context: Any) -> str: ...
+
+
+class JinjaEnvironmentLike(Protocol):
+    def get_template(self, name: str) -> TemplateLike: ...
 
 
 def eprint(msg: str) -> None:
@@ -35,29 +37,37 @@ def find_repo_root() -> Path:
     return Path.cwd()
 
 
-def load_config(config_path: str) -> Dict[str, Any]:
+def load_config(config_path: str) -> dict[str, Any]:
     """設定ファイルを読み込む"""
-    with open(config_path, "r", encoding="utf-8") as fh:
+    with open(config_path, encoding="utf-8") as fh:
         return json.load(fh)
 
 
-def setup_jinja_env(template_dir: Path) -> Environment:
+def setup_jinja_env(template_dir: Path) -> JinjaEnvironmentLike:
     """Jinja2環境をセットアップ"""
-    env = Environment(
-        loader=FileSystemLoader(str(template_dir)),
-        autoescape=select_autoescape(["html", "xml"]),
+    try:
+        jinja2 = importlib.import_module("jinja2")
+    except ImportError:
+        print(
+            "Error: jinja2 is required. Install with: pip install jinja2",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    return jinja2.Environment(
+        loader=jinja2.FileSystemLoader(str(template_dir)),
+        autoescape=jinja2.select_autoescape(["html", "xml"]),
         trim_blocks=True,
         lstrip_blocks=True,
     )
-    return env
 
 
 def generate_config_json(
-    env: Environment,
-    config: Dict[str, Any],
+    env: JinjaEnvironmentLike,
+    config: dict[str, Any],
     output_dir: Path,
-    generated_skills: List[str],
-    generated_rules: List[str],
+    generated_skills: list[str],
+    generated_rules: list[str],
 ) -> str:
     """config.json を生成"""
     template = env.get_template("config.json.j2")
@@ -80,10 +90,10 @@ def generate_config_json(
 
 
 def generate_security_rules(
-    env: Environment,
-    config: Dict[str, Any],
+    env: JinjaEnvironmentLike,
+    config: dict[str, Any],
     output_dir: Path,
-) -> Optional[str]:
+) -> str | None:
     """セキュリティルールを生成"""
     requirements = config.get("requirements", {})
     if not requirements.get("security"):
@@ -108,10 +118,10 @@ def generate_security_rules(
 
 
 def generate_performance_rules(
-    env: Environment,
-    config: Dict[str, Any],
+    env: JinjaEnvironmentLike,
+    config: dict[str, Any],
     output_dir: Path,
-) -> Optional[str]:
+) -> str | None:
     """パフォーマンスルールを生成"""
     requirements = config.get("requirements", {})
     if not requirements.get("performance"):
@@ -136,10 +146,10 @@ def generate_performance_rules(
 
 
 def generate_api_conventions(
-    env: Environment,
-    config: Dict[str, Any],
+    env: JinjaEnvironmentLike,
+    config: dict[str, Any],
     output_dir: Path,
-) -> Optional[str]:
+) -> str | None:
     """API規約を生成"""
     api_design = config.get("api_design", [])
     if not api_design:
@@ -162,10 +172,10 @@ def generate_api_conventions(
 
 
 def generate_tech_stack_skill(
-    env: Environment,
-    config: Dict[str, Any],
+    env: JinjaEnvironmentLike,
+    config: dict[str, Any],
     output_dir: Path,
-) -> Optional[str]:
+) -> str | None:
     """技術スタックスキルを生成"""
     tech_stack = config.get("tech_stack", {})
     # 技術選定情報が1つでもあれば生成
@@ -198,17 +208,17 @@ def generate_tech_stack_skill(
 
 
 def generate_all(
-    config: Dict[str, Any],
+    config: dict[str, Any],
     template_dir: Path,
     output_dir: Path,
     dry_run: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """すべてのファイルを生成"""
     env = setup_jinja_env(template_dir)
 
-    generated_skills: List[str] = []
-    generated_rules: List[str] = []
-    generated_files: List[str] = []
+    generated_skills: list[str] = []
+    generated_rules: list[str] = []
+    generated_files: list[str] = []
 
     # 出力ディレクトリを作成
     if not dry_run:
@@ -313,8 +323,6 @@ def main() -> int:
         config = load_config(str(config_path))
     elif config_path.suffix == ".md":
         # Epicファイルの場合は extract-epic-config.py を呼び出す
-        import subprocess
-
         script_dir = Path(__file__).parent
         extract_script = script_dir / "extract-epic-config.py"
 
@@ -326,6 +334,7 @@ def main() -> int:
             [sys.executable, str(extract_script), str(config_path)],
             capture_output=True,
             text=True,
+            check=False,
         )
         if proc.returncode != 0:
             eprint(f"Error: Failed to extract config: {proc.stderr}")

@@ -8,7 +8,7 @@ import re
 import shlex
 import subprocess
 import sys
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
 
@@ -20,16 +20,15 @@ def eprint(msg: str) -> None:
 
 
 def run(
-    cmd: List[str],
-    cwd: Optional[str] = None,
+    cmd: list[str],
+    cwd: str | None = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
     return subprocess.run(  # noqa: S603
         cmd,
         cwd=cwd,
         text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         check=check,
     )
 
@@ -37,8 +36,8 @@ def run(
 def git_repo_root() -> str:
     try:
         p = run(["git", "rev-parse", "--show-toplevel"], check=True)
-    except subprocess.CalledProcessError:
-        raise RuntimeError("Not in a git repository; cannot locate repo root.")
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError("Not in a git repository; cannot locate repo root.") from exc
     root = p.stdout.strip()
     if not root:
         raise RuntimeError("Failed to locate repo root via git.")
@@ -53,7 +52,7 @@ def current_branch(repo_root: str) -> str:
     return p.stdout.strip()
 
 
-def extract_issue_number_from_branch(branch: str) -> Optional[int]:
+def extract_issue_number_from_branch(branch: str) -> int | None:
     m = re.search(r"\bissue-(\d+)\b", branch)
     if not m:
         return None
@@ -81,11 +80,11 @@ def sha256_prefixed(data: bytes) -> str:
 
 
 def read_utf8_text(path: str) -> str:
-    with open(path, "r", encoding="utf-8") as fh:
+    with open(path, encoding="utf-8") as fh:
         return fh.read()
 
 
-def approval_paths(repo_root: str, issue_number: int) -> Tuple[str, str]:
+def approval_paths(repo_root: str, issue_number: int) -> tuple[str, str]:
     base = os.path.join(repo_root, ".agentic-sdd", "approvals", f"issue-{issue_number}")
     return os.path.join(base, "approval.json"), os.path.join(base, "estimate.md")
 
@@ -101,7 +100,7 @@ def resolve_approval_script(repo_root: str, script_name: str) -> str:
     return os.path.join("scripts", script_name)
 
 
-def load_approval_json(path: str) -> Dict[str, Any]:
+def load_approval_json(path: str) -> dict[str, Any]:
     raw = read_utf8_text(path)
     obj = json.loads(raw)
     if not isinstance(obj, dict):
@@ -109,14 +108,17 @@ def load_approval_json(path: str) -> Dict[str, Any]:
     return obj
 
 
-def pick_estimate_hash_field(obj: Dict[str, Any]) -> Tuple[str, str]:
+def pick_estimate_hash_field(obj: dict[str, Any]) -> tuple[str, str]:
     estimate_hash = obj.get("estimate_hash")
     estimate_sha256 = obj.get("estimate_sha256")
-    if estimate_hash is not None and estimate_sha256 is not None:
-        if estimate_hash != estimate_sha256:
-            raise ValueError(
-                "approval.json has both estimate_hash and estimate_sha256 but they differ"
-            )
+    if (
+        estimate_hash is not None
+        and estimate_sha256 is not None
+        and estimate_hash != estimate_sha256
+    ):
+        raise ValueError(
+            "approval.json has both estimate_hash and estimate_sha256 but they differ"
+        )
     if estimate_hash is None and estimate_sha256 is None:
         raise KeyError("missing estimate_hash (or estimate_sha256)")
     value = estimate_hash if estimate_hash is not None else estimate_sha256
@@ -126,7 +128,7 @@ def pick_estimate_hash_field(obj: Dict[str, Any]) -> Tuple[str, str]:
     return field, value
 
 
-def validate_approval(obj: Dict[str, Any], expected_issue_number: int) -> None:
+def validate_approval(obj: dict[str, Any], expected_issue_number: int) -> None:
     required = {
         "schema_version",
         "issue_number",
@@ -221,7 +223,7 @@ def main() -> int:
         repo_root = (
             os.path.realpath(args.repo_root) if args.repo_root else git_repo_root()
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         eprint(f"[agentic-sdd gate] error: {exc}")
         return 1
 
@@ -253,7 +255,7 @@ def main() -> int:
 
     try:
         estimate_text = read_utf8_text(estimate_md)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return gate_blocked(
             f"Failed to read estimate.md (utf-8 required): {exc}",
             create_script,
