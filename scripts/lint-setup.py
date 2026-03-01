@@ -94,11 +94,29 @@ def lookup_toolchain(
     return languages.get(language)
 
 
+def _pick_ci_command(
+    tool: Dict[str, Any],
+    lang: str,
+    lang_sources: Dict[str, List[str]],
+) -> Optional[str]:
+    """ビルドツール固有のCI コマンドがあれば優先する。"""
+    sources = lang_sources.get(lang, [])
+    gradle_sources = {"build.gradle", "build.gradle.kts"}
+    if any(src in gradle_sources for src in sources):
+        gradle_cmd = tool.get("ci_command_gradle")
+        if gradle_cmd:
+            return gradle_cmd
+    return tool.get("ci_command")
+
+
 def generate_ci_commands(
     languages: List[str],
     registry: Dict[str, Any],
+    lang_sources: Optional[Dict[str, List[str]]] = None,
 ) -> List[Dict[str, str]]:
     """CI 推奨コマンドを生成（複数言語時は && で連結）"""
+    if lang_sources is None:
+        lang_sources = {}
     lint_cmds: List[str] = []
     fmt_cmds: List[str] = []
     tc_cmds: List[str] = []
@@ -112,15 +130,15 @@ def generate_ci_commands(
         formatter = toolchain.get("formatter", {})
         type_checker = toolchain.get("type_checker", {})
 
-        lint_cmd = linter.get("ci_command")
+        lint_cmd = _pick_ci_command(linter, lang, lang_sources)
         if lint_cmd and lint_cmd not in lint_cmds:
             lint_cmds.append(lint_cmd)
 
-        fmt_cmd = formatter.get("ci_command")
+        fmt_cmd = _pick_ci_command(formatter, lang, lang_sources)
         if fmt_cmd and fmt_cmd not in fmt_cmds:
             fmt_cmds.append(fmt_cmd)
 
-        tc_cmd = type_checker.get("ci_command")
+        tc_cmd = _pick_ci_command(type_checker, lang, lang_sources)
         if tc_cmd and tc_cmd not in tc_cmds:
             tc_cmds.append(tc_cmd)
 
@@ -311,6 +329,8 @@ def generate_evidence_trail(
         eprint(
             "[INFO] jinja2 not available; using plaintext fallback for evidence trail"
         )
+    except Exception as exc:  # noqa: BLE001 -- template load/render failure should fall back
+        eprint(f"[WARN] jinja2 template error: {exc}; using plaintext fallback")
 
     if content is None:
         content = _render_evidence_plaintext(context)
@@ -354,19 +374,23 @@ def run_setup(
     unique_lang_names: List[str] = []
     inferred_lang_names: List[str] = []
     lang_paths: Dict[str, List[str]] = {}
+    lang_sources: Dict[str, List[str]] = {}  # 検出ソースファイル名を記録
     for lang in languages:
         name = lang["name"]
         path = lang.get("path", ".")
+        source = lang.get("source", "")
         confidence = lang.get("confidence", "confirmed")
         if confidence == "inferred":
             if name not in seen and name not in inferred_lang_names:
                 inferred_lang_names.append(name)
             lang_paths.setdefault(name, []).append(path)
+            lang_sources.setdefault(name, []).append(source)
             continue
         if name not in seen:
             seen.add(name)
             unique_lang_names.append(name)
         lang_paths.setdefault(name, []).append(path)
+        lang_sources.setdefault(name, []).append(source)
 
     # 各言語の推奨ツールチェーンを構築
     recommendations: List[Dict[str, Any]] = []
@@ -402,12 +426,12 @@ def run_setup(
                 "config_file": linter.get("config_file"),
                 "essential_rules": linter.get("essential_rules", []),
                 "recommended_rules": linter.get("recommended_rules", []),
-                "ci_command": linter.get("ci_command"),
+                "ci_command": _pick_ci_command(linter, lang_name, lang_sources),
             },
             "formatter": {
                 "name": formatter.get("name"),
                 "docs_url": formatter.get("docs_url"),
-                "ci_command": formatter.get("ci_command"),
+                "ci_command": _pick_ci_command(formatter, lang_name, lang_sources),
             },
         }
 
@@ -416,7 +440,7 @@ def run_setup(
             rec["type_checker"] = {
                 "name": tc_name,
                 "docs_url": type_checker.get("docs_url"),
-                "ci_command": type_checker.get("ci_command"),
+                "ci_command": _pick_ci_command(type_checker, lang_name, lang_sources),
             }
 
         # フレームワーク固有ルール
@@ -427,7 +451,7 @@ def run_setup(
         recommendations.append(rec)
 
     # CI コマンド
-    ci_commands = generate_ci_commands(unique_lang_names, registry)
+    ci_commands = generate_ci_commands(unique_lang_names, registry, lang_sources)
 
     # 証跡ファイル
     evidence_path = generate_evidence_trail(

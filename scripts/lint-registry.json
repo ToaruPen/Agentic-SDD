@@ -183,7 +183,8 @@
         "config_section": null,
         "essential_rules": ["google_checks"],
         "recommended_rules": [],
-        "ci_command": "mvn checkstyle:check"
+        "ci_command": "mvn checkstyle:check",
+        "ci_command_gradle": "./gradlew checkstyleMain"
       },
       "formatter": {
         "name": "google-java-format",

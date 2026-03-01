@@ -601,3 +601,43 @@ def test_cli_integration_json_output(tmp_path: Path) -> None:
     assert "recommendations" in output
     assert len(output["recommendations"]) >= 1
     assert output["recommendations"][0]["linter"]["name"] == "ruff"
+
+
+def test_generate_ci_commands_gradle_uses_gradle_command() -> None:
+    """Java detected via build.gradle should use ci_command_gradle instead of Maven."""
+    registry: dict[str, Any] = {
+        "languages": {
+            "java": {
+                "linter": {
+                    "name": "checkstyle",
+                    "docs_url": "https://checkstyle.sourceforge.io/checks.html",
+                    "ci_command": "mvn checkstyle:check",
+                    "ci_command_gradle": "./gradlew checkstyleMain",
+                },
+                "formatter": {
+                    "name": "google-java-format",
+                    "docs_url": "https://github.com/google/google-java-format",
+                    "ci_command": "google-java-format --dry-run --set-exit-if-changed .",
+                },
+                "type_checker": {
+                    "name": None,
+                    "docs_url": None,
+                    "ci_command": None,
+                },
+            }
+        }
+    }
+
+    # Gradle source → should use ci_command_gradle
+    gradle_sources = {"java": ["build.gradle"]}
+    commands = MODULE.generate_ci_commands(["java"], registry, gradle_sources)
+    lint_cmd = next(c for c in commands if c["key"] == "AGENTIC_SDD_CI_LINT_CMD")
+    assert lint_cmd["value"] == "./gradlew checkstyleMain"
+
+    # Maven source → should use default ci_command
+    maven_sources = {"java": ["pom.xml"]}
+    commands_maven = MODULE.generate_ci_commands(["java"], registry, maven_sources)
+    lint_cmd_maven = next(
+        c for c in commands_maven if c["key"] == "AGENTIC_SDD_CI_LINT_CMD"
+    )
+    assert lint_cmd_maven["value"] == "mvn checkstyle:check"
