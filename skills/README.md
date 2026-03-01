@@ -16,6 +16,7 @@ These docs are language/framework-agnostic and concept-based.
 - [testing.md](./testing.md): testing strategy/types/coverage
 - [tdd-protocol.md](./tdd-protocol.md): TDD execution protocol (Red/Green/Refactor)
 - [error-handling.md](./error-handling.md): error handling (classification/processing/UX/logging)
+- [lsp-verification.md](./lsp-verification.md): LSP verification (diagnostics/references/rename/definition)
 
 ### Implementation Skills
 
