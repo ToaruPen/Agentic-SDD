@@ -516,6 +516,59 @@ def test_run_setup_conflicting_tools_downgrades_to_proposal(tmp_path: Path) -> N
     assert "existing_configs" in result
 
 
+def test_run_setup_deduplicates_duplicate_languages(tmp_path: Path) -> None:
+    """同一言語が複数回検出されても重複処理されないことを確認する。"""
+    ensure_jinja2_available(tmp_path)
+    registry = load_real_registry()
+    detection = {
+        "languages": [
+            {"name": "python", "source": "pyproject.toml", "path": "."},
+            {"name": "python", "source": "setup.py", "path": "."},
+            {"name": "python", "source": "requirements.txt", "path": "."},
+        ],
+        "existing_linter_configs": [],
+        "is_monorepo": False,
+    }
+
+    result = MODULE.run_setup(
+        detection,
+        registry,
+        tmp_path,
+        dry_run=False,
+        template_dir=TEMPLATE_DIR,
+    )
+
+    assert result["mode"] == "generate"
+    # languages フィールドは入力をそのまま返すが、設定ファイルは 1 回だけ生成されるべき
+    ruff_entries = [f for f in result["generated_files"] if "ruff" in f.lower()]
+    assert len(ruff_entries) == 1
+
+
+def test_evidence_trail_uses_registered_at_field(tmp_path: Path) -> None:
+    """証跡の references が registered_at フィールドを使用することを確認する。"""
+    ensure_jinja2_available(tmp_path)
+    registry = load_real_registry()
+    detection = {
+        "languages": [{"name": "python", "source": "pyproject.toml", "path": "."}],
+        "existing_linter_configs": [],
+        "is_monorepo": False,
+    }
+
+    # generate_evidence_trail を直接呼び出して references フィールドを検証
+    trail_content = MODULE.generate_evidence_trail(
+        detection,
+        registry,
+        [],
+        [],
+        tmp_path,
+        dry_run=True,
+        template_dir=TEMPLATE_DIR,
+    )
+
+    assert "証跡生成日時:" in trail_content
+    assert "参照日時:" not in trail_content
+
+
 def test_cli_integration_json_output(tmp_path: Path) -> None:
     shim_root = ensure_jinja2_available(tmp_path)
     detection_path = tmp_path / "detection.json"

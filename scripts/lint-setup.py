@@ -234,7 +234,8 @@ def generate_evidence_trail(
                 "references": [
                     {
                         "url": linter.get("docs_url", ""),
-                        "referenced_at": datetime.now(tz=timezone.utc).isoformat(),
+                        "registered_at": datetime.now(tz=timezone.utc).isoformat(),
+                        "note": "URL from registry; agent fetches actual docs at runtime via webfetch/librarian",
                     }
                 ],
                 "essential_rules": linter.get("essential_rules", []),
@@ -289,6 +290,7 @@ def run_setup(
     generated_files: List[str] = []
     proposals: List[str] = []
     mode = "generate"
+    processed_languages: set[str] = set()
 
     # monorepo で複数言語の場合は提案モードに格下げ
     if is_monorepo and len(set(lang_names)) > 1:
@@ -299,6 +301,9 @@ def run_setup(
 
     for lang_info in languages:
         lang_name = lang_info["name"]
+        if lang_name in processed_languages:
+            continue
+        processed_languages.add(lang_name)
         toolchain = lookup_toolchain(lang_name, registry)
         if not toolchain:
             eprint(
