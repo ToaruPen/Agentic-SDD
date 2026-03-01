@@ -400,6 +400,20 @@ def run_setup(
         lang_paths.setdefault(name, []).append(path)
         lang_sources.setdefault(name, []).append(source)
 
+    if not unique_lang_names:
+        eprint("[ERROR] 確定検出の言語がありません（推測のみ）。")
+        early_result: Dict[str, Any] = {"error": "no_confirmed_languages"}
+        if inferred_lang_names:
+            early_result["inferred_languages"] = [
+                {
+                    "name": name,
+                    "paths": sorted(set(lang_paths.get(name, ["."]))),
+                    "note": "Inferred from build file; confirm with source files before configuring linter.",
+                }
+                for name in inferred_lang_names
+            ]
+        return early_result
+
     # 各言語の推奨ツールチェーンを構築
     recommendations: List[Dict[str, Any]] = []
     conflicts: List[Dict[str, Any]] = []

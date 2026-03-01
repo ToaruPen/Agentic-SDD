@@ -553,6 +553,29 @@ def test_run_setup_deduplicates_duplicate_languages(tmp_path: Path) -> None:
     assert result["recommendations"][0]["language"] == "python"
 
 
+def test_run_setup_inferred_only_returns_error(tmp_path: Path) -> None:
+    registry = load_real_registry()
+    detection = {
+        "languages": [
+            {
+                "name": "java",
+                "source": "build.gradle",
+                "path": ".",
+                "confidence": "inferred",
+            },
+        ],
+        "existing_linter_configs": [],
+        "is_monorepo": False,
+    }
+
+    result = MODULE.run_setup(detection, registry, tmp_path)
+
+    assert result["error"] == "no_confirmed_languages"
+    assert len(result["inferred_languages"]) == 1
+    assert result["inferred_languages"][0]["name"] == "java"
+    assert "languages" not in result or result.get("languages") == []
+
+
 def test_evidence_trail_uses_registered_at_field(tmp_path: Path) -> None:
     """証跡の references が registered_at フィールドを使用することを確認する。"""
     ensure_jinja2_available(tmp_path)

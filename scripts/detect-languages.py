@@ -243,20 +243,24 @@ def detect_project(root: Path) -> Dict[str, Any]:
     linters = dedupe_entries(linters, ("tool", "path", "section"))
     linters.sort(key=lambda item: (item["path"], item["tool"], item.get("section", "")))
 
-    is_monorepo = False
-    for i, left in enumerate(languages):
-        for right in languages[i + 1 :]:
-            if left["path"] != right["path"]:
-                is_monorepo = True
-                break
-        if is_monorepo:
-            break
+    def _top_level(p: str) -> str:
+        if p == ".":
+            return "."
+        return p.split("/")[0]
+
+    path_to_languages: Dict[str, Set[str]] = {}
+    for entry in languages:
+        top = _top_level(entry["path"])
+        path_to_languages.setdefault(top, set()).add(entry["name"])
+
+    top_keys = set(path_to_languages.keys())
+    if "." in top_keys:
+        is_monorepo = False
+    else:
+        is_monorepo = len(top_keys) > 1
 
     subprojects: List[Dict[str, Any]] = []
     if is_monorepo:
-        path_to_languages: Dict[str, Set[str]] = {}
-        for entry in languages:
-            path_to_languages.setdefault(entry["path"], set()).add(entry["name"])
         for path_key in sorted(path_to_languages):
             if path_key == ".":
                 continue

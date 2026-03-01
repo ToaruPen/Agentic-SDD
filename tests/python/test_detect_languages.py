@@ -141,6 +141,18 @@ def test_detect_monorepo(tmp_path: Path) -> None:
     assert {"path": "frontend", "languages": ["javascript"]} in subprojects
 
 
+def test_detect_not_monorepo(tmp_path: Path) -> None:
+    write_file(tmp_path / "build.gradle", "apply plugin: 'java'\n")
+    write_file(
+        tmp_path / "src" / "main" / "java" / "Main.java", "public class Main {}\n"
+    )
+
+    result = MODULE.detect_project(tmp_path)
+
+    assert result["is_monorepo"] is False
+    assert result["subprojects"] == []
+
+
 def test_cli_path_option(tmp_path: Path) -> None:
     write_file(
         tmp_path / "services" / "api" / "pyproject.toml",
@@ -170,12 +182,18 @@ def test_cli_path_option(tmp_path: Path) -> None:
     ]
 
 
-def test_cli_non_existent_path() -> None:
+def test_cli_non_existent_path(tmp_path: Path) -> None:
     script_path = (
         Path(__file__).resolve().parents[2] / "scripts" / "detect-languages.py"
     )
     proc = subprocess.run(
-        [sys.executable, str(script_path), "--path", "__missing_dir__", "--json"],
+        [
+            sys.executable,
+            str(script_path),
+            "--path",
+            str(tmp_path / "missing"),
+            "--json",
+        ],
         capture_output=True,
         text=True,
         check=False,
