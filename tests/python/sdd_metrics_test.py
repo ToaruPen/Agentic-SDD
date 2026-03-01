@@ -293,6 +293,27 @@ class TestCmdRecord:
         data = json.loads(out.read_text())
         assert data["status"] == "Blocked"
 
+    def test_record_no_overwrite_on_duplicate(self, tmp_path: Path) -> None:
+        """Repeated records with same run_id+command create sequenced files."""
+        args = _make_args(
+            repo_root=str(tmp_path),
+            command="create-pr",
+            mode="context-pack",
+            metadata_file=None,
+            status="success",
+        )
+        M.cmd_record(args)
+        M.cmd_record(args)  # second call should not overwrite
+        M.cmd_record(args)  # third call
+
+        mdir = tmp_path / ".agentic-sdd" / "metrics" / "issue-99"
+        files = sorted(f.name for f in mdir.iterdir())
+        assert files == [
+            "20260301_140000-create-pr.1.json",
+            "20260301_140000-create-pr.2.json",
+            "20260301_140000-create-pr.json",
+        ]
+
 
 # ---------------------------------------------------------------------------
 # aggregate subcommand

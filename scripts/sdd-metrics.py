@@ -152,9 +152,14 @@ def cmd_record(args: argparse.Namespace) -> int:
         "error_reason": error_reason,
     }
 
-    # Write metrics file
+    # Write metrics file (avoid overwriting on duplicate run_id+command)
     metrics_dir = repo_root / ".agentic-sdd" / "metrics" / scope_id
-    metrics_file = metrics_dir / f"{run_id}-{command}.json"
+    base_name = f"{run_id}-{command}"
+    metrics_file = metrics_dir / f"{base_name}.json"
+    seq = 1
+    while metrics_file.exists():
+        metrics_file = metrics_dir / f"{base_name}.{seq}.json"
+        seq += 1
     try:
         metrics_dir.mkdir(parents=True, exist_ok=True)
         with open(metrics_file, "w", encoding="utf-8") as fh:

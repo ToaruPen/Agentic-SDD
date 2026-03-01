@@ -172,6 +172,29 @@ fi
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
+# Metrics EXIT trap (non-blocking, never affects exit code)
+# Fires on ALL exits — normal completion AND early failures.
+_metrics_recorded=0
+_record_metrics_on_exit() {
+	local _code=$?
+	[[ "$_metrics_recorded" -eq 1 ]] && return 0
+	local _script="${script_dir}/sdd-metrics.py"
+	[[ -f "$_script" ]] || return 0
+	local _status="early-exit (code $_code)"
+	if [[ -n "${out_json:-}" && -f "${out_json:-}" ]]; then
+		_status="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('status',''))" "$out_json" 2>/dev/null || true)"
+	fi
+	python3 "$_script" record \
+		--repo-root "${repo_root:-}" \
+		--command review-cycle \
+		--scope-id "${scope_id:-unknown}" \
+		--run-id "${run_id:-$(date +%Y%m%d_%H%M%S)}" \
+		${out_meta:+--metadata-file "$out_meta"} \
+		--status "${_status:-unknown}" \
+		2>/dev/null || true
+}
+trap '_record_metrics_on_exit' EXIT
+
 constraints="${CONSTRAINTS:-none}"
 diff_mode="${DIFF_MODE:-range}"
 base_ref="${BASE_REF:-origin/main}"
@@ -1937,8 +1960,8 @@ mv "$tmp_run_file" "$current_run_file"
 
 printf '%s\n' "$out_json"
 
-# Metrics hook (non-blocking, never affects exit code)
-_metrics_script="$(dirname "${BASH_SOURCE[0]}")/sdd-metrics.py"
+# Metrics: normal completion — extract status and record, then set sentinel
+_metrics_script="${script_dir}/sdd-metrics.py"
 if [[ -f "$_metrics_script" ]]; then
 	_review_status="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('status',''))" "$out_json" 2>/dev/null || true)"
 	python3 "$_metrics_script" record \
@@ -1950,3 +1973,4 @@ if [[ -f "$_metrics_script" ]]; then
 		--status "${_review_status:-unknown}" \
 		2>/dev/null || true
 fi
+_metrics_recorded=1

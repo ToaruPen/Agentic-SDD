@@ -70,6 +70,26 @@ if [[ -z "$repo_root" ]]; then
 	exit 1
 fi
 
+# Metrics EXIT trap (non-blocking, never affects exit code)
+# Fires on ALL exits — normal completion AND early failures.
+_metrics_recorded=0
+_tr_script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+_record_metrics_on_exit() {
+	local _code=$?
+	[[ "$_metrics_recorded" -eq 1 ]] && return 0
+	local _script="${_tr_script_dir}/sdd-metrics.py"
+	[[ -f "$_script" ]] || return 0
+	python3 "$_script" record \
+		--repo-root "${repo_root:-}" \
+		--command test-review \
+		--scope-id "${scope_id:-unknown}" \
+		--run-id "${run_id:-$(date +%Y%m%d_%H%M%S)}" \
+		${out_meta:+--metadata-file "$out_meta"} \
+		--status "early-exit (code $_code)" \
+		2>/dev/null || true
+}
+trap '_record_metrics_on_exit' EXIT
+
 output_root="${OUTPUT_ROOT:-${repo_root}/.agentic-sdd/test-reviews}"
 scope_root="${output_root}/${scope_id}"
 current_run_file="${scope_root}/.current_run"
@@ -403,8 +423,8 @@ printf '%s' "$run_id" >"$current_run_file"
 eprint "Wrote: $out_json"
 eprint "Wrote: $out_meta"
 
-# Metrics hook (non-blocking, never affects exit code)
-_metrics_script="$(dirname "${BASH_SOURCE[0]}")/sdd-metrics.py"
+# Metrics: normal completion — record and set sentinel to skip EXIT trap
+_metrics_script="${_tr_script_dir}/sdd-metrics.py"
 if [[ -f "$_metrics_script" ]]; then
 	python3 "$_metrics_script" record \
 		--repo-root "$repo_root" \
@@ -415,6 +435,7 @@ if [[ -f "$_metrics_script" ]]; then
 		--status "$status" \
 		2>/dev/null || true
 fi
+_metrics_recorded=1
 
 if [[ "$status" == "Blocked" ]]; then
 	exit 3
