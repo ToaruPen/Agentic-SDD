@@ -610,6 +610,20 @@ fi
 # 1) Push (keep stdout clean; PR URL is printed on stdout)
 git -C "$repo_root" push -u origin HEAD >&2
 
+# Metrics hook (non-blocking, never affects exit code)
+# Placed after push so it fires on all exit paths (existing PR or new PR).
+# No --metadata-file: create-pr does not consume its own LLM context;
+# passing review metadata would double-count prompt_bytes from review-cycle.
+_metrics_script="$(dirname "${BASH_SOURCE[0]}")/sdd-metrics.py"
+if [[ -f "$_metrics_script" ]]; then
+	python3 "$_metrics_script" record \
+		--repo-root "$repo_root" \
+		--command create-pr \
+		--scope-id "$scope_id" \
+		--run-id "$run_id" \
+		2>/dev/null || true
+fi
+
 # 2) If PR exists, show it and stop
 pr_list_json="$(gh pr list --head "$branch" --state all --json number,url,state 2>/dev/null || true)"
 if [[ -n "$pr_list_json" ]]; then
@@ -655,14 +669,3 @@ fi
 pr_url="$("${create_cmd[@]}")"
 printf '%s\n' "$pr_url"
 
-# Metrics hook (non-blocking, never affects exit code)
-_metrics_script="$(dirname "${BASH_SOURCE[0]}")/sdd-metrics.py"
-if [[ -f "$_metrics_script" ]]; then
-	python3 "$_metrics_script" record \
-		--repo-root "$repo_root" \
-		--command create-pr \
-		--scope-id "$scope_id" \
-		--run-id "$run_id" \
-		--metadata-file "$review_meta" \
-		2>/dev/null || true
-fi

@@ -5,7 +5,7 @@ Record, aggregate, and report Plan B (Context Pack + runtime controls)
 measurements for quantifying context-consumption reduction.
 
 Usage:
-    sdd-metrics.py record   --repo-root ROOT --command CMD --scope-id SID --run-id RID --metadata-file META [--mode MODE] [--status STATUS]
+    sdd-metrics.py record   --repo-root ROOT --command CMD --scope-id SID --run-id RID [--metadata-file META] [--mode MODE] [--status STATUS]
     sdd-metrics.py aggregate --repo-root ROOT [--scope-id SID]
     sdd-metrics.py report   --repo-root ROOT [--scope-id SID] [--scale N]
 """
@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import json
+import os
 import statistics
 import sys
 from pathlib import Path
@@ -36,7 +37,14 @@ def _eprint(msg: str) -> None:
 
 
 def _detect_mode(repo_root: Path) -> str:
-    """Auto-detect mode by checking Context Pack presence."""
+    """Detect mode: prefer SDD_METRICS_MODE env var, then check Context Pack presence."""
+    env_mode = os.environ.get("SDD_METRICS_MODE", "").strip().lower()
+    if env_mode in ("context-pack", "full-docs"):
+        return env_mode
+    # Heuristic fallback: check if docs.md contains the Context Pack header.
+    # NOTE: In repos that ship docs.md with the header, this always returns
+    # 'context-pack'.  Set SDD_METRICS_MODE=full-docs explicitly when
+    # collecting baseline measurements without Context Pack.
     docs_path = repo_root / ".agent/agents/docs.md"
     if not docs_path.is_file():
         return "full-docs"
@@ -78,7 +86,7 @@ def cmd_record(args: argparse.Namespace) -> int:
     command: str = args.command
     scope_id: str = args.scope_id
     run_id: str = args.run_id
-    metadata_file = Path(args.metadata_file)
+    metadata_file_arg: Optional[str] = args.metadata_file
     mode_arg: str = args.mode
     status_arg: Optional[str] = args.status
 
@@ -89,11 +97,14 @@ def cmd_record(args: argparse.Namespace) -> int:
     # Mode detection
     mode = mode_arg if mode_arg != "auto" else _detect_mode(repo_root)
 
-    # Read metadata
-    meta = _read_metadata(metadata_file)
+    # Read metadata (optional for commands like create-pr that have no own context)
+    meta: Dict[str, Any] = {}
     error_reason: Optional[str] = None
-    if not meta:
-        error_reason = f"metadata file missing or unreadable: {metadata_file}"
+    if metadata_file_arg:
+        metadata_file = Path(metadata_file_arg)
+        meta = _read_metadata(metadata_file)
+        if not meta:
+            error_reason = f"metadata file missing or unreadable: {metadata_file}"
 
     # Extract fields from metadata (review-cycle has richer data)
     prompt_bytes = _safe_int(meta.get("prompt_bytes"))
@@ -324,7 +335,7 @@ def main() -> int:
     p_rec.add_argument("--command", required=True, choices=VALID_COMMANDS)
     p_rec.add_argument("--scope-id", required=True)
     p_rec.add_argument("--run-id", required=True)
-    p_rec.add_argument("--metadata-file", required=True)
+    p_rec.add_argument("--metadata-file", default=None)
     p_rec.add_argument("--mode", default="auto", choices=VALID_MODES)
     p_rec.add_argument("--status", default=None)
 

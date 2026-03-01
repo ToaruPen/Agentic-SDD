@@ -91,8 +91,11 @@ python3 scripts/sdd-metrics.py aggregate --repo-root . [--scope-id issue-123]
 python3 scripts/sdd-metrics.py report --repo-root . [--scope-id issue-123] [--scale 100]
 ```
 
-Mode detection (`context-pack` vs `full-docs`) is automatic:
-if `.agent/agents/docs.md` contains the `[Context Pack v1]` header, mode is `context-pack`; otherwise `full-docs`.
+Mode detection (`context-pack` vs `full-docs`):
+1. **Env var** `SDD_METRICS_MODE` — set to `context-pack` or `full-docs` to label runs explicitly.
+   Required for reliable baseline collection (set `SDD_METRICS_MODE=full-docs` when running without Context Pack).
+2. **Fallback heuristic** — if the env var is unset/invalid, checks whether `.agent/agents/docs.md`
+   contains the `[Context Pack v1]` header. In repos that ship this file, the heuristic always returns `context-pack`.
 
 ## Related
 

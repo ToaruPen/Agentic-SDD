@@ -46,6 +46,26 @@ class TestDetectMode:
         (agent_dir / "docs.md").write_text("# No context pack here\n")
         assert M._detect_mode(tmp_path) == "full-docs"
 
+    def test_env_var_overrides_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """SDD_METRICS_MODE env var takes precedence over file-based detection."""
+        agent_dir = tmp_path / ".agent" / "agents"
+        agent_dir.mkdir(parents=True)
+        (agent_dir / "docs.md").write_text("[Context Pack v1]\nfoo: bar\n")
+        # File says context-pack, but env says full-docs
+        monkeypatch.setenv("SDD_METRICS_MODE", "full-docs")
+        assert M._detect_mode(tmp_path) == "full-docs"
+
+    def test_env_var_context_pack(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """SDD_METRICS_MODE=context-pack is respected even without docs.md."""
+        monkeypatch.setenv("SDD_METRICS_MODE", "context-pack")
+        assert M._detect_mode(tmp_path) == "context-pack"
+
+    def test_env_var_invalid_ignored(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Invalid SDD_METRICS_MODE values fall through to file-based detection."""
+        monkeypatch.setenv("SDD_METRICS_MODE", "invalid-value")
+        # No docs.md → falls through to full-docs
+        assert M._detect_mode(tmp_path) == "full-docs"
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -99,7 +119,7 @@ def _make_args(**kwargs: Any) -> Any:
         "command": "review-cycle",
         "scope_id": "issue-99",
         "run_id": "20260301_140000",
-        "metadata_file": "",
+        "metadata_file": None,
         "mode": "auto",
         "status": None,
     }
@@ -214,6 +234,31 @@ class TestCmdRecord:
         args = _make_args(repo_root=str(tmp_path), command="bad-cmd")
         result = M.cmd_record(args)
         assert result == 2
+
+    def test_record_without_metadata_file(self, tmp_path: Path) -> None:
+        """create-pr path: no metadata file, record still succeeds with null byte fields."""
+        args = _make_args(
+            repo_root=str(tmp_path),
+            command="create-pr",
+            mode="context-pack",
+            metadata_file=None,
+        )
+        result = M.cmd_record(args)
+        assert result == 0
+
+        out = (
+            tmp_path
+            / ".agentic-sdd"
+            / "metrics"
+            / "issue-99"
+            / "20260301_140000-create-pr.json"
+        )
+        assert out.is_file()
+        data = json.loads(out.read_text())
+        assert data["command"] == "create-pr"
+        assert data["prompt_bytes"] is None
+        assert data["tokens_approx"] is None
+        assert data["error_reason"] is None
 
 
 # ---------------------------------------------------------------------------
