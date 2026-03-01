@@ -7,25 +7,92 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
-COMMANDS = [
-    "/sdd-init",
-    "/research",
-    "/create-prd",
-    "/create-epic",
-    "/create-issues",
-    "/estimation",
-    "/impl",
-    "/tdd",
-    "/test-review",
-    "/review-cycle",
-    "/final-review",
-    "/sync-docs",
-    "/create-pr",
-    "/pr-bots-review",
-    "/worktree",
-]
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SUPPORTED_COMMANDS_HEADER = "Supported command tokens:"
+SUPPORTED_COMMANDS_END = "Alias:"
+
+NON_PACK_COMMAND_DOCS: Set[str] = {
+    "cleanup.md",
+    "debug.md",
+    "generate-project-config.md",
+    "ui-iterate.md",
+}
+
+
+def _parse_supported_command_tokens(docs_text: str) -> List[str]:
+    commands: List[str] = []
+    in_section = False
+    saw_item = False
+    for raw_line in docs_text.splitlines():
+        line = raw_line.strip()
+        if line == SUPPORTED_COMMANDS_HEADER:
+            in_section = True
+            continue
+        if not in_section:
+            continue
+        if line == SUPPORTED_COMMANDS_END:
+            break
+        if not line:
+            if saw_item:
+                break
+            continue
+        if not line.startswith("- /"):
+            if saw_item:
+                break
+            continue
+        token_parts = line[2:].strip().split()
+        if not token_parts:
+            continue
+        token = token_parts[0]
+        if token.startswith("/") and len(token) > 1 and token not in commands:
+            commands.append(token)
+            saw_item = True
+    return commands
+
+
+def _load_supported_commands(repo_root: Path) -> List[str]:
+    docs_path = repo_root / ".agent/agents/docs.md"
+    if not docs_path.is_file():
+        raise RuntimeError(f"SoT file not found: {docs_path}")
+    try:
+        docs_text = docs_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise RuntimeError(f"failed to read SoT file: {docs_path}: {exc}") from exc
+    commands = _parse_supported_command_tokens(docs_text)
+    if not commands:
+        raise RuntimeError(
+            "failed to load supported command tokens from .agent/agents/docs.md"
+        )
+    return commands
+
+
+def _token_to_command_doc_name(command_name: str) -> str:
+    if command_name == "/sdd-init":
+        return "init.md"
+    return f"{command_name.lstrip('/')}.md"
+
+
+def _command_doc_coverage(
+    repo_root: Path, supported_tokens: List[str]
+) -> Tuple[List[str], List[str]]:
+    commands_dir = repo_root / ".agent/commands"
+    doc_names = sorted(p.name for p in commands_dir.glob("*.md") if p.is_file())
+    supported_doc_names = {
+        _token_to_command_doc_name(command_name) for command_name in supported_tokens
+    }
+
+    missing = sorted(name for name in supported_doc_names if name not in doc_names)
+    uncovered = sorted(
+        name
+        for name in doc_names
+        if name not in supported_doc_names and name not in NON_PACK_COMMAND_DOCS
+    )
+    return missing, uncovered
+
+
+COMMANDS = _load_supported_commands(REPO_ROOT)
 
 
 @dataclass(frozen=True)
@@ -306,6 +373,22 @@ def main() -> int:
         help="Only run a specific command token (repeatable), e.g. --only /estimation",
     )
     args = parser.parse_args()
+
+    missing_docs, uncovered_docs = _command_doc_coverage(REPO_ROOT, COMMANDS)
+    if missing_docs:
+        print(
+            "missing command docs for supported Context Pack tokens: "
+            f"{', '.join(missing_docs)}",
+            file=sys.stderr,
+        )
+        return 2
+    if uncovered_docs:
+        print(
+            "unclassified command docs found (add to Context Pack tokens or "
+            f"NON_PACK_COMMAND_DOCS): {', '.join(uncovered_docs)}",
+            file=sys.stderr,
+        )
+        return 2
 
     targets = COMMANDS
     if args.only:
