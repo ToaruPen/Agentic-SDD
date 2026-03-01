@@ -408,8 +408,8 @@ def main() -> int:
                         sys.executable,
                         str(lint_script),
                         tmp_path,
-                        "--target-dir",
-                        str(target),
+                        "--output-dir",
+                        str(output_dir),
                     ]
                     if args.dry_run:
                         lint_args.append("--dry-run")

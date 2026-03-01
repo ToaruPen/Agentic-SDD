@@ -386,6 +386,57 @@ def test_generate_ci_commands_does_not_scope_non_dot_commands() -> None:
     )
 
 
+def test_scope_command_uses_scoped_template() -> None:
+    result = MODULE._scope_command(
+        "cargo fmt -- --check",
+        ["backend"],
+        "cargo fmt --manifest-path {path}/Cargo.toml -- --check",
+    )
+
+    assert result == "cargo fmt --manifest-path backend/Cargo.toml -- --check"
+
+
+def test_scope_command_uses_scoped_template_multiple_paths() -> None:
+    result = MODULE._scope_command(
+        "cargo clippy -- -D warnings",
+        ["pkg-b", "pkg-a"],
+        "cargo clippy --manifest-path {path}/Cargo.toml -- -D warnings",
+    )
+
+    assert result == (
+        "cargo clippy --manifest-path pkg-a/Cargo.toml -- -D warnings && "
+        "cargo clippy --manifest-path pkg-b/Cargo.toml -- -D warnings"
+    )
+
+
+def test_scope_command_scoped_template_quotes_paths() -> None:
+    import shlex
+
+    result = MODULE._scope_command(
+        "rubocop",
+        ["my project"],
+        "rubocop {path}",
+    )
+
+    assert result == f"rubocop {shlex.quote('my project')}"
+
+
+def test_generate_ci_commands_uses_scoped_template() -> None:
+    registry = load_real_registry()
+
+    commands = MODULE.generate_ci_commands(
+        ["go"],
+        registry,
+        lang_paths={"go": ["backend"]},
+    )
+
+    lint_cmd = next(c for c in commands if c["key"] == "AGENTIC_SDD_CI_LINT_CMD")
+    fmt_cmd = next(c for c in commands if c["key"] == "AGENTIC_SDD_CI_FORMAT_CMD")
+
+    assert lint_cmd["value"] == "golangci-lint run backend/..."
+    assert fmt_cmd["value"] == 'test -z "$(gofmt -l .)"'
+
+
 def test_generate_ci_commands_skips_unknown_language() -> None:
     registry = minimal_registry()
 
@@ -472,6 +523,31 @@ def test_generate_evidence_trail_missing_template_dir_uses_plaintext_fallback(
     assert content is not None
     assert "python" in content
     assert "ruff" in content
+
+
+def test_generate_evidence_trail_with_output_dir_override(tmp_path: Path) -> None:
+    ensure_jinja2_available(tmp_path)
+    registry = load_real_registry()
+    detection = {
+        "languages": [{"name": "python", "source": "pyproject.toml", "path": "."}],
+        "existing_linter_configs": [],
+        "is_monorepo": False,
+    }
+    output_dir_override = tmp_path / "custom-output"
+
+    output_path = MODULE.generate_evidence_trail(
+        detection,
+        registry,
+        ci_commands=[],
+        target_dir=tmp_path,
+        output_dir_override=output_dir_override,
+        template_dir=TEMPLATE_DIR,
+    )
+
+    assert isinstance(output_path, str)
+    assert Path(output_path) == output_dir_override / "rules" / "lint.md"
+    assert Path(output_path).exists()
+    assert not (output_dir_override / ".agentic-sdd").exists()
 
 
 def test_run_setup_normal_single_language_flow(tmp_path: Path) -> None:
@@ -615,6 +691,42 @@ def test_run_setup_deduplicates_duplicate_languages(tmp_path: Path) -> None:
     assert result["languages"] == ["python"]
     assert len(result["recommendations"]) == 1
     assert result["recommendations"][0]["language"] == "python"
+
+
+def test_run_setup_passes_output_dir_override(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry = load_real_registry()
+    detection = {
+        "languages": [{"name": "python", "source": "pyproject.toml", "path": "."}],
+        "existing_linter_configs": [],
+        "is_monorepo": False,
+    }
+    output_dir_override = tmp_path / "custom-output"
+    captured: dict[str, Any] = {}
+
+    def fake_generate_evidence_trail(
+        detection_arg: dict[str, Any],
+        registry_arg: dict[str, Any],
+        ci_commands_arg: list[dict[str, str]],
+        target_dir_arg: Path,
+        output_dir_override_arg: Path | None = None,
+        template_dir_arg: Path | None = None,
+        dry_run_arg: bool = False,
+    ) -> str | None:
+        captured["output_dir_override"] = output_dir_override_arg
+        return None
+
+    monkeypatch.setattr(MODULE, "generate_evidence_trail", fake_generate_evidence_trail)
+
+    MODULE.run_setup(
+        detection,
+        registry,
+        tmp_path,
+        output_dir_override=output_dir_override,
+    )
+
+    assert captured["output_dir_override"] == output_dir_override
 
 
 def test_run_setup_inferred_only_returns_error(tmp_path: Path) -> None:

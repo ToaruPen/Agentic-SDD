@@ -118,7 +118,25 @@ def _pick_ci_command(
     return tool.get("ci_command")
 
 
-def _scope_command(cmd: str, paths: List[str]) -> str:
+def _pick_scoped_template(
+    tool: Dict[str, Any],
+    lang: str,
+    lang_sources: Dict[str, List[str]],
+) -> Optional[str]:
+    sources = lang_sources.get(lang, [])
+    gradle_sources = {"build.gradle", "build.gradle.kts"}
+    if any(src in gradle_sources for src in sources):
+        gradle_scoped = tool.get("ci_command_gradle_scoped")
+        if gradle_scoped:
+            return gradle_scoped
+    return tool.get("ci_command_scoped")
+
+
+def _scope_command(
+    cmd: str,
+    paths: List[str],
+    scoped_template: Optional[str] = None,
+) -> str:
     """CI コマンドをサブプロジェクトパスにスコーピングする。
 
     末尾 ' .' を持つコマンドのみパスで置換する。
@@ -130,6 +148,12 @@ def _scope_command(cmd: str, paths: List[str]) -> str:
     unique_paths = sorted(set(p for p in paths if p != "."))
     if not unique_paths:
         return cmd
+    if scoped_template:
+        return " && ".join(
+            scoped_template.replace("{path}", shlex.quote(path))
+            for path in unique_paths
+        )
+
     path_args = " ".join(shlex.quote(p) for p in unique_paths)
     if cmd.endswith(" ."):
         return cmd[:-2] + " " + path_args
@@ -160,20 +184,23 @@ def generate_ci_commands(
         paths = lang_paths.get(lang, ["."]) if lang_paths else ["."]
 
         lint_cmd = _pick_ci_command(linter, lang, lang_sources)
+        lint_scoped_template = _pick_scoped_template(linter, lang, lang_sources)
         if lint_cmd:
-            lint_cmd = _scope_command(lint_cmd, paths)
+            lint_cmd = _scope_command(lint_cmd, paths, lint_scoped_template)
         if lint_cmd and lint_cmd not in lint_cmds:
             lint_cmds.append(lint_cmd)
 
         fmt_cmd = _pick_ci_command(formatter, lang, lang_sources)
+        fmt_scoped_template = _pick_scoped_template(formatter, lang, lang_sources)
         if fmt_cmd:
-            fmt_cmd = _scope_command(fmt_cmd, paths)
+            fmt_cmd = _scope_command(fmt_cmd, paths, fmt_scoped_template)
         if fmt_cmd and fmt_cmd not in fmt_cmds:
             fmt_cmds.append(fmt_cmd)
 
         tc_cmd = _pick_ci_command(type_checker, lang, lang_sources)
+        tc_scoped_template = _pick_scoped_template(type_checker, lang, lang_sources)
         if tc_cmd:
-            tc_cmd = _scope_command(tc_cmd, paths)
+            tc_cmd = _scope_command(tc_cmd, paths, tc_scoped_template)
         if tc_cmd and tc_cmd not in tc_cmds:
             tc_cmds.append(tc_cmd)
 
@@ -329,6 +356,7 @@ def generate_evidence_trail(
     registry: Dict[str, Any],
     ci_commands: List[Dict[str, str]],
     target_dir: Path,
+    output_dir_override: Optional[Path] = None,
     template_dir: Optional[Path] = None,
     dry_run: bool = False,
 ) -> Optional[str]:
@@ -382,7 +410,10 @@ def generate_evidence_trail(
     if content is None:
         content = _render_evidence_plaintext(context)
 
-    output_dir = target_dir / ".agentic-sdd" / "project" / "rules"
+    if output_dir_override is not None:
+        output_dir = output_dir_override / "rules"
+    else:
+        output_dir = target_dir / ".agentic-sdd" / "project" / "rules"
 
     if dry_run:
         eprint(f"[DRY-RUN] Would generate evidence trail: {output_dir / 'lint.md'}")
@@ -400,6 +431,7 @@ def run_setup(
     target_dir: Path,
     dry_run: bool = False,
     template_dir: Optional[Path] = None,
+    output_dir_override: Optional[Path] = None,
 ) -> Dict[str, Any]:
     """メインのセットアップ処理 — 推奨出力のみ（設定ファイル書き込みなし）"""
     if not target_dir.is_dir():
@@ -536,6 +568,7 @@ def run_setup(
         registry,
         ci_commands,
         target_dir,
+        output_dir_override,
         template_dir,
         dry_run,
     )
@@ -581,10 +614,16 @@ def main() -> int:
         default=None,
         help="lint-registry.json のパス（デフォルト: 自動検出）",
     )
-    parser.add_argument(
+    output_group = parser.add_mutually_exclusive_group()
+    output_group.add_argument(
         "--target-dir",
         default=".",
-        help="証跡ファイルの出力先ディレクトリ（デフォルト: カレントディレクトリ）",
+        help="証跡ファイルの出力先基準ディレクトリ（デフォルト: カレントディレクトリ）",
+    )
+    output_group.add_argument(
+        "--output-dir",
+        default=None,
+        help="証跡ファイルの直接出力先（<output-dir>/rules/lint.md）",
     )
     parser.add_argument(
         "--template-dir",
@@ -614,10 +653,20 @@ def main() -> int:
     registry = load_registry(registry_path)
     detection = load_detection_result(args.detection_file)
     target_dir = Path(args.target_dir).resolve()
+    output_dir_override = (
+        Path(args.output_dir).resolve() if args.output_dir is not None else None
+    )
 
     template_dir = Path(args.template_dir) if args.template_dir else None
 
-    result = run_setup(detection, registry, target_dir, args.dry_run, template_dir)
+    result = run_setup(
+        detection,
+        registry,
+        target_dir,
+        args.dry_run,
+        template_dir,
+        output_dir_override,
+    )
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
