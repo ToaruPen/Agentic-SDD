@@ -7,7 +7,14 @@ import configparser
 import json
 import os
 import sys
-import tomllib
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    try:
+        import tomli as tomllib  # type: ignore[no-redef]
+    except ModuleNotFoundError:
+        tomllib = None  # type: ignore[assignment]
 from pathlib import Path
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Set, Tuple
 
@@ -57,6 +64,12 @@ def iter_files(root: Path) -> Iterator[Path]:
 
 
 def load_toml(path: Path) -> Dict[str, Any]:
+    if tomllib is None:
+        eprint(
+            "[WARN] tomllib/tomli unavailable (Python <3.11 without tomli); "
+            f"skipping TOML parse: {path}"
+        )
+        return {}
     try:
         with path.open("rb") as fh:
             data = tomllib.load(fh)
