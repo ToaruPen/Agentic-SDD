@@ -230,23 +230,23 @@ def main() -> int:
         eprint(f"repo root not found: {repo_root}")
         return 1
 
-    issue: dict[str, str] | None = None
-    if args.issue_json:
-        issue = read_issue_json(args.issue_json)
-    elif args.issue_body_file:
-        issue = {
-            "title": "",
-            "url": "",
-            "number": "",
-            "body": read_text(args.issue_body_file),
-        }
-
-    extra: list[str] = []
-    for raw in args.sot_file:
-        rel = resolve_ref_to_repo_path(repo_root, raw)
-        extra.append(rel)
-
     try:
+        issue: dict[str, str] | None = None
+        if args.issue_json:
+            issue = read_issue_json(args.issue_json)
+        elif args.issue_body_file:
+            issue = {
+                "title": "",
+                "url": "",
+                "number": "",
+                "body": read_text(args.issue_body_file),
+            }
+
+        extra: list[str] = []
+        for raw in args.sot_file:
+            rel = resolve_ref_to_repo_path(repo_root, raw)
+            extra.append(rel)
+
         out = build_sot(
             repo_root=repo_root,
             issue=issue,

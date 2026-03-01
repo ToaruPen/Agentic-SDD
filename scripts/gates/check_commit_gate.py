@@ -7,6 +7,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 import json
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -38,8 +39,48 @@ def repo_root() -> str | None:
 
 def should_check_command(command: str) -> bool:
     """Check if the command is a git commit or git push command."""
-    keywords = ["git commit", "git push"]
-    return any(keyword in command for keyword in keywords)
+    try:
+        tokens = shlex.split(command)
+    except ValueError:
+        return False
+    if not tokens:
+        return False
+
+    git_index = -1
+    for i, part in enumerate(tokens):
+        if Path(part).name == "git":
+            git_index = i
+            break
+    if git_index < 0:
+        return False
+
+    value_opts = {
+        "-c",
+        "-C",
+        "--git-dir",
+        "--work-tree",
+        "--namespace",
+        "--super-prefix",
+        "--exec-path",
+        "--config-env",
+    }
+
+    i = git_index + 1
+    while i < len(tokens):
+        part = tokens[i]
+        if part == "--":
+            i += 1
+            break
+        if not part.startswith("-"):
+            return part in {"commit", "push"}
+        if part in value_opts and i + 1 < len(tokens):
+            i += 2
+            continue
+        i += 1
+
+    if i < len(tokens):
+        return tokens[i] in {"commit", "push"}
+    return False
 
 
 def main() -> int:
@@ -60,8 +101,16 @@ def main() -> int:
     if not root:
         return 0
 
-    worktree_gate = Path(root) / "scripts" / "validate-worktree.py"
-    if worktree_gate.is_file():
+    worktree_gate = None
+    for rel in (
+        Path("scripts", "gates", "validate_worktree.py"),
+        Path("scripts", "validate-worktree.py"),
+    ):
+        candidate = Path(root) / rel
+        if candidate.is_file():
+            worktree_gate = candidate
+            break
+    if worktree_gate is not None:
         try:
             p = run([sys.executable, str(worktree_gate)], cwd=root, check=False)
         except OSError as exc:
@@ -74,8 +123,16 @@ def main() -> int:
         if p.returncode != 0:
             return p.returncode
 
-    script = Path(root) / "scripts" / "validate-approval.py"
-    if not script.is_file():
+    script = None
+    for rel in (
+        Path("scripts", "gates", "validate_approval.py"),
+        Path("scripts", "validate-approval.py"),
+    ):
+        candidate = Path(root) / rel
+        if candidate.is_file():
+            script = candidate
+            break
+    if script is None:
         return 0
 
     try:

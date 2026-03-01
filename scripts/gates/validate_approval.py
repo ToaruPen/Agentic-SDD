@@ -46,10 +46,13 @@ def git_repo_root() -> str:
 
 def current_branch(repo_root: str) -> str:
     try:
-        p = run(["git", "branch", "--show-current"], cwd=repo_root, check=False)
-    except subprocess.CalledProcessError:
-        return ""
-    return p.stdout.strip()
+        p = run(["git", "branch", "--show-current"], cwd=repo_root, check=True)
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise RuntimeError("Failed to detect current branch via git.") from exc
+    branch = p.stdout.strip()
+    if not branch:
+        raise RuntimeError("Failed to detect current branch via git.")
+    return branch
 
 
 def extract_issue_number_from_branch(branch: str) -> int | None:
@@ -226,7 +229,11 @@ def main() -> int:
         eprint(f"[agentic-sdd gate] error: {exc}")
         return 1
 
-    branch = current_branch(repo_root)
+    try:
+        branch = current_branch(repo_root)
+    except RuntimeError as exc:
+        eprint(f"[agentic-sdd gate] error: {exc}")
+        return 1
     issue_number = extract_issue_number_from_branch(branch)
 
     create_script = resolve_approval_script(repo_root, "create-approval.py")
@@ -295,6 +302,12 @@ def main() -> int:
     except ValueError as exc:
         return gate_blocked(
             f"Invalid approval.json: {exc}", create_script, validate_script
+        )
+    except OSError as exc:
+        return gate_blocked(
+            f"Failed to read approval.json (utf-8 required): {exc}",
+            create_script,
+            validate_script,
         )
 
     return 0
