@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import argparse
 import json
 import re
-from datetime import UTC, datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from _lib.approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
@@ -20,10 +20,13 @@ from _lib.git_utils import (
     sha256_prefixed,
 )
 
+UTC_ATTR = "UTC"
+UTC_TZ = getattr(datetime, UTC_ATTR, timezone(timedelta(0)))
+
 
 def now_utc_z() -> str:
     # Agentic-SDD datetime rule: YYYY-MM-DDTHH:mm:ssZ (UTC, no milliseconds).
-    return datetime.now(UTC).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC_TZ).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def approval_dir(repo_root: str, issue_number: int) -> str:

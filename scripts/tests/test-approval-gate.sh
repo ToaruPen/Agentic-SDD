@@ -116,6 +116,64 @@ assert_invalid_approval_args 2
 (cd "$wt" && python3 scripts/approval/create_approval.py --issue 123 --mode impl --mode-source agent-heuristic --mode-reason 'test: default impl mode' >/dev/null)
 (cd "$wt" && python3 scripts/gates/validate_approval.py >/dev/null)
 
+python3 - "$wt/.agentic-sdd/approvals/issue-123/approval.json" <<'PY'
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+obj = json.loads(path.read_text(encoding="utf-8"))
+obj["approved_at"] = "2026-02-30T00:00:00Z"
+path.write_text(json.dumps(obj, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+
+set +e
+(cd "$wt" && python3 scripts/gates/validate_approval.py >/dev/null 2>"$tmpdir/stderr_invalid_approved_at")
+rc_invalid_approved_at=$?
+set -e
+if [[ "$rc_invalid_approved_at" -ne 2 ]]; then
+	eprint "FAIL: expected validate_approval.py to block invalid approved_at"
+	exit 1
+fi
+if ! grep -q "approved_at must be a valid UTC timestamp" "$tmpdir/stderr_invalid_approved_at"; then
+	eprint "FAIL: expected invalid approved_at message"
+	cat "$tmpdir/stderr_invalid_approved_at" >&2
+	exit 1
+fi
+
+python3 - "$wt/.agentic-sdd/approvals/issue-123/approval.json" <<'PY'
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+obj = json.loads(path.read_text(encoding="utf-8"))
+obj["approved_at"] = "2026-02-01T00:00:00Z"
+obj["approver"] = "   "
+path.write_text(json.dumps(obj, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+
+set +e
+(cd "$wt" && python3 scripts/gates/validate_approval.py >/dev/null 2>"$tmpdir/stderr_blank_approver")
+rc_blank_approver=$?
+set -e
+if [[ "$rc_blank_approver" -ne 2 ]]; then
+	eprint "FAIL: expected validate_approval.py to block blank approver"
+	exit 1
+fi
+if ! grep -q "approver must be a non-empty string" "$tmpdir/stderr_blank_approver"; then
+	eprint "FAIL: expected blank approver message"
+	cat "$tmpdir/stderr_blank_approver" >&2
+	exit 1
+fi
+
+(cd "$wt" && python3 scripts/approval/create_approval.py --issue 123 --mode impl --mode-source agent-heuristic --mode-reason 'test: restore valid approval after validation checks' --force >/dev/null)
+(cd "$wt" && python3 scripts/gates/validate_approval.py >/dev/null)
+
 git -C "$wt" commit -m "test: should pass" -q
 
 # Setup a local remote to test pre-push.

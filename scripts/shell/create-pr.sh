@@ -99,6 +99,7 @@ resolve_worktree_script() {
 	local repo_root="$1"
 	local candidate=""
 	for candidate in \
+		"$repo_root/scripts/agentic-sdd/shell/worktree.sh" \
 		"$repo_root/scripts/agentic-sdd/worktree.sh" \
 		"$repo_root/scripts/shell/worktree.sh"; do
 		if [[ -x "$candidate" ]]; then
@@ -119,7 +120,7 @@ run_parallel_integration_guard() {
 		return 0
 	fi
 	if ! worktree_cmd="$(resolve_worktree_script "$repo_root")"; then
-		eprint "Parallel integration guard enabled, but missing executable: scripts/shell/worktree.sh or scripts/agentic-sdd/worktree.sh"
+		eprint "Parallel integration guard enabled, but missing executable: scripts/agentic-sdd/shell/worktree.sh or scripts/shell/worktree.sh or scripts/agentic-sdd/worktree.sh"
 		exit 2
 	fi
 
@@ -613,7 +614,8 @@ git -C "$repo_root" push -u origin HEAD >&2
 # 2) If PR exists, show it and stop
 pr_list_json="$(gh pr list --head "$branch" --state all --json number,url,state 2>/dev/null || true)"
 if [[ -n "$pr_list_json" ]]; then
-	pr_url="$(python3 - "$pr_list_json" <<'PY'
+	pr_url="$(
+		python3 - "$pr_list_json" <<'PY'
 import json
 import sys
 
@@ -625,7 +627,7 @@ open_pr = next((x for x in data if isinstance(x, dict) and x.get("state") == "OP
 pick = open_pr or (data[0] if data else None)
 print((pick or {}).get("url") or "")
 PY
-)"
+	)"
 	if [[ -n "$pr_url" ]]; then
 		printf '%s\n' "$pr_url"
 		exit 0

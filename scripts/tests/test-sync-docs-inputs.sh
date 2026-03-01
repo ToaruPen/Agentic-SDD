@@ -6,6 +6,7 @@ eprint() { printf '%s\n' "$*" >&2; }
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 resolver_py_src="$repo_root/scripts/extract/resolve_sync_docs_inputs.py"
+resolver_legacy_src="$repo_root/scripts/resolve-sync-docs-inputs.py"
 sot_refs_src="$repo_root/scripts/_lib/sot_refs.py"
 
 if [[ ! -f "$resolver_py_src" ]]; then
@@ -18,6 +19,11 @@ if [[ ! -f "$sot_refs_src" ]]; then
 	exit 1
 fi
 
+if [[ ! -f "$resolver_legacy_src" ]]; then
+	eprint "Missing legacy resolver wrapper: $resolver_legacy_src"
+	exit 1
+fi
+
 tmpdir="$(mktemp -d 2>/dev/null || mktemp -d -t agentic-sdd-sync-docs-test)"
 cleanup() { rm -rf "$tmpdir"; }
 trap cleanup EXIT
@@ -26,8 +32,10 @@ git -C "$tmpdir" init -q
 
 mkdir -p "$tmpdir/scripts/extract"
 cp -p "$resolver_py_src" "$tmpdir/scripts/extract/resolve_sync_docs_inputs.py"
+cp -p "$resolver_legacy_src" "$tmpdir/scripts/resolve-sync-docs-inputs.py"
 cp -rp "$repo_root/scripts/_lib" "$tmpdir/scripts/"
 chmod +x "$tmpdir/scripts/extract/resolve_sync_docs_inputs.py"
+chmod +x "$tmpdir/scripts/resolve-sync-docs-inputs.py"
 
 # Minimal repo content
 mkdir -p "$tmpdir/docs/prd" "$tmpdir/docs/epics" "$tmpdir/src"
@@ -76,10 +84,15 @@ git -C "$tmpdir" add src/hello.txt
 out_json="$(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" OUTPUT_ROOT="$tmpdir/out" \
 	python3 ./scripts/extract/resolve_sync_docs_inputs.py --diff-mode auto)"
 
+out_json_legacy="$(cd "$tmpdir" && GH_ISSUE_BODY_FILE="$tmpdir/issue-body.md" OUTPUT_ROOT="$tmpdir/out-legacy" \
+	python3 ./scripts/resolve-sync-docs-inputs.py --diff-mode auto)"
+
 prd_path="$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["prd_path"])' <<<"$out_json")"
 epic_path="$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["epic_path"])' <<<"$out_json")"
 diff_source="$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["diff_source"])' <<<"$out_json")"
 diff_path="$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["diff_path"])' <<<"$out_json")"
+legacy_diff_source="$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["diff_source"])' <<<"$out_json_legacy")"
+legacy_diff_path="$(python3 -c 'import json,sys; print(json.loads(sys.stdin.read())["diff_path"])' <<<"$out_json_legacy")"
 
 if [[ "$prd_path" != "docs/prd/prd.md" ]]; then
 	eprint "Expected PRD path docs/prd/prd.md, got: $prd_path"
@@ -98,6 +111,16 @@ fi
 
 if [[ ! -s "$tmpdir/$diff_path" ]]; then
 	eprint "Expected diff patch to exist and be non-empty: $tmpdir/$diff_path"
+	exit 1
+fi
+
+if [[ "$legacy_diff_source" != "staged" ]]; then
+	eprint "Expected legacy diff_source staged, got: $legacy_diff_source"
+	exit 1
+fi
+
+if [[ ! -s "$tmpdir/$legacy_diff_path" ]]; then
+	eprint "Expected legacy diff patch to exist and be non-empty: $tmpdir/$legacy_diff_path"
 	exit 1
 fi
 

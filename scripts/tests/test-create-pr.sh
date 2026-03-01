@@ -130,8 +130,8 @@ IDX
 }
 
 setup_worktree_check_stub() {
-	mkdir -p "$work/scripts/agentic-sdd"
-	cat >"$work/scripts/agentic-sdd/worktree.sh" <<'EOF'
+	mkdir -p "$work/scripts/agentic-sdd/shell"
+	cat >"$work/scripts/agentic-sdd/shell/worktree.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -183,7 +183,7 @@ case "${AGENTIC_SDD_TEST_WORKTREE_CHECK_EXIT:-0}" in
 		;;
 esac
 EOF
-	chmod +x "$work/scripts/agentic-sdd/worktree.sh"
+	chmod +x "$work/scripts/agentic-sdd/shell/worktree.sh"
 }
 
 setup_repo_worktree_check_stub() {

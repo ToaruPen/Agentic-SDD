@@ -104,6 +104,10 @@ When using the parent-unit model, close child Issues only after their AC is sati
 
 ## Quick Start
 
+### Runtime requirements
+
+- Python `3.10+` (commands in this repo use `python3`)
+
 ### 0) Install (one-time per repo)
 
 If Agentic-SDD is not installed in your repository yet, install it first:

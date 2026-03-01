@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import subprocess
+import sys
 from pathlib import Path
 from types import ModuleType
 
@@ -23,7 +24,7 @@ MODULE = load_module()
 
 
 def test_run_cmd_success_text_true_returns_completed_process_str() -> None:
-    result = MODULE.run_cmd(["python3", "-c", 'print("hello", end="")'], text=True)
+    result = MODULE.run_cmd([sys.executable, "-c", 'print("hello", end="")'], text=True)
 
     assert result.returncode == 0
     assert result.stdout == "hello"
@@ -31,7 +32,9 @@ def test_run_cmd_success_text_true_returns_completed_process_str() -> None:
 
 
 def test_run_cmd_success_text_false_returns_completed_process_bytes() -> None:
-    result = MODULE.run_cmd(["python3", "-c", 'print("hello", end="")'], text=False)
+    result = MODULE.run_cmd(
+        [sys.executable, "-c", 'print("hello", end="")'], text=False
+    )
 
     assert result.returncode == 0
     assert result.stdout == b"hello"
@@ -40,11 +43,13 @@ def test_run_cmd_success_text_false_returns_completed_process_bytes() -> None:
 
 def test_run_cmd_check_true_raises_called_process_error() -> None:
     with pytest.raises(subprocess.CalledProcessError):
-        MODULE.run_cmd(["false"], check=True)
+        MODULE.run_cmd([sys.executable, "-c", "import sys; sys.exit(1)"], check=True)
 
 
 def test_run_cmd_check_false_returns_non_zero_completed_process() -> None:
-    result = MODULE.run_cmd(["false"], check=False)
+    result = MODULE.run_cmd(
+        [sys.executable, "-c", "import sys; sys.exit(1)"], check=False
+    )
 
     assert result.returncode != 0
 
@@ -52,13 +57,13 @@ def test_run_cmd_check_false_returns_non_zero_completed_process() -> None:
 def test_run_cmd_timeout_raises_timeout_expired() -> None:
     with pytest.raises(subprocess.TimeoutExpired):
         MODULE.run_cmd(
-            ["python3", "-c", "import time; time.sleep(1)"],
+            [sys.executable, "-c", "import time; time.sleep(1)"],
             timeout=0.01,
         )
 
 
 def test_check_output_cmd_success_text_true_returns_str() -> None:
-    output = MODULE.check_output_cmd(["python3", "-c", 'print("hello", end="")'])
+    output = MODULE.check_output_cmd([sys.executable, "-c", 'print("hello", end="")'])
 
     assert output == "hello"
     assert isinstance(output, str)
@@ -66,7 +71,7 @@ def test_check_output_cmd_success_text_true_returns_str() -> None:
 
 def test_check_output_cmd_success_text_false_returns_bytes() -> None:
     output = MODULE.check_output_cmd(
-        ["python3", "-c", 'print("hello", end="")'],
+        [sys.executable, "-c", 'print("hello", end="")'],
         text=False,
     )
 
@@ -76,13 +81,13 @@ def test_check_output_cmd_success_text_false_returns_bytes() -> None:
 
 def test_check_output_cmd_failure_raises_called_process_error() -> None:
     with pytest.raises(subprocess.CalledProcessError):
-        MODULE.check_output_cmd(["false"])
+        MODULE.check_output_cmd([sys.executable, "-c", "import sys; sys.exit(1)"])
 
 
 def test_check_output_cmd_accepts_stderr_parameter() -> None:
     output = MODULE.check_output_cmd(
         [
-            "python3",
+            sys.executable,
             "-c",
             'import sys; print("hello", end=""); print("err", file=sys.stderr)',
         ],
@@ -100,11 +105,11 @@ def test_run_cmd_passes_expected_kwargs_with_mock(
     def _fake_run(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
         captured["args"] = args
         captured["kwargs"] = kwargs
-        return subprocess.CompletedProcess(["python3"], 0, stdout="ok", stderr="")
+        return subprocess.CompletedProcess([sys.executable], 0, stdout="ok", stderr="")
 
     monkeypatch.setattr(MODULE.subprocess, "run", _fake_run)
     result = MODULE.run_cmd(
-        ["python3", "-c", "print('x')"],
+        [sys.executable, "-c", "print('x')"],
         cwd=".",
         check=False,
         text=True,
@@ -125,11 +130,11 @@ def test_run_cmd_timeout_is_propagated(monkeypatch: pytest.MonkeyPatch) -> None:
     def _fake_run(
         *_args: object, **_kwargs: object
     ) -> subprocess.CompletedProcess[str]:
-        raise subprocess.TimeoutExpired(cmd=["python3"], timeout=1)
+        raise subprocess.TimeoutExpired(cmd=[sys.executable], timeout=1)
 
     monkeypatch.setattr(MODULE.subprocess, "run", _fake_run)
     with pytest.raises(subprocess.TimeoutExpired):
-        MODULE.run_cmd(["python3", "-c", "print('x')"], timeout=1)
+        MODULE.run_cmd([sys.executable, "-c", "print('x')"], timeout=1)
 
 
 def test_check_output_cmd_passes_expected_kwargs_with_mock(
@@ -144,7 +149,7 @@ def test_check_output_cmd_passes_expected_kwargs_with_mock(
 
     monkeypatch.setattr(MODULE.subprocess, "check_output", _fake_check_output)
     result = MODULE.check_output_cmd(
-        ["python3", "-c", "print('x')"],
+        [sys.executable, "-c", "print('x')"],
         cwd=".",
         stderr=subprocess.DEVNULL,
         text=True,
@@ -163,11 +168,11 @@ def test_check_output_cmd_timeout_is_propagated(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def _fake_check_output(*_args: object, **_kwargs: object) -> str:
-        raise subprocess.TimeoutExpired(cmd=["python3"], timeout=1)
+        raise subprocess.TimeoutExpired(cmd=[sys.executable], timeout=1)
 
     monkeypatch.setattr(MODULE.subprocess, "check_output", _fake_check_output)
     with pytest.raises(subprocess.TimeoutExpired):
-        MODULE.check_output_cmd(["python3", "-c", "print('x')"], timeout=1)
+        MODULE.check_output_cmd([sys.executable, "-c", "print('x')"], timeout=1)
 
 
 def test_exit_with_subprocess_returncode_nonzero_and_zero() -> None:

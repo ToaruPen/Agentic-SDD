@@ -14,11 +14,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import argparse
 import importlib
 import json
-from datetime import UTC, datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Protocol
 
 from _lib.subprocess_utils import run_cmd
 from cli_utils import eprint
+
+UTC_ATTR = "UTC"
+UTC_TZ = getattr(datetime, UTC_ATTR, timezone(timedelta(0)))
 
 
 class TemplateLike(Protocol):
@@ -74,7 +77,7 @@ def generate_config_json(
     context = {
         "epic_path": config.get("epic_path", ""),
         "prd_path": config.get("meta", {}).get("prd_path"),
-        "generated_at": datetime.now(UTC).isoformat(),
+        "generated_at": datetime.now(UTC_TZ).isoformat(),
         "tech_stack": config.get("tech_stack", {}),
         "requirements": config.get("requirements", {}),
         "generated_skills": generated_skills,

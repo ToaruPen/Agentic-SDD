@@ -59,7 +59,8 @@ def test_load_config_invalid_json_raises() -> None:
     Path(f.name).unlink()
 
 
-def test_load_config_nonexistent_file_raises() -> None:
+def test_load_config_nonexistent_file_raises(tmp_path: Path) -> None:
     """load_config should raise FileNotFoundError for missing files."""
+    missing = tmp_path / "nonexistent_config_file_abc123.json"
     with pytest.raises(FileNotFoundError):
-        MODULE.load_config("/tmp/nonexistent_config_file_abc123.json")  # noqa: S108
+        MODULE.load_config(str(missing))

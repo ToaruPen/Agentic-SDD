@@ -73,6 +73,10 @@ branch_exists() {
 
 resolve_sync_agent_config_script() {
 	local dir="$1"
+	if [[ -x "$dir/scripts/agentic-sdd/shell/sync-agent-config.sh" ]]; then
+		printf '%s\n' "./scripts/agentic-sdd/shell/sync-agent-config.sh"
+		return 0
+	fi
 	if [[ -x "$dir/scripts/agentic-sdd/sync-agent-config.sh" ]]; then
 		printf '%s\n' "./scripts/agentic-sdd/sync-agent-config.sh"
 		return 0
@@ -133,7 +137,7 @@ EOF
 
 	local sync_cmd
 	if ! sync_cmd="$(resolve_sync_agent_config_script "$dir")"; then
-		eprint "Missing executable: $dir/scripts/agentic-sdd/sync-agent-config.sh or $dir/scripts/shell/sync-agent-config.sh"
+		eprint "Missing executable: $dir/scripts/agentic-sdd/shell/sync-agent-config.sh or $dir/scripts/agentic-sdd/sync-agent-config.sh or $dir/scripts/shell/sync-agent-config.sh"
 		exit 1
 	fi
 

@@ -13,12 +13,15 @@ import argparse
 import json
 import shlex
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from cli_utils import eprint
+
+UTC_ATTR = "UTC"
+UTC_TZ = getattr(datetime, UTC_ATTR, timezone(timedelta(0)))
 
 
 def find_repo_root() -> Path:
@@ -286,7 +289,7 @@ def _build_toolchains(
     """証跡用ツールチェーンデータを構築。(toolchains, existing_configs) を返す。"""
     languages = detection.get("languages", [])
     existing_configs = detection.get("existing_linter_configs", [])
-    now_iso = datetime.now(tz=UTC).isoformat()
+    now_iso = datetime.now(tz=UTC_TZ).isoformat()
 
     toolchains: list[dict[str, Any]] = []
     for lang_info in languages:
@@ -407,7 +410,7 @@ def _render_evidence_plaintext(
     lines.append("")
     lines.append("```bash")
     lines.extend(
-        f'export {cmd["key"]}="{cmd["value"]}"'
+        f"export {cmd['key']}={shlex.quote(cmd['value'])}"
         for cmd in context.get("ci_commands", [])
     )
     lines.append("```")
@@ -433,7 +436,7 @@ def generate_evidence_trail(
     toolchains, existing_configs = _build_toolchains(detection, registry)
 
     context: dict[str, Any] = {
-        "generated_at": datetime.now(tz=UTC).isoformat(),
+        "generated_at": datetime.now(tz=UTC_TZ).isoformat(),
         "target_path": str(target_dir),
         "languages": detection.get("languages", []),
         "toolchains": toolchains,

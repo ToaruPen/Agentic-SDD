@@ -258,6 +258,29 @@ if ! grep -q -- "--force opencode" "$tmpdir/.sync-agent-config.log"; then
 	exit 1
 fi
 
+rm -f "$tmpdir/.sync-agent-config.log"
+mkdir -p "$tmpdir/scripts/agentic-sdd/shell"
+cat >"$tmpdir/scripts/agentic-sdd/shell/sync-agent-config.sh" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "installed:$*" >> .sync-agent-config.log
+EOF
+chmod +x "$tmpdir/scripts/agentic-sdd/shell/sync-agent-config.sh"
+rm -f "$tmpdir/scripts/shell/sync-agent-config.sh"
+
+(cd "$tmpdir" && ./scripts/shell/worktree.sh bootstrap --tool codex) >/dev/null
+if [[ ! -f "$tmpdir/.sync-agent-config.log" ]]; then
+	eprint "Expected bootstrap to resolve installed sync-agent-config.sh path"
+	exit 1
+fi
+if ! grep -q -- "installed:--force codex" "$tmpdir/.sync-agent-config.log"; then
+	eprint "Expected installed sync script invocation args in log"
+	cat "$tmpdir/.sync-agent-config.log" >&2
+	exit 1
+fi
+
+cp -p "$repo_root/scripts/shell/sync-agent-config.sh" "$tmpdir/scripts/shell/sync-agent-config.sh"
+
 # worktree.sh new/remove (Issue lock enabled by default; gh is stubbed)
 worktrees_root="$tmpdir/wt"
 wt_dir="$(cd "$tmpdir" && PATH="$tmpdir/bin:$PATH" ./scripts/shell/worktree.sh new --issue 99 --desc "parallel test" --base HEAD --tool none --worktrees-root "$worktrees_root")"

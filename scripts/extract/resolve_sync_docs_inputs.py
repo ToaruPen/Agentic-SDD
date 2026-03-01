@@ -183,7 +183,7 @@ def ensure_file_exists(repo_root: str, rel_path: str, label: str) -> None:
 
 
 def detect_pr_number(repo_root: str, gh_repo: str) -> str | None:
-    if not shutil_which("gh"):
+    if not shutil.which("gh"):
         return None
     cmd = ["gh"]
     if gh_repo:
@@ -200,15 +200,6 @@ def detect_pr_number(repo_root: str, gh_repo: str) -> str | None:
     n = data.get("number")
     if isinstance(n, int) and n > 0:
         return str(n)
-    return None
-
-
-def shutil_which(cmd: str) -> str | None:
-    path_env = os.environ.get("PATH", "")
-    for d in path_env.split(os.pathsep):
-        p = Path(d) / cmd
-        if p.is_file() and os.access(str(p), os.X_OK):
-            return str(p)
     return None
 
 
@@ -267,7 +258,7 @@ def resolve_diff(
     if diff_mode == "pr":
         if not pr_number:
             raise RuntimeError("diff_mode=pr requires a PR number.")
-        if not shutil_which("gh"):
+        if not shutil.which("gh"):
             raise RuntimeError("gh is required for PR diff but was not found on PATH.")
         cmd = ["gh"]
         if gh_repo:

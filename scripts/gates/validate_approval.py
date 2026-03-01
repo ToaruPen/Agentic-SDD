@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
 
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-
 import argparse
 import json
-import os
 import re
 import shlex
+import sys
+from datetime import datetime
+from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from _lib.approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
 from _lib.git_utils import (
@@ -30,6 +28,15 @@ _ = run
 
 def read_utf8_text(path: str) -> str:
     return Path(path).read_text(encoding="utf-8")
+
+
+def display_path(path: str, repo_root: str) -> str:
+    p = Path(path)
+    root = Path(repo_root)
+    try:
+        return str(p.relative_to(root))
+    except ValueError:
+        return str(p)
 
 
 def approval_paths(repo_root: str, issue_number: int) -> tuple[str, str]:
@@ -122,15 +129,24 @@ def validate_approval(obj: dict[str, Any], expected_issue_number: int) -> None:
         raise ValueError("mode_reason must be a non-empty string")
 
     approved_at = obj.get("approved_at")
-    if not isinstance(approved_at, str) or not approved_at:
+    if not isinstance(approved_at, str):
         raise ValueError("approved_at must be a non-empty string")
-    if not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", approved_at):
+    approved_at_value = approved_at.strip()
+    if not approved_at_value:
+        raise ValueError("approved_at must be a non-empty string")
+    if not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", approved_at_value):
         raise ValueError(
             "approved_at must be ISO 8601 UTC timestamp like YYYY-MM-DDTHH:mm:ssZ"
         )
+    try:
+        datetime.strptime(approved_at_value, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError as exc:
+        raise ValueError("approved_at must be a valid UTC timestamp") from exc
 
     approver = obj.get("approver")
-    if not isinstance(approver, str) or not approver:
+    if not isinstance(approver, str):
+        raise ValueError("approver must be a non-empty string")
+    if not approver.strip():
         raise ValueError("approver must be a non-empty string")
 
 
@@ -203,14 +219,14 @@ def main() -> int:
 
     if not Path(estimate_md).is_file():
         return gate_blocked(
-            f"Missing estimate snapshot file: {os.path.relpath(estimate_md, repo_root)}",
+            f"Missing estimate snapshot file: {display_path(estimate_md, repo_root)}",
             create_script,
             validate_script,
         )
 
     if not Path(approval_json).is_file():
         return gate_blocked(
-            f"Missing approval record file: {os.path.relpath(approval_json, repo_root)}",
+            f"Missing approval record file: {display_path(approval_json, repo_root)}",
             create_script,
             validate_script,
         )
