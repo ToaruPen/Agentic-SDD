@@ -87,9 +87,9 @@ def main() -> int:
     # Read hook input from stdin
     try:
         input_data = json.load(sys.stdin)
-    except json.JSONDecodeError:
-        # If no valid JSON input, skip the check
-        return 0
+    except json.JSONDecodeError as exc:
+        eprint(f"[agentic-sdd gate] error: invalid hook payload: {exc}")
+        return 1
 
     tool_input = input_data.get("tool_input", {})
     command = tool_input.get("command", "")

@@ -36,7 +36,7 @@ def run(
 def git_repo_root() -> str:
     try:
         p = run(["git", "rev-parse", "--show-toplevel"], check=True)
-    except subprocess.CalledProcessError as exc:
+    except (subprocess.CalledProcessError, OSError) as exc:
         raise RuntimeError("Not in a git repository; cannot locate repo root.") from exc
     root = p.stdout.strip()
     if not root:
@@ -91,15 +91,11 @@ def approval_paths(repo_root: str, issue_number: int) -> tuple[str, str]:
     return str(base / "approval.json"), str(base / "estimate.md")
 
 
-def resolve_approval_script(repo_root: str, script_name: str) -> str:
-    candidates = (
-        str(Path("scripts") / "agentic-sdd" / script_name),
-        str(Path("scripts") / script_name),
-    )
+def resolve_approval_script(repo_root: str, candidates: tuple[str, ...]) -> str:
     for rel in candidates:
         if (Path(repo_root) / rel).is_file():
             return rel
-    return str(Path("scripts") / script_name)
+    return candidates[0]
 
 
 def load_approval_json(path: str) -> dict[str, Any]:
@@ -236,8 +232,20 @@ def main() -> int:
         return 1
     issue_number = extract_issue_number_from_branch(branch)
 
-    create_script = resolve_approval_script(repo_root, "create-approval.py")
-    validate_script = resolve_approval_script(repo_root, "validate-approval.py")
+    create_script = resolve_approval_script(
+        repo_root,
+        (
+            str(Path("scripts") / "approval" / "create_approval.py"),
+            str(Path("scripts") / "create-approval.py"),
+        ),
+    )
+    validate_script = resolve_approval_script(
+        repo_root,
+        (
+            str(Path("scripts") / "gates" / "validate_approval.py"),
+            str(Path("scripts") / "validate-approval.py"),
+        ),
+    )
 
     # Only enforce on branches that clearly indicate an Issue.
     if issue_number is None:

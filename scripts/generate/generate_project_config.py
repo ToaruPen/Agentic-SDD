@@ -328,7 +328,7 @@ def main() -> int:
     elif config_path.suffix == ".md":
         # Epicファイルの場合は extract-epic-config.py を呼び出す
         script_dir = Path(__file__).parent
-        extract_script = script_dir / "extract-epic-config.py"
+        extract_script = script_dir.parent / "extract-epic-config.py"
 
         if not extract_script.exists():
             eprint(f"Error: extract-epic-config.py not found at {extract_script}")
@@ -353,7 +353,7 @@ def main() -> int:
     else:
         # スクリプトの場所から相対パスで検索
         script_dir = Path(__file__).parent
-        repo_root = script_dir.parent
+        repo_root = script_dir.parent.parent
         template_dir = repo_root / "templates" / "project-config"
 
         if not template_dir.exists():
