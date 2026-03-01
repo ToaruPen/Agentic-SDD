@@ -30,7 +30,7 @@ def run(
 def git_repo_root() -> str:
     try:
         p = run(["git", "rev-parse", "--show-toplevel"], check=True)
-    except subprocess.CalledProcessError as exc:
+    except (subprocess.CalledProcessError, OSError) as exc:
         raise RuntimeError("Not in a git repository; cannot locate repo root.") from exc
     root = p.stdout.strip()
     if not root:
