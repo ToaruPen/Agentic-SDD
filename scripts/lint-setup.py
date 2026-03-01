@@ -127,15 +127,21 @@ def _is_source_only_path(sources: List[str]) -> bool:
     return True  # all sources are bare source files
 
 
+_GRADLE_SOURCES: frozenset[str] = frozenset({"build.gradle", "build.gradle.kts"})
+
+
+def _has_gradle_sources(lang: str, lang_sources: Dict[str, List[str]]) -> bool:
+    """lang_sources に Gradle ビルドファイルが含まれるか判定する。"""
+    return any(src in _GRADLE_SOURCES for src in lang_sources.get(lang, []))
+
+
 def _pick_ci_command(
     tool: Dict[str, Any],
     lang: str,
     lang_sources: Dict[str, List[str]],
 ) -> Optional[str]:
     """ビルドツール固有のCI コマンドがあれば優先する。"""
-    sources = lang_sources.get(lang, [])
-    gradle_sources = {"build.gradle", "build.gradle.kts"}
-    if any(src in gradle_sources for src in sources):
+    if _has_gradle_sources(lang, lang_sources):
         gradle_cmd = tool.get("ci_command_gradle")
         if gradle_cmd:
             return gradle_cmd
@@ -147,9 +153,7 @@ def _pick_scoped_template(
     lang: str,
     lang_sources: Dict[str, List[str]],
 ) -> Optional[str]:
-    sources = lang_sources.get(lang, [])
-    gradle_sources = {"build.gradle", "build.gradle.kts"}
-    if any(src in gradle_sources for src in sources):
+    if _has_gradle_sources(lang, lang_sources):
         gradle_scoped = tool.get("ci_command_gradle_scoped")
         if gradle_scoped:
             return gradle_scoped

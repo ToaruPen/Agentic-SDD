@@ -961,8 +961,11 @@ def test_generate_ci_commands_mixed_maven_gradle_per_path() -> None:
     )
     lint_cmd = next(c for c in commands if c["key"] == "AGENTIC_SDD_CI_LINT_CMD")
 
-    assert "./gradlew checkstyleMain --project-dir gradle-app" in lint_cmd["value"]
-    assert "mvn checkstyle:check -f maven-app/pom.xml" in lint_cmd["value"]
+    parts = {p.strip() for p in lint_cmd["value"].split("&&")}
+    assert parts == {
+        "./gradlew checkstyleMain --project-dir gradle-app",
+        "mvn checkstyle:check -f maven-app/pom.xml",
+    }
 
 
 def test_generate_ci_commands_gradle_module_with_java_source_emits_single_command() -> (
