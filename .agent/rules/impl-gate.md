@@ -75,6 +75,29 @@ Implementation note:
     - what was done instead (if any)
     - and ask for explicit approval to proceed.
 
+
+## LSP verification gate (during implementation — required)
+
+Applied after each file edit, not just post-implementation.
+
+### Required
+
+- [ ] Run `lsp_diagnostics` on all edited files and confirm error count is 0.
+- [ ] Before refactoring or renaming, run `lsp_find_references` to confirm impact scope.
+
+### Recommended
+
+- [ ] On type/interface changes: `lsp_find_references` to trace propagation to implementors and tests.
+- [ ] On symbol rename: `lsp_prepare_rename` → `lsp_rename` (safer than manual grep + replace).
+- [ ] On unknown symbol understanding: `lsp_goto_definition` to jump to the definition.
+
+### Delegation requirement
+
+When delegating implementation to a sub-agent, include LSP verification in the task prompt:
+- Whitelist the required LSP tools (`lsp_diagnostics`, `lsp_find_references`).
+- State the verification requirement explicitly in the MUST DO section.
+- Reference `skills/lsp-verification.md` for the full pattern catalog.
+
 ---
 
 ## Development loop (single-step)

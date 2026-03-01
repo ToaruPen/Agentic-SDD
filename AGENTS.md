@@ -188,6 +188,7 @@ To keep this bootstrap file small, detailed rules live in these files:
 - Estimation: `.agent/commands/estimation.md`, `.agent/rules/impl-gate.md`
 - Review: `.agent/commands/final-review.md`, `.agent/rules/dod.md`, `.agent/rules/docs-sync.md`
 - Production Quality: `.agent/rules/security.md`, `.agent/rules/performance.md`, `.agent/rules/observability.md`, `.agent/rules/availability.md`
+- LSP verification: `.agent/rules/impl-gate.md` (LSP verification gate), `skills/lsp-verification.md`
 
 ---
 
