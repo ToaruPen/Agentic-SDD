@@ -11,6 +11,7 @@ detect-languages.py の出力と lint-registry.json を組み合わせて、
 
 import argparse
 import json
+import shlex
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -126,7 +127,7 @@ def _scope_command(cmd: str, paths: List[str]) -> str:
     unique_paths = sorted(set(p for p in paths if p != "."))
     if not unique_paths:
         return cmd
-    path_args = " ".join(unique_paths)
+    path_args = " ".join(shlex.quote(p) for p in unique_paths)
     if cmd.endswith(" ."):
         return cmd[:-2] + " " + path_args
     return cmd + " " + path_args
@@ -200,6 +201,9 @@ def _build_toolchains(
 
     toolchains: list[Dict[str, Any]] = []
     for lang_info in languages:
+        if not isinstance(lang_info, dict) or "name" not in lang_info:
+            eprint(f"[WARN] malformed language entry skipped: {lang_info!r}")
+            continue
         lang_name = lang_info["name"]
         toolchain = lookup_toolchain(lang_name, registry)
         if not toolchain:
@@ -411,6 +415,9 @@ def run_setup(
     lang_paths: Dict[str, List[str]] = {}
     lang_sources: Dict[str, List[str]] = {}  # 検出ソースファイル名を記録
     for lang in languages:
+        if not isinstance(lang, dict) or "name" not in lang:
+            eprint(f"[WARN] malformed language entry skipped: {lang!r}")
+            continue
         name = lang["name"]
         path = lang.get("path", ".")
         source = lang.get("source", "")
@@ -506,7 +513,11 @@ def run_setup(
 
     # 証跡ファイル（確定検出のみ）
     confirmed_languages = [
-        lang for lang in languages if lang.get("confidence", "confirmed") != "inferred"
+        lang
+        for lang in languages
+        if isinstance(lang, dict)
+        and "name" in lang
+        and lang.get("confidence", "confirmed") != "inferred"
     ]
     confirmed_detection: Dict[str, Any] = {
         **detection,

@@ -767,3 +767,40 @@ def test_run_setup_mixed_inferred_and_confirmed_excludes_confirmed_from_inferred
 
     assert "java" in result["languages"]
     assert "inferred_languages" not in result
+
+
+def test_run_setup_skips_malformed_language_entries(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Malformed language entries (missing 'name', wrong type) should be skipped with a warning."""
+    ensure_jinja2_available(tmp_path)
+    registry = load_real_registry()
+    detection = {
+        "languages": [
+            {"name": "python", "source": "pyproject.toml", "path": "."},
+            {"source": "orphan.txt", "path": "."},  # missing 'name'
+            "not-a-dict",  # wrong type
+            {"name": "go", "source": "go.mod", "path": "."},
+        ],
+        "existing_linter_configs": [],
+        "is_monorepo": False,
+    }
+
+    result = MODULE.run_setup(
+        detection, registry, tmp_path, dry_run=False, template_dir=TEMPLATE_DIR
+    )
+
+    # Valid languages should be processed
+    assert "python" in result["languages"]
+    assert "go" in result["languages"]
+    # Malformed entries should be skipped (not crash)
+    assert len(result["languages"]) == 2
+
+
+def test_scope_command_quotes_paths_with_spaces() -> None:
+    """Paths with spaces should be shell-quoted in CI commands."""
+    import shlex
+
+    result = MODULE._scope_command("ruff check .", ["my project"])
+    assert shlex.quote("my project") in result
+    assert result != "ruff check my project"  # unquoted would be wrong
