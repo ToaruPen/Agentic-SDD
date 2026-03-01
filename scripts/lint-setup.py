@@ -356,6 +356,15 @@ def run_setup(
                     else:
                         pyproject_path.write_text(config, encoding="utf-8")
                 generated_files.append("pyproject.toml [tool.ruff]")
+        else:
+            # Python 以外の言語は自動生成未対応 → 提案を出力
+            linter = toolchain.get("linter", {})
+            proposals.append(
+                f"  - {lang_name}: {linter.get('name')} を推奨 (docs: {linter.get('docs_url')})"
+            )
+            eprint(
+                f"[INFO] {lang_name}: 自動設定生成は未対応です。提案を参照してください。"
+            )
 
     # CI コマンド
     ci_commands = generate_ci_commands(lang_names, registry)
