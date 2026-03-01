@@ -90,3 +90,123 @@ def test_check_output_cmd_accepts_stderr_parameter() -> None:
     )
 
     assert output == "hello"
+
+
+def test_run_cmd_passes_expected_kwargs_with_mock(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_run(*args: object, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+        return subprocess.CompletedProcess(["python3"], 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(MODULE.subprocess, "run", _fake_run)
+    result = MODULE.run_cmd(
+        ["python3", "-c", "print('x')"],
+        cwd=".",
+        check=False,
+        text=True,
+        capture_output=True,
+        timeout=3,
+    )
+    assert result.stdout == "ok"
+    assert captured["kwargs"] == {
+        "cwd": ".",
+        "check": False,
+        "text": True,
+        "capture_output": True,
+        "timeout": 3,
+    }
+
+
+def test_run_cmd_timeout_is_propagated(monkeypatch: pytest.MonkeyPatch) -> None:
+    def _fake_run(
+        *_args: object, **_kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        raise subprocess.TimeoutExpired(cmd=["python3"], timeout=1)
+
+    monkeypatch.setattr(MODULE.subprocess, "run", _fake_run)
+    with pytest.raises(subprocess.TimeoutExpired):
+        MODULE.run_cmd(["python3", "-c", "print('x')"], timeout=1)
+
+
+def test_check_output_cmd_passes_expected_kwargs_with_mock(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def _fake_check_output(*args: object, **kwargs: object) -> str:
+        captured["args"] = args
+        captured["kwargs"] = kwargs
+        return "ok"
+
+    monkeypatch.setattr(MODULE.subprocess, "check_output", _fake_check_output)
+    result = MODULE.check_output_cmd(
+        ["python3", "-c", "print('x')"],
+        cwd=".",
+        stderr=subprocess.DEVNULL,
+        text=True,
+        timeout=4,
+    )
+    assert result == "ok"
+    assert captured["kwargs"] == {
+        "cwd": ".",
+        "stderr": subprocess.DEVNULL,
+        "text": True,
+        "timeout": 4,
+    }
+
+
+def test_check_output_cmd_timeout_is_propagated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _fake_check_output(*_args: object, **_kwargs: object) -> str:
+        raise subprocess.TimeoutExpired(cmd=["python3"], timeout=1)
+
+    monkeypatch.setattr(MODULE.subprocess, "check_output", _fake_check_output)
+    with pytest.raises(subprocess.TimeoutExpired):
+        MODULE.check_output_cmd(["python3", "-c", "print('x')"], timeout=1)
+
+
+def test_exit_with_subprocess_returncode_nonzero_and_zero() -> None:
+    with pytest.raises(SystemExit) as excinfo:
+        MODULE.exit_with_subprocess_returncode(3)
+
+    assert excinfo.value.code == 3
+
+
+def test_exit_with_subprocess_returncode_zero() -> None:
+    with pytest.raises(SystemExit) as excinfo:
+        MODULE.exit_with_subprocess_returncode(0)
+
+    assert excinfo.value.code == 0
+
+
+def test_exit_with_subprocess_returncode_signal_uses_exit_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[int, int]] = []
+
+    monkeypatch.setattr(MODULE.os, "kill", lambda pid, sig: calls.append((pid, sig)))
+
+    with pytest.raises(SystemExit) as excinfo:
+        MODULE.exit_with_subprocess_returncode(-9)
+
+    assert calls == [(MODULE.os.getpid(), 9)]
+    assert excinfo.value.code == 137
+
+
+def test_exit_with_subprocess_returncode_signal_fallback_when_kill_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _fail(_: int, __: int) -> None:
+        raise OSError(1, "boom")
+
+    monkeypatch.setattr(MODULE.os, "kill", _fail)
+
+    with pytest.raises(SystemExit) as excinfo:
+        MODULE.exit_with_subprocess_returncode(-15)
+
+    assert excinfo.value.code == 143

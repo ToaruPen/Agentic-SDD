@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 
+"""Shared subprocess helpers.
+
+`S603` is suppressed in this module because calls use trusted command arrays from
+repository code (not shell strings, not user-controlled input). Keep that
+invariant when adding new call sites to `run_cmd` / `check_output_cmd`.
+"""
+
 from __future__ import annotations
 
+import os
 import subprocess
-from typing import IO, Any, Literal, overload
+from contextlib import suppress
+from typing import IO, Any, Literal, NoReturn, overload
 
 
 @overload
@@ -86,3 +95,16 @@ def check_output_cmd(
         text=text,
         timeout=timeout,
     )
+
+
+def exit_with_subprocess_returncode(returncode: int) -> NoReturn:
+    """Exit with subprocess return semantics, including POSIX signal propagation."""
+    if returncode >= 0:
+        raise SystemExit(returncode)
+
+    signal_number = -returncode
+    if os.name == "posix":
+        with suppress(OSError):
+            os.kill(os.getpid(), signal_number)
+
+    raise SystemExit(128 + signal_number)

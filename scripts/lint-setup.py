@@ -36,12 +36,12 @@ def load_registry(registry_path: Path) -> dict[str, Any]:
     if not registry_path.is_file():
         eprint(f"Error: Registry file not found: {registry_path}")
         sys.exit(1)
-    with registry_path.open(encoding="utf-8") as fh:
-        try:
+    try:
+        with registry_path.open(encoding="utf-8") as fh:
             return json.load(fh)
-        except json.JSONDecodeError as exc:
-            eprint(f"Error: Failed to parse registry JSON: {registry_path}: {exc}")
-            sys.exit(1)
+    except (OSError, json.JSONDecodeError) as exc:
+        eprint(f"Error: Failed to load registry JSON: {registry_path}: {exc}")
+        sys.exit(1)
 
 
 def load_detection_result(detection_path: str) -> dict[str, Any]:
@@ -50,12 +50,12 @@ def load_detection_result(detection_path: str) -> dict[str, Any]:
     if not path.is_file():
         eprint(f"Error: Detection result file not found: {path}")
         sys.exit(1)
-    with path.open(encoding="utf-8") as fh:
-        try:
+    try:
+        with path.open(encoding="utf-8") as fh:
             return json.load(fh)
-        except json.JSONDecodeError as exc:
-            eprint(f"Error: Failed to parse detection JSON: {path}: {exc}")
-            sys.exit(1)
+    except (OSError, json.JSONDecodeError) as exc:
+        eprint(f"Error: Failed to load detection JSON: {path}: {exc}")
+        sys.exit(1)
 
 
 def check_existing_configs(
@@ -286,6 +286,7 @@ def _build_toolchains(
     """証跡用ツールチェーンデータを構築。(toolchains, existing_configs) を返す。"""
     languages = detection.get("languages", [])
     existing_configs = detection.get("existing_linter_configs", [])
+    now_iso = datetime.now(tz=UTC).isoformat()
 
     toolchains: list[dict[str, Any]] = []
     for lang_info in languages:
@@ -313,7 +314,7 @@ def _build_toolchains(
                 "references": [
                     {
                         "url": linter.get("docs_url", ""),
-                        "registered_at": datetime.now(tz=UTC).isoformat(),
+                        "registered_at": now_iso,
                         "note": "URL from registry; agent fetches actual docs at runtime via webfetch/librarian",
                     }
                 ],
@@ -464,6 +465,13 @@ def generate_evidence_trail(
             )
             template = env.get_template("rules/lint.md.j2")
             content = template.render(**context)
+            if content is not None and (
+                "{{" in content or "{%" in content or "%}" in content
+            ):
+                eprint(
+                    "[WARN] Template output contains unrendered markers; using plaintext fallback"
+                )
+                content = None
         else:
             eprint(
                 f"[WARN] Template directory not found: {template_dir}; using plaintext fallback"

@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import argparse
 import importlib
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Protocol
 
 from _lib.subprocess_utils import run_cmd
@@ -48,12 +48,10 @@ def setup_jinja_env(template_dir: Path) -> JinjaEnvironmentLike:
     """Jinja2環境をセットアップ"""
     try:
         jinja2 = importlib.import_module("jinja2")
-    except ImportError:
-        print(
-            "Error: jinja2 is required. Install with: pip install jinja2",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    except ImportError as exc:
+        raise RuntimeError(
+            "jinja2 is required. Install with: pip install jinja2"
+        ) from exc
 
     return jinja2.Environment(
         loader=jinja2.FileSystemLoader(str(template_dir)),
@@ -76,7 +74,7 @@ def generate_config_json(
     context = {
         "epic_path": config.get("epic_path", ""),
         "prd_path": config.get("meta", {}).get("prd_path"),
-        "generated_at": datetime.now().isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "tech_stack": config.get("tech_stack", {}),
         "requirements": config.get("requirements", {}),
         "generated_skills": generated_skills,
@@ -422,11 +420,13 @@ def main() -> int:
                     if lint_proc.returncode == 0:
                         try:
                             result["lint_setup"] = json.loads(lint_proc.stdout)
-                        except json.JSONDecodeError as exc:
+                        except (json.JSONDecodeError, ValueError) as exc:
                             eprint(
                                 f"[WARN] lint-setup returned 0 but output is not valid JSON: {exc}"
                             )
+                            result["lint_setup"] = None
                             result["lint_setup_error"] = f"invalid JSON output: {exc}"
+                            result["lint_setup_stdout"] = lint_proc.stdout
                     else:
                         stderr = lint_proc.stderr.strip()
                         eprint(

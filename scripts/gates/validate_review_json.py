@@ -244,10 +244,14 @@ def main() -> int:
 
     if args.format:
         tmp = Path(f"{args.path}.tmp.{os.getpid()}")
-        tmp.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
-        tmp.replace(Path(args.path))
+        try:
+            tmp.write_text(
+                json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
+            tmp.replace(Path(args.path))
+        finally:
+            if tmp.exists():
+                tmp.unlink()
 
     print(f"OK: {args.path}")
     return 0

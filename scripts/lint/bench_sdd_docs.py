@@ -410,6 +410,8 @@ def main() -> int:
         help="Only run a specific command token (repeatable), e.g. --only /estimation",
     )
     args = parser.parse_args()
+    if args.timeout <= 0:
+        parser.error("timeout must be a positive integer")
 
     commands = get_commands()
     missing_docs, uncovered_docs = _command_doc_coverage(REPO_ROOT, commands)

@@ -10,15 +10,8 @@ import argparse
 import json
 import re
 
+from _lib.io_helpers import eprint, read_text
 from _lib.sot_refs import find_issue_ref, resolve_ref_to_repo_path
-
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
-
-
-def read_text(path: str) -> str:
-    return Path(path).read_text(encoding="utf-8")
 
 
 def truncate_keep_tail(text: str, max_chars: int, tail_chars: int = 2048) -> str:

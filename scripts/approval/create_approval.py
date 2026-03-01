@@ -7,52 +7,23 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 import argparse
-import hashlib
 import json
 import re
-import shutil
 from datetime import UTC, datetime
 from typing import Any
 
 from _lib.approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
-from _lib.subprocess_utils import run_cmd
-
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
+from _lib.git_utils import (
+    eprint,
+    git_repo_root,
+    normalize_text_for_hash,
+    sha256_prefixed,
+)
 
 
 def now_utc_z() -> str:
     # Agentic-SDD datetime rule: YYYY-MM-DDTHH:mm:ssZ (UTC, no milliseconds).
     return datetime.now(UTC).replace(microsecond=0).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def git_repo_root() -> str:
-    git_bin = shutil.which("git")
-    if not git_bin:
-        raise RuntimeError("git not found on PATH")
-
-    try:
-        p = run_cmd([git_bin, "rev-parse", "--show-toplevel"], check=False)
-    except OSError as exc:
-        raise RuntimeError("Not in a git repository; cannot locate repo root.") from exc
-    root = (p.stdout or "").strip()
-    if p.returncode != 0 or not root:
-        raise RuntimeError("Not in a git repository; cannot locate repo root.")
-    return str(Path(root).resolve())
-
-
-def normalize_text_for_hash(text: str) -> bytes:
-    text = text.replace("\r\n", "\n").replace("\r", "\n")
-    if not text.endswith("\n"):
-        text += "\n"
-    return text.encode("utf-8")
-
-
-def sha256_prefixed(data: bytes) -> str:
-    h = hashlib.sha256()
-    h.update(data)
-    return f"sha256:{h.hexdigest()}"
 
 
 def approval_dir(repo_root: str, issue_number: int) -> str:

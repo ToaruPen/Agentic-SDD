@@ -1,56 +1,20 @@
 #!/usr/bin/env python3
 
 import sys
-from pathlib import Path, PurePath
+from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 import argparse
 import json
-import os
 import re
 import subprocess
 from collections.abc import Sequence
 
-from _lib.sot_refs import is_safe_repo_relative, normalize_reference
+from _lib.io_helpers import eprint, read_text
+from _lib.sot_refs import resolve_ref_to_repo_path
 from _lib.subprocess_utils import check_output_cmd
-
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
-
-
-def read_text(path: str) -> str:
-    return Path(path).read_text(encoding="utf-8")
-
-
-def resolve_ref_to_repo_path(repo_root: str, ref: str) -> str:
-    ref = normalize_reference(ref)
-    if not ref:
-        raise ValueError("empty reference")
-
-    # Ignore URLs
-    if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", ref):
-        raise ValueError(f"unsupported URL reference: {ref}")
-
-    if PurePath(ref).is_absolute():
-        abs_path = str(Path(ref).resolve())
-        repo_abs = str(Path(repo_root).resolve())
-        if not abs_path.startswith(repo_abs + os.sep):
-            raise ValueError(f"absolute path outside repo: {ref}")
-        rel = str(Path(abs_path).relative_to(repo_abs)).replace(os.sep, "/")
-        if not is_safe_repo_relative(rel):
-            raise ValueError(f"unsafe repo-relative path: {rel}")
-        return rel
-
-    rel = ref
-    rel = rel.removeprefix("./")
-    rel = rel.replace("\\", "/")
-    rel = os.path.normpath(rel).replace(os.sep, "/")
-    if not is_safe_repo_relative(rel):
-        raise ValueError(f"unsafe repo-relative path: {rel}")
-    return rel
 
 
 def gh_issue_body(issue: str, gh_repo: str) -> str:
@@ -113,12 +77,11 @@ def extract_paths(repo_root: str, lines: Sequence[str]) -> list[str]:
 
     for line in lines:
         for raw in BACKTICK_RE.findall(line):
-            resolved = None
             try:
                 resolved = resolve_ref_to_repo_path(repo_root, raw)
             except ValueError:
-                resolved = None
-            if resolved is not None:
+                pass
+            else:
                 out.add(resolved)
 
         if "`" in line:
@@ -126,12 +89,11 @@ def extract_paths(repo_root: str, lines: Sequence[str]) -> list[str]:
 
         m = BULLET_PATH_RE.match(line)
         if m:
-            resolved = None
             try:
                 resolved = resolve_ref_to_repo_path(repo_root, m.group("path"))
             except ValueError:
-                resolved = None
-            if resolved is not None:
+                pass
+            else:
                 out.add(resolved)
 
     return sorted(out)

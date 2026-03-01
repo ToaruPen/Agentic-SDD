@@ -15,18 +15,12 @@ import subprocess
 from datetime import datetime
 from typing import Any
 
+from _lib.git_utils import git_repo_root
+from _lib.io_helpers import eprint, read_text
 from _lib.sot_refs import find_issue_ref, resolve_ref_to_repo_path
 from _lib.subprocess_utils import run_cmd
 
 GH_CMD_TIMEOUT = 30
-
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
-
-
-def read_text(path: str) -> str:
-    return Path(path).read_text(encoding="utf-8")
 
 
 def run(
@@ -43,20 +37,6 @@ def _format_path(path: str, repo_root: str) -> str:
         return str(Path(path).relative_to(repo_root)).replace(os.sep, "/")
     except ValueError:
         return str(Path(path)).replace(os.sep, "/")
-
-
-def git_repo_root() -> str:
-    git_bin = shutil.which("git")
-    if not git_bin:
-        raise RuntimeError("git not found on PATH")
-    try:
-        p = run([git_bin, "rev-parse", "--show-toplevel"], check=True)
-    except subprocess.CalledProcessError as exc:
-        raise RuntimeError("Not in a git repository; cannot locate repo root.") from exc
-    root = p.stdout.strip()
-    if not root:
-        raise RuntimeError("Failed to locate repo root via git.")
-    return str(Path(root).resolve())
 
 
 def current_branch(repo_root: str) -> str:
@@ -211,7 +191,7 @@ def detect_pr_number(repo_root: str, gh_repo: str) -> str | None:
     cmd += ["pr", "view", "--json", "number"]
     try:
         p = run(cmd, cwd=repo_root, check=True, timeout=GH_CMD_TIMEOUT)
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
         return None
     try:
         data = json.loads(p.stdout)
@@ -241,7 +221,18 @@ def git_has_diff(repo_root: str, args: list[str]) -> bool:
         cwd=repo_root,
         check=False,
     )
-    return cp.returncode != 0
+    if cp.returncode == 0:
+        return False
+    if cp.returncode == 1:
+        return True
+    if cp.returncode < 0:
+        raise RuntimeError(f"git diff --quiet terminated by signal {-cp.returncode}")
+    stderr = (getattr(cp, "stderr", "") or "").strip()
+    stdout = (getattr(cp, "stdout", "") or "").strip()
+    detail = stderr or stdout or "unknown git error"
+    raise RuntimeError(
+        f"git diff --quiet failed with exit code {cp.returncode}: {detail}"
+    )
 
 
 def git_diff_text(repo_root: str, args: list[str]) -> str:
@@ -284,8 +275,10 @@ def resolve_diff(
         cmd += ["pr", "diff", pr_number, "--patch"]
         try:
             p = run(cmd, cwd=repo_root, check=True, timeout=GH_CMD_TIMEOUT)
-        except subprocess.CalledProcessError as exc:
-            msg = exc.stderr.strip() or exc.stdout.strip() or str(exc)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+            stderr = (getattr(exc, "stderr", "") or "").strip()
+            stdout = (getattr(exc, "stdout", "") or "").strip()
+            msg = stderr or stdout or str(exc)
             raise RuntimeError(f"Failed to fetch PR diff via gh: {msg}") from exc
         if not p.stdout.strip():
             raise RuntimeError("PR diff is empty.")

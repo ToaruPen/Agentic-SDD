@@ -13,6 +13,7 @@ import shutil
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from _lib.io_helpers import eprint, read_text
 from _lib.md_sanitize import (
     sanitize_status_text,
     strip_fenced_code_blocks,
@@ -26,10 +27,6 @@ from _lib.subprocess_utils import run_cmd
 class LintError:
     path: str
     message: str
-
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
 
 
 def repo_root() -> str:
@@ -72,10 +69,6 @@ def is_safe_repo_relative_root(root: str) -> bool:
     if not parts:
         return False
     return ".." not in parts
-
-
-def read_text(path: str) -> str:
-    return Path(path).read_text(encoding="utf-8")
 
 
 _STATUS_APPROVED_RE = re.compile(r"^\s*-\s*ステータス\s*:\s*Approved\s*$", re.MULTILINE)

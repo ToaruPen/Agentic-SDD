@@ -82,8 +82,10 @@ jobs:
             scripts/tests/*.sh
             .githooks/pre-commit
             .githooks/pre-push
-            scripts/agentic-sdd
           )
+          if [[ -f scripts/agentic-sdd ]]; then
+            shell_files+=(scripts/agentic-sdd)
+          fi
           if compgen -G "scripts/*.sh" > /dev/null; then
             shell_files+=(scripts/*.sh)
           fi
@@ -116,5 +118,6 @@ jobs:
           elif [[ -f scripts/lint-sot.py ]]; then
             python3 scripts/lint-sot.py docs
           else
-            echo "[lint] skip: scripts/lint/lint_sot.py not found"
+            echo "[lint] ERROR: missing docs/SoT linter (scripts/lint/lint_sot.py or scripts/lint-sot.py)" >&2
+            exit 1
           fi

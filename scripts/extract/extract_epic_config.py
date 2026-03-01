@@ -16,17 +16,10 @@ import json
 import re
 from typing import Any
 
+from _lib.io_helpers import eprint, read_text
 from _lib.md_sanitize import (
     sanitize_status_text,
 )
-
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
-
-
-def read_text(path: str) -> str:
-    return Path(path).read_text(encoding="utf-8")
 
 
 def extract_section(text: str, section_pattern: str) -> str | None:

@@ -14,14 +14,9 @@ Defaults to current working directory as repo root.
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-
 import re
-from pathlib import PurePosixPath
+import sys
+from pathlib import Path, PurePosixPath
 
 # Required sections in every decision body (from _template.md / README.md)
 REQUIRED_SECTIONS: list[str] = [

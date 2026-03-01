@@ -115,7 +115,7 @@ run_case() {
 
 run_case "nested_pair" 0 "" "scripts/agentic-sdd/validate-worktree.py"
 run_case "legacy_pair" 0 "" "scripts/gates/validate_worktree.py"
-run_case "one_missing" 1 "[agentic-sdd gate] BLOCKED: validate-worktree.py is missing. Reinstall/upgrade Agentic-SDD." ""
+run_case "one_missing" 1 "[agentic-sdd gate] BLOCKED: validate_worktree.py is missing. Reinstall/upgrade Agentic-SDD." ""
 run_case "both_missing" 1 "[agentic-sdd gate] BLOCKED: validator pair is missing. Reinstall/upgrade Agentic-SDD." ""
 
 printf '%s\n' "OK: scripts/tests/test-pre-push-validator-discovery.sh"

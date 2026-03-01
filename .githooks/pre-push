@@ -25,9 +25,9 @@ fi
 
 if [ -z "$approval_py" ] || [ -z "$worktree_py" ]; then
   if [ -f "scripts/agentic-sdd/validate-approval.py" ] || [ -f "scripts/gates/validate_approval.py" ]; then
-    echo "[agentic-sdd gate] BLOCKED: validate-worktree.py is missing. Reinstall/upgrade Agentic-SDD." >&2
+    echo "[agentic-sdd gate] BLOCKED: validate_worktree.py is missing. Reinstall/upgrade Agentic-SDD." >&2
   elif [ -f "scripts/agentic-sdd/validate-worktree.py" ] || [ -f "scripts/gates/validate_worktree.py" ]; then
-    echo "[agentic-sdd gate] BLOCKED: validate-approval.py is missing. Reinstall/upgrade Agentic-SDD." >&2
+    echo "[agentic-sdd gate] BLOCKED: validate_approval.py is missing. Reinstall/upgrade Agentic-SDD." >&2
   else
     echo "[agentic-sdd gate] BLOCKED: validator pair is missing. Reinstall/upgrade Agentic-SDD." >&2
   fi

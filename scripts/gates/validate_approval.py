@@ -7,7 +7,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 import argparse
-import hashlib
 import json
 import os
 import re
@@ -20,25 +19,13 @@ from _lib.git_utils import (
     eprint,
     extract_issue_number_from_branch,
     git_repo_root,
+    normalize_text_for_hash,
     run,
+    sha256_prefixed,
 )
 
 EXIT_GATE_BLOCKED = 2
 _ = run
-
-
-def normalize_text_for_hash(text: str) -> bytes:
-    # Normalize line endings for cross-platform determinism.
-    text = text.replace("\r\n", "\n").replace("\r", "\n")
-    if not text.endswith("\n"):
-        text += "\n"
-    return text.encode("utf-8")
-
-
-def sha256_prefixed(data: bytes) -> str:
-    h = hashlib.sha256()
-    h.update(data)
-    return f"sha256:{h.hexdigest()}"
 
 
 def read_utf8_text(path: str) -> str:
@@ -177,8 +164,10 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        repo_root = (
-            os.path.realpath(args.repo_root) if args.repo_root else git_repo_root()
+        repo_root = str(
+            Path(args.repo_root).resolve()
+            if args.repo_root
+            else Path(git_repo_root()).resolve()
         )
     except RuntimeError as exc:
         eprint(f"[agentic-sdd gate] error: {exc}")

@@ -8,6 +8,8 @@ from urllib.parse import urlparse
 def is_safe_repo_relative(path: str) -> bool:
     if not path:
         return False
+    if re.match(r"^[A-Za-z]:", path):
+        return False
     if path.startswith("/"):
         return False
     parts = [p for p in path.split("/") if p]
