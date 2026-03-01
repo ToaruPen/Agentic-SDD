@@ -114,7 +114,7 @@ none | github-actions) ;;
 esac
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
-SOURCE_ROOT=$(cd -- "$SCRIPT_DIR/.." && pwd)
+SOURCE_ROOT=$(cd -- "$SCRIPT_DIR/../.." && pwd)
 TARGET_DIR=$(cd -- "$TARGET_DIR" && pwd)
 
 if [ ! -d "$SOURCE_ROOT/.agent" ]; then
@@ -430,15 +430,15 @@ ensure_gitignore_line "$TARGET_DIR/.gitignore" ".codex/"
 # Git hooks activation (local config)
 if [ "$DRY_RUN" = false ]; then
 	if command -v git >/dev/null 2>&1 && git -C "$TARGET_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-		if [ -x "$TARGET_DIR/scripts/agentic-sdd/setup-githooks.sh" ]; then
+		if [ -x "$TARGET_DIR/scripts/agentic-sdd/shell/setup-githooks.sh" ]; then
 			log_info "Configuring git hooks (core.hooksPath=.githooks)"
 			if [ "$FORCE" = true ]; then
-				(cd "$TARGET_DIR" && ./scripts/agentic-sdd/setup-githooks.sh --force --quiet)
+				(cd "$TARGET_DIR" && ./scripts/agentic-sdd/shell/setup-githooks.sh --force --quiet)
 			else
-				(cd "$TARGET_DIR" && ./scripts/agentic-sdd/setup-githooks.sh --quiet)
+				(cd "$TARGET_DIR" && ./scripts/agentic-sdd/shell/setup-githooks.sh --quiet)
 			fi
 		else
-			log_warn "Missing executable: $TARGET_DIR/scripts/agentic-sdd/setup-githooks.sh (skipping hooks setup)"
+			log_warn "Missing executable: $TARGET_DIR/scripts/agentic-sdd/shell/setup-githooks.sh (skipping hooks setup)"
 		fi
 	else
 		log_warn "Target is not a git repo; skipping hooks setup"
@@ -465,13 +465,13 @@ log_info "Installed files: $copied, Skipped identical: $skipped, Conflicts: $con
 
 # Tool-specific sync
 if [ "$TOOL" != "none" ] && [ "$TOOL" != "claude" ]; then
-	if [ ! -x "$TARGET_DIR/scripts/agentic-sdd/sync-agent-config.sh" ]; then
-		log_error "Missing executable: $TARGET_DIR/scripts/agentic-sdd/sync-agent-config.sh"
+	if [ ! -x "$TARGET_DIR/scripts/agentic-sdd/shell/sync-agent-config.sh" ]; then
+		log_error "Missing executable: $TARGET_DIR/scripts/agentic-sdd/shell/sync-agent-config.sh"
 		exit 1
 	fi
 
 	log_info "Running sync-agent-config.sh for: $TOOL"
-	(cd "$TARGET_DIR" && ./scripts/agentic-sdd/sync-agent-config.sh --force "$TOOL")
+	(cd "$TARGET_DIR" && ./scripts/agentic-sdd/shell/sync-agent-config.sh --force "$TOOL")
 fi
 
 log_info "Done."

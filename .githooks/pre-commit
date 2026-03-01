@@ -18,9 +18,9 @@ worktree_py=""
 if [ -f "scripts/agentic-sdd/validate-approval.py" ]; then
   approval_py="scripts/agentic-sdd/validate-approval.py"
   worktree_py="scripts/agentic-sdd/validate-worktree.py"
-elif [ -f "scripts/validate-approval.py" ]; then
-  approval_py="scripts/validate-approval.py"
-  worktree_py="scripts/validate-worktree.py"
+elif [ -f "scripts/gates/validate_approval.py" ]; then
+  approval_py="scripts/gates/validate_approval.py"
+  worktree_py="scripts/gates/validate_worktree.py"
 fi
 
 if [ -z "$approval_py" ]; then

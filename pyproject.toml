@@ -48,8 +48,8 @@ branch = true
 
 [tool.coverage.report]
 include = [
-  "scripts/lint-sot.py",
-  "scripts/validate-worktree.py",
+  "scripts/lint/lint_sot.py",
+  "scripts/gates/validate_worktree.py",
 ]
 show_missing = true
 fail_under = 15

@@ -80,7 +80,7 @@ jobs:
           shellcheck -S warning \
             .githooks/pre-commit \
             .githooks/pre-push \
-            scripts/*.sh \
+            scripts/shell/*.sh \
             scripts/tests/*.sh
 
       - name: Actionlint
@@ -105,8 +105,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ -f scripts/lint-sot.py ]]; then
-            python3 scripts/lint-sot.py docs
+          if [[ -f scripts/lint/lint_sot.py ]]; then
+            python3 scripts/lint/lint_sot.py docs
           else
-            echo "[lint] skip: scripts/lint-sot.py not found"
+            echo "[lint] skip: scripts/lint/lint_sot.py not found"
           fi

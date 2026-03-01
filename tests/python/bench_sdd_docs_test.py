@@ -12,7 +12,7 @@ pytest = importlib.import_module("pytest")
 @pytest.fixture(scope="module")
 def bench_module() -> ModuleType:
     repo_root = Path(__file__).resolve().parents[2]
-    module_path = repo_root / "scripts" / "bench-sdd-docs.py"
+    module_path = repo_root / "scripts" / "lint" / "bench_sdd_docs.py"
     spec = importlib.util.spec_from_file_location("bench_sdd_docs", module_path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Failed to load module spec: {module_path}")

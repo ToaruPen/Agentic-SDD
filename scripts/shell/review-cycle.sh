@@ -1168,7 +1168,7 @@ write_sot() {
 		issue_body_arg=""
 	fi
 
-	assemble_cmd=(python3 "$script_dir/assemble-sot.py" --repo-root "$repo_root" --manual-sot "$sot" --max-chars "$sot_max_chars")
+	assemble_cmd=(python3 "$script_dir/../lint/assemble_sot.py" --repo-root "$repo_root" --manual-sot "$sot" --max-chars "$sot_max_chars")
 	if [[ -n "$issue_json_arg" ]]; then
 		assemble_cmd+=(--issue-json "$issue_json_arg")
 	fi
@@ -1586,7 +1586,7 @@ PY
 	done <<<"$reuse_state_fast"
 
 	if [[ "$reuse_eligible" -eq 1 ]]; then
-		if python3 "$script_dir/validate-review-json.py" "$reuse_candidate_json" --scope-id "$scope_id" >/dev/null 2>&1; then
+		if python3 "$script_dir/../gates/validate_review_json.py" "$reuse_candidate_json" --scope-id "$scope_id" >/dev/null 2>&1; then
 			ensure_run_dir
 			if [[ "$advisory_lane" == "1" ]]; then
 				candidate_advisory="$scope_root/$reuse_candidate_run/advisory.txt"
@@ -1902,7 +1902,7 @@ if [[ "$format_json" != "0" ]]; then
 	validate_args+=(--format)
 fi
 set +e
-python3 "$script_dir/validate-review-json.py" "${validate_args[@]}"
+python3 "$script_dir/../gates/validate_review_json.py" "${validate_args[@]}"
 validate_exit=$?
 set -e
 if [[ "$validate_exit" -ne 0 ]]; then

@@ -5,7 +5,7 @@ set -euo pipefail
 eprint() { printf '%s\n' "$*" >&2; }
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
-installer="$repo_root/scripts/install-agentic-sdd.sh"
+installer="$repo_root/scripts/shell/install-agentic-sdd.sh"
 
 if [[ ! -x "$installer" ]]; then
 	eprint "Missing script or not executable: $installer"
@@ -83,13 +83,13 @@ if [[ ! -f "$proj2/skills/ui-redesign.md" ]]; then
 	exit 1
 fi
 
-if [[ ! -f "$proj2/scripts/agentic-sdd/ui-iterate.sh" ]]; then
-	eprint "Expected UI iterate helper script to be installed: scripts/agentic-sdd/ui-iterate.sh"
+if [[ ! -f "$proj2/scripts/agentic-sdd/shell/ui-iterate.sh" ]]; then
+	eprint "Expected UI iterate helper script to be installed: scripts/agentic-sdd/shell/ui-iterate.sh"
 	exit 1
 fi
 
-if [[ ! -f "$proj2/scripts/agentic-sdd/update-agentic-sdd.sh" ]]; then
-	eprint "Expected subtree update helper script to be installed: scripts/agentic-sdd/update-agentic-sdd.sh"
+if [[ ! -f "$proj2/scripts/agentic-sdd/shell/update-agentic-sdd.sh" ]]; then
+	eprint "Expected subtree update helper script to be installed: scripts/agentic-sdd/shell/update-agentic-sdd.sh"
 	exit 1
 fi
 
@@ -216,8 +216,8 @@ if [[ ! -d "$proj5/scripts/agentic-sdd" ]]; then
 	exit 1
 fi
 
-if [[ ! -f "$proj5/scripts/agentic-sdd/ui-iterate.sh" ]]; then
-	eprint "Expected script copy to succeed after legacy migration: scripts/agentic-sdd/ui-iterate.sh"
+if [[ ! -f "$proj5/scripts/agentic-sdd/shell/ui-iterate.sh" ]]; then
+	eprint "Expected script copy to succeed after legacy migration: scripts/agentic-sdd/shell/ui-iterate.sh"
 	exit 1
 fi
 

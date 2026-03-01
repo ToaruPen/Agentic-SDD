@@ -26,17 +26,17 @@ git -C "$work" init -q
 git -C "$work" config user.email "test@example.com"
 git -C "$work" config user.name "Test"
 
-mkdir -p "$work/scripts" "$work/.githooks"
-cp -p "$repo_root/scripts/validate-approval.py" "$work/scripts/validate-approval.py"
-cp -p "$repo_root/scripts/approval_constants.py" "$work/scripts/approval_constants.py"
-cp -p "$repo_root/scripts/validate-worktree.py" "$work/scripts/validate-worktree.py"
+mkdir -p "$work/scripts/gates" "$work/.githooks"
+cp -p "$repo_root/scripts/gates/validate_approval.py" "$work/scripts/gates/validate_approval.py"
+cp -p "$repo_root/scripts/gates/validate_worktree.py" "$work/scripts/gates/validate_worktree.py"
+cp -rp "$repo_root/scripts/_lib" "$work/scripts/"
 cp -p "$repo_root/.githooks/pre-commit" "$work/.githooks/pre-commit"
 cp -p "$repo_root/.githooks/pre-push" "$work/.githooks/pre-push"
 cp -p "$repo_root/pyproject.toml" "$work/pyproject.toml"
 cp -p "$repo_root/requirements-dev.txt" "$work/requirements-dev.txt"
 
-chmod +x "$work/scripts/validate-approval.py"
-chmod +x "$work/scripts/validate-worktree.py"
+chmod +x "$work/scripts/gates/validate_approval.py"
+chmod +x "$work/scripts/gates/validate_worktree.py"
 chmod +x "$work/.githooks/pre-commit" "$work/.githooks/pre-push"
 
 git -C "$work" config core.hooksPath .githooks

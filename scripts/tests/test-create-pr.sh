@@ -5,7 +5,7 @@ set -euo pipefail
 eprint() { printf '%s\n' "$*" >&2; }
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
-script_src="$repo_root/scripts/create-pr.sh"
+script_src="$repo_root/scripts/shell/create-pr.sh"
 
 if [[ ! -x "$script_src" ]]; then
 	eprint "Missing script or not executable: $script_src"
@@ -102,8 +102,8 @@ EOF
 }
 
 setup_decision_fixtures() {
-	mkdir -p "$work/scripts" "$work/docs/decisions"
-	cp "$repo_root/scripts/validate-decision-index.py" "$work/scripts/validate-decision-index.py"
+	mkdir -p "$work/scripts/gates" "$work/docs/decisions"
+	cp "$repo_root/scripts/gates/validate_decision_index.py" "$work/scripts/gates/validate_decision_index.py"
 	cat >"$work/docs/decisions/_template.md" <<'TMPL'
 ## Decision-ID
 
@@ -187,14 +187,14 @@ EOF
 }
 
 setup_repo_worktree_check_stub() {
-	mkdir -p "$work/scripts"
-	cat >"$work/scripts/worktree.sh" <<'EOF'
+	mkdir -p "$work/scripts/shell"
+	cat >"$work/scripts/shell/worktree.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 echo "repo-level worktree stub invoked" >&2
 exit "${AGENTIC_SDD_TEST_REPO_WORKTREE_EXIT:-9}"
 EOF
-	chmod +x "$work/scripts/worktree.sh"
+	chmod +x "$work/scripts/shell/worktree.sh"
 }
 
 base_sha="$(git -C "$work" rev-parse origin/main)"
@@ -551,7 +551,7 @@ base_sha="$(git -C "$work" rev-parse origin/main)"
 write_review_metadata "$head_sha" "origin/main" "$base_sha"
 write_test_review_metadata "$head_sha" "origin/main" "$base_sha"
 
-rm -f "$work/scripts/validate-decision-index.py"
+rm -f "$work/scripts/gates/validate_decision_index.py"
 set +e
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>"$tmpdir/stderr_decision_validator_missing"
 code_decision_validator_missing=$?
@@ -638,6 +638,6 @@ IDX
 
 (cd "$work" && PATH="$tmpdir/bin:$PATH" "$script_src" --dry-run --issue 1) >/dev/null 2>/dev/null
 
-rm -rf "$work/docs/decisions" "$work/docs/decisions.md" "$work/scripts/validate-decision-index.py"
+rm -rf "$work/docs/decisions" "$work/docs/decisions.md" "$work/scripts/gates/validate_decision_index.py"
 
 eprint "OK: scripts/tests/test-create-pr.sh"

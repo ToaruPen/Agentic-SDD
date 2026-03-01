@@ -5,7 +5,7 @@ set -euo pipefail
 eprint() { printf '%s\n' "$*" >&2; }
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
-validate_py="$repo_root/scripts/validate-decision-index.py"
+validate_py="$repo_root/scripts/gates/validate_decision_index.py"
 
 if [[ ! -f "$validate_py" ]]; then
 	eprint "Missing validation script: $validate_py"
@@ -21,9 +21,9 @@ new_repo() {
 	local r="$tmpdir/$name"
 	mkdir -p "$r"
 	git -C "$r" init -q
-	mkdir -p "$r/docs/decisions" "$r/scripts"
-	cp -p "$validate_py" "$r/scripts/validate-decision-index.py"
-	chmod +x "$r/scripts/validate-decision-index.py"
+	mkdir -p "$r/docs/decisions" "$r/scripts/gates"
+	cp -p "$validate_py" "$r/scripts/gates/validate_decision_index.py"
+	chmod +x "$r/scripts/gates/validate_decision_index.py"
 	printf '%s\n' "$r"
 }
 
@@ -152,7 +152,7 @@ r1="$(new_repo case-valid-body)"
 write_template "$r1"
 write_valid_decision "$r1" "D-2026-02-28-TEST" "d-2026-02-28-test.md"
 write_valid_index "$r1" "- D-2026-02-28-TEST: [\`docs/decisions/d-2026-02-28-test.md\`](./decisions/d-2026-02-28-test.md)"
-run_test "AC1: valid body passes" bash -c "(cd '$r1' && python3 ./scripts/validate-decision-index.py)"
+run_test "AC1: valid body passes" bash -c "(cd '$r1' && python3 ./scripts/gates/validate_decision_index.py)"
 
 # Case 2: Missing required field (no Rationale section) — should fail
 eprint "--- AC1: case-missing-field ---"
@@ -192,7 +192,7 @@ EOF
 write_valid_index "$r2" "- D-2026-02-28-BAD: [\`docs/decisions/d-2026-02-28-bad.md\`](./decisions/d-2026-02-28-bad.md)"
 
 set +e
-(cd "$r2" && python3 ./scripts/validate-decision-index.py) >"$r2/stdout" 2>"$r2/stderr"
+(cd "$r2" && python3 ./scripts/gates/validate_decision_index.py) >"$r2/stdout" 2>"$r2/stderr"
 code_ac1_missing=$?
 set -e
 
@@ -237,7 +237,7 @@ EOF
 write_valid_decision "$r2c" "D-2026-02-28-OK" "d-2026-02-28-ok.md"
 write_valid_index "$r2c" "- D-2026-02-28-OK: [\`docs/decisions/d-2026-02-28-ok.md\`](./decisions/d-2026-02-28-ok.md)"
 set +e
-(cd "$r2c" && python3 ./scripts/validate-decision-index.py) >"$r2c/stdout" 2>"$r2c/stderr"
+(cd "$r2c" && python3 ./scripts/gates/validate_decision_index.py) >"$r2c/stdout" 2>"$r2c/stderr"
 code_ac1_template_missing=$?
 set -e
 
@@ -249,7 +249,7 @@ r2d="$(new_repo case-missing-template-file)"
 write_valid_decision "$r2d" "D-2026-02-28-OK" "d-2026-02-28-ok.md"
 write_valid_index "$r2d" "- D-2026-02-28-OK: [\`docs/decisions/d-2026-02-28-ok.md\`](./decisions/d-2026-02-28-ok.md)"
 set +e
-(cd "$r2d" && python3 ./scripts/validate-decision-index.py) >"$r2d/stdout" 2>"$r2d/stderr"
+(cd "$r2d" && python3 ./scripts/gates/validate_decision_index.py) >"$r2d/stdout" 2>"$r2d/stderr"
 code_ac1_template_absent=$?
 set -e
 
@@ -299,7 +299,7 @@ D-2026-02-28-FENCED
 EOF
 write_valid_index "$r2e" "- D-2026-02-28-FENCED: [\`docs/decisions/d-2026-02-28-fenced.md\`](./decisions/d-2026-02-28-fenced.md)"
 set +e
-(cd "$r2e" && python3 ./scripts/validate-decision-index.py) >"$r2e/stdout" 2>"$r2e/stderr"
+(cd "$r2e" && python3 ./scripts/gates/validate_decision_index.py) >"$r2e/stdout" 2>"$r2e/stderr"
 code_ac1_fenced_heading=$?
 set -e
 
@@ -348,7 +348,7 @@ D-2026-02-28-MALFORMED extra
 EOF
 write_valid_index "$r2b" "- D-2026-02-28-MALFORMED: [\`docs/decisions/d-2026-02-28-malformed.md\`](./decisions/d-2026-02-28-malformed.md)"
 set +e
-(cd "$r2b" && python3 ./scripts/validate-decision-index.py) >"$r2b/stdout" 2>"$r2b/stderr"
+(cd "$r2b" && python3 ./scripts/gates/validate_decision_index.py) >"$r2b/stdout" 2>"$r2b/stderr"
 code_ac1_malformed_id=$?
 set -e
 
@@ -366,7 +366,7 @@ write_template "$r3"
 write_valid_decision "$r3" "D-2026-02-28-ORPHAN" "d-2026-02-28-orphan.md"
 write_valid_index "$r3" # empty index
 set +e
-(cd "$r3" && python3 ./scripts/validate-decision-index.py) >"$r3/stdout" 2>"$r3/stderr"
+(cd "$r3" && python3 ./scripts/gates/validate_decision_index.py) >"$r3/stdout" 2>"$r3/stderr"
 code_ac2_orphan=$?
 set -e
 
@@ -379,7 +379,7 @@ r4="$(new_repo case-dangling-index)"
 write_template "$r4"
 write_valid_index "$r4" "- D-2026-02-28-GHOST: [\`docs/decisions/d-2026-02-28-ghost.md\`](./decisions/d-2026-02-28-ghost.md)"
 set +e
-(cd "$r4" && python3 ./scripts/validate-decision-index.py) >"$r4/stdout" 2>"$r4/stderr"
+(cd "$r4" && python3 ./scripts/gates/validate_decision_index.py) >"$r4/stdout" 2>"$r4/stderr"
 code_ac2_dangling=$?
 set -e
 
@@ -395,7 +395,7 @@ write_valid_index "$r5" \
 	"- D-2026-02-28-DUP: [\`docs/decisions/d-2026-02-28-dup.md\`](./decisions/d-2026-02-28-dup.md)" \
 	"- D-2026-02-28-DUP: [\`docs/decisions/d-2026-02-28-dup.md\`](./decisions/d-2026-02-28-dup.md)"
 set +e
-(cd "$r5" && python3 ./scripts/validate-decision-index.py) >"$r5/stdout" 2>"$r5/stderr"
+(cd "$r5" && python3 ./scripts/gates/validate_decision_index.py) >"$r5/stdout" 2>"$r5/stderr"
 code_ac2_dup=$?
 set -e
 
@@ -408,7 +408,7 @@ write_template "$r5b"
 write_valid_decision "$r5b" "D-2026-02-28-REAL" "d-2026-02-28-real.md"
 write_valid_index "$r5b" "- D-2026-02-28-WRONG: [\`docs/decisions/d-2026-02-28-real.md\`](./decisions/d-2026-02-28-real.md)"
 set +e
-(cd "$r5b" && python3 ./scripts/validate-decision-index.py) >"$r5b/stdout" 2>"$r5b/stderr"
+(cd "$r5b" && python3 ./scripts/gates/validate_decision_index.py) >"$r5b/stdout" 2>"$r5b/stderr"
 code_ac2_mismatch=$?
 set -e
 
@@ -424,7 +424,7 @@ write_valid_index "$r5c" \
 	"- D-2026-02-28-DUPBODY: [\`docs/decisions/d-2026-02-28-a.md\`](./decisions/d-2026-02-28-a.md)" \
 	"- D-2026-02-28-OTHER: [\`docs/decisions/d-2026-02-28-b.md\`](./decisions/d-2026-02-28-b.md)"
 set +e
-(cd "$r5c" && python3 ./scripts/validate-decision-index.py) >"$r5c/stdout" 2>"$r5c/stderr"
+(cd "$r5c" && python3 ./scripts/gates/validate_decision_index.py) >"$r5c/stdout" 2>"$r5c/stderr"
 code_ac2_dup_body=$?
 set -e
 
@@ -437,7 +437,7 @@ write_template "$r5d"
 write_valid_decision "$r5d" "D-2026-02-28-LINKCHK" "d-2026-02-28-linkchk.md"
 write_valid_index "$r5d" "- D-2026-02-28-LINKCHK: [\`docs/decisions/d-2026-02-28-linkchk.md\`](./decisions/d-2026-02-28-missing.md)"
 set +e
-(cd "$r5d" && python3 ./scripts/validate-decision-index.py) >"$r5d/stdout" 2>"$r5d/stderr"
+(cd "$r5d" && python3 ./scripts/gates/validate_decision_index.py) >"$r5d/stdout" 2>"$r5d/stderr"
 code_ac2_link_path=$?
 set -e
 
@@ -450,7 +450,7 @@ write_template "$r5e"
 write_valid_decision "$r5e" "D-2026-02-28-WRONGDIR" "d-2026-02-28-wrongdir.md"
 write_valid_index "$r5e" "- D-2026-02-28-WRONGDIR: [\`docs/decisions/d-2026-02-28-wrongdir.md\`](./wrong-dir/d-2026-02-28-wrongdir.md)"
 set +e
-(cd "$r5e" && python3 ./scripts/validate-decision-index.py) >"$r5e/stdout" 2>"$r5e/stderr"
+(cd "$r5e" && python3 ./scripts/gates/validate_decision_index.py) >"$r5e/stdout" 2>"$r5e/stderr"
 code_ac2_wrong_dir=$?
 set -e
 
@@ -465,7 +465,7 @@ mkdir -p "$r5f/docs/decisions/subdir"
 cp "$r5f/docs/decisions/d-2026-02-28-shadow.md" "$r5f/docs/decisions/subdir/d-2026-02-28-shadow.md"
 write_valid_index "$r5f" "- D-2026-02-28-SHADOW: [\`docs/decisions/d-2026-02-28-shadow.md\`](./decisions/subdir/d-2026-02-28-shadow.md)"
 set +e
-(cd "$r5f" && python3 ./scripts/validate-decision-index.py) >"$r5f/stdout" 2>"$r5f/stderr"
+(cd "$r5f" && python3 ./scripts/gates/validate_decision_index.py) >"$r5f/stdout" 2>"$r5f/stderr"
 code_ac2_subdir_shadow=$?
 set -e
 
@@ -478,7 +478,7 @@ write_template "$r5g"
 write_valid_decision "$r5g" "D-2026-02-28-DOCSPREFIX" "d-2026-02-28-docsprefix.md"
 write_valid_index "$r5g" "- D-2026-02-28-DOCSPREFIX: [\`docs/decisions/d-2026-02-28-docsprefix.md\`](docs/decisions/d-2026-02-28-docsprefix.md)"
 set +e
-(cd "$r5g" && python3 ./scripts/validate-decision-index.py) >"$r5g/stdout" 2>"$r5g/stderr"
+(cd "$r5g" && python3 ./scripts/gates/validate_decision_index.py) >"$r5g/stdout" 2>"$r5g/stderr"
 code_ac2_docs_prefix=$?
 set -e
 
@@ -535,7 +535,7 @@ EOF
 write_valid_index "$r6" \
 	"- D-2026-02-01-OLD: [\`docs/decisions/d-2026-02-01-old.md\`](./decisions/d-2026-02-01-old.md)" \
 	"- D-2026-02-28-NEW: [\`docs/decisions/d-2026-02-28-new.md\`](./decisions/d-2026-02-28-new.md)"
-run_test "AC3: valid supersedes passes" bash -c "(cd '$r6' && python3 ./scripts/validate-decision-index.py)"
+run_test "AC3: valid supersedes passes" bash -c "(cd '$r6' && python3 ./scripts/gates/validate_decision_index.py)"
 
 # Case 7: Supersedes references a non-existent Decision-ID — should fail
 eprint "--- AC3: case-bad-supersedes ---"
@@ -580,7 +580,7 @@ D-2026-02-28-BROKEN
 EOF
 write_valid_index "$r7" "- D-2026-02-28-BROKEN: [\`docs/decisions/d-2026-02-28-broken.md\`](./decisions/d-2026-02-28-broken.md)"
 set +e
-(cd "$r7" && python3 ./scripts/validate-decision-index.py) >"$r7/stdout" 2>"$r7/stderr"
+(cd "$r7" && python3 ./scripts/gates/validate_decision_index.py) >"$r7/stdout" 2>"$r7/stderr"
 code_ac3_bad=$?
 set -e
 
@@ -633,7 +633,7 @@ write_valid_index "$r7b" \
 	"- D-2026-02-01-OLD: [\`docs/decisions/d-2026-02-01-old.md\`](./decisions/d-2026-02-01-old.md)" \
 	"- D-2026-02-28-MULTI: [\`docs/decisions/d-2026-02-28-multi.md\`](./decisions/d-2026-02-28-multi.md)"
 set +e
-(cd "$r7b" && python3 ./scripts/validate-decision-index.py) >"$r7b/stdout" 2>"$r7b/stderr"
+(cd "$r7b" && python3 ./scripts/gates/validate_decision_index.py) >"$r7b/stdout" 2>"$r7b/stderr"
 code_ac3_multi=$?
 set -e
 
@@ -682,7 +682,7 @@ D-2026-02-28-INVALID_SUPERSEDES
 EOF
 write_valid_index "$r7c" "- D-2026-02-28-INVALID_SUPERSEDES: [\`docs/decisions/d-2026-02-28-invalid-supersedes.md\`](./decisions/d-2026-02-28-invalid-supersedes.md)"
 set +e
-(cd "$r7c" && python3 ./scripts/validate-decision-index.py) >"$r7c/stdout" 2>"$r7c/stderr"
+(cd "$r7c" && python3 ./scripts/gates/validate_decision_index.py) >"$r7c/stdout" 2>"$r7c/stderr"
 code_ac3_invalid_fmt=$?
 set -e
 
@@ -734,7 +734,7 @@ write_valid_index "$r7d" \
 	"- D-2026-02-01-OLD: [\`docs/decisions/d-2026-02-01-old.md\`](./decisions/d-2026-02-01-old.md)" \
 	"- D-2026-02-28-PARTIAL: [\`docs/decisions/d-2026-02-28-partial.md\`](./decisions/d-2026-02-28-partial.md)"
 set +e
-(cd "$r7d" && python3 ./scripts/validate-decision-index.py) >"$r7d/stdout" 2>"$r7d/stderr"
+(cd "$r7d" && python3 ./scripts/gates/validate_decision_index.py) >"$r7d/stdout" 2>"$r7d/stderr"
 code_ac3_partial=$?
 set -e
 
@@ -753,7 +753,7 @@ cat >"$r8/docs/decisions/README.md" <<'EOF'
 # Decision Snapshot 運用ルール
 EOF
 write_valid_index "$r8" # empty index, no body files
-run_test "Edge: template/README not treated as orphan" bash -c "(cd '$r8' && python3 ./scripts/validate-decision-index.py)"
+run_test "Edge: template/README not treated as orphan" bash -c "(cd '$r8' && python3 ./scripts/gates/validate_decision_index.py)"
 
 # Case 9: No decisions.md at all — should fail
 eprint "--- Edge: case-no-index-file ---"
@@ -761,7 +761,7 @@ r9="$(new_repo case-no-index-file)"
 write_template "$r9"
 rm -f "$r9/docs/decisions.md"
 set +e
-(cd "$r9" && python3 ./scripts/validate-decision-index.py) >"$r9/stdout" 2>"$r9/stderr"
+(cd "$r9" && python3 ./scripts/gates/validate_decision_index.py) >"$r9/stdout" 2>"$r9/stderr"
 code_no_index=$?
 set -e
 
@@ -779,7 +779,7 @@ cat >"$r9b/docs/decisions.md" <<'EOF'
 - D-2026-02-28-VALID: [`docs/decisions/d-2026-02-28-valid.md`](./decisions/d-2026-02-28-valid.md)
 EOF
 set +e
-(cd "$r9b" && python3 ./scripts/validate-decision-index.py) >"$r9b/stdout" 2>"$r9b/stderr"
+(cd "$r9b" && python3 ./scripts/gates/validate_decision_index.py) >"$r9b/stdout" 2>"$r9b/stderr"
 code_missing_index_section=$?
 set -e
 
@@ -798,7 +798,7 @@ cat >"$r10/docs/decisions.md" <<'EOF'
 this line is invalid
 EOF
 set +e
-(cd "$r10" && python3 ./scripts/validate-decision-index.py) >"$r10/stdout" 2>"$r10/stderr"
+(cd "$r10" && python3 ./scripts/gates/validate_decision_index.py) >"$r10/stdout" 2>"$r10/stderr"
 code_invalid_index_line=$?
 set -e
 
@@ -817,7 +817,7 @@ cat >"$r11/docs/decisions.md" <<'EOF'
 ### Group A
 - D-2026-02-28-SUBHEAD: [`docs/decisions/d-2026-02-28-subhead.md`](./decisions/d-2026-02-28-subhead.md)
 EOF
-run_test "Edge: level-3 subheading inside index is allowed" bash -c "(cd '$r11' && python3 ./scripts/validate-decision-index.py)"
+run_test "Edge: level-3 subheading inside index is allowed" bash -c "(cd '$r11' && python3 ./scripts/gates/validate_decision_index.py)"
 
 eprint "--- Edge: case-multiline-html-comment-in-index ---"
 r12="$(new_repo case-multiline-html-comment-in-index)"
@@ -835,7 +835,7 @@ still comment
 
 - D-2026-02-28-COMMENT: [`docs/decisions/d-2026-02-28-comment.md`](./decisions/d-2026-02-28-comment.md)
 EOF
-run_test "Edge: multiline HTML comment inside index is ignored" bash -c "(cd '$r12' && python3 ./scripts/validate-decision-index.py)"
+run_test "Edge: multiline HTML comment inside index is ignored" bash -c "(cd '$r12' && python3 ./scripts/gates/validate_decision_index.py)"
 
 # ===========================================================================
 # Summary
