@@ -9,25 +9,6 @@ from typing import Generator
 pytest = importlib.import_module("pytest")
 
 
-EXPECTED_COMMANDS = [
-    "/sdd-init",
-    "/create-prd",
-    "/create-epic",
-    "/create-issues",
-    "/estimation",
-    "/impl",
-    "/tdd",
-    "/test-review",
-    "/review-cycle",
-    "/final-review",
-    "/sync-docs",
-    "/create-pr",
-    "/pr-bots-review",
-    "/worktree",
-    "/research",
-]
-
-
 @pytest.fixture(scope="module")
 def bench_module() -> ModuleType:
     repo_root = Path(__file__).resolve().parents[2]
@@ -57,9 +38,52 @@ def contract_module() -> Generator[ModuleType, None, None]:
         sys.modules.pop(module_name, None)
 
 
-@pytest.mark.parametrize("command", EXPECTED_COMMANDS)
-def test_commands_include_expected_set(bench_module: ModuleType, command: str) -> None:
-    assert command in bench_module.COMMANDS
+def test_commands_loaded_from_docs_are_non_empty(bench_module: ModuleType) -> None:
+    assert bench_module.COMMANDS
+    for command in bench_module.COMMANDS:
+        assert isinstance(command, str)
+        assert command.startswith("/")
+
+
+def test_commands_include_core_flow_tokens(bench_module: ModuleType) -> None:
+    # Core workflow guard: keep these tokens explicit to catch accidental removal.
+    for token in [
+        "/sdd-init",
+        "/research",
+        "/estimation",
+        "/impl",
+        "/tdd",
+        "/test-review",
+        "/review-cycle",
+        "/final-review",
+        "/create-pr",
+        "/pr-bots-review",
+    ]:
+        assert token in bench_module.COMMANDS
+
+
+def test_parse_supported_command_tokens_empty_returns_empty(
+    bench_module: ModuleType,
+) -> None:
+    result = bench_module._parse_supported_command_tokens("")
+    assert result == []
+
+
+def test_parse_supported_command_tokens_no_header_returns_empty(
+    bench_module: ModuleType,
+) -> None:
+    result = bench_module._parse_supported_command_tokens("- /foo\n- /bar")
+    assert result == []
+
+
+def test_command_docs_are_classified(bench_module: ModuleType) -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    missing, uncovered = bench_module._command_doc_coverage(
+        repo_root,
+        bench_module.COMMANDS,
+    )
+    assert missing == []
+    assert uncovered == []
 
 
 def test_contract_loader_returns_v1_shape(contract_module: ModuleType) -> None:
