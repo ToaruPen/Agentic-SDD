@@ -114,11 +114,20 @@ def detect_languages_for_file(file_path: Path, root: Path) -> List[Dict[str, str
     if name == "Gemfile" or file_path.suffix == ".gemspec":
         detections.append({"name": "ruby", "source": name, "path": rel_dir})
 
-    if name in {"pom.xml", "build.gradle", "build.gradle.kts"}:
+    if name == "pom.xml":
         detections.append({"name": "java", "source": name, "path": rel_dir})
+    elif name in {"build.gradle", "build.gradle.kts"}:
+        # Gradle は Java 以外（Kotlin 専用等）でも使用されるため、推測レベルで検出する。
+        detections.append(
+            {
+                "name": "java",
+                "source": name,
+                "path": rel_dir,
+                "confidence": "inferred",
+            }
+        )
         if name == "build.gradle.kts":
             # Kotlin DSL はビルド定義言語であり、Kotlin ソースの存在を保証しない。
-            # 推測レベルで検出し、推奨は確定検出(.kt/.kts)とは区別する。
             detections.append(
                 {
                     "name": "kotlin",
@@ -130,6 +139,9 @@ def detect_languages_for_file(file_path: Path, root: Path) -> List[Dict[str, str
 
     if file_path.suffix in {".kt", ".kts"} and not name.endswith(".gradle.kts"):
         detections.append({"name": "kotlin", "source": name, "path": rel_dir})
+
+    if file_path.suffix == ".java":
+        detections.append({"name": "java", "source": name, "path": rel_dir})
 
     return detections
 
