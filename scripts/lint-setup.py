@@ -143,16 +143,22 @@ def _scope_command(
     シェル構造を持つコマンド（サブシェル、パイプなど）を壊さないよう、
     末尾 ' .' 以外のコマンドには追記しない。
     """
-    if not paths or set(paths) == {"."}:
-        return cmd
-    unique_paths = sorted(set(p for p in paths if p != "."))
-    if not unique_paths:
+    if not paths:
         return cmd
     if scoped_template:
+        unique_paths = sorted(set(paths))
+        if not unique_paths:
+            return cmd
         return " && ".join(
             scoped_template.replace("{path}", shlex.quote(path))
             for path in unique_paths
         )
+
+    if set(paths) == {"."}:
+        return cmd
+    unique_paths = sorted(set(p for p in paths if p != "."))
+    if not unique_paths:
+        return cmd
 
     path_args = " ".join(shlex.quote(p) for p in unique_paths)
     if cmd.endswith(" ."):
@@ -182,27 +188,33 @@ def generate_ci_commands(
         formatter = toolchain.get("formatter", {})
         type_checker = toolchain.get("type_checker", {})
         paths = lang_paths.get(lang, ["."]) if lang_paths else ["."]
+        sources = (lang_sources or {}).get(lang, [])
+        if len(sources) < len(paths):
+            sources = sources + [""] * (len(paths) - len(sources))
 
-        lint_cmd = _pick_ci_command(linter, lang, lang_sources)
-        lint_scoped_template = _pick_scoped_template(linter, lang, lang_sources)
-        if lint_cmd:
-            lint_cmd = _scope_command(lint_cmd, paths, lint_scoped_template)
-        if lint_cmd and lint_cmd not in lint_cmds:
-            lint_cmds.append(lint_cmd)
+        for path, source in zip(paths, sources):
+            per_source = {lang: [source]}
 
-        fmt_cmd = _pick_ci_command(formatter, lang, lang_sources)
-        fmt_scoped_template = _pick_scoped_template(formatter, lang, lang_sources)
-        if fmt_cmd:
-            fmt_cmd = _scope_command(fmt_cmd, paths, fmt_scoped_template)
-        if fmt_cmd and fmt_cmd not in fmt_cmds:
-            fmt_cmds.append(fmt_cmd)
+            lint_cmd = _pick_ci_command(linter, lang, per_source)
+            lint_scoped_template = _pick_scoped_template(linter, lang, per_source)
+            if lint_cmd:
+                scoped = _scope_command(lint_cmd, [path], lint_scoped_template)
+                if scoped not in lint_cmds:
+                    lint_cmds.append(scoped)
 
-        tc_cmd = _pick_ci_command(type_checker, lang, lang_sources)
-        tc_scoped_template = _pick_scoped_template(type_checker, lang, lang_sources)
-        if tc_cmd:
-            tc_cmd = _scope_command(tc_cmd, paths, tc_scoped_template)
-        if tc_cmd and tc_cmd not in tc_cmds:
-            tc_cmds.append(tc_cmd)
+            fmt_cmd = _pick_ci_command(formatter, lang, per_source)
+            fmt_scoped_template = _pick_scoped_template(formatter, lang, per_source)
+            if fmt_cmd:
+                scoped = _scope_command(fmt_cmd, [path], fmt_scoped_template)
+                if scoped not in fmt_cmds:
+                    fmt_cmds.append(scoped)
+
+            tc_cmd = _pick_ci_command(type_checker, lang, per_source)
+            tc_scoped_template = _pick_scoped_template(type_checker, lang, per_source)
+            if tc_cmd:
+                scoped = _scope_command(tc_cmd, [path], tc_scoped_template)
+                if scoped not in tc_cmds:
+                    tc_cmds.append(scoped)
 
     commands: List[Dict[str, str]] = []
     if lint_cmds:

@@ -421,6 +421,17 @@ def test_scope_command_scoped_template_quotes_paths() -> None:
     assert result == f"rubocop {shlex.quote('my project')}"
 
 
+def test_scope_command_scoped_template_includes_root() -> None:
+    result = MODULE._scope_command(
+        "golangci-lint run",
+        [".", "backend"],
+        "golangci-lint run {path}/...",
+    )
+
+    assert "golangci-lint run ./..." in result
+    assert "golangci-lint run backend/..." in result
+
+
 def test_generate_ci_commands_uses_scoped_template() -> None:
     registry = load_real_registry()
 
@@ -820,6 +831,83 @@ def test_cli_integration_json_output(tmp_path: Path) -> None:
     assert output["recommendations"][0]["linter"]["name"] == "ruff"
 
 
+def test_cli_integration_output_dir_override(tmp_path: Path) -> None:
+    shim_root = ensure_jinja2_available(tmp_path)
+    detection_path = tmp_path / "detection.json"
+    output_dir = tmp_path / "custom-output"
+    detection = {
+        "languages": [{"name": "python", "source": "pyproject.toml", "path": "."}],
+        "existing_linter_configs": [],
+        "is_monorepo": False,
+    }
+    write_json(detection_path, detection)
+
+    env = os.environ.copy()
+    if shim_root is not None:
+        pythonpath = env.get("PYTHONPATH")
+        env["PYTHONPATH"] = (
+            str(shim_root) if not pythonpath else f"{str(shim_root)}:{pythonpath}"
+        )
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            str(detection_path),
+            "--registry",
+            str(REGISTRY_PATH),
+            "--template-dir",
+            str(TEMPLATE_DIR),
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        env=env,
+    )
+
+    assert proc.returncode == 0
+    output = json.loads(proc.stdout)
+    expected_path = output_dir / "rules" / "lint.md"
+    assert output["evidence_trail"] == str(expected_path)
+    assert expected_path.exists()
+
+
+def test_cli_rejects_target_dir_and_output_dir_together(tmp_path: Path) -> None:
+    detection_path = tmp_path / "detection.json"
+    target_dir = tmp_path / "target"
+    output_dir = tmp_path / "custom-output"
+    target_dir.mkdir()
+    detection = {
+        "languages": [{"name": "python", "source": "pyproject.toml", "path": "."}],
+        "existing_linter_configs": [],
+        "is_monorepo": False,
+    }
+    write_json(detection_path, detection)
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT_PATH),
+            str(detection_path),
+            "--registry",
+            str(REGISTRY_PATH),
+            "--target-dir",
+            str(target_dir),
+            "--output-dir",
+            str(output_dir),
+            "--json",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert proc.returncode != 0
+
+
 def test_generate_ci_commands_gradle_uses_gradle_command() -> None:
     """Java detected via build.gradle should use ci_command_gradle instead of Maven."""
     registry: dict[str, Any] = {
@@ -858,6 +946,21 @@ def test_generate_ci_commands_gradle_uses_gradle_command() -> None:
         c for c in commands_maven if c["key"] == "AGENTIC_SDD_CI_LINT_CMD"
     )
     assert lint_cmd_maven["value"] == "mvn checkstyle:check"
+
+
+def test_generate_ci_commands_mixed_maven_gradle_per_path() -> None:
+    registry = load_real_registry()
+
+    commands = MODULE.generate_ci_commands(
+        ["java"],
+        registry,
+        lang_sources={"java": ["build.gradle", "pom.xml"]},
+        lang_paths={"java": ["gradle-app", "maven-app"]},
+    )
+    lint_cmd = next(c for c in commands if c["key"] == "AGENTIC_SDD_CI_LINT_CMD")
+
+    assert "./gradlew checkstyleMain --project-dir gradle-app" in lint_cmd["value"]
+    assert "mvn checkstyle:check -f maven-app/pom.xml" in lint_cmd["value"]
 
 
 def test_run_setup_mixed_inferred_and_confirmed_excludes_confirmed_from_inferred(

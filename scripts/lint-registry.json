@@ -228,7 +228,7 @@
         "conflict_docs_url": null,
         "conflict_rules": [],
         "ci_command": "ktlint",
-        "ci_command_scoped": "ktlint {path}/**/*.kt"
+        "ci_command_scoped": "ktlint {path}"
       },
       "type_checker": {
         "name": null,
