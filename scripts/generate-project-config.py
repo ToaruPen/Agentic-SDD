@@ -469,6 +469,7 @@ def main() -> int:
             f"[WARN] lint-setup failed: {result['lint_setup_error']}. "
             "Use --skip-lint to suppress this warning."
         )
+        return 2  # partial failure: project config generated but lint-setup failed
 
     return 0
 
