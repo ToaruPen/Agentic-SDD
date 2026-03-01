@@ -162,6 +162,7 @@ def find_epic_by_prd(repo_root: str, prd_path: str) -> str:
                 candidates.append(rel)
                 break
 
+    if len(candidates) == 1:
         return candidates[0]
     if len(candidates) == 0:
         raise RuntimeError(
