@@ -77,8 +77,8 @@ resolve_sync_agent_config_script() {
 		printf '%s\n' "./scripts/agentic-sdd/sync-agent-config.sh"
 		return 0
 	fi
-	if [[ -x "$dir/scripts/sync-agent-config.sh" ]]; then
-		printf '%s\n' "./scripts/sync-agent-config.sh"
+	if [[ -x "$dir/scripts/shell/sync-agent-config.sh" ]]; then
+		printf '%s\n' "./scripts/shell/sync-agent-config.sh"
 		return 0
 	fi
 	return 1
@@ -133,7 +133,7 @@ EOF
 
 	local sync_cmd
 	if ! sync_cmd="$(resolve_sync_agent_config_script "$dir")"; then
-		eprint "Missing executable: $dir/scripts/agentic-sdd/sync-agent-config.sh or $dir/scripts/sync-agent-config.sh"
+		eprint "Missing executable: $dir/scripts/agentic-sdd/sync-agent-config.sh or $dir/scripts/shell/sync-agent-config.sh"
 		exit 1
 	fi
 
@@ -549,7 +549,7 @@ EOF
 
 	local script_dir
 	script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-	local extractor="$script_dir/extract-issue-files.py"
+	local extractor="$script_dir/../extract/extract_issue_files.py"
 	if [[ ! -f "$extractor" ]]; then
 		eprint "Missing extractor: $extractor"
 		exit 1

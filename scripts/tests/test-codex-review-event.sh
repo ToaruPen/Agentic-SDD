@@ -5,7 +5,7 @@ set -euo pipefail
 eprint() { printf '%s\n' "$*" >&2; }
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
-script_path="$repo_root/scripts/codex-review-event.sh"
+script_path="$repo_root/scripts/shell/codex-review-event.sh"
 
 if [[ ! -x "$script_path" ]]; then
   eprint "Missing script or not executable: $script_path"

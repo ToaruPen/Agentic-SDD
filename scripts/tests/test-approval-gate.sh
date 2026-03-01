@@ -23,31 +23,31 @@ echo "init" >"$work/init.txt"
 git -C "$work" add init.txt
 git -C "$work" commit -m "test: init" -q
 
-mkdir -p "$work/scripts" "$work/.githooks"
-cp -p "$repo_root/scripts/validate-approval.py" "$work/scripts/validate-approval.py"
-cp -p "$repo_root/scripts/validate-worktree.py" "$work/scripts/validate-worktree.py"
-cp -p "$repo_root/scripts/create-approval.py" "$work/scripts/create-approval.py"
-cp -p "$repo_root/scripts/approval_constants.py" "$work/scripts/approval_constants.py"
+mkdir -p "$work/scripts/gates" "$work/scripts/approval" "$work/.githooks"
+cp -p "$repo_root/scripts/gates/validate_approval.py" "$work/scripts/gates/validate_approval.py"
+cp -p "$repo_root/scripts/gates/validate_worktree.py" "$work/scripts/gates/validate_worktree.py"
+cp -p "$repo_root/scripts/approval/create_approval.py" "$work/scripts/approval/create_approval.py"
+cp -rp "$repo_root/scripts/_lib" "$work/scripts/"
 cp -p "$repo_root/.githooks/pre-commit" "$work/.githooks/pre-commit"
 cp -p "$repo_root/.githooks/pre-push" "$work/.githooks/pre-push"
 
-chmod +x "$work/scripts/validate-approval.py" "$work/scripts/create-approval.py"
-chmod +x "$work/scripts/validate-worktree.py"
+chmod +x "$work/scripts/gates/validate_approval.py" "$work/scripts/approval/create_approval.py"
+chmod +x "$work/scripts/gates/validate_worktree.py"
 chmod +x "$work/.githooks/pre-commit" "$work/.githooks/pre-push"
 
 git -C "$work" config core.hooksPath .githooks
 
 git -C "$work" worktree add "$wt" -b "feature/issue-123-approval-gate" -q
 
-mkdir -p "$wt/scripts" "$wt/.githooks"
-cp -p "$repo_root/scripts/validate-approval.py" "$wt/scripts/validate-approval.py"
-cp -p "$repo_root/scripts/validate-worktree.py" "$wt/scripts/validate-worktree.py"
-cp -p "$repo_root/scripts/create-approval.py" "$wt/scripts/create-approval.py"
-cp -p "$repo_root/scripts/approval_constants.py" "$wt/scripts/approval_constants.py"
+mkdir -p "$wt/scripts/gates" "$wt/scripts/approval" "$wt/.githooks"
+cp -p "$repo_root/scripts/gates/validate_approval.py" "$wt/scripts/gates/validate_approval.py"
+cp -p "$repo_root/scripts/gates/validate_worktree.py" "$wt/scripts/gates/validate_worktree.py"
+cp -p "$repo_root/scripts/approval/create_approval.py" "$wt/scripts/approval/create_approval.py"
+cp -rp "$repo_root/scripts/_lib" "$wt/scripts/"
 cp -p "$repo_root/.githooks/pre-commit" "$wt/.githooks/pre-commit"
 cp -p "$repo_root/.githooks/pre-push" "$wt/.githooks/pre-push"
 
-chmod +x "$wt/scripts/validate-approval.py" "$wt/scripts/create-approval.py" "$wt/scripts/validate-worktree.py"
+chmod +x "$wt/scripts/gates/validate_approval.py" "$wt/scripts/approval/create_approval.py" "$wt/scripts/gates/validate_worktree.py"
 chmod +x "$wt/.githooks/pre-commit" "$wt/.githooks/pre-push"
 
 echo "a" >"$wt/a.txt"
@@ -75,7 +75,7 @@ assert_invalid_approval_args() {
 	local expected_validate_rc="$1"
 
 	set +e
-	(cd "$wt" && python3 scripts/create-approval.py --issue 123 --mode impl --mode-source invalid-source --mode-reason 'test: invalid mode source' >/dev/null 2>"$tmpdir/stderr_invalid_mode_source")
+	(cd "$wt" && python3 scripts/approval/create_approval.py --issue 123 --mode impl --mode-source invalid-source --mode-reason 'test: invalid mode source' >/dev/null 2>"$tmpdir/stderr_invalid_mode_source")
 	rc_create_invalid_source=$?
 	set -e
 	if [[ "$rc_create_invalid_source" -eq 0 ]]; then
@@ -84,7 +84,7 @@ assert_invalid_approval_args() {
 	fi
 
 	set +e
-	(cd "$wt" && python3 scripts/validate-approval.py >/dev/null 2>"$tmpdir/stderr_validate_after_invalid_mode_source")
+	(cd "$wt" && python3 scripts/gates/validate_approval.py >/dev/null 2>"$tmpdir/stderr_validate_after_invalid_mode_source")
 	rc_validate_invalid_source=$?
 	set -e
 	if [[ "$rc_validate_invalid_source" -ne "$expected_validate_rc" ]]; then
@@ -93,7 +93,7 @@ assert_invalid_approval_args() {
 	fi
 
 	set +e
-	(cd "$wt" && python3 scripts/create-approval.py --issue 123 --mode impl --mode-source agent-heuristic --mode-reason '   ' >/dev/null 2>"$tmpdir/stderr_blank_mode_reason")
+	(cd "$wt" && python3 scripts/approval/create_approval.py --issue 123 --mode impl --mode-source agent-heuristic --mode-reason '   ' >/dev/null 2>"$tmpdir/stderr_blank_mode_reason")
 	rc_create_blank_reason=$?
 	set -e
 	if [[ "$rc_create_blank_reason" -eq 0 ]]; then
@@ -102,7 +102,7 @@ assert_invalid_approval_args() {
 	fi
 
 	set +e
-	(cd "$wt" && python3 scripts/validate-approval.py >/dev/null 2>"$tmpdir/stderr_validate_after_blank_mode_reason")
+	(cd "$wt" && python3 scripts/gates/validate_approval.py >/dev/null 2>"$tmpdir/stderr_validate_after_blank_mode_reason")
 	rc_validate_blank_reason=$?
 	set -e
 	if [[ "$rc_validate_blank_reason" -ne "$expected_validate_rc" ]]; then
@@ -113,8 +113,8 @@ assert_invalid_approval_args() {
 
 assert_invalid_approval_args 2
 
-(cd "$wt" && python3 scripts/create-approval.py --issue 123 --mode impl --mode-source agent-heuristic --mode-reason 'test: default impl mode' >/dev/null)
-(cd "$wt" && python3 scripts/validate-approval.py >/dev/null)
+(cd "$wt" && python3 scripts/approval/create_approval.py --issue 123 --mode impl --mode-source agent-heuristic --mode-reason 'test: default impl mode' >/dev/null)
+(cd "$wt" && python3 scripts/gates/validate_approval.py >/dev/null)
 
 git -C "$wt" commit -m "test: should pass" -q
 
@@ -136,8 +136,8 @@ if [[ "$rc" -eq 0 ]]; then
 fi
 
 # Refresh approval and push should pass.
-(cd "$wt" && python3 scripts/create-approval.py --issue 123 --mode impl --mode-source agent-heuristic --mode-reason 'test: refreshed after drift' --force >/dev/null)
-(cd "$wt" && python3 scripts/validate-approval.py >/dev/null)
+(cd "$wt" && python3 scripts/approval/create_approval.py --issue 123 --mode impl --mode-source agent-heuristic --mode-reason 'test: refreshed after drift' --force >/dev/null)
+(cd "$wt" && python3 scripts/gates/validate_approval.py >/dev/null)
 
 assert_invalid_approval_args 0
 

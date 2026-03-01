@@ -17,7 +17,7 @@
 - 参照は上位から下位へ辿る（PRD → Epic → 実装）。逆方向の参照（実装 → PRD）は「出典」としてのみ許容する
 - 参照先が一意に解決できない場合（複数PRDが該当する等）は、作業を止めて人間に確認する
 - 参照元が空、またはプレースホルダのままの場合は、入力不備として扱い実装に進まない
-- 参照の有効性は [`docs/evaluation/quality-gates.md`](../evaluation/quality-gates.md) の Gate 1 で検証される。SoT参照契約違反（Approved Epic の `参照PRD:` 充足・一意性・実在性）は `scripts/lint-sot.py` で自動検証される
+- 参照の有効性は [`docs/evaluation/quality-gates.md`](../evaluation/quality-gates.md) の Gate 1 で検証される。SoT参照契約違反（Approved Epic の `参照PRD:` 充足・一意性・実在性）は `scripts/lint/lint_sot.py` で自動検証される
 
 ---
 

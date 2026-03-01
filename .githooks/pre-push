@@ -18,15 +18,15 @@ worktree_py=""
 if [ -f "scripts/agentic-sdd/validate-approval.py" ] && [ -f "scripts/agentic-sdd/validate-worktree.py" ]; then
   approval_py="scripts/agentic-sdd/validate-approval.py"
   worktree_py="scripts/agentic-sdd/validate-worktree.py"
-elif [ -f "scripts/validate-approval.py" ] && [ -f "scripts/validate-worktree.py" ]; then
-  approval_py="scripts/validate-approval.py"
-  worktree_py="scripts/validate-worktree.py"
+elif [ -f "scripts/gates/validate_approval.py" ] && [ -f "scripts/gates/validate_worktree.py" ]; then
+  approval_py="scripts/gates/validate_approval.py"
+  worktree_py="scripts/gates/validate_worktree.py"
 fi
 
 if [ -z "$approval_py" ] || [ -z "$worktree_py" ]; then
-  if [ -f "scripts/agentic-sdd/validate-approval.py" ] || [ -f "scripts/validate-approval.py" ]; then
+  if [ -f "scripts/agentic-sdd/validate-approval.py" ] || [ -f "scripts/gates/validate_approval.py" ]; then
     echo "[agentic-sdd gate] BLOCKED: validate-worktree.py is missing. Reinstall/upgrade Agentic-SDD." >&2
-  elif [ -f "scripts/agentic-sdd/validate-worktree.py" ] || [ -f "scripts/validate-worktree.py" ]; then
+  elif [ -f "scripts/agentic-sdd/validate-worktree.py" ] || [ -f "scripts/gates/validate_worktree.py" ]; then
     echo "[agentic-sdd gate] BLOCKED: validate-approval.py is missing. Reinstall/upgrade Agentic-SDD." >&2
   else
     echo "[agentic-sdd gate] BLOCKED: validator pair is missing. Reinstall/upgrade Agentic-SDD." >&2

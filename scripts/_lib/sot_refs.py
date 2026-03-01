@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
-import os
 import re
-from typing import Optional
+from pathlib import Path, PurePath
 from urllib.parse import urlparse
 
 
@@ -14,9 +13,7 @@ def is_safe_repo_relative(path: str) -> bool:
     parts = [p for p in path.split("/") if p]
     if ".." in parts:
         return False
-    if path in {".", ".."}:
-        return False
-    return True
+    return path not in {".", ".."}
 
 
 def normalize_reference(ref: str) -> str:
@@ -36,8 +33,7 @@ def normalize_reference(ref: str) -> str:
         ref = ref[1:-1].strip()
 
     # Strip fragment/query-ish tails
-    ref = ref.split("#", 1)[0].strip()
-    return ref
+    return ref.split("#", 1)[0].strip()
 
 
 def resolve_ref_to_repo_path(repo_root: str, ref: str) -> str:
@@ -81,35 +77,32 @@ def resolve_ref_to_repo_path(repo_root: str, ref: str) -> str:
 
         raise ValueError(f"unsupported URL reference: {ref}")
 
-    if os.path.isabs(ref):
-        abs_path = os.path.realpath(ref)
-        repo_abs = os.path.realpath(repo_root)
-        if not abs_path.startswith(repo_abs + os.sep):
-            raise ValueError(f"absolute path outside repo: {ref}")
-        rel = os.path.relpath(abs_path, repo_abs)
-        rel = rel.replace(os.sep, "/")
+    if PurePath(ref).is_absolute():
+        abs_path = Path(ref).resolve()
+        repo_abs = Path(repo_root).resolve()
+        try:
+            rel = str(abs_path.relative_to(repo_abs))
+        except ValueError:
+            raise ValueError(f"absolute path outside repo: {ref}") from None
         if not is_safe_repo_relative(rel):
             raise ValueError(f"unsafe repo-relative path: {rel}")
         return rel
-
     rel = ref
-    if rel.startswith("./"):
-        rel = rel[2:]
+    rel = rel.removeprefix("./")
     rel = rel.strip()
     rel = rel.replace("\\", "/")
-    rel = os.path.normpath(rel).replace(os.sep, "/")
+    rel = str(PurePath(rel).as_posix())
     if not is_safe_repo_relative(rel):
         raise ValueError(f"unsafe repo-relative path: {rel}")
     return rel
 
 
-def find_issue_ref(body: str, key: str) -> Optional[str]:
+def find_issue_ref(body: str, key: str) -> str | None:
     # Matches: - Epic: ... / - PRD: ...
     pattern = re.compile(rf"^\s*[-*]\s*{re.escape(key)}\s*:\s*(.+?)\s*$", re.IGNORECASE)
     for line in body.splitlines():
         m = pattern.match(line)
         if not m:
             continue
-        val = m.group(1).strip()
-        return val
+        return m.group(1).strip()
     return None

@@ -198,6 +198,7 @@ while [[ $# -gt 0 ]]; do
 		            ;;
 		        --ref)
 		            REF="$2"
+	                # shellcheck disable=SC2034  # reserved for future ref-source detection
 	                REF_EXPLICIT=true
 		            shift 2
 		            ;;
@@ -367,7 +368,7 @@ if [ "$NO_CACHE" = true ]; then
     fetch_repo_at_sha "$repo_dir" "$REPO" "$sha"
 else
     repo_dir="$cache_dir/repos/$sha"
-    if [ ! -d "$repo_dir" ] || [ ! -f "$repo_dir/scripts/install-agentic-sdd.sh" ]; then
+    if [ ! -d "$repo_dir" ] || [ ! -f "$repo_dir/scripts/shell/install-agentic-sdd.sh" ]; then
         mkdir -p "$cache_dir/repos"
         tmpdir="$(mktemp_dir)"
         cleanup_tmp="$tmpdir"
@@ -383,7 +384,7 @@ if [ -n "$cleanup_tmp" ]; then
     trap 'rm -rf "$cleanup_tmp"' EXIT
 fi
 
-installer="$repo_dir/scripts/install-agentic-sdd.sh"
+installer="$repo_dir/scripts/shell/install-agentic-sdd.sh"
 if [ ! -f "$installer" ]; then
     log_error "Missing installer: $installer"
     exit 1

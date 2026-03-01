@@ -52,7 +52,7 @@
 
 ## 検証ゲート
 
-- `/create-pr` 前に `python3 scripts/validate-decision-index.py` が必須ゲートとして実行される（`scripts/create-pr.sh` に組み込み済み）
+- `/create-pr` 前に `python3 scripts/gates/validate_decision_index.py` が必須ゲートとして実行される（`scripts/shell/create-pr.sh` に組み込み済み）
 
 ---
 
