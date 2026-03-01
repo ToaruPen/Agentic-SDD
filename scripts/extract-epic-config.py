@@ -360,7 +360,7 @@ def main() -> int:
 
     try:
         config = extract_epic_config(str(epic_path))
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         eprint(f"Error: Failed to extract config: {exc}")
         return 1
 

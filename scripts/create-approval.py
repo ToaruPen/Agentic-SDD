@@ -51,7 +51,10 @@ def git_repo_root() -> str:
     if not git_bin:
         raise RuntimeError("git not found on PATH")
 
-    p = run_cmd([git_bin, "rev-parse", "--show-toplevel"], check=False)
+    try:
+        p = run_cmd([git_bin, "rev-parse", "--show-toplevel"], check=False)
+    except OSError as exc:
+        raise RuntimeError("Not in a git repository; cannot locate repo root.") from exc
     root = (p.stdout or "").strip()
     if p.returncode != 0 or not root:
         raise RuntimeError("Not in a git repository; cannot locate repo root.")

@@ -10,7 +10,9 @@ from collections.abc import Sequence
 
 try:
     from _lib.subprocess_utils import check_output_cmd
-except ModuleNotFoundError:
+except ModuleNotFoundError as exc:
+    if exc.name not in {"_lib", "_lib.subprocess_utils"}:
+        raise
 
     def check_output_cmd(
         cmd: list[str],
@@ -75,7 +77,7 @@ def resolve_ref_to_repo_path(repo_root: str, ref: str) -> str:
         raise ValueError("empty reference")
 
     # Ignore URLs
-    if ref.startswith(("http://", "https://")):
+    if re.match(r"^[A-Za-z][A-Za-z0-9+.-]*://", ref):
         raise ValueError(f"unsupported URL reference: {ref}")
 
     if os.path.isabs(ref):
