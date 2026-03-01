@@ -141,41 +141,15 @@ def generate_ci_commands(
     return commands
 
 
-def generate_evidence_trail(
+def _build_toolchains(
     detection: Dict[str, Any],
     registry: Dict[str, Any],
-    ci_commands: List[Dict[str, str]],
-    target_dir: Path,
-    template_dir: Optional[Path] = None,
-    dry_run: bool = False,
-) -> Optional[str]:
-    """証跡ファイル (.agentic-sdd/project/rules/lint.md) を生成"""
-    try:
-        from jinja2 import Environment, FileSystemLoader
-    except ImportError:
-        eprint("[WARN] jinja2 not available; skipping evidence trail generation")
-        return None
-
-    if template_dir is None:
-        script_dir = Path(__file__).parent
-        repo_root = script_dir.parent
-        template_dir = repo_root / "templates" / "project-config"
-
-    if not template_dir.exists():
-        eprint(f"[WARN] Template directory not found: {template_dir}")
-        return None
-
-    env = Environment(
-        loader=FileSystemLoader(str(template_dir)),
-        trim_blocks=True,
-        lstrip_blocks=True,
-        autoescape=False,  # noqa: S701 -- Markdown template, no XSS risk
-    )
-
+) -> tuple[list[Dict[str, Any]], list[Dict[str, str]]]:
+    """証跡用ツールチェーンデータを構築。(toolchains, existing_configs) を返す。"""
     languages = detection.get("languages", [])
     existing_configs = detection.get("existing_linter_configs", [])
 
-    toolchains = []
+    toolchains: list[Dict[str, Any]] = []
     for lang_info in languages:
         lang_name = lang_info["name"]
         toolchain = lookup_toolchain(lang_name, registry)
@@ -208,19 +182,138 @@ def generate_evidence_trail(
                 "conflict_exclusions": formatter.get("conflict_rules", []),
             }
         )
+    return toolchains, existing_configs
 
-    context = {
+
+def _render_evidence_plaintext(
+    context: Dict[str, Any],
+) -> str:
+    """証跡 Markdown を jinja2 なしで生成（フォールバック）。"""
+    lines: List[str] = [
+        "# Linter設定 証跡",
+        "",
+        "> このファイルは `/lint-setup` コマンドにより自動生成されました。",
+        "",
+        "## 生成情報",
+        "",
+        f"- 生成日時: {context['generated_at']}",
+        f"- 対象ディレクトリ: {context['target_path']}",
+        "",
+        "## 検出された言語",
+        "",
+    ]
+    for lang in context.get("languages", []):
+        lines.append(
+            f"- **{lang['name']}** (検出元: `{lang['source']}`, パス: `{lang['path']}`)"
+        )
+    lines.append("")
+    lines.append("## 選定されたツールチェーン")
+    lines.append("")
+    for tc in context.get("toolchains", []):
+        lines.append(f"### {tc['language']}")
+        lines.append("")
+        lines.append("| 種別 | ツール | 公式ドキュメント |")
+        lines.append("|------|--------|-----------------|")
+        lines.append(f"| Linter | {tc['linter_name']} | {tc['linter_docs_url']} |")
+        lines.append(
+            f"| Formatter | {tc['formatter_name']} | {tc['formatter_docs_url']} |"
+        )
+        if tc.get("type_checker_name"):
+            lines.append(
+                f"| Type Checker | {tc['type_checker_name']} | {tc['type_checker_docs_url']} |"
+            )
+        lines.append("")
+        lines.append("**参照した公式ドキュメント:**")
+        for ref in tc.get("references", []):
+            lines.append(f"- {ref['url']} (証跡生成日時: {ref['registered_at']})")
+        lines.append("")
+        lines.append("**適用ルール分類:**")
+        lines.append(f"- Essential: {', '.join(tc.get('essential_rules', []))}")
+        if tc.get("recommended_rules"):
+            lines.append(f"- Recommended: {', '.join(tc['recommended_rules'])}")
+        if tc.get("conflict_exclusions"):
+            lines.append("")
+            lines.append("**フォーマッタ競合除外:**")
+            lines.append(f"- {', '.join(tc['conflict_exclusions'])}")
+        lines.append("")
+    lines.append("## 既存設定との関係")
+    lines.append("")
+    existing = context.get("existing_configs", [])
+    if existing:
+        lines.append("以下の既存 linter 設定を検出しました（上書き不可）:")
+        lines.append("")
+        for cfg in existing:
+            lines.append(f"- `{cfg['path']}` ({cfg['tool']})")
+    else:
+        lines.append("既存の linter 設定は検出されませんでした。")
+    lines.append("")
+    lines.append("## エージェント生成ファイル")
+    lines.append("")
+    lines.append("このスクリプトは推奨出力のみを行います。")
+    lines.append(
+        "実際の設定ファイルはエージェントがユーザーの希望と公式ドキュメントに基づいて動的に生成します。"
+    )
+    lines.append("")
+    lines.append("## 推奨CIコマンド")
+    lines.append("")
+    lines.append("```bash")
+    for cmd in context.get("ci_commands", []):
+        lines.append(f"{cmd['key']}: {cmd['value']}")
+    lines.append("```")
+    return "\n".join(lines) + "\n"
+
+
+def generate_evidence_trail(
+    detection: Dict[str, Any],
+    registry: Dict[str, Any],
+    ci_commands: List[Dict[str, str]],
+    target_dir: Path,
+    template_dir: Optional[Path] = None,
+    dry_run: bool = False,
+) -> Optional[str]:
+    """証跡ファイル (.agentic-sdd/project/rules/lint.md) を生成。jinja2 がなければプレーンテキストでフォールバック。"""
+    toolchains, existing_configs = _build_toolchains(detection, registry)
+
+    context: Dict[str, Any] = {
         "generated_at": datetime.now(tz=timezone.utc).isoformat(),
         "target_path": str(target_dir),
-        "languages": languages,
+        "languages": detection.get("languages", []),
         "toolchains": toolchains,
         "existing_configs": existing_configs,
         "generated_files": [],
         "ci_commands": ci_commands,
     }
 
-    template = env.get_template("rules/lint.md.j2")
-    content = template.render(**context)
+    # jinja2 でレンダリングを試み、失敗時はプレーンテキストでフォールバック
+    content: Optional[str] = None
+    try:
+        from jinja2 import Environment, FileSystemLoader
+
+        if template_dir is None:
+            script_dir = Path(__file__).parent
+            repo_root = script_dir.parent
+            template_dir = repo_root / "templates" / "project-config"
+
+        if template_dir.exists():
+            env = Environment(
+                loader=FileSystemLoader(str(template_dir)),
+                trim_blocks=True,
+                lstrip_blocks=True,
+                autoescape=False,  # noqa: S701 -- Markdown template, no XSS risk
+            )
+            template = env.get_template("rules/lint.md.j2")
+            content = template.render(**context)
+        else:
+            eprint(
+                f"[WARN] Template directory not found: {template_dir}; using plaintext fallback"
+            )
+    except ImportError:
+        eprint(
+            "[INFO] jinja2 not available; using plaintext fallback for evidence trail"
+        )
+
+    if content is None:
+        content = _render_evidence_plaintext(context)
 
     output_dir = target_dir / ".agentic-sdd" / "project" / "rules"
 
@@ -256,12 +349,20 @@ def run_setup(
         return {"error": "no_languages_detected"}
 
     # 言語名リスト（重複排除、順序維持）とパス情報の収集
+    # confidence フィールドで確定検出と推測検出を区別する
     seen: set[str] = set()
     unique_lang_names: List[str] = []
+    inferred_lang_names: List[str] = []
     lang_paths: Dict[str, List[str]] = {}
     for lang in languages:
         name = lang["name"]
         path = lang.get("path", ".")
+        confidence = lang.get("confidence", "confirmed")
+        if confidence == "inferred":
+            if name not in seen and name not in inferred_lang_names:
+                inferred_lang_names.append(name)
+            lang_paths.setdefault(name, []).append(path)
+            continue
         if name not in seen:
             seen.add(name)
             unique_lang_names.append(name)
@@ -350,6 +451,16 @@ def run_setup(
         result["conflicts"] = conflicts
     if evidence_path and not dry_run:
         result["evidence_trail"] = evidence_path
+    if inferred_lang_names:
+        # 推測検出の言語はシグナルとして保持（推奨には含めない）
+        result["inferred_languages"] = [
+            {
+                "name": name,
+                "paths": sorted(set(lang_paths.get(name, ["."]))),
+                "note": "Inferred from build file; confirm with source files before configuring linter.",
+            }
+            for name in inferred_lang_names
+        ]
 
     return result
 

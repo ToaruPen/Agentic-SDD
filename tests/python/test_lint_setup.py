@@ -367,10 +367,9 @@ def test_generate_evidence_trail_dry_run_returns_rendered_content(
     assert not (tmp_path / ".agentic-sdd" / "project" / "rules" / "lint.md").exists()
 
 
-def test_generate_evidence_trail_missing_template_dir_returns_none(
+def test_generate_evidence_trail_missing_template_dir_uses_plaintext_fallback(
     tmp_path: Path,
 ) -> None:
-    ensure_jinja2_available(tmp_path)
     registry = load_real_registry()
     detection = {
         "languages": [{"name": "python", "source": "pyproject.toml", "path": "."}],
@@ -384,9 +383,13 @@ def test_generate_evidence_trail_missing_template_dir_returns_none(
         ci_commands=[],
         target_dir=tmp_path,
         template_dir=tmp_path / "missing-template-dir",
+        dry_run=True,
     )
 
-    assert content is None
+    # Plaintext fallback should produce content, not None
+    assert content is not None
+    assert "python" in content
+    assert "ruff" in content
 
 
 def test_run_setup_normal_single_language_flow(tmp_path: Path) -> None:
