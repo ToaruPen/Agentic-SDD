@@ -6,23 +6,35 @@ extract-epic-config.py の出力を受け取り、テンプレートに変数置
 """
 
 import argparse
+import importlib
 import json
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Protocol, cast
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from cli_utils import eprint  # noqa: E402
 
 try:
-    from jinja2 import Environment, FileSystemLoader, select_autoescape
+    _jinja2 = importlib.import_module("jinja2")
 except ImportError:
     print(
         "Error: jinja2 is required. Install with: pip install jinja2", file=sys.stderr
     )
     sys.exit(1)
 
+Environment = _jinja2.Environment
+FileSystemLoader = _jinja2.FileSystemLoader
+select_autoescape = _jinja2.select_autoescape
 
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
+
+class _RenderableTemplate(Protocol):
+    def render(self, **context: Any) -> str: ...
+
+
+class _JinjaEnvironment(Protocol):
+    def get_template(self, name: str) -> _RenderableTemplate: ...
 
 
 def find_repo_root() -> Path:
@@ -41,7 +53,7 @@ def load_config(config_path: str) -> Dict[str, Any]:
         return json.load(fh)
 
 
-def setup_jinja_env(template_dir: Path) -> Environment:
+def setup_jinja_env(template_dir: Path) -> _JinjaEnvironment:
     """Jinja2環境をセットアップ"""
     env = Environment(
         loader=FileSystemLoader(str(template_dir)),
@@ -49,11 +61,11 @@ def setup_jinja_env(template_dir: Path) -> Environment:
         trim_blocks=True,
         lstrip_blocks=True,
     )
-    return env
+    return cast(_JinjaEnvironment, env)
 
 
 def generate_config_json(
-    env: Environment,
+    env: _JinjaEnvironment,
     config: Dict[str, Any],
     output_dir: Path,
     generated_skills: List[str],
@@ -80,7 +92,7 @@ def generate_config_json(
 
 
 def generate_security_rules(
-    env: Environment,
+    env: _JinjaEnvironment,
     config: Dict[str, Any],
     output_dir: Path,
 ) -> Optional[str]:
@@ -108,7 +120,7 @@ def generate_security_rules(
 
 
 def generate_performance_rules(
-    env: Environment,
+    env: _JinjaEnvironment,
     config: Dict[str, Any],
     output_dir: Path,
 ) -> Optional[str]:
@@ -136,7 +148,7 @@ def generate_performance_rules(
 
 
 def generate_api_conventions(
-    env: Environment,
+    env: _JinjaEnvironment,
     config: Dict[str, Any],
     output_dir: Path,
 ) -> Optional[str]:
@@ -162,7 +174,7 @@ def generate_api_conventions(
 
 
 def generate_tech_stack_skill(
-    env: Environment,
+    env: _JinjaEnvironment,
     config: Dict[str, Any],
     output_dir: Path,
 ) -> Optional[str]:
@@ -300,6 +312,11 @@ def main() -> int:
         help="実際にファイルを生成せず、生成予定のファイル一覧を表示",
     )
     parser.add_argument("--json", action="store_true", help="結果をJSON形式で出力")
+    parser.add_argument(
+        "--skip-lint",
+        action="store_true",
+        help="/lint-setup の自動実行をスキップ",
+    )
 
     args = parser.parse_args()
 
@@ -361,6 +378,81 @@ def main() -> int:
         eprint(f"Error: Failed to generate files: {e}")
         return 1
 
+    # Phase 4.5: Linter setup (optional)
+    if not args.skip_lint:
+        import subprocess as _sp  # noqa: PLC0415
+
+        script_dir = Path(__file__).parent
+        detect_script = script_dir / "detect-languages.py"
+        lint_script = script_dir / "lint-setup.py"
+
+        if detect_script.exists() and lint_script.exists():
+            target = find_repo_root()
+
+            detect_proc = _sp.run(  # noqa: S603
+                [sys.executable, str(detect_script), "--path", str(target), "--json"],
+                capture_output=True,
+                text=True,
+            )
+            if detect_proc.returncode == 0:
+                import tempfile
+
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False
+                ) as tmp:
+                    tmp.write(detect_proc.stdout)
+                    tmp_path = tmp.name
+
+                try:
+                    lint_args = [
+                        sys.executable,
+                        str(lint_script),
+                        tmp_path,
+                        "--target-dir",
+                        str(target),
+                    ]
+                    if args.dry_run:
+                        lint_args.append("--dry-run")
+                    lint_args.append("--json")
+
+                    lint_proc = _sp.run(  # noqa: S603
+                        lint_args,
+                        capture_output=True,
+                        text=True,
+                    )
+
+                    if lint_proc.returncode == 0:
+                        lint_result = json.loads(lint_proc.stdout)
+                        result["lint_setup"] = lint_result
+                        if not args.json:
+                            recommendations = lint_result.get("recommendations", [])
+                            if recommendations:
+                                print("\nLinter推奨ツール:")
+                                for rec in recommendations:
+                                    linter = rec.get("linter", {})
+                                    print(
+                                        f"  - {rec['language']}: {linter.get('name')} ({linter.get('docs_url')})"
+                                    )
+                            conflicts = lint_result.get("conflicts", [])
+                            if conflicts:
+                                print("\nLinter競合:")
+                                for c in conflicts:
+                                    print(f"  - {c['language']}: {c['message']}")
+                    else:
+                        eprint(
+                            f"[WARN] lint-setup failed (exit {lint_proc.returncode}): "
+                            f"{lint_proc.stderr.strip()}"
+                        )
+                        result["lint_setup_error"] = (
+                            lint_proc.stderr.strip()
+                            or f"exit code {lint_proc.returncode}"
+                        )
+                finally:
+                    Path(tmp_path).unlink(missing_ok=True)
+            else:
+                eprint("[WARN] Language detection failed; skipping lint-setup")
+                result["lint_setup_error"] = "Language detection failed"
+
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
@@ -385,6 +477,13 @@ def main() -> int:
             print("\n生成ファイル一覧:")
             for f in result["generated_files"]:
                 print(f"  - {f}")
+
+    if result.get("lint_setup_error") and not args.skip_lint:
+        eprint(
+            f"[WARN] lint-setup failed: {result['lint_setup_error']}. "
+            "Use --skip-lint to suppress this warning."
+        )
+        # lint-setup is optional; warn but do not fail the overall command
 
     return 0
 

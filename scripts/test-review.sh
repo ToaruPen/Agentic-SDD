@@ -215,8 +215,9 @@ should_scan_focused_marker() {
 is_test_file_path() {
 	local path="$1"
 
+	# shellcheck disable=SC2221,SC2222
 	case "$path" in
-	scripts/tests/test-*.sh | scripts/agentic-sdd/tests/test-*.sh | test_*.py | *_test.py)
+	scripts/tests/test-*.sh | scripts/agentic-sdd/tests/test-*.sh | test_*.py | *_test.py | */test_*.py | */*_test.py)
 		return 0
 		;;
 	docs/* | *.md)

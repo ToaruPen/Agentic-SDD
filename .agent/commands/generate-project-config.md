@@ -66,6 +66,20 @@ Use `scripts/agentic-sdd/generate-project-config.py`:
 2. Render via Jinja2 variables
 3. Write outputs under `.agentic-sdd/project/`
 
+### Phase 4.5: Linter setup (optional)
+
+If the project has detectable languages, optionally run `/lint-setup` to output recommended linter toolchains:
+
+```bash
+# Detect languages and output linter recommendations
+python3 scripts/detect-languages.py --path . --json > /tmp/detection.json
+python3 scripts/lint-setup.py /tmp/detection.json --target-dir . --json
+```
+
+- Skipped when `--skip-lint` is passed to `generate-project-config.py`
+- The script only outputs recommendations; the agent generates config files based on user preference + official docs
+- If existing linter configs are detected, they are reported in the output but never overwritten
+
 ### Phase 5: Review generated outputs
 
 1. Print the list of generated files
@@ -82,7 +96,8 @@ Use `scripts/agentic-sdd/generate-project-config.py`:
 └── rules/
     ├── security.md
     ├── performance.md
-    └── api-conventions.md
+    ├── api-conventions.md
+    └── lint.md
 ```
 
 ## Example
@@ -111,6 +126,7 @@ python scripts/agentic-sdd/generate-project-config.py docs/epics/my-project-epic
 - `.agent/rules/security.md` - Generic security rules
 - `.agent/rules/performance.md` - Generic performance rules
  - `templates/project-config/` - template files
+- `.agent/commands/lint-setup.md` - Linter setup command
 
 ## Next command
 

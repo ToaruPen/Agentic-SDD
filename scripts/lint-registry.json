@@ -1,0 +1,242 @@
+{
+  "$schema": "lint-registry-v1",
+  "description": "Language-to-linter toolchain mapping for /lint-setup command",
+  "languages": {
+    "python": {
+      "linter": {
+        "name": "ruff",
+        "docs_url": "https://docs.astral.sh/ruff/rules/",
+        "config_file": "pyproject.toml",
+        "config_section": "tool.ruff",
+        "essential_rules": ["E4", "E7", "E9", "W", "F", "I", "B", "UP", "RUF"],
+        "recommended_rules": ["S", "SIM", "PLE", "PLW", "FURB", "C4", "DTZ", "T20", "ERA", "PERF"],
+        "ci_command": "ruff check ."
+      },
+      "formatter": {
+        "name": "ruff format",
+        "docs_url": "https://docs.astral.sh/ruff/formatter/",
+        "conflict_docs_url": "https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules",
+        "conflict_rules": ["W191", "E111", "E114", "E117", "D206", "D300", "Q000", "Q001", "Q002", "Q003", "COM812", "COM819", "ISC001", "ISC002"],
+        "ci_command": "ruff format --check ."
+      },
+      "type_checker": {
+        "name": "mypy",
+        "docs_url": "https://mypy.readthedocs.io/en/stable/config_file.html",
+        "config_file": "pyproject.toml",
+        "config_section": "tool.mypy",
+        "ci_command": "mypy ."
+      },
+      "framework_rules": {
+        "django": {"rules": ["DJ"], "detect": ["django"]},
+        "fastapi": {"rules": ["FAST"], "detect": ["fastapi"]},
+        "flask": {"rules": [], "detect": ["flask"]},
+        "pytest": {"rules": ["PT"], "detect": ["pytest"]},
+        "pandas": {"rules": ["PD"], "detect": ["pandas"]},
+        "numpy": {"rules": ["NPY"], "detect": ["numpy"]}
+      }
+    },
+    "typescript": {
+      "linter": {
+        "name": "eslint",
+        "docs_url": "https://eslint.org/docs/latest/rules/",
+        "config_file": "eslint.config.js",
+        "config_section": null,
+        "essential_rules": ["eslint:recommended", "@typescript-eslint/recommended"],
+        "recommended_rules": ["@typescript-eslint/strict"],
+        "ci_command": "npx eslint ."
+      },
+      "formatter": {
+        "name": "prettier",
+        "docs_url": "https://prettier.io/docs/en/options",
+        "conflict_docs_url": "https://github.com/prettier/eslint-config-prettier",
+        "conflict_rules": [],
+        "ci_command": "npx prettier --check ."
+      },
+      "type_checker": {
+        "name": "tsc",
+        "docs_url": "https://www.typescriptlang.org/tsconfig/",
+        "config_file": "tsconfig.json",
+        "config_section": null,
+        "ci_command": "npx tsc --noEmit"
+      },
+      "framework_rules": {
+        "react": {"rules": ["eslint-plugin-react", "eslint-plugin-react-hooks"], "detect": ["react"]},
+        "next": {"rules": ["eslint-config-next"], "detect": ["next"]},
+        "vue": {"rules": ["eslint-plugin-vue"], "detect": ["vue"]}
+      }
+    },
+    "javascript": {
+      "linter": {
+        "name": "eslint",
+        "docs_url": "https://eslint.org/docs/latest/rules/",
+        "config_file": "eslint.config.js",
+        "config_section": null,
+        "essential_rules": ["eslint:recommended"],
+        "recommended_rules": [],
+        "ci_command": "npx eslint ."
+      },
+      "formatter": {
+        "name": "prettier",
+        "docs_url": "https://prettier.io/docs/en/options",
+        "conflict_docs_url": "https://github.com/prettier/eslint-config-prettier",
+        "conflict_rules": [],
+        "ci_command": "npx prettier --check ."
+      },
+      "type_checker": {
+        "name": null,
+        "docs_url": null,
+        "config_file": null,
+        "config_section": null,
+        "ci_command": null
+      },
+      "framework_rules": {
+        "react": {"rules": ["eslint-plugin-react", "eslint-plugin-react-hooks"], "detect": ["react"]},
+        "next": {"rules": ["eslint-config-next"], "detect": ["next"]},
+        "vue": {"rules": ["eslint-plugin-vue"], "detect": ["vue"]}
+      }
+    },
+    "go": {
+      "linter": {
+        "name": "golangci-lint",
+        "docs_url": "https://golangci-lint.run/usage/linters/",
+        "config_file": ".golangci.yml",
+        "config_section": null,
+        "essential_rules": ["errcheck", "gosimple", "govet", "ineffassign", "staticcheck", "unused"],
+        "recommended_rules": ["gofmt", "goimports", "misspell", "bodyclose", "exhaustive"],
+        "ci_command": "golangci-lint run"
+      },
+      "formatter": {
+        "name": "gofmt",
+        "docs_url": "https://pkg.go.dev/cmd/gofmt",
+        "conflict_docs_url": null,
+        "conflict_rules": [],
+        "ci_command": "test -z \"$(gofmt -l .)\""
+      },
+      "type_checker": {
+        "name": null,
+        "docs_url": null,
+        "config_file": null,
+        "config_section": null,
+        "ci_command": null
+      },
+      "framework_rules": {}
+    },
+    "rust": {
+      "linter": {
+        "name": "clippy",
+        "docs_url": "https://rust-lang.github.io/rust-clippy/master/",
+        "config_file": "clippy.toml",
+        "config_section": null,
+        "essential_rules": ["warnings"],
+        "recommended_rules": ["clippy::pedantic"],
+        "ci_command": "cargo clippy -- -D warnings"
+      },
+      "formatter": {
+        "name": "rustfmt",
+        "docs_url": "https://rust-lang.github.io/rustfmt/",
+        "conflict_docs_url": null,
+        "conflict_rules": [],
+        "ci_command": "cargo fmt -- --check"
+      },
+      "type_checker": {
+        "name": null,
+        "docs_url": null,
+        "config_file": null,
+        "config_section": null,
+        "ci_command": null
+      },
+      "framework_rules": {}
+    },
+    "ruby": {
+      "linter": {
+        "name": "rubocop",
+        "docs_url": "https://docs.rubocop.org/rubocop/cops.html",
+        "config_file": ".rubocop.yml",
+        "config_section": null,
+        "essential_rules": ["Style", "Lint", "Layout"],
+        "recommended_rules": ["Metrics", "Naming"],
+        "ci_command": "rubocop"
+      },
+      "formatter": {
+        "name": "rubocop",
+        "docs_url": "https://docs.rubocop.org/rubocop/cops_layout.html",
+        "conflict_docs_url": null,
+        "conflict_rules": [],
+        "ci_command": "rubocop --format progress --fail-level E"
+      },
+      "type_checker": {
+        "name": "sorbet",
+        "docs_url": "https://sorbet.org/docs/overview",
+        "config_file": "sorbet/config",
+        "config_section": null,
+        "ci_command": "srb tc"
+      },
+      "framework_rules": {
+        "rails": {"rules": ["rubocop-rails"], "detect": ["rails"]}
+      }
+    },
+    "java": {
+      "linter": {
+        "name": "checkstyle",
+        "docs_url": "https://checkstyle.sourceforge.io/checks.html",
+        "config_file": "checkstyle.xml",
+        "config_section": null,
+        "essential_rules": ["google_checks"],
+        "recommended_rules": [],
+        "ci_command": "mvn checkstyle:check",
+        "ci_command_gradle": "./gradlew checkstyleMain"
+      },
+      "formatter": {
+        "name": "google-java-format",
+        "docs_url": "https://github.com/google/google-java-format",
+        "conflict_docs_url": null,
+        "conflict_rules": [],
+        "ci_command": "google-java-format --dry-run --set-exit-if-changed ."
+      },
+      "type_checker": {
+        "name": null,
+        "docs_url": null,
+        "config_file": null,
+        "config_section": null,
+        "ci_command": null
+      },
+      "framework_rules": {}
+    },
+    "kotlin": {
+      "linter": {
+        "name": "detekt",
+        "docs_url": "https://detekt.dev/docs/rules/",
+        "config_file": "detekt.yml",
+        "config_section": null,
+        "essential_rules": ["complexity", "coroutines", "empty-blocks", "exceptions", "potential-bugs"],
+        "recommended_rules": ["naming", "performance", "style"],
+        "ci_command": "detekt"
+      },
+      "formatter": {
+        "name": "ktlint",
+        "docs_url": "https://pinterest.github.io/ktlint/latest/",
+        "conflict_docs_url": null,
+        "conflict_rules": [],
+        "ci_command": "ktlint"
+      },
+      "type_checker": {
+        "name": null,
+        "docs_url": null,
+        "config_file": null,
+        "config_section": null,
+        "ci_command": null
+      },
+      "framework_rules": {}
+    }
+  },
+  "conflict_groups": {
+    "python_linters": {
+      "tools": ["ruff", "flake8", "pylint"],
+      "languages": ["python"]
+    },
+    "js_linters": {
+      "tools": ["eslint", "biome"],
+      "languages": ["javascript", "typescript"]
+    }
+  }
+}
