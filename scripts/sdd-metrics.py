@@ -276,6 +276,32 @@ def cmd_report(args: argparse.Namespace) -> int:
     cp_records = by_mode.get("context-pack", [])
     fd_records = by_mode.get("full-docs", [])
 
+    # Warn if either mode has no samples — comparison would be misleading
+    if not cp_records or not fd_records:
+        missing = []
+        if not cp_records:
+            missing.append("context-pack")
+        if not fd_records:
+            missing.append("full-docs")
+        _eprint(
+            f"insufficient data for comparison: no samples for {', '.join(missing)}. "
+            f"Set SDD_METRICS_MODE to label runs for the missing mode(s)."
+        )
+        # Still print what we have, but skip reduction comparison
+        print(f"=== Plan B Metrics Report: {scope_id or '(all scopes)'} ===")
+        print()
+        for mode_name, recs in sorted(by_mode.items()):
+            vals = [
+                r["tokens_approx"] for r in recs if r.get("tokens_approx") is not None
+            ]
+            avg = _mean(vals) if vals else 0.0
+            print(f"  {mode_name}: {len(recs)} samples, avg {avg:.0f} tokens/run")
+        print()
+        print(
+            "NOTE: Cannot compute reduction without both context-pack and full-docs samples."
+        )
+        return 0
+
     def _avg_tokens(recs: List[Dict[str, Any]]) -> float:
         vals = [r["tokens_approx"] for r in recs if r.get("tokens_approx") is not None]
         return _mean(vals)

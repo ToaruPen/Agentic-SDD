@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import importlib.util
 import json
 from pathlib import Path
@@ -112,8 +113,6 @@ def _make_metadata(tmp_path: Path, data: Dict[str, Any]) -> Path:
 
 def _make_args(**kwargs: Any) -> Any:
     """Build a namespace matching cmd_record expectations."""
-    import argparse
-
     defaults = {
         "repo_root": "",
         "command": "review-cycle",
@@ -427,3 +426,17 @@ class TestCmdReport:
 
         out = capsys.readouterr().out
         assert "100x runs" in out
+
+    def test_report_missing_baseline_warns(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Report with only context-pack samples warns about missing baseline."""
+        _write_metric(tmp_path, "issue-1", "r1", "review-cycle", "context-pack", 200)
+
+        args = argparse.Namespace(repo_root=str(tmp_path), scope_id="issue-1", scale=10)
+        result = M.cmd_report(args)
+        assert result == 0
+
+        out = capsys.readouterr().out
+        assert "Cannot compute reduction" in out
+        assert "context-pack: 1 samples" in out

@@ -184,12 +184,16 @@ _record_metrics_on_exit() {
 	if [[ -n "${out_json:-}" && -f "${out_json:-}" ]]; then
 		_status="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('status',''))" "$out_json" 2>/dev/null || true)"
 	fi
+	local _meta_args=()
+	if [[ -n "${out_meta:-}" ]]; then
+		_meta_args=(--metadata-file "$out_meta")
+	fi
 	python3 "$_script" record \
 		--repo-root "${repo_root:-}" \
 		--command review-cycle \
 		--scope-id "${scope_id:-unknown}" \
 		--run-id "${run_id:-$(date +%Y%m%d_%H%M%S)}" \
-		${out_meta:+--metadata-file "$out_meta"} \
+		"${_meta_args[@]+${_meta_args[@]}}" \
 		--status "${_status:-unknown}" \
 		2>/dev/null || true
 }

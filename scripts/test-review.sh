@@ -79,12 +79,16 @@ _record_metrics_on_exit() {
 	[[ "$_metrics_recorded" -eq 1 ]] && return 0
 	local _script="${_tr_script_dir}/sdd-metrics.py"
 	[[ -f "$_script" ]] || return 0
+	local _meta_args=()
+	if [[ -n "${out_meta:-}" ]]; then
+		_meta_args=(--metadata-file "$out_meta")
+	fi
 	python3 "$_script" record \
 		--repo-root "${repo_root:-}" \
 		--command test-review \
 		--scope-id "${scope_id:-unknown}" \
 		--run-id "${run_id:-$(date +%Y%m%d_%H%M%S)}" \
-		${out_meta:+--metadata-file "$out_meta"} \
+		"${_meta_args[@]+${_meta_args[@]}}" \
 		--status "early-exit (code $_code)" \
 		2>/dev/null || true
 }
