@@ -466,10 +466,9 @@ def main() -> int:
 
     if result.get("lint_setup_error") and not args.skip_lint:
         eprint(
-            f"[ERROR] lint-setup failed: {result['lint_setup_error']}. "
-            "Use --skip-lint to suppress this error."
+            f"[WARN] lint-setup failed: {result['lint_setup_error']}. "
+            "Use --skip-lint to suppress this warning."
         )
-        return 1
 
     return 0
 
