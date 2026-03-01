@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import sys
 from pathlib import Path
 from types import ModuleType
 
@@ -38,9 +39,49 @@ def bench_module() -> ModuleType:
     return module
 
 
+@pytest.fixture(scope="module")
+def contract_module() -> ModuleType:
+    repo_root = Path(__file__).resolve().parents[2]
+    module_path = repo_root / "scripts" / "context_pack_contract.py"
+    module_name = "context_pack_contract"
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Failed to load module spec: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 @pytest.mark.parametrize("command", EXPECTED_COMMANDS)
 def test_commands_include_expected_set(bench_module: ModuleType, command: str) -> None:
     assert command in bench_module.COMMANDS
+
+
+def test_contract_loader_returns_v1_shape(contract_module: ModuleType) -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    contract = contract_module.load_context_pack_contract(repo_root)
+    assert contract.header == "[Context Pack v1]"
+    assert contract.keys == (
+        "phase:",
+        "must_read:",
+        "gates:",
+        "stops:",
+        "skills_to_load:",
+        "next:",
+    )
+    assert contract.line_count == 7
+
+
+def test_bench_uses_shared_contract(
+    bench_module: ModuleType, contract_module: ModuleType
+) -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    contract = contract_module.load_context_pack_contract(repo_root)
+    assert bench_module.CONTRACT.header == contract.header
+    assert bench_module.CONTRACT.keys == contract.keys
+    assert bench_module.CONTRACT.line_count == contract.line_count
+    assert bench_module.CONTRACT.forbidden_markers == contract.forbidden_markers
 
 
 def test_check_output_accepts_research_pack(bench_module: ModuleType) -> None:

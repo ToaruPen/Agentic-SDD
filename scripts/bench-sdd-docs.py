@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import importlib.util
 import json
 import subprocess
 import sys
@@ -26,6 +27,24 @@ COMMANDS = [
     "/pr-bots-review",
     "/worktree",
 ]
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _load_contract_module() -> Any:
+    module_path = REPO_ROOT / "scripts" / "context_pack_contract.py"
+    module_name = "context_pack_contract"
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"failed to load module spec: {module_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_contract_module = _load_contract_module()
+CONTRACT = _contract_module.load_context_pack_contract(REPO_ROOT)
 
 
 @dataclass(frozen=True)
@@ -70,28 +89,23 @@ def _extract_last_text(events: List[Dict[str, Any]]) -> Optional[str]:
 
 
 def _check_output(s: str) -> Tuple[bool, bool, bool, bool, bool, bool]:
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = REPO_ROOT
 
     lines = s.splitlines()
-    expected_keys = [
-        "phase:",
-        "must_read:",
-        "gates:",
-        "stops:",
-        "skills_to_load:",
-        "next:",
-    ]
+    expected_keys = list(CONTRACT.keys)
 
-    has_code_fence = "```" in s
-    has_triple_dash = "---" in s
+    has_code_fence = CONTRACT.forbidden_markers[0] in s
+    has_triple_dash = CONTRACT.forbidden_markers[1] in s
 
     has_fixed_format = (
-        len(lines) == 7
-        and lines[0].strip() == "[Context Pack v1]"
-        and all(lines[i + 1].startswith(expected_keys[i]) for i in range(6))
+        len(lines) == CONTRACT.line_count
+        and lines[0].strip() == CONTRACT.header
+        and all(
+            lines[i + 1].startswith(expected_keys[i]) for i in range(len(expected_keys))
+        )
     )
 
-    has_template = lines[:1] == ["[Context Pack v1]"]
+    has_template = lines[:1] == [CONTRACT.header]
     has_required_keys = all(
         any(line.startswith(k) for line in lines) for k in expected_keys
     )
