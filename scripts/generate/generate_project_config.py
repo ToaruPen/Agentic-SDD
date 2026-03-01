@@ -18,6 +18,7 @@ from datetime import datetime
 from typing import Any, Protocol
 
 from _lib.subprocess_utils import run_cmd
+from cli_utils import eprint
 
 
 class TemplateLike(Protocol):
@@ -26,10 +27,6 @@ class TemplateLike(Protocol):
 
 class JinjaEnvironmentLike(Protocol):
     def get_template(self, name: str) -> TemplateLike: ...
-
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
 
 
 def find_repo_root() -> Path:

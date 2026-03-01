@@ -384,9 +384,14 @@ if [ -n "$cleanup_tmp" ]; then
     trap 'rm -rf "$cleanup_tmp"' EXIT
 fi
 
+# Post-reorg layout: scripts/shell/install-agentic-sdd.sh
+# Pre-reorg layout: scripts/install-agentic-sdd.sh
 installer="$repo_dir/scripts/shell/install-agentic-sdd.sh"
 if [ ! -f "$installer" ]; then
-    log_error "Missing installer: $installer"
+    installer="$repo_dir/scripts/install-agentic-sdd.sh"
+fi
+if [ ! -f "$installer" ]; then
+    log_error "Missing installer: expected scripts/shell/install-agentic-sdd.sh or scripts/install-agentic-sdd.sh in $repo_dir"
     exit 1
 fi
 

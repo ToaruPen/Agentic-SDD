@@ -9,8 +9,9 @@ from _lib.md_sanitize import (  # noqa: F401
     strip_indented_code_blocks,
 )
 
-warnings.warn(
-    "scripts/md_sanitize.py is deprecated. Use scripts/_lib/md_sanitize.py instead.",
-    DeprecationWarning,
-    stacklevel=1,
-)
+if __name__ == "__main__":
+    warnings.warn(
+        "scripts/md_sanitize.py is deprecated. Use scripts/_lib/md_sanitize.py instead.",
+        DeprecationWarning,
+        stacklevel=1,
+    )

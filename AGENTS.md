@@ -97,7 +97,7 @@ When using `git worktree` to implement multiple Issues in parallel:
 - If multiple related Issues overlap heavily, create a single "parent" Issue as the implementation unit and keep the related Issues as tracking-only children (no branches/worktrees for children).
   Treat this as the standard mode for large refactoring/migration work, not an exception path.
 - Do not edit PRD/Epic across parallel branches; serialize SoT changes
-- Apply `parallel-ok` only when declared change-target file sets are disjoint (validate via `./scripts/agentic-sdd/worktree.sh check`)
+- Apply `parallel-ok` only when declared change-target file sets are disjoint (validate via `./scripts/agentic-sdd/shell/worktree.sh check`)
 - Before high-impact operations (`/review-cycle`, `/create-pr`, `/pr-bots-review`, manual conflict resolution), run a Scope Lock check and stop on mismatch:
   - `git branch --show-current`
   - `gh issue develop --list <issue-number>` (Issue-scoped work)

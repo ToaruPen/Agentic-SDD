@@ -132,6 +132,11 @@ def main() -> int:
         eprint("--mode-reason must be a non-empty string")
         return 2
 
+    approver = str(args.approver).strip()
+    if not approver:
+        eprint("--approver must be a non-empty string")
+        return 2
+
     approved_at = args.approved_at.strip() or now_utc_z()
     if not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$", approved_at):
         eprint("Invalid --approved-at (expected format: YYYY-MM-DDTHH:mm:ssZ)")
@@ -175,7 +180,7 @@ def main() -> int:
         "mode_reason": mode_reason,
         "approved_at": approved_at,
         "estimate_hash": estimate_hash,
-        "approver": str(args.approver),
+        "approver": approver,
     }
 
     try:
