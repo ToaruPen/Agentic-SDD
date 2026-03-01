@@ -260,6 +260,39 @@ class TestCmdRecord:
         assert data["tokens_approx"] is None
         assert data["error_reason"] is None
 
+    def test_record_status_from_cli_arg(self, tmp_path: Path) -> None:
+        """Explicit --status takes precedence over metadata."""
+        meta = _make_metadata(tmp_path, {"status": "Blocked"})
+        args = _make_args(
+            repo_root=str(tmp_path),
+            metadata_file=str(meta),
+            mode="full-docs",
+            status="Approved",
+        )
+        M.cmd_record(args)
+        out = (
+            tmp_path / ".agentic-sdd" / "metrics" / "issue-99"
+            / "20260301_140000-review-cycle.json"
+        )
+        data = json.loads(out.read_text())
+        assert data["status"] == "Approved"
+
+    def test_record_status_from_metadata(self, tmp_path: Path) -> None:
+        """When --status is not set, status is extracted from metadata."""
+        meta = _make_metadata(tmp_path, {"status": "Blocked", "prompt_bytes": 100})
+        args = _make_args(
+            repo_root=str(tmp_path),
+            metadata_file=str(meta),
+            mode="full-docs",
+        )
+        M.cmd_record(args)
+        out = (
+            tmp_path / ".agentic-sdd" / "metrics" / "issue-99"
+            / "20260301_140000-review-cycle.json"
+        )
+        data = json.loads(out.read_text())
+        assert data["status"] == "Blocked"
+
 
 # ---------------------------------------------------------------------------
 # aggregate subcommand

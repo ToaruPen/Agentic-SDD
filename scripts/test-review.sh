@@ -412,6 +412,7 @@ if [[ -f "$_metrics_script" ]]; then
 		--scope-id "$scope_id" \
 		--run-id "$run_id" \
 		--metadata-file "$out_meta" \
+		--status "$status" \
 		2>/dev/null || true
 fi
 

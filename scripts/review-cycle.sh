@@ -1940,11 +1940,13 @@ printf '%s\n' "$out_json"
 # Metrics hook (non-blocking, never affects exit code)
 _metrics_script="$(dirname "${BASH_SOURCE[0]}")/sdd-metrics.py"
 if [[ -f "$_metrics_script" ]]; then
+	_review_status="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('status',''))" "$out_json" 2>/dev/null || true)"
 	python3 "$_metrics_script" record \
 		--repo-root "$repo_root" \
 		--command review-cycle \
 		--scope-id "$scope_id" \
 		--run-id "$run_id" \
 		--metadata-file "$out_meta" \
+		--status "${_review_status:-unknown}" \
 		2>/dev/null || true
 fi

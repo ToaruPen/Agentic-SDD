@@ -127,8 +127,8 @@ def cmd_record(args: argparse.Namespace) -> int:
         total_bytes = sot_bytes + diff_bytes
         tokens_approx = total_bytes // 4
 
-    # Status: prefer explicit arg, then extract from metadata via status field
-    status = status_arg or ""
+    # Status: prefer explicit CLI arg, then extract from metadata 'status' field
+    status = status_arg or meta.get("status", "") or ""
 
     payload: Dict[str, Any] = {
         "schema_version": METRICS_SCHEMA_VERSION,
