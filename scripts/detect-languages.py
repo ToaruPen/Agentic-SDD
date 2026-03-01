@@ -128,7 +128,7 @@ def detect_languages_for_file(file_path: Path, root: Path) -> List[Dict[str, str
                 }
             )
 
-    if file_path.suffix in {".kt", ".kts"} and name != "build.gradle.kts":
+    if file_path.suffix in {".kt", ".kts"} and not name.endswith(".gradle.kts"):
         detections.append({"name": "kotlin", "source": name, "path": rel_dir})
 
     return detections
@@ -189,7 +189,10 @@ def detect_linter_configs_for_file(file_path: Path, root: Path) -> List[Dict[str
             maybe_add_section(detections, "mypy", rel_path, "tool.mypy")
 
     if name == "setup.cfg":
-        parser = load_setup_cfg(file_path)
+        try:
+            parser = load_setup_cfg(file_path)
+        except RuntimeError:
+            return detections
         if parser.has_section("flake8"):
             maybe_add_section(detections, "flake8", rel_path, "flake8")
 

@@ -175,3 +175,66 @@ def test_cli_non_existent_path() -> None:
 
     assert proc.returncode == 1
     assert "Error: Path not found" in proc.stderr
+
+
+def test_settings_gradle_kts_does_not_confirm_kotlin(tmp_path: Path) -> None:
+    """settings.gradle.kts is Gradle DSL, not Kotlin source code.
+
+    Only build.gradle.kts should produce an inferred detection.
+    settings.gradle.kts should NOT produce any Kotlin detection at all.
+    """
+    write_file(tmp_path / "settings.gradle.kts", "rootProject.name = 'demo'\n")
+
+    result = MODULE.detect_project(tmp_path)
+
+    kotlin_detections = [
+        lang for lang in result["languages"] if lang["name"] == "kotlin"
+    ]
+    assert kotlin_detections == [], (
+        f"settings.gradle.kts should not detect Kotlin but got: {kotlin_detections}"
+    )
+
+
+def test_build_gradle_kts_infers_kotlin(tmp_path: Path) -> None:
+    """build.gradle.kts should produce an inferred Kotlin detection, not confirmed."""
+    write_file(tmp_path / "build.gradle.kts", "plugins { kotlin(\"jvm\") }\n")
+
+    result = MODULE.detect_project(tmp_path)
+
+    kotlin_detections = [
+        lang for lang in result["languages"] if lang["name"] == "kotlin"
+    ]
+    assert len(kotlin_detections) == 1
+    assert kotlin_detections[0]["confidence"] == "inferred"
+
+
+def test_kt_file_confirms_kotlin(tmp_path: Path) -> None:
+    """Actual .kt source files should produce confirmed Kotlin detection."""
+    write_file(tmp_path / "Main.kt", "fun main() {}\n")
+
+    result = MODULE.detect_project(tmp_path)
+
+    kotlin_detections = [
+        lang for lang in result["languages"] if lang["name"] == "kotlin"
+    ]
+    assert len(kotlin_detections) == 1
+    assert "confidence" not in kotlin_detections[0]  # confirmed = no confidence key
+
+
+def test_malformed_setup_cfg_does_not_crash(tmp_path: Path) -> None:
+    """Malformed setup.cfg should be skipped gracefully, not crash detection."""
+    write_file(tmp_path / "pyproject.toml", "[project]\nname = 'demo'\n")
+    # Write invalid content that will fail configparser parsing
+    write_file(tmp_path / "setup.cfg", "\x00\x01\x02not valid ini\n")
+
+    result = MODULE.detect_project(tmp_path)
+
+    # Should still detect python from pyproject.toml
+    assert "python" in language_names(result)
+    # Should not have flake8 in linter configs (setup.cfg was malformed)
+    linter_tools = {
+        entry["tool"]
+        for entry in result.get("existing_linter_configs", [])
+        if isinstance(entry, dict)
+    }
+    assert "flake8" not in linter_tools
