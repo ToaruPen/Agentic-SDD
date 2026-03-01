@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-
 import argparse
 import json
 import os
 import re
 import shutil
 import subprocess
+import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from _lib.git_utils import git_repo_root
 from _lib.io_helpers import eprint, read_text

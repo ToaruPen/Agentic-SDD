@@ -175,7 +175,7 @@ def test_check_output_cmd_timeout_is_propagated(
         MODULE.check_output_cmd([sys.executable, "-c", "print('x')"], timeout=1)
 
 
-def test_exit_with_subprocess_returncode_nonzero_and_zero() -> None:
+def test_exit_with_subprocess_returncode_nonzero() -> None:
     with pytest.raises(SystemExit) as excinfo:
         MODULE.exit_with_subprocess_returncode(3)
 

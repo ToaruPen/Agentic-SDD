@@ -329,7 +329,7 @@ def main() -> int:
     if config_path.suffix == ".json":
         try:
             config = load_config(str(config_path))
-        except (json.JSONDecodeError, OSError) as exc:
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
             eprint(f"Error: Failed to load config: {exc}")
             return 1
     elif config_path.suffix == ".md":
@@ -354,7 +354,7 @@ def main() -> int:
 
         try:
             config = json.loads(proc.stdout)
-        except json.JSONDecodeError as exc:
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
             eprint(f"Error: Failed to parse extracted config: {exc}")
             return 1
     else:
@@ -423,11 +423,15 @@ def main() -> int:
                     if lint_proc.returncode == 0:
                         try:
                             result["lint_setup"] = json.loads(lint_proc.stdout)
-                        except (json.JSONDecodeError, ValueError) as exc:
+                        except (
+                            json.JSONDecodeError,
+                            UnicodeDecodeError,
+                            ValueError,
+                        ) as exc:
                             eprint(
                                 f"[WARN] lint-setup returned 0 but output is not valid JSON: {exc}"
                             )
-                            result["lint_setup"] = None
+                            result["lint_setup"] = {}
                             result["lint_setup_error"] = f"invalid JSON output: {exc}"
                             result["lint_setup_stdout"] = lint_proc.stdout
                     else:
@@ -469,7 +473,7 @@ def main() -> int:
             for f in result["generated_files"]:
                 print(f"  - {f}")
 
-        lint_result = result.get("lint_setup", {})
+        lint_result = result.get("lint_setup") or {}
         recommendations = lint_result.get("recommendations", [])
         if recommendations:
             print("\nLinter推奨ツール:")

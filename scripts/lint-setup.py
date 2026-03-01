@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from cli_utils import eprint
+from _lib.io_helpers import eprint
 
 UTC_ATTR = "UTC"
 UTC_TZ = getattr(datetime, UTC_ATTR, timezone(timedelta(0)))
