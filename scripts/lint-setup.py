@@ -116,10 +116,22 @@ def _pick_ci_command(
     return tool.get("ci_command")
 
 
+def _scope_command(cmd: str, paths: List[str]) -> str:
+    if not paths or set(paths) == {"."}:
+        return cmd
+    unique_paths = sorted(set(p for p in paths if p != "."))
+    if not unique_paths:
+        return cmd
+    if cmd.endswith(" ."):
+        return cmd[:-2] + " " + " ".join(unique_paths)
+    return cmd
+
+
 def generate_ci_commands(
     languages: List[str],
     registry: Dict[str, Any],
     lang_sources: Optional[Dict[str, List[str]]] = None,
+    lang_paths: Optional[Dict[str, List[str]]] = None,
 ) -> List[Dict[str, str]]:
     """CI 推奨コマンドを生成（複数言語時は && で連結）"""
     if lang_sources is None:
@@ -136,16 +148,23 @@ def generate_ci_commands(
         linter = toolchain.get("linter", {})
         formatter = toolchain.get("formatter", {})
         type_checker = toolchain.get("type_checker", {})
+        paths = lang_paths.get(lang, ["."]) if lang_paths else ["."]
 
         lint_cmd = _pick_ci_command(linter, lang, lang_sources)
+        if lint_cmd:
+            lint_cmd = _scope_command(lint_cmd, paths)
         if lint_cmd and lint_cmd not in lint_cmds:
             lint_cmds.append(lint_cmd)
 
         fmt_cmd = _pick_ci_command(formatter, lang, lang_sources)
+        if fmt_cmd:
+            fmt_cmd = _scope_command(fmt_cmd, paths)
         if fmt_cmd and fmt_cmd not in fmt_cmds:
             fmt_cmds.append(fmt_cmd)
 
         tc_cmd = _pick_ci_command(type_checker, lang, lang_sources)
+        if tc_cmd:
+            tc_cmd = _scope_command(tc_cmd, paths)
         if tc_cmd and tc_cmd not in tc_cmds:
             tc_cmds.append(tc_cmd)
 
@@ -476,7 +495,9 @@ def run_setup(
         recommendations.append(rec)
 
     # CI コマンド
-    ci_commands = generate_ci_commands(unique_lang_names, registry, lang_sources)
+    ci_commands = generate_ci_commands(
+        unique_lang_names, registry, lang_sources, lang_paths
+    )
 
     # 証跡ファイル（確定検出のみ）
     confirmed_languages = [

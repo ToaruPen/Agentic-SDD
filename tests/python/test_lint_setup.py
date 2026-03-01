@@ -4,12 +4,13 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
-import pytest
 import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Any
+
+import pytest
 
 
 def load_module() -> ModuleType:
@@ -276,6 +277,18 @@ def test_has_conflicting_tools_unknown_language() -> None:
     assert result is False
 
 
+def test_has_conflicting_tools_missing_tool_key() -> None:
+    registry = load_real_registry()
+    existing_configs = [
+        {"path": ".flake8"},
+        {"path": "pyproject.toml", "section": "tool.ruff"},
+    ]
+
+    result = MODULE.has_conflicting_tools(existing_configs, "python", registry)
+
+    assert result is False
+
+
 def test_lookup_toolchain_existing_language() -> None:
     registry = load_real_registry()
 
@@ -320,6 +333,19 @@ def test_generate_ci_commands_multiple_languages_concatenates() -> None:
         },
         {"key": "AGENTIC_SDD_CI_TYPECHECK_CMD", "value": "mypy . && npx tsc --noEmit"},
     ]
+
+
+def test_generate_ci_commands_scopes_to_subproject_paths() -> None:
+    registry = minimal_registry()
+    lang_paths = {"python": ["backend"], "javascript": ["frontend"]}
+
+    commands = MODULE.generate_ci_commands(
+        ["python", "javascript"], registry, lang_paths=lang_paths
+    )
+
+    lint_cmd = next(c for c in commands if c["key"] == "AGENTIC_SDD_CI_LINT_CMD")
+    assert "backend" in lint_cmd["value"]
+    assert "frontend" in lint_cmd["value"]
 
 
 def test_generate_ci_commands_skips_unknown_language() -> None:

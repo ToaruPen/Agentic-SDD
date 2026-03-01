@@ -224,6 +224,35 @@ def dedupe_entries(
     return result
 
 
+_PROJECT_INDICATORS: frozenset[str] = frozenset(
+    {
+        "pyproject.toml",
+        "setup.py",
+        "setup.cfg",
+        "requirements.txt",
+        "package.json",
+        "tsconfig.json",
+        "go.mod",
+        "Cargo.toml",
+        "Gemfile",
+        "pom.xml",
+        "build.gradle",
+        "build.gradle.kts",
+    }
+)
+
+
+def _find_project_root(path: str, project_roots: Set[str]) -> str:
+    if path in project_roots:
+        return path
+    parts = path.split("/")
+    for i in range(len(parts) - 1, 0, -1):
+        candidate = "/".join(parts[:i])
+        if candidate in project_roots:
+            return candidate
+    return parts[0] if parts[0] != "." else "."
+
+
 def detect_project(root: Path) -> Dict[str, Any]:
     if not root.exists():
         raise RuntimeError(f"Path not found: {root}")
@@ -243,15 +272,15 @@ def detect_project(root: Path) -> Dict[str, Any]:
     linters = dedupe_entries(linters, ("tool", "path", "section"))
     linters.sort(key=lambda item: (item["path"], item["tool"], item.get("section", "")))
 
-    def _top_level(p: str) -> str:
-        if p == ".":
-            return "."
-        return p.split("/")[0]
+    project_roots: Set[str] = set()
+    for entry in languages:
+        if entry.get("source", "") in _PROJECT_INDICATORS:
+            project_roots.add(entry["path"])
 
     path_to_languages: Dict[str, Set[str]] = {}
     for entry in languages:
-        top = _top_level(entry["path"])
-        path_to_languages.setdefault(top, set()).add(entry["name"])
+        group_key = _find_project_root(entry["path"], project_roots)
+        path_to_languages.setdefault(group_key, set()).add(entry["name"])
 
     top_keys = set(path_to_languages.keys())
     non_root_keys = top_keys - {"."}
