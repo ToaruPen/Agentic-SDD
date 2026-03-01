@@ -968,7 +968,7 @@ def test_generate_ci_commands_mixed_maven_gradle_per_path() -> None:
 def test_generate_ci_commands_gradle_module_with_java_source_emits_single_command() -> (
     None
 ):
-    """build.gradle + Main.java at same path should emit only Gradle command, not Maven."""
+    """Gradle takes precedence over Maven when both build.gradle and .java files exist at the same path."""
     registry = load_real_registry()
 
     commands = MODULE.generate_ci_commands(

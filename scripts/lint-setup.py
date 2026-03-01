@@ -414,7 +414,13 @@ def generate_evidence_trail(
     template_dir: Optional[Path] = None,
     dry_run: bool = False,
 ) -> Optional[str]:
-    """証跡ファイル (.agentic-sdd/project/rules/lint.md) を生成。jinja2 がなければプレーンテキストでフォールバック。"""
+    """証跡ファイルを生成する。
+
+    output_dir_override 指定時は ``<output_dir_override>/rules/lint.md`` へ出力し、
+    未指定時は ``<target_dir>/.agentic-sdd/project/rules/lint.md`` へ出力する。
+    jinja2 が利用可能ならテンプレートでレンダリングし、利用不可時はプレーンテキストで
+    フォールバックする。dry_run=True の場合はファイルを書き込まず内容を返す。
+    """
     toolchains, existing_configs = _build_toolchains(detection, registry)
 
     context: Dict[str, Any] = {
