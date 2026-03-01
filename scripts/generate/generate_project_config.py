@@ -420,7 +420,13 @@ def main() -> int:
                     lint_proc = run_cmd(lint_args, check=False)
 
                     if lint_proc.returncode == 0:
-                        result["lint_setup"] = json.loads(lint_proc.stdout)
+                        try:
+                            result["lint_setup"] = json.loads(lint_proc.stdout)
+                        except json.JSONDecodeError as exc:
+                            eprint(
+                                f"[WARN] lint-setup returned 0 but output is not valid JSON: {exc}"
+                            )
+                            result["lint_setup_error"] = f"invalid JSON output: {exc}"
                     else:
                         stderr = lint_proc.stderr.strip()
                         eprint(

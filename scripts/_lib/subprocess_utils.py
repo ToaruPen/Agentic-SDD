@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import subprocess
-from typing import Literal, overload
+from typing import IO, Any, Literal, overload
 
 
 @overload
@@ -54,7 +54,7 @@ def check_output_cmd(
     cmd: list[str],
     *,
     cwd: str | None = None,
-    stderr: int | None = None,
+    stderr: int | IO[Any] | None = None,
     text: Literal[True] = True,
     timeout: float | None = None,
 ) -> str: ...
@@ -65,7 +65,7 @@ def check_output_cmd(
     cmd: list[str],
     *,
     cwd: str | None = None,
-    stderr: int | None = None,
+    stderr: int | IO[Any] | None = None,
     text: Literal[False],
     timeout: float | None = None,
 ) -> bytes: ...
@@ -75,7 +75,7 @@ def check_output_cmd(
     cmd: list[str],
     *,
     cwd: str | None = None,
-    stderr: int | None = None,
+    stderr: int | IO[Any] | None = None,
     text: bool = True,
     timeout: float | None = None,
 ) -> str | bytes:

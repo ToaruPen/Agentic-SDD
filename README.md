@@ -80,7 +80,7 @@ Note: `worktree.sh new` uses `gh issue develop` to create a linked branch on the
 "in progress" source of truth. It fails fast if the Issue already has linked branches.
 
 ```bash
-# Detect overlaps before starting
+# In the target project (after install):
 ./scripts/agentic-sdd/shell/worktree.sh check --issue 123 --issue 124
 
 # Create a worktree per Issue
@@ -279,6 +279,7 @@ For UI-heavy Issues, run short redesign loops with screenshot evidence:
 Helper script example:
 
 ```bash
+# In the target project (after install):
 ./scripts/agentic-sdd/shell/ui-iterate.sh 99 --route /kiosk \
   --check-cmd "<typecheck-command>" \
   --check-cmd "<lint-command>" \
@@ -648,6 +649,7 @@ Run the sync script to generate OpenCode configs.
 Note: OpenCode has a built-in `/init` (generates AGENTS.md), so Agentic-SDD's init is exposed as `/sdd-init`.
 
 ```bash
+# In the target project (after install):
 # 1) Sync
 ./scripts/agentic-sdd/shell/sync-agent-config.sh opencode
 
@@ -669,7 +671,7 @@ to install Agentic-SDD into new projects.
 Setup:
 
 ```bash
-# Clone this repo and run at the repo root
+# In this repository (development checkout):
 ./scripts/shell/setup-global-agentic-sdd.sh
 ```
 
@@ -682,6 +684,7 @@ After setup, run `/agentic-sdd` in each tool.
 Run the sync script to generate Codex CLI configs.
 
 ```bash
+# In the target project (after install):
 # 1) Sync
 ./scripts/agentic-sdd/shell/sync-agent-config.sh codex
 
@@ -701,7 +704,7 @@ codex
 If you edit files under `.agent/`, re-run the sync script.
 
 ```bash
-# Sync for all tools
+# In the target project (after install):
 ./scripts/agentic-sdd/shell/sync-agent-config.sh all
 
 # Preview (no changes)
