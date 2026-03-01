@@ -23,6 +23,10 @@ Options:
 Exit codes:
   0  Success
   2  Usage / precondition failure
+
+Parallel integration guard (optional):
+  AGENTIC_SDD_PARALLEL_ISSUES='176,177'  # peer issue numbers in the same parallel set
+  When set, /create-pr runs `scripts/worktree.sh check` against current issue + peer issues.
 EOF
 }
 
@@ -89,6 +93,62 @@ normalize_base_branch_for_compare() {
   fi
 
   printf '%s\n' "$normalized"
+}
+
+run_parallel_integration_guard() {
+  local repo_root="$1"
+  local issue="$2"
+  local peers_raw="${AGENTIC_SDD_PARALLEL_ISSUES:-}"
+  local worktree_cmd="$repo_root/scripts/worktree.sh"
+
+  if [[ -z "$peers_raw" ]]; then
+    return 0
+  fi
+  if [[ ! -x "$worktree_cmd" ]]; then
+    eprint "Parallel integration guard enabled, but missing executable: $worktree_cmd"
+    exit 2
+  fi
+
+  local normalized="${peers_raw//,/ }"
+  local token=""
+  local peer=""
+  local -a check_args=("--issue" "$issue")
+
+  for token in $normalized; do
+    peer="${token#\#}"
+    if [[ -z "$peer" ]]; then
+      continue
+    fi
+    if [[ ! "$peer" =~ ^[0-9]+$ ]]; then
+      eprint "Invalid AGENTIC_SDD_PARALLEL_ISSUES entry: '$token' (expected issue number)"
+      exit 2
+    fi
+    if [[ "$peer" == "$issue" ]]; then
+      continue
+    fi
+    check_args+=("--issue" "$peer")
+  done
+
+  if [[ "${#check_args[@]}" -le 2 ]]; then
+    return 0
+  fi
+
+  local check_out=""
+  local check_status=0
+  check_out="$($worktree_cmd check "${check_args[@]}" 2>&1)" || check_status=$?
+  if [[ "$check_status" -eq 0 ]]; then
+    return 0
+  fi
+  if [[ "$check_status" -eq 3 ]]; then
+    eprint "Parallel integration conflict detected by worktree check."
+    eprint "$check_out"
+    eprint "Resolve overlaps or serialize issues before running /create-pr."
+    eprint "If declared targets are stale, update issue target files and retry."
+    exit 2
+  fi
+  eprint "Parallel integration guard failed to run (exit: $check_status)."
+  eprint "$check_out"
+  exit 2
 }
 
 DRY_RUN=0
@@ -185,6 +245,8 @@ if [[ -z "$ISSUE" || ! "$ISSUE" =~ ^[0-9]+$ ]]; then
   eprint "Issue number is required (use --issue <n> or name the branch with 'issue-<n>')."
   exit 2
 fi
+
+run_parallel_integration_guard "$repo_root" "$ISSUE"
 
 scope_id="issue-${ISSUE}"
 review_root="$repo_root/.agentic-sdd/reviews/$scope_id"

@@ -90,6 +90,14 @@ Note: `worktree.sh new` uses `gh issue develop` to create a linked branch on the
 
 Note: worktrees share the same `.git` database. Merge incrementally (finish one, merge one) to reduce conflicts.
 
+Fixed integration-conflict rule (parallel PRs):
+
+- Re-run overlap/integration checks before merging or creating a later PR in the same parallel set.
+- If active parallel PRs overlap in actual diff files, run an integration rehearsal on latest `origin/main` (temporary integration branch/worktree) before proceeding.
+- If conflict remains unresolved, remove `parallel-ok`, mark `blocked`, and serialize; do not proceed to `/create-pr`.
+- See `.agent/commands/worktree.md` (Phase 4.5) for the canonical procedure.
+- Optional hard gate: set `AGENTIC_SDD_PARALLEL_ISSUES='<peer-issue>,<peer-issue>'` when running `/create-pr` to enforce `scripts/worktree.sh check` fail-fast.
+
 When using the parent-unit model, close child Issues only after their AC is satisfied with evidence from the parent PR, and close the parent Issue after all children are complete. To keep the parent Issue open, use `Refs #<parent>` in the parent PR body (not `Closes/Fixes #<parent>`).
 
 ---
@@ -360,6 +368,8 @@ It also validates `/test-review` metadata for the current branch state
 - Do not run on `main`/`master`.
 - Working tree must be clean.
 - Run on the Issue-linked branch/worktree.
+- If this PR is part of a parallel set, ensure integration-conflict check is cleared per `.agent/commands/worktree.md` before creating the PR.
+- If `AGENTIC_SDD_PARALLEL_ISSUES` is set, `/create-pr` will fail-fast on overlap detected by `scripts/worktree.sh check`.
 
 If you enable CI (optional), wait for CI checks and fix failures before merging.
 
