@@ -219,9 +219,21 @@ repo_url="${AGENTIC_SDD_REPO:-https://github.com/ToaruPen/Agentic-SDD.git}"
 if [ -n "${AGENTIC_SDD_DEFAULT_REF:-}" ]; then
 	default_ref="$AGENTIC_SDD_DEFAULT_REF"
 else
-	if ! default_ref="$(detect_remote_default_ref "$repo_url")"; then
-		log_error "Could not detect default branch from repo URL: $repo_url"
-		log_error "Set AGENTIC_SDD_DEFAULT_REF explicitly and rerun setup-global-agentic-sdd.sh"
+	if default_ref="$(detect_remote_default_ref "$repo_url")"; then
+		:
+	elif [ -z "${AGENTIC_SDD_REPO:-}" ]; then
+		# Local fallbacks only when using the default repo URL
+		if default_ref="$(git -C "$SOURCE_ROOT" rev-parse --abbrev-ref origin/HEAD 2>/dev/null)"; then
+			default_ref="${default_ref#origin/}"
+			log_info "Remote HEAD detection failed; using local origin/HEAD: $default_ref"
+		elif default_ref="$(git -C "$SOURCE_ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null)"; then
+			log_info "origin/HEAD unavailable; using current branch: $default_ref"
+		else
+			log_error "Could not detect default branch. Set AGENTIC_SDD_DEFAULT_REF explicitly."
+			exit 1
+		fi
+	else
+		log_error "Could not detect default branch. Set AGENTIC_SDD_DEFAULT_REF explicitly."
 		exit 1
 	fi
 fi

@@ -324,14 +324,21 @@ def main() -> int:
 
     # JSONファイルかEpicファイルかを判定
     if config_path.suffix == ".json":
-        config = load_config(str(config_path))
+        try:
+            config = load_config(str(config_path))
+        except (json.JSONDecodeError, OSError) as exc:
+            eprint(f"Error: Failed to load config: {exc}")
+            return 1
     elif config_path.suffix == ".md":
         # Epicファイルの場合は extract-epic-config.py を呼び出す
         script_dir = Path(__file__).parent
-        extract_script = script_dir.parent / "extract-epic-config.py"
+        extract_script = script_dir.parent / "extract" / "extract_epic_config.py"
 
         if not extract_script.exists():
-            eprint(f"Error: extract-epic-config.py not found at {extract_script}")
+            extract_script = script_dir.parent / "extract-epic-config.py"
+
+        if not extract_script.exists():
+            eprint("Error: extract_epic_config.py not found")
             return 1
 
         proc = run_cmd(
@@ -342,7 +349,11 @@ def main() -> int:
             eprint(f"Error: Failed to extract config: {proc.stderr}")
             return 1
 
-        config = json.loads(proc.stdout)
+        try:
+            config = json.loads(proc.stdout)
+        except json.JSONDecodeError as exc:
+            eprint(f"Error: Failed to parse extracted config: {exc}")
+            return 1
     else:
         eprint(f"Error: Unsupported file type: {config_path.suffix}")
         return 1

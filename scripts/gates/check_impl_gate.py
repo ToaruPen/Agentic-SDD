@@ -7,34 +7,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
 import json
-import subprocess
-from pathlib import Path
 from typing import Any
 
-from _lib.subprocess_utils import run_cmd
-
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
-
-
-def run(
-    cmd: list[str],
-    cwd: str | None = None,
-    check: bool = True,
-) -> subprocess.CompletedProcess[str]:
-    return run_cmd(cmd, cwd=cwd, check=check)
-
-
-def repo_root() -> str | None:
-    try:
-        p = run(["git", "rev-parse", "--show-toplevel"], check=False)
-    except OSError:
-        return None
-    root = (p.stdout or "").strip()
-    if not root:
-        return None
-    return str(Path(root).resolve())
+from _lib.git_utils import eprint, repo_root, run
 
 
 def read_stdin_json() -> dict[str, Any]:
@@ -70,9 +45,7 @@ def extract_path(obj: dict[str, Any]) -> str | None:
 
 def is_agentic_sdd_local_path(path: str) -> bool:
     p = path.replace("\\", "/")
-    if p == ".agentic-sdd" or p.startswith(".agentic-sdd/"):
-        return True
-    return "/.agentic-sdd/" in p
+    return p == ".agentic-sdd" or p.startswith(".agentic-sdd/")
 
 
 def main() -> int:

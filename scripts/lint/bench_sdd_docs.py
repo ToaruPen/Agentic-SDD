@@ -99,7 +99,7 @@ def _command_doc_coverage(
     return missing, uncovered
 
 
-COMMANDS = _load_supported_commands(REPO_ROOT)
+_COMMANDS: list[str] | None = None
 
 
 def _load_contract_module() -> Any:
@@ -114,8 +114,33 @@ def _load_contract_module() -> Any:
     return module
 
 
-_contract_module = _load_contract_module()
-CONTRACT = _contract_module.load_context_pack_contract(REPO_ROOT)
+_CONTRACT: Any = None
+
+
+def get_commands() -> list[str]:
+    commands = _COMMANDS
+    if commands is None:
+        commands = _load_supported_commands(REPO_ROOT)
+        globals()["_COMMANDS"] = commands
+    return commands
+
+
+def get_contract() -> Any:
+    contract = _CONTRACT
+    if contract is None:
+        mod = _load_contract_module()
+        contract = mod.load_context_pack_contract(REPO_ROOT)
+        globals()["_CONTRACT"] = contract
+    return contract
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy module-level access for COMMANDS and CONTRACT (backward compat)."""
+    if name == "COMMANDS":
+        return get_commands()
+    if name == "CONTRACT":
+        return get_contract()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 @dataclass(frozen=True)
@@ -160,23 +185,23 @@ def _extract_last_text(events: list[dict[str, Any]]) -> str | None:
 
 
 def _check_output(s: str) -> tuple[bool, bool, bool, bool, bool, bool]:
-    repo_root = REPO_ROOT
+    contract = get_contract()
 
     lines = s.splitlines()
-    expected_keys = list(CONTRACT.keys)
+    expected_keys = list(contract.keys)
 
-    has_code_fence = CONTRACT.forbidden_markers[0] in s
-    has_triple_dash = CONTRACT.forbidden_markers[1] in s
+    has_code_fence = contract.forbidden_markers[0] in s
+    has_triple_dash = contract.forbidden_markers[1] in s
 
     has_fixed_format = (
-        len(lines) == CONTRACT.line_count
-        and lines[0].strip() == CONTRACT.header
+        len(lines) == contract.line_count
+        and lines[0].strip() == contract.header
         and all(
             lines[i + 1].startswith(expected_keys[i]) for i in range(len(expected_keys))
         )
     )
 
-    has_template = lines[:1] == [CONTRACT.header]
+    has_template = lines[:1] == [contract.header]
     has_required_keys = all(
         any(line.startswith(k) for line in lines) for k in expected_keys
     )
@@ -218,7 +243,7 @@ def _check_output(s: str) -> tuple[bool, bool, bool, bool, bool, bool]:
                 has_evidence_paths = False
                 break
 
-            p = repo_root / evidence
+            p = REPO_ROOT / evidence
             if not p.is_file():
                 has_evidence_paths = False
                 break
@@ -386,7 +411,8 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    missing_docs, uncovered_docs = _command_doc_coverage(REPO_ROOT, COMMANDS)
+    commands = get_commands()
+    missing_docs, uncovered_docs = _command_doc_coverage(REPO_ROOT, commands)
     if missing_docs:
         print(
             "missing command docs for supported Context Pack tokens: "
@@ -402,10 +428,10 @@ def main() -> int:
         )
         return 2
 
-    targets = COMMANDS
+    targets = commands
     if args.only:
         only = set(args.only)
-        targets = [c for c in COMMANDS if c in only]
+        targets = [c for c in commands if c in only]
         missing = sorted(only - set(targets))
         if missing:
             print(f"unknown --only: {', '.join(missing)}", file=sys.stderr)

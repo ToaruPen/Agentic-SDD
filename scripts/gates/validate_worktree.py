@@ -6,57 +6,18 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 
-import os
 import re
-import subprocess
 
-from _lib.subprocess_utils import run_cmd
+from _lib.git_utils import (
+    current_branch,
+    eprint,
+    extract_issue_number_from_branch,
+    git_repo_root,
+    run,
+)
 
 EXIT_GATE_BLOCKED = 2
-
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
-
-
-def run(
-    cmd: list[str],
-    cwd: str | None = None,
-    check: bool = True,
-) -> subprocess.CompletedProcess[str]:
-    return run_cmd(cmd, cwd=cwd, check=check)
-
-
-def git_repo_root() -> str:
-    try:
-        p = run(["git", "rev-parse", "--show-toplevel"], check=True)
-    except (subprocess.CalledProcessError, OSError) as exc:
-        raise RuntimeError("Not in a git repository; cannot locate repo root.") from exc
-    root = p.stdout.strip()
-    if not root:
-        raise RuntimeError("Failed to locate repo root via git.")
-    return os.path.realpath(root)
-
-
-def current_branch(repo_root: str) -> str:
-    try:
-        p = run(["git", "branch", "--show-current"], cwd=repo_root, check=False)
-    except subprocess.CalledProcessError:
-        return ""
-    return p.stdout.strip()
-
-
-def extract_issue_number_from_branch(branch: str) -> int | None:
-    m = re.search(r"\bissue-(\d+)\b", branch)
-    if not m:
-        return None
-    try:
-        n = int(m.group(1))
-    except ValueError:
-        return None
-    if n < 0:
-        return None
-    return n
+_ = run
 
 
 def gate_blocked(msg: str) -> int:
@@ -77,7 +38,10 @@ def main() -> int:
     except RuntimeError:
         return 0
 
-    branch = current_branch(repo_root)
+    try:
+        branch = current_branch(repo_root)
+    except RuntimeError as exc:
+        return gate_blocked(f"Failed to detect current branch via git.\n- error: {exc}")
     issue_number = extract_issue_number_from_branch(branch)
 
     if issue_number is None:
@@ -87,7 +51,7 @@ def main() -> int:
     if git_path.is_file():
         try:
             content = git_path.read_text(encoding="utf-8")
-        except OSError as exc:
+        except (OSError, UnicodeDecodeError) as exc:
             return gate_blocked(f"Failed to read .git file.\n- error: {exc}")
 
         if is_linked_worktree_gitfile(content):

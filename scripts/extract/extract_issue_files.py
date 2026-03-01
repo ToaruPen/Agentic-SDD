@@ -13,6 +13,7 @@ import re
 import subprocess
 from collections.abc import Sequence
 
+from _lib.sot_refs import is_safe_repo_relative, normalize_reference
 from _lib.subprocess_utils import check_output_cmd
 
 
@@ -22,37 +23,6 @@ def eprint(msg: str) -> None:
 
 def read_text(path: str) -> str:
     return Path(path).read_text(encoding="utf-8")
-
-
-def is_safe_repo_relative(path: str) -> bool:
-    if not path:
-        return False
-    if path.startswith("/"):
-        return False
-    parts = [p for p in path.split("/") if p]
-    if ".." in parts:
-        return False
-    return path not in {".", ".."}
-
-
-def normalize_reference(ref: str) -> str:
-    ref = ref.strip()
-
-    # Markdown link: [text](target)
-    m = re.search(r"\[[^\]]*\]\(([^)]+)\)", ref)
-    if m:
-        ref = m.group(1).strip()
-
-    # Angle brackets
-    if ref.startswith("<") and ref.endswith(">"):
-        ref = ref[1:-1].strip()
-
-    # Backticks
-    if ref.startswith("`") and ref.endswith("`"):
-        ref = ref[1:-1].strip()
-
-    # Strip fragment
-    return ref.split("#", 1)[0].strip()
 
 
 def resolve_ref_to_repo_path(repo_root: str, ref: str) -> str:

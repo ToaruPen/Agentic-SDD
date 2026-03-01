@@ -6,14 +6,13 @@ import sys
 import warnings
 from pathlib import Path
 
-warnings.warn(
-    "scripts/lint-sot.py is deprecated. Use scripts/lint/lint_sot.py instead.",
-    DeprecationWarning,
-    stacklevel=1,
-)
-
 _new = Path(__file__).parent / "lint/lint_sot.py"
 if __name__ == "__main__":
+    warnings.warn(
+        "scripts/lint-sot.py is deprecated. Use scripts/lint/lint_sot.py instead.",
+        DeprecationWarning,
+        stacklevel=1,
+    )
     sys.exit(
         subprocess.run(
             [sys.executable, str(_new), *sys.argv[1:]], check=False

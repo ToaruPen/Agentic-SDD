@@ -12,60 +12,19 @@ import json
 import os
 import re
 import shlex
-import subprocess
 from typing import Any
 
 from _lib.approval_constants import MODE_ALLOWED, MODE_SOURCE_ALLOWED
-from _lib.subprocess_utils import run_cmd
+from _lib.git_utils import (
+    current_branch,
+    eprint,
+    extract_issue_number_from_branch,
+    git_repo_root,
+    run,
+)
 
 EXIT_GATE_BLOCKED = 2
-
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
-
-
-def run(
-    cmd: list[str],
-    cwd: str | None = None,
-    check: bool = True,
-) -> subprocess.CompletedProcess[str]:
-    return run_cmd(cmd, cwd=cwd, check=check)
-
-
-def git_repo_root() -> str:
-    try:
-        p = run(["git", "rev-parse", "--show-toplevel"], check=True)
-    except (subprocess.CalledProcessError, OSError) as exc:
-        raise RuntimeError("Not in a git repository; cannot locate repo root.") from exc
-    root = p.stdout.strip()
-    if not root:
-        raise RuntimeError("Failed to locate repo root via git.")
-    return os.path.realpath(root)
-
-
-def current_branch(repo_root: str) -> str:
-    try:
-        p = run(["git", "branch", "--show-current"], cwd=repo_root, check=True)
-    except (OSError, subprocess.CalledProcessError) as exc:
-        raise RuntimeError("Failed to detect current branch via git.") from exc
-    branch = p.stdout.strip()
-    if not branch:
-        raise RuntimeError("Failed to detect current branch via git.")
-    return branch
-
-
-def extract_issue_number_from_branch(branch: str) -> int | None:
-    m = re.search(r"\bissue-(\d+)\b", branch)
-    if not m:
-        return None
-    try:
-        n = int(m.group(1))
-    except ValueError:
-        return None
-    if n < 0:
-        return None
-    return n
+_ = run
 
 
 def normalize_text_for_hash(text: str) -> bytes:

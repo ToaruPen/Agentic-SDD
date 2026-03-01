@@ -51,9 +51,14 @@ def strip_fenced_code_blocks(text: str) -> str:
 def strip_indented_code_blocks(text: str) -> str:
     """Strip indented code blocks (tab or 4+ spaces) from markdown text."""
     out_lines: list[str] = []
+    in_code = False
     for line in text.splitlines(keepends=True):
         if _INDENTED_CODE_RE.match(line):
+            in_code = True
             continue
+        if in_code and line.strip() == "":
+            continue
+        in_code = False
         out_lines.append(line)
     return "".join(out_lines)
 

@@ -856,9 +856,9 @@ def is_external_or_fragment(target: str) -> bool:
         return True
     if t.startswith("#"):
         return True
-    if re.match(r"^[a-zA-Z][a-zA-Z0-9+.-]*://", t):
-        return True
-    return bool(t.startswith("mailto:"))
+    if re.match(r"^[A-Za-z]:[\\/]", t):
+        return False
+    return bool(re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", t))
 
 
 def normalize_target(target: str) -> str:
@@ -943,7 +943,13 @@ def lint_paths(repo: str, roots: list[str]) -> list[LintError]:
             continue
         for path_abs in iter_markdown_files(root_abs):
             rel_path = str(Path(path_abs).relative_to(repo)).replace(os.sep, "/")
-            text = read_text(path_abs)
+            try:
+                text = read_text(path_abs)
+            except (OSError, UnicodeDecodeError) as exc:
+                errs.append(
+                    LintError(path=rel_path, message=f"Failed to read file: {exc}")
+                )
+                continue
             errs.extend(lint_placeholders(repo, rel_path, text))
             errs.extend(lint_status_format(rel_path, text))
             errs.extend(lint_research_contract(rel_path, text))

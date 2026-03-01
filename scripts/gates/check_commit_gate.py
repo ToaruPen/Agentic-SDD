@@ -8,33 +8,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import json
 import shlex
-import subprocess
-from pathlib import Path
 
-from _lib.subprocess_utils import run_cmd
-
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
-
-
-def run(
-    cmd: list[str],
-    cwd: str | None = None,
-    check: bool = True,
-) -> subprocess.CompletedProcess[str]:
-    return run_cmd(cmd, cwd=cwd, check=check)
-
-
-def repo_root() -> str | None:
-    try:
-        p = run(["git", "rev-parse", "--show-toplevel"], check=False)
-    except OSError:
-        return None
-    root = (p.stdout or "").strip()
-    if not root:
-        return None
-    return str(Path(root).resolve())
+from _lib.git_utils import eprint, repo_root, run
 
 
 def should_check_command(command: str) -> bool:
@@ -91,8 +66,16 @@ def main() -> int:
         eprint(f"[agentic-sdd gate] error: invalid hook payload: {exc}")
         return 1
 
+    if not isinstance(input_data, dict):
+        eprint("[agentic-sdd gate] error: hook payload is not a JSON object")
+        return 1
     tool_input = input_data.get("tool_input", {})
+    if not isinstance(tool_input, dict):
+        eprint("[agentic-sdd gate] error: tool_input is not a JSON object")
+        return 1
     command = tool_input.get("command", "")
+    if not isinstance(command, str):
+        command = ""
 
     # Only check git commit/push commands
     if not should_check_command(command):

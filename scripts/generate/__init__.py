@@ -1,1 +1,1 @@
-"""Scripts package."""
+"""Project configuration generation from Epic templates."""

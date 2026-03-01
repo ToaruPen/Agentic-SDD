@@ -28,7 +28,7 @@ if [ -z "$approval_py" ]; then
 fi
 
 if [ ! -f "$worktree_py" ]; then
-  echo "[agentic-sdd gate] BLOCKED: validate-worktree.py is missing. Reinstall/upgrade Agentic-SDD." >&2
+  echo "[agentic-sdd gate] BLOCKED: worktree validation script is missing. Reinstall/upgrade Agentic-SDD." >&2
   exit 1
 fi
 

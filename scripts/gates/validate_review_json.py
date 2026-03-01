@@ -9,14 +9,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import argparse
 import json
 import os
+import re
 from typing import Any
+
+from _lib.git_utils import eprint
 
 STATUS_ALLOWED = {"Approved", "Approved with nits", "Blocked", "Question"}
 PRIORITY_ALLOWED = {"P0", "P1", "P2", "P3"}
-
-
-def eprint(msg: str) -> None:
-    print(msg, file=sys.stderr)
 
 
 def die(errors: list[str]) -> int:
@@ -28,12 +27,13 @@ def die(errors: list[str]) -> int:
 def is_repo_relative_path(path: str) -> bool:
     if not path:
         return False
-    if path.startswith("/"):
+    p = path.replace("\\", "/")
+    if p.startswith("/"):
         return False
-    if path in {".", ".."}:
+    if re.match(r"^[A-Za-z]:", p):
         return False
-    parts = [p for p in path.split("/") if p]
-    return ".." not in parts
+    parts = [s for s in p.split("/") if s]
+    return ".." not in parts and "." not in parts
 
 
 def validate_review(
@@ -167,15 +167,15 @@ def validate_review(
 
         start = line_range.get("start")
         end = line_range.get("end")
-        if not isinstance(start, int) or start < 1:
+        if type(start) is not int or start < 1:
             errors.append(
                 f"findings[{idx}].code_location.line_range.start must be int >= 1"
             )
-        if not isinstance(end, int) or end < 1:
+        if type(end) is not int or end < 1:
             errors.append(
                 f"findings[{idx}].code_location.line_range.end must be int >= 1"
             )
-        if isinstance(start, int) and isinstance(end, int) and end < start:
+        if type(start) is int and type(end) is int and end < start:
             errors.append(
                 f"findings[{idx}].code_location.line_range.end must be >= start"
             )

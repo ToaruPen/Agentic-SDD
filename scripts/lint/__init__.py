@@ -1,1 +1,1 @@
-"""Scripts package."""
+"""Documentation linting and SoT contract verification."""

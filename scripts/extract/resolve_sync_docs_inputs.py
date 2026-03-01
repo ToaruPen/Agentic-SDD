@@ -18,6 +18,8 @@ from typing import Any
 from _lib.sot_refs import find_issue_ref, resolve_ref_to_repo_path
 from _lib.subprocess_utils import run_cmd
 
+GH_CMD_TIMEOUT = 30
+
 
 def eprint(msg: str) -> None:
     print(msg, file=sys.stderr)
@@ -31,8 +33,16 @@ def run(
     cmd: list[str],
     cwd: str | None = None,
     check: bool = True,
+    timeout: int | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    return run_cmd(cmd, cwd=cwd, check=check)
+    return run_cmd(cmd, cwd=cwd, check=check, timeout=timeout)
+
+
+def _format_path(path: str, repo_root: str) -> str:
+    try:
+        return str(Path(path).relative_to(repo_root)).replace(os.sep, "/")
+    except ValueError:
+        return str(Path(path)).replace(os.sep, "/")
 
 
 def git_repo_root() -> str:
@@ -119,9 +129,11 @@ def resolve_issue_refs(
         cmd += ["-R", gh_repo]
     cmd += ["issue", "view", issue_number, "--json", "body,url"]
     try:
-        p = run(cmd, cwd=repo_root, check=True)
-    except subprocess.CalledProcessError as exc:
-        msg = exc.stderr.strip() or exc.stdout.strip() or str(exc)
+        p = run(cmd, cwd=repo_root, check=True, timeout=GH_CMD_TIMEOUT)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
+        stderr = getattr(exc, "stderr", "") or ""
+        stdout = getattr(exc, "stdout", "") or ""
+        msg = stderr.strip() or stdout.strip() or str(exc)
         raise RuntimeError(f"Failed to fetch Issue via gh: {msg}") from exc
 
     try:
@@ -407,7 +419,7 @@ def main() -> int:
                 prds.extend(
                     f"docs/prd/{entry.name}"
                     for entry in prd_root.iterdir()
-                    if entry.name.endswith(".md")
+                    if entry.name.endswith(".md") and entry.name != "_template.md"
                 )
 
             if len(prds) == 1:
@@ -475,12 +487,8 @@ def main() -> int:
             "pr_number": pr_number,
             "diff_source": diff_source,
             "diff_detail": diff_detail,
-            "diff_path": str(Path(out_diff).relative_to(repo_root)).replace(
-                os.sep, "/"
-            ),
-            "inputs_path": str(Path(out_json).relative_to(repo_root)).replace(
-                os.sep, "/"
-            ),
+            "diff_path": _format_path(out_diff, repo_root),
+            "inputs_path": _format_path(out_json, repo_root),
         }
 
         if not args.dry_run:
