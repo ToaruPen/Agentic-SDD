@@ -440,3 +440,53 @@ class TestCmdReport:
         out = capsys.readouterr().out
         assert "Cannot compute reduction" in out
         assert "context-pack: 1 samples" in out
+
+
+    def test_record_rejects_path_traversal_scope_id(self, tmp_path: Path) -> None:
+        """scope_id with path separators must be rejected."""
+        args = _make_args(
+            repo_root=str(tmp_path),
+            command="review-cycle",
+            scope_id="../../etc",
+            run_id="r1",
+        )
+        result = M.cmd_record(args)
+        assert result == 2
+
+    def test_record_rejects_path_traversal_run_id(self, tmp_path: Path) -> None:
+        """run_id with path separators must be rejected."""
+        args = _make_args(repo_root=str(tmp_path), command="review-cycle", scope_id="issue-1", run_id="../evil")
+        result = M.cmd_record(args)
+        assert result == 2
+
+    def test_record_rejects_dot_prefix_scope_id(self, tmp_path: Path) -> None:
+        """scope_id starting with '.' must be rejected."""
+        args = _make_args(repo_root=str(tmp_path), command="review-cycle", scope_id=".hidden", run_id="r1")
+        result = M.cmd_record(args)
+        assert result == 2
+
+    def test_report_no_token_data_both_modes(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Report with both modes but no token data skips reduction."""
+        # Write records with tokens_approx=None for both modes
+        scope = "issue-2"
+        for mode in ("context-pack", "full-docs"):
+            metrics_dir = tmp_path / ".agentic-sdd" / "metrics" / scope
+            metrics_dir.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "mode": mode,
+                "command": "create-pr",
+                "tokens_approx": None,
+                "prompt_bytes": None,
+            }
+            (metrics_dir / f"r1-create-pr-{mode}.json").write_text(
+                json.dumps(payload), encoding="utf-8"
+            )
+
+        args = argparse.Namespace(repo_root=str(tmp_path), scope_id=scope, scale=10)
+        result = M.cmd_report(args)
+        assert result == 0
+
+        out = capsys.readouterr().out
+        assert "No token data available" in out

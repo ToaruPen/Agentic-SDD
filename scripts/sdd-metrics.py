@@ -90,6 +90,13 @@ def cmd_record(args: argparse.Namespace) -> int:
     mode_arg: str = args.mode
     status_arg: Optional[str] = args.status
 
+    # Sanitize path components to prevent directory traversal
+    for label, val in (("scope_id", scope_id), ("run_id", run_id)):
+        if not val or "/" in val or "\\" in val or val.startswith("."):
+            _eprint(
+                f"invalid {label}: {val!r} (must not contain path separators or start with '.')"
+            )
+            return 2
     if command not in VALID_COMMANDS:
         _eprint(f"unknown command: {command}")
         return 2
@@ -315,6 +322,21 @@ def cmd_report(args: argparse.Namespace) -> int:
     cp_avg_bytes = _avg_bytes(cp_records)
     fd_avg_bytes = _avg_bytes(fd_records)
 
+    # Guard: if neither mode has valid token data, comparison is meaningless
+    cp_has_tokens = any(r.get("tokens_approx") is not None for r in cp_records)
+    fd_has_tokens = any(r.get("tokens_approx") is not None for r in fd_records)
+    if not cp_has_tokens and not fd_has_tokens:
+        _eprint(
+            "no token data in either mode — comparison skipped. "
+            "Ensure review-cycle/test-review metadata includes token counts."
+        )
+        print(f"=== Plan B Metrics Report: {scope_id or '(all scopes)'} ===")
+        print()
+        print(f"  context-pack: {len(cp_records)} samples (no token data)")
+        print(f"  full-docs: {len(fd_records)} samples (no token data)")
+        print()
+        print("NOTE: No token data available for reduction calculation.")
+        return 0
     # Reduction calculation
     token_reduction_pct = 0.0
     if fd_avg_tokens > 0:
