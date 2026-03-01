@@ -282,6 +282,11 @@ if [[ -z "$run_id" ]]; then
 	eprint "Invalid .current_run (empty): $current_run_file"
 	exit 2
 fi
+if [[ ! "$run_id" =~ ^[A-Za-z0-9._-]+$ || "$run_id" == "." || "$run_id" == ".." ]]; then
+	eprint "Invalid .current_run (unsafe run id): $current_run_file"
+	eprint "Run /review-cycle ${scope_id} again."
+	exit 2
+fi
 
 review_json="$review_root/$run_id/review.json"
 if [[ ! -f "$review_json" ]]; then
@@ -608,7 +613,19 @@ git -C "$repo_root" push -u origin HEAD >&2
 # 2) If PR exists, show it and stop
 pr_list_json="$(gh pr list --head "$branch" --state all --json number,url,state 2>/dev/null || true)"
 if [[ -n "$pr_list_json" ]]; then
-	pr_url="$(python3 -c 'import json,sys; data=json.loads(sys.argv[1] or "[]"); data=data if isinstance(data,list) else []; open_pr=next((x for x in data if isinstance(x,dict) and x.get("state")=="OPEN"), None); pick=open_pr or (data[0] if data else None); print(((pick or {}).get("url") or ""))' "$pr_list_json")"
+	pr_url="$(python3 - "$pr_list_json" <<'PY'
+import json
+import sys
+
+raw = sys.argv[1] if len(sys.argv) > 1 else "[]"
+data = json.loads(raw or "[]")
+if not isinstance(data, list):
+    data = []
+open_pr = next((x for x in data if isinstance(x, dict) and x.get("state") == "OPEN"), None)
+pick = open_pr or (data[0] if data else None)
+print((pick or {}).get("url") or "")
+PY
+)"
 	if [[ -n "$pr_url" ]]; then
 		printf '%s\n' "$pr_url"
 		exit 0
