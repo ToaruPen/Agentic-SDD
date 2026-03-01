@@ -26,6 +26,8 @@ branch = true
 include = [
   "scripts/lint-sot.py",
   "scripts/validate-worktree.py",
+  "scripts/detect-languages.py",
+  "scripts/lint-setup.py",
 ]
 show_missing = true
 fail_under = 15

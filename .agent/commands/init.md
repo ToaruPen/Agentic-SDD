@@ -98,6 +98,26 @@ Notes:
 ./scripts/agentic-sdd/setup-githooks.sh
 ```
 
+### Phase 3.7: Linter setup (recommended)
+
+Run `/lint-setup` to detect project languages and generate recommended linter configurations.
+This satisfies the AGENTS.md mandate: "Static analysis (required)".
+
+```bash
+# Detect languages
+python3 scripts/detect-languages.py --path . --json > /tmp/detection.json
+
+# Generate linter configs (dry-run first)
+python3 scripts/lint-setup.py /tmp/detection.json --target-dir . --dry-run
+
+# Generate linter configs (apply)
+python3 scripts/lint-setup.py /tmp/detection.json --target-dir .
+```
+
+Notes:
+- Existing linter configs are never overwritten (proposals only)
+- For details, see `.agent/commands/lint-setup.md`
+
 ### Phase 4: Finish
 
 Output a short completion message and next steps (in Japanese), for example:

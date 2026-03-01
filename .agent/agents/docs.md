@@ -46,6 +46,7 @@ Supported command tokens:
 - /create-pr
 - /pr-bots-review
 - /worktree
+- /lint-setup
 
 Alias:
 

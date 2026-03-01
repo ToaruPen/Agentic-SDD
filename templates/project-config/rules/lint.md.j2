@@ -1,0 +1,74 @@
+# Linter設定 証跡
+
+> このファイルは `/lint-setup` コマンドにより自動生成されました。
+
+## 生成情報
+
+- 生成日時: {{ generated_at }}
+- 対象ディレクトリ: {{ target_path }}
+
+## 検出された言語
+
+{% for lang in languages %}
+- **{{ lang.name }}** (検出元: `{{ lang.source }}`, パス: `{{ lang.path }}`)
+{% endfor %}
+
+## 選定されたツールチェーン
+
+{% for lang in toolchains %}
+### {{ lang.language }}
+
+| 種別 | ツール | 公式ドキュメント |
+|------|--------|-----------------|
+| Linter | {{ lang.linter_name }} | {{ lang.linter_docs_url }} |
+| Formatter | {{ lang.formatter_name }} | {{ lang.formatter_docs_url }} |
+{% if lang.type_checker_name %}
+| Type Checker | {{ lang.type_checker_name }} | {{ lang.type_checker_docs_url }} |
+{% endif %}
+
+**参照した公式ドキュメント:**
+{% for ref in lang.references %}
+- {{ ref.url }} (取得日時: {{ ref.fetched_at }})
+{% endfor %}
+
+**適用ルール分類:**
+- Essential: {{ lang.essential_rules | join(', ') }}
+{% if lang.recommended_rules %}
+- Recommended: {{ lang.recommended_rules | join(', ') }}
+{% endif %}
+{% if lang.framework_rules %}
+- Framework-specific: {{ lang.framework_rules | join(', ') }}
+{% endif %}
+
+{% if lang.conflict_exclusions %}
+**フォーマッタ競合除外:**
+- {{ lang.conflict_exclusions | join(', ') }}
+{% endif %}
+
+{% endfor %}
+
+## 既存設定との関係
+
+{% if existing_configs %}
+以下の既存 linter 設定を検出しました（上書き不可）:
+
+{% for config in existing_configs %}
+- `{{ config.path }}` ({{ config.tool }})
+{% endfor %}
+{% else %}
+既存の linter 設定は検出されませんでした。
+{% endif %}
+
+## 生成されたファイル
+
+{% for file in generated_files %}
+- `{{ file }}`
+{% endfor %}
+
+## 推奨CIコマンド
+
+```bash
+{% for cmd in ci_commands %}
+{{ cmd.key }}: {{ cmd.value }}
+{% endfor %}
+```

@@ -300,6 +300,11 @@ def main() -> int:
         help="実際にファイルを生成せず、生成予定のファイル一覧を表示",
     )
     parser.add_argument("--json", action="store_true", help="結果をJSON形式で出力")
+    parser.add_argument(
+        "--skip-lint",
+        action="store_true",
+        help="/lint-setup の自動実行をスキップ",
+    )
 
     args = parser.parse_args()
 
@@ -360,6 +365,74 @@ def main() -> int:
     except Exception as e:
         eprint(f"Error: Failed to generate files: {e}")
         return 1
+
+    # Phase 4.5: Linter setup (optional)
+    if not args.skip_lint:
+        import subprocess as _sp  # noqa: PLC0415
+
+        script_dir = Path(__file__).parent
+        detect_script = script_dir / "detect-languages.py"
+        lint_script = script_dir / "lint-setup.py"
+
+        if detect_script.exists() and lint_script.exists():
+            target = Path(
+                args.output_dir
+            ).parent.parent  # .agentic-sdd/project -> repo root
+            if target == Path(".agentic-sdd"):
+                target = Path(".")
+            target = target.resolve()
+
+            detect_proc = _sp.run(  # noqa: S603
+                [sys.executable, str(detect_script), "--path", str(target), "--json"],
+                capture_output=True,
+                text=True,
+            )
+            if detect_proc.returncode == 0:
+                import tempfile
+
+                with tempfile.NamedTemporaryFile(
+                    mode="w", suffix=".json", delete=False
+                ) as tmp:
+                    tmp.write(detect_proc.stdout)
+                    tmp_path = tmp.name
+
+                lint_args = [
+                    sys.executable,
+                    str(lint_script),
+                    tmp_path,
+                    "--target-dir",
+                    str(target),
+                ]
+                if args.dry_run:
+                    lint_args.append("--dry-run")
+                lint_args.append("--json")
+
+                lint_proc = _sp.run(  # noqa: S603
+                    lint_args,
+                    capture_output=True,
+                    text=True,
+                )
+
+                Path(tmp_path).unlink(missing_ok=True)
+
+                if lint_proc.returncode == 0:
+                    lint_result = json.loads(lint_proc.stdout)
+                    result["lint_setup"] = lint_result
+                    if not args.json:
+                        lint_files = lint_result.get("generated_files", [])
+                        if lint_files:
+                            print("\nLinter設定:")
+                            for lf in lint_files:
+                                print(f"  - {lf}")
+                        proposals = lint_result.get("proposals", [])
+                        if proposals:
+                            print("\nLinter提案:")
+                            for p in proposals:
+                                print(p)
+                else:
+                    eprint(f"[WARN] lint-setup failed: {lint_proc.stderr.strip()}")
+            else:
+                eprint("[WARN] Language detection failed; skipping lint-setup")
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))
