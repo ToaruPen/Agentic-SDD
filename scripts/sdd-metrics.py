@@ -363,7 +363,12 @@ def cmd_report(args: argparse.Namespace) -> int:
     print()
     print(f"{'Metric':<30} {'full-docs':>14} {'context-pack':>14} {'reduction':>10}")
     print("-" * 70)
-    print(f"{'Samples':<30} {len(fd_records):>14} {len(cp_records):>14} {'':>10}")
+    fd_token_n = sum(1 for r in fd_records if r.get("tokens_approx") is not None)
+    cp_token_n = sum(1 for r in cp_records if r.get("tokens_approx") is not None)
+    print(
+        f"{'Samples (total)':<30} {len(fd_records):>14} {len(cp_records):>14} {'':>10}"
+    )
+    print(f"{'Samples (w/ tokens)':<30} {fd_token_n:>14} {cp_token_n:>14} {'':>10}")
     print(
         f"{'Avg tokens/run':<30} {fd_avg_tokens:>14.0f} {cp_avg_tokens:>14.0f}"
         f" {token_reduction_pct:>9.1f}%"

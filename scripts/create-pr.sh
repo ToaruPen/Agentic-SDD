@@ -269,6 +269,28 @@ run_parallel_integration_guard "$repo_root" "$ISSUE"
 
 scope_id="issue-${ISSUE}"
 review_root="$repo_root/.agentic-sdd/reviews/$scope_id"
+
+# Metrics EXIT trap (non-blocking, never affects the original exit code).
+# Set after scope_id is known so ALL subsequent fail-fast exits are captured.
+# Uses run_id with fallback for cases where .current_run is missing/invalid.
+_metrics_script="$(dirname "${BASH_SOURCE[0]}")/sdd-metrics.py"
+_metrics_exit_code=0
+_record_metrics() {
+	local _code=${_metrics_exit_code:-$?}
+	local _status="success"
+	[[ "$_code" -ne 0 ]] && _status="failed (exit $_code)"
+	local _rid="${run_id:-unknown}"
+	if [[ -f "$_metrics_script" ]]; then
+		python3 "$_metrics_script" record \
+			--repo-root "$repo_root" \
+			--command create-pr \
+			--scope-id "$scope_id" \
+			--run-id "$_rid" \
+			--status "$_status" \
+			2>/dev/null || true
+	fi
+}
+trap '_metrics_exit_code=$?; _record_metrics' EXIT
 current_run_file="$review_root/.current_run"
 
 if [[ ! -f "$current_run_file" ]]; then
@@ -288,26 +310,7 @@ if [[ ! "$run_id" =~ ^[A-Za-z0-9._-]+$ || "$run_id" == "." || "$run_id" == ".." 
 	exit 2
 fi
 
-# Metrics EXIT trap (non-blocking, never affects the original exit code).
-# Set early so ALL subsequent fail-fast exits are captured.
-# No --metadata-file: create-pr does not consume its own LLM context.
-_metrics_script="$(dirname "${BASH_SOURCE[0]}")/sdd-metrics.py"
-_metrics_exit_code=0
-_record_metrics() {
-	local _code=${_metrics_exit_code:-$?}
-	local _status="success"
-	[[ "$_code" -ne 0 ]] && _status="failed (exit $_code)"
-	if [[ -f "$_metrics_script" ]]; then
-		python3 "$_metrics_script" record \
-			--repo-root "$repo_root" \
-			--command create-pr \
-			--scope-id "$scope_id" \
-			--run-id "$run_id" \
-			--status "$_status" \
-			2>/dev/null || true
-	fi
-}
-trap '_metrics_exit_code=$?; _record_metrics' EXIT
+
 
 review_json="$review_root/$run_id/review.json"
 if [[ ! -f "$review_json" ]]; then
