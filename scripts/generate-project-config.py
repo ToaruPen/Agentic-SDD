@@ -430,9 +430,14 @@ def main() -> int:
                             for p in proposals:
                                 print(p)
                 else:
-                    eprint(f"[WARN] lint-setup failed: {lint_proc.stderr.strip()}")
+                    eprint(
+                        f"[WARN] lint-setup failed (exit {lint_proc.returncode}): "
+                        f"{lint_proc.stderr.strip()}"
+                    )
+                    result["lint_setup_error"] = lint_proc.stderr.strip()
             else:
                 eprint("[WARN] Language detection failed; skipping lint-setup")
+                result["lint_setup_error"] = "Language detection failed"
 
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=2))

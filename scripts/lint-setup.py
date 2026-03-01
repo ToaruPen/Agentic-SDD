@@ -234,7 +234,7 @@ def generate_evidence_trail(
                 "references": [
                     {
                         "url": linter.get("docs_url", ""),
-                        "fetched_at": datetime.now(tz=timezone.utc).isoformat(),
+                        "referenced_at": datetime.now(tz=timezone.utc).isoformat(),
                     }
                 ],
                 "essential_rules": linter.get("essential_rules", []),
@@ -326,15 +326,28 @@ def run_setup(
                 toolchain, target_dir, dry_run, existing_configs
             )
             if config:
-                # 設定内容をファイルに書き込む
                 pyproject_path = target_dir / "pyproject.toml"
                 if pyproject_path.exists():
-                    eprint(
-                        f"[SKIP] 既存の pyproject.toml を検出: {pyproject_path}（上書き不可）"
+                    # 既存ファイルは上書きしない — 提案ファイルとして保存
+                    proposal_dir = (
+                        target_dir / ".agentic-sdd" / "project" / "lint-proposals"
                     )
+                    if not dry_run:
+                        proposal_dir.mkdir(parents=True, exist_ok=True)
+                        proposal_path = proposal_dir / "ruff-pyproject.toml"
+                        proposal_path.write_text(config, encoding="utf-8")
+                        eprint(
+                            f"[PROPOSAL] 既存 pyproject.toml 検出のため提案ファイルを生成: {proposal_path}"
+                        )
+                        generated_files.append(str(proposal_path))
+                    else:
+                        eprint(
+                            f"[DRY-RUN] Would save proposal to {proposal_dir / 'ruff-pyproject.toml'}"
+                        )
                 else:
-                    pyproject_path.write_text(config, encoding="utf-8")
-                generated_files.append("pyproject.toml [tool.ruff]")
+                    if not dry_run:
+                        pyproject_path.write_text(config, encoding="utf-8")
+                    generated_files.append("pyproject.toml [tool.ruff]")
 
     # CI コマンド
     ci_commands = generate_ci_commands(lang_names, registry)
