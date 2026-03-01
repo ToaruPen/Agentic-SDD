@@ -6,7 +6,7 @@ eprint() { printf '%s\n' "$*" >&2; }
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 resolver_py_src="$repo_root/scripts/resolve-sync-docs-inputs.py"
-sot_refs_src="$repo_root/scripts/sot_refs.py"
+sot_refs_src="$repo_root/scripts/_lib/sot_refs.py"
 
 if [[ ! -f "$resolver_py_src" ]]; then
   eprint "Missing resolver: $resolver_py_src"
@@ -18,15 +18,20 @@ if [[ ! -f "$sot_refs_src" ]]; then
   exit 1
 fi
 
+lib_init_src="$repo_root/scripts/_lib/__init__.py"
+subprocess_utils_src="$repo_root/scripts/_lib/subprocess_utils.py"
+
 tmpdir="$(mktemp -d 2>/dev/null || mktemp -d -t agentic-sdd-sync-docs-test)"
 cleanup() { rm -rf "$tmpdir"; }
 trap cleanup EXIT
 
 git -C "$tmpdir" init -q
 
-mkdir -p "$tmpdir/scripts"
+mkdir -p "$tmpdir/scripts/_lib"
 cp -p "$resolver_py_src" "$tmpdir/scripts/resolve-sync-docs-inputs.py"
-cp -p "$sot_refs_src" "$tmpdir/scripts/sot_refs.py"
+cp -p "$sot_refs_src" "$tmpdir/scripts/_lib/sot_refs.py"
+cp -p "$lib_init_src" "$tmpdir/scripts/_lib/__init__.py"
+cp -p "$subprocess_utils_src" "$tmpdir/scripts/_lib/subprocess_utils.py"
 chmod +x "$tmpdir/scripts/resolve-sync-docs-inputs.py"
 
 # Minimal repo content
