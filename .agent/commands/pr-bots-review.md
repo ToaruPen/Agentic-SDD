@@ -115,6 +115,74 @@ concrete bot login before running the queries.
 
 If `gh pr view <PR> --comments` is available and sufficient, you can use it for a quick scan.
 
+
+### Phase 2.5: Parse review body for embedded comments (Nitpick / AI prompt)
+
+CodeRabbit (and similar bots) use a 2-tier feedback structure:
+
+| Tier       | Type                         | Location                                              | API                     | `isResolved` tracking |
+| ---------- | ---------------------------- | ----------------------------------------------------- | ----------------------- | --------------------- |
+| **Tier 1** | Actionable comments (inline) | PR line comments → threaded                           | GraphQL `reviewThreads` | ✅ Yes                |
+| **Tier 2** | Nitpick comments             | Review body `<details>🧹 Nitpick comments</details>` | `reviews.body` parsing  | ❌ No                 |
+
+Phase 2 covers Tier 1. This phase covers Tier 2 and the AI agent prompt section.
+
+**Important**: Do NOT truncate `reviews.body` (e.g. `.body[0:300]`). The full body is required
+for reliable section parsing.
+
+#### Step 1: Fetch full review body with Nitpick sections
+
+Note: The jq filter uses `env.BOT_LOGIN`, which requires the variable to be exported.
+If Phase 2 set `BOT_LOGIN` without `export`, run `export BOT_LOGIN` first.
+
+```bash
+# Get bot reviews containing Nitpick or AI agent prompt sections (full body, no truncation)
+gh api graphql -f query='
+  query($owner: String!, $repo: String!, $pr: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $pr) {
+        reviews(last: 50) {
+          nodes {
+            author { login }
+            submittedAt
+            body
+          }
+        }
+      }
+    }
+  }
+' -f owner="<OWNER>" -f repo="<REPO>" -F pr=<PR_NUMBER> \
+  --jq '
+    .data.repository.pullRequest.reviews.nodes[]
+    | select(.author.login == env.BOT_LOGIN)
+    | select(.body | test("Nitpick|🧹|🤖 Prompt"))
+    | {submitted: .submittedAt, body: .body}
+  '
+```
+
+Note: `last: 50` retrieves the most recent 50 reviews, which is sufficient for typical PRs.
+For high-activity PRs with more than 50 reviews, use GraphQL pagination (`pageInfo` / `before` cursor)
+to ensure all bot review bodies are fetched.
+
+#### Step 2: Parse and list Nitpick comments
+
+From the review body, extract all items inside `<details>` blocks matching `🧹 Nitpick comments`:
+
+- List each Nitpick separately with file path and description.
+- Present them as a distinct list from Tier 1 inline comments.
+- For each Nitpick, decide: **fix**, **acknowledge (won't fix + reason)**, or **defer (create Issue)**.
+
+Since Nitpick comments have no `isResolved` tracking, record the disposition
+(fixed / acknowledged / deferred) as a PR comment for auditability.
+
+#### Step 3: Check AI agent prompt section
+
+Review body may also contain a `<details>🤖 Prompt for all review comments with AI agents</details>` section.
+This section aggregates Tier 1 + Tier 2 comments in a format optimized for AI agent consumption.
+
+- Use this section as a cross-reference to verify all feedback (inline + nitpick) has been addressed.
+- Do NOT treat this section as the primary source — always parse Tier 1 (inline) and Tier 2 (nitpick) separately first.
+
 ### Phase 3: Apply fixes and verify
 
 - Only fix issues introduced by the PR.
