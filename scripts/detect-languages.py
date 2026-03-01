@@ -169,7 +169,10 @@ def detect_linter_configs_for_file(file_path: Path, root: Path) -> List[Dict[str
         maybe_add_section(detections, "mypy", rel_path)
 
     if name == "pyproject.toml":
-        data = load_toml(file_path)
+        try:
+            data = load_toml(file_path)
+        except RuntimeError:
+            data = {}
         if has_toml_section(data, ("tool", "ruff")):
             maybe_add_section(detections, "ruff", rel_path, "tool.ruff")
         if has_toml_section(data, ("tool", "mypy")):

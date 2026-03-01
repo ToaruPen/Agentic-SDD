@@ -169,7 +169,7 @@ def generate_evidence_trail(
         loader=FileSystemLoader(str(template_dir)),
         trim_blocks=True,
         lstrip_blocks=True,
-        autoescape=True,
+        autoescape=False,  # noqa: S701 -- Markdown template, no XSS risk
     )
 
     languages = detection.get("languages", [])
