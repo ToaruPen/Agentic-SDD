@@ -708,3 +708,31 @@ def test_generate_ci_commands_gradle_uses_gradle_command() -> None:
         c for c in commands_maven if c["key"] == "AGENTIC_SDD_CI_LINT_CMD"
     )
     assert lint_cmd_maven["value"] == "mvn checkstyle:check"
+
+
+def test_run_setup_mixed_inferred_and_confirmed_excludes_confirmed_from_inferred(
+    tmp_path: Path,
+) -> None:
+    """build.gradle (inferred) + Main.java (confirmed) → java in recommendations, not in inferred_languages."""
+    ensure_jinja2_available(tmp_path)
+    registry = load_real_registry()
+    detection = {
+        "languages": [
+            {
+                "name": "java",
+                "source": "build.gradle",
+                "path": ".",
+                "confidence": "inferred",
+            },
+            {"name": "java", "source": "Main.java", "path": "."},
+        ],
+        "existing_linter_configs": [],
+        "is_monorepo": False,
+    }
+
+    result = MODULE.run_setup(
+        detection, registry, tmp_path, dry_run=False, template_dir=TEMPLATE_DIR
+    )
+
+    assert "java" in result["languages"]
+    assert "inferred_languages" not in result

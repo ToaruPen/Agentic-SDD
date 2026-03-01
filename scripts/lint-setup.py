@@ -528,7 +528,9 @@ def run_setup(
         result["conflicts"] = conflicts
     if evidence_path and not dry_run:
         result["evidence_trail"] = evidence_path
-    if inferred_lang_names:
+    # confirmed で確定した言語は inferred リストから除外する
+    inferred_only = [n for n in inferred_lang_names if n not in seen]
+    if inferred_only:
         # 推測検出の言語はシグナルとして保持（推奨には含めない）
         result["inferred_languages"] = [
             {
@@ -536,7 +538,7 @@ def run_setup(
                 "paths": sorted(set(lang_paths.get(name, ["."]))),
                 "note": "Inferred from build file; confirm with source files before configuring linter.",
             }
-            for name in inferred_lang_names
+            for name in inferred_only
         ]
 
     return result

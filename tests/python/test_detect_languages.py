@@ -335,3 +335,15 @@ def test_java_source_confirms_java(tmp_path: Path) -> None:
     java_detections = [lang for lang in result["languages"] if lang["name"] == "java"]
     assert len(java_detections) == 1
     assert "confidence" not in java_detections[0]  # confirmed = no confidence key
+
+
+def test_root_project_root_maps_subdirs_to_root(tmp_path: Path) -> None:
+    """When root has a project indicator, files in src/ and examples/ map to root, not separate groups."""
+    write_file(tmp_path / "pyproject.toml", "[project]\nname = 'demo'\n")
+    write_file(tmp_path / "src" / "main.py", "")
+    write_file(tmp_path / "examples" / "demo.py", "")
+
+    result = MODULE.detect_project(tmp_path)
+
+    assert result["is_monorepo"] is False
+    assert result["subprojects"] == []

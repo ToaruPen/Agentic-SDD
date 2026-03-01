@@ -250,7 +250,9 @@ def _find_project_root(path: str, project_roots: Set[str]) -> str:
         candidate = "/".join(parts[:i])
         if candidate in project_roots:
             return candidate
-    return parts[0] if parts[0] != "." else "."
+    if "." in project_roots:
+        return "."
+    return parts[0]
 
 
 def detect_project(root: Path) -> Dict[str, Any]:
