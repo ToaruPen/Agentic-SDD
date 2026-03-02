@@ -91,6 +91,33 @@ def generate_config_json(
     return str(output_path)
 
 
+def should_generate_security_rules(config: dict[str, Any]) -> bool:
+    requirements = config.get("requirements", {})
+    return bool(requirements.get("security"))
+
+
+def should_generate_performance_rules(config: dict[str, Any]) -> bool:
+    requirements = config.get("requirements", {})
+    return bool(requirements.get("performance"))
+
+
+def should_generate_api_conventions(config: dict[str, Any]) -> bool:
+    api_design = config.get("api_design", [])
+    return bool(api_design)
+
+
+def should_generate_tech_stack_skill(config: dict[str, Any]) -> bool:
+    tech_stack = config.get("tech_stack", {})
+    return any(
+        [
+            tech_stack.get("language"),
+            tech_stack.get("framework"),
+            tech_stack.get("database"),
+            tech_stack.get("infrastructure"),
+        ]
+    )
+
+
 def generate_security_rules(
     env: JinjaEnvironmentLike,
     config: dict[str, Any],
@@ -98,7 +125,7 @@ def generate_security_rules(
 ) -> str | None:
     """セキュリティルールを生成"""
     requirements = config.get("requirements", {})
-    if not requirements.get("security"):
+    if not should_generate_security_rules(config):
         return None
 
     template = env.get_template("rules/security.md.j2")
@@ -126,7 +153,7 @@ def generate_performance_rules(
 ) -> str | None:
     """パフォーマンスルールを生成"""
     requirements = config.get("requirements", {})
-    if not requirements.get("performance"):
+    if not should_generate_performance_rules(config):
         return None
 
     template = env.get_template("rules/performance.md.j2")
@@ -154,7 +181,7 @@ def generate_api_conventions(
 ) -> str | None:
     """API規約を生成"""
     api_design = config.get("api_design", [])
-    if not api_design:
+    if not should_generate_api_conventions(config):
         return None
 
     template = env.get_template("rules/api-conventions.md.j2")
@@ -180,17 +207,7 @@ def generate_tech_stack_skill(
 ) -> str | None:
     """技術スタックスキルを生成"""
     tech_stack = config.get("tech_stack", {})
-    # 技術選定情報が1つでもあれば生成
-    has_tech = any(
-        [
-            tech_stack.get("language"),
-            tech_stack.get("framework"),
-            tech_stack.get("database"),
-            tech_stack.get("infrastructure"),
-        ]
-    )
-
-    if not has_tech:
+    if not should_generate_tech_stack_skill(config):
         return None
 
     template = env.get_template("skills/tech-stack.md.j2")
@@ -232,17 +249,8 @@ def generate_all(
         if skill_path:
             generated_skills.append("tech-stack.md")
             generated_files.append(skill_path)
-    else:
-        tech_stack = config.get("tech_stack", {})
-        if any(
-            [
-                tech_stack.get("language"),
-                tech_stack.get("framework"),
-                tech_stack.get("database"),
-                tech_stack.get("infrastructure"),
-            ]
-        ):
-            generated_skills.append("tech-stack.md")
+    elif should_generate_tech_stack_skill(config):
+        generated_skills.append("tech-stack.md")
 
     # セキュリティルール
     if not dry_run:
@@ -250,9 +258,8 @@ def generate_all(
         if rule_path:
             generated_rules.append("security.md")
             generated_files.append(rule_path)
-    else:
-        if config.get("requirements", {}).get("security"):
-            generated_rules.append("security.md")
+    elif should_generate_security_rules(config):
+        generated_rules.append("security.md")
 
     # パフォーマンスルール
     if not dry_run:
@@ -260,9 +267,8 @@ def generate_all(
         if rule_path:
             generated_rules.append("performance.md")
             generated_files.append(rule_path)
-    else:
-        if config.get("requirements", {}).get("performance"):
-            generated_rules.append("performance.md")
+    elif should_generate_performance_rules(config):
+        generated_rules.append("performance.md")
 
     # API規約
     if not dry_run:
@@ -270,9 +276,8 @@ def generate_all(
         if rule_path:
             generated_rules.append("api-conventions.md")
             generated_files.append(rule_path)
-    else:
-        if config.get("api_design"):
-            generated_rules.append("api-conventions.md")
+    elif should_generate_api_conventions(config):
+        generated_rules.append("api-conventions.md")
 
     # config.json を最後に生成（生成ファイル一覧を含めるため）
     if not dry_run:
