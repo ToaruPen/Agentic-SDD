@@ -15,20 +15,26 @@ cd "$ROOT"
 
 approval_py=""
 worktree_py=""
-if [ -f "scripts/agentic-sdd/validate-approval.py" ]; then
-  approval_py="scripts/agentic-sdd/validate-approval.py"
-  worktree_py="scripts/agentic-sdd/validate-worktree.py"
-elif [ -f "scripts/validate-approval.py" ]; then
-  approval_py="scripts/validate-approval.py"
-  worktree_py="scripts/validate-worktree.py"
-fi
+# Prefer new canonical paths; fall back to legacy wrappers
+for _ap in "scripts/gates/validate_approval.py" "scripts/agentic-sdd/validate-approval.py"; do
+  if [ -f "$_ap" ]; then
+    approval_py="$_ap"
+    break
+  fi
+done
+for _wp in "scripts/gates/validate_worktree.py" "scripts/agentic-sdd/validate-worktree.py"; do
+  if [ -f "$_wp" ]; then
+    worktree_py="$_wp"
+    break
+  fi
+done
 
 if [ -z "$approval_py" ]; then
   exit 0
 fi
 
 if [ ! -f "$worktree_py" ]; then
-  echo "[agentic-sdd gate] BLOCKED: validate-worktree.py is missing. Reinstall/upgrade Agentic-SDD." >&2
+  echo "[agentic-sdd gate] BLOCKED: worktree validation script is missing. Reinstall/upgrade Agentic-SDD." >&2
   exit 1
 fi
 

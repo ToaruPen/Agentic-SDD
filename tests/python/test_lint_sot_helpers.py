@@ -16,9 +16,9 @@ def _load_script_module(module_name: str, script_name: str) -> ModuleType:
     return module
 
 
-MODULE = _load_script_module("lint_sot", "lint-sot.py")
+MODULE = _load_script_module("lint_sot", "lint/lint_sot.py")
 EXTRACT_EPIC_CONFIG_MODULE = _load_script_module(
-    "extract_epic_config", "extract-epic-config.py"
+    "extract_epic_config", "extract/extract_epic_config.py"
 )
 
 

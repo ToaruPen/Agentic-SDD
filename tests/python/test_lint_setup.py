@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-# ruff: noqa: S101, S603
+# ruff: noqa: S603
 import importlib.util
 import json
 import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -111,7 +112,8 @@ def minimal_registry() -> dict[str, Any]:
 def ensure_jinja2_available(tmp_path: Path) -> Path | None:
     spec = importlib.util.find_spec("jinja2")
     if spec is not None and spec.origin is not None:
-        if "site-packages" in spec.origin or "dist-packages" in spec.origin:
+        spec_origin = Path(spec.origin)
+        if not spec_origin.is_relative_to(tmp_path):
             return None
     package_dir = tmp_path / "jinja2"
     shim = """
@@ -410,8 +412,6 @@ def test_scope_command_uses_scoped_template_multiple_paths() -> None:
 
 
 def test_scope_command_scoped_template_quotes_paths() -> None:
-    import shlex
-
     result = MODULE._scope_command(
         "rubocop",
         ["my project"],
@@ -801,7 +801,7 @@ def test_cli_integration_json_output(tmp_path: Path) -> None:
     if shim_root is not None:
         pythonpath = env.get("PYTHONPATH")
         env["PYTHONPATH"] = (
-            str(shim_root) if not pythonpath else f"{str(shim_root)}:{pythonpath}"
+            str(shim_root) if not pythonpath else f"{shim_root!s}:{pythonpath}"
         )
 
     proc = subprocess.run(
@@ -846,7 +846,7 @@ def test_cli_integration_output_dir_override(tmp_path: Path) -> None:
     if shim_root is not None:
         pythonpath = env.get("PYTHONPATH")
         env["PYTHONPATH"] = (
-            str(shim_root) if not pythonpath else f"{str(shim_root)}:{pythonpath}"
+            str(shim_root) if not pythonpath else f"{shim_root!s}:{pythonpath}"
         )
 
     proc = subprocess.run(
@@ -1064,8 +1064,6 @@ def test_run_setup_skips_malformed_language_entries(
 
 def test_scope_command_quotes_paths_with_spaces() -> None:
     """Paths with spaces should be shell-quoted in CI commands."""
-    import shlex
-
     result = MODULE._scope_command("ruff check .", ["my project"])
     assert shlex.quote("my project") in result
     assert result != "ruff check my project"  # unquoted would be wrong

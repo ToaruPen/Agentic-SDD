@@ -405,11 +405,11 @@ export const AgenticSddGatePlugin = async ({ $, worktree }) => {
   }
 
   const runValidateWorktree = async () => {
-    await $`cd ${worktree} && if [ -f scripts/agentic-sdd/validate-worktree.py ]; then python3 scripts/agentic-sdd/validate-worktree.py; else python3 scripts/validate-worktree.py; fi`
+    await $`cd ${worktree} && if [ -f scripts/agentic-sdd/validate-worktree.py ]; then python3 scripts/agentic-sdd/validate-worktree.py; else python3 scripts/gates/validate_worktree.py; fi`
   }
 
   const runValidateApproval = async () => {
-    await $`cd ${worktree} && if [ -f scripts/agentic-sdd/validate-approval.py ]; then python3 scripts/agentic-sdd/validate-approval.py; else python3 scripts/validate-approval.py; fi`
+    await $`cd ${worktree} && if [ -f scripts/agentic-sdd/validate-approval.py ]; then python3 scripts/agentic-sdd/validate-approval.py; else python3 scripts/gates/validate_approval.py; fi`
   }
 
   const validate = async () => {

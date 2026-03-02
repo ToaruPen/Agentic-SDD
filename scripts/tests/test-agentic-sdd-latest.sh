@@ -24,16 +24,16 @@ mkcommit_tag() {
 	local tag="$1"
 	local marker="$2"
 
-	mkdir -p "$remote/scripts"
-	cat >"$remote/scripts/install-agentic-sdd.sh" <<EOF
+	mkdir -p "$remote/scripts/shell"
+	cat >"$remote/scripts/shell/install-agentic-sdd.sh" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
 # marker: $marker
 exit 0
 EOF
-	chmod +x "$remote/scripts/install-agentic-sdd.sh"
+	chmod +x "$remote/scripts/shell/install-agentic-sdd.sh"
 
-	git -C "$remote" add scripts/install-agentic-sdd.sh
+	git -C "$remote" add scripts/shell/install-agentic-sdd.sh
 	git -C "$remote" -c user.name=test -c user.email=test@example.com commit -m "release $tag" -q
 	git -C "$remote" tag "$tag"
 }
@@ -82,15 +82,15 @@ if ! grep -Fqx "[INFO] Resolved sha: $expected_sha" "$out"; then
 fi
 
 remote_no_tags="$tmpdir/remote-no-tags"
-mkdir -p "$remote_no_tags/scripts"
+mkdir -p "$remote_no_tags/scripts/shell"
 git -C "$remote_no_tags" init -q
-cat >"$remote_no_tags/scripts/install-agentic-sdd.sh" <<'EOF'
+cat >"$remote_no_tags/scripts/shell/install-agentic-sdd.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 exit 0
 EOF
-chmod +x "$remote_no_tags/scripts/install-agentic-sdd.sh"
-git -C "$remote_no_tags" add scripts/install-agentic-sdd.sh
+chmod +x "$remote_no_tags/scripts/shell/install-agentic-sdd.sh"
+git -C "$remote_no_tags" add scripts/shell/install-agentic-sdd.sh
 git -C "$remote_no_tags" -c user.name=test -c user.email=test@example.com commit -m "init" -q
 
 out_fail="$tmpdir/out-fail"

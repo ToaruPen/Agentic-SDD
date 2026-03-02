@@ -5,7 +5,7 @@ set -euo pipefail
 eprint() { printf '%s\n' "$*" >&2; }
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
-lint_py_src="$repo_root/scripts/lint-sot.py"
+lint_py_src="$repo_root/scripts/lint/lint_sot.py"
 
 if [[ ! -f "$lint_py_src" ]]; then
 	eprint "Missing lint script: $lint_py_src"
@@ -21,14 +21,12 @@ new_repo() {
 	local r="$tmpdir/$name"
 	mkdir -p "$r"
 	git -C "$r" init -q
-	mkdir -p "$r/scripts" "$r/docs/prd" "$r/docs/sot" "$r/docs"
-	cp -p "$lint_py_src" "$r/scripts/lint-sot.py"
-	cp -p "$repo_root/scripts/md_sanitize.py" "$r/scripts/md_sanitize.py"
-	chmod +x "$r/scripts/lint-sot.py"
+	mkdir -p "$r/scripts/lint" "$r/docs/prd" "$r/docs/sot" "$r/docs"
+	cp -p "$lint_py_src" "$r/scripts/lint/lint_sot.py"
+	cp -rp "$repo_root/scripts/_lib" "$r/scripts/"
+	chmod +x "$r/scripts/lint/lint_sot.py"
 	printf '%s\n' "$r"
 }
-
-
 
 write_base_docs() {
 	local r="$1"
@@ -46,7 +44,7 @@ EOF
 
 r1="$(new_repo case-valid)"
 write_base_docs "$r1"
-if ! (cd "$r1" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r1" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK for valid links"
 	exit 1
 fi
@@ -65,7 +63,7 @@ cat >"$r2/docs/sot/codefence.md" <<'EOF'
 Inline code span should also be ignored: `[x](./missing-inline.md)`
 EOF
 
-if ! (cd "$r2" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r2" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK when broken links only exist inside fenced code blocks"
 	exit 1
 fi
@@ -78,7 +76,7 @@ cat >"$r2b/docs/sot/inline-code.md" <<'EOF'
 This should not be linted as a link target: `[x](./missing.md)`
 EOF
 
-if ! (cd "$r2b" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r2b" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK when broken links only exist inside inline code spans"
 	exit 1
 fi
@@ -92,7 +90,7 @@ cat >"$r3/docs/sot/broken.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r3" && python3 ./scripts/lint-sot.py docs) >"$r3/stdout" 2>"$r3/stderr"
+(cd "$r3" && python3 ./scripts/lint/lint_sot.py docs) >"$r3/stdout" 2>"$r3/stderr"
 code=$?
 set -e
 
@@ -119,7 +117,7 @@ cat >"$r3b/docs/sot/ref.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r3b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r3b/stderr"
+(cd "$r3b" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r3b/stderr"
 code_ref=$?
 set -e
 
@@ -145,7 +143,7 @@ cat >"$r4/docs/prd/prd.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r4" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r4/stderr2"
+(cd "$r4" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r4/stderr2"
 code2=$?
 set -e
 
@@ -178,7 +176,7 @@ cat >"$r5/docs/prd/prd.md" <<'EOF'
 <!-- generated-by: tool -->
 EOF
 
-if ! (cd "$r5" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r5" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK when allow marker is present"
 	exit 1
 fi
@@ -203,7 +201,7 @@ lint-sot: allow-html-comments
 EOF
 
 set +e
-(cd "$r6" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r6/stderr4"
+(cd "$r6" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r6/stderr4"
 code4=$?
 set -e
 
@@ -231,7 +229,7 @@ This is inline code, not an allow marker: `<!-- lint-sot: allow-html-comments --
 EOF
 
 set +e
-(cd "$r6b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r6b/stderr5"
+(cd "$r6b" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r6b/stderr5"
 code5=$?
 set -e
 
@@ -244,7 +242,7 @@ fi
 r7="$(new_repo case-unsafe-root)"
 write_base_docs "$r7"
 set +e
-(cd "$r7" && python3 ./scripts/lint-sot.py ..) >/dev/null 2>"$r7/stderr3"
+(cd "$r7" && python3 ./scripts/lint/lint_sot.py ..) >/dev/null 2>"$r7/stderr3"
 code3=$?
 set -e
 
@@ -271,7 +269,7 @@ This is a stray backtick: `
 EOF
 
 set +e
-(cd "$r8" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r8/stderr"
+(cd "$r8" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r8/stderr"
 code_bt=$?
 set -e
 
@@ -377,7 +375,7 @@ cat >"$r9/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 - ok
 EOF
 
-if ! (cd "$r9" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r9" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK for valid research doc"
 	exit 1
 fi
@@ -475,7 +473,7 @@ cat >"$r9a/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r9a" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r9a/stderr"
+(cd "$r9a" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r9a/stderr"
 code_research_codeblock=$?
 set -e
 
@@ -582,7 +580,7 @@ cat >"$r9aa/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r9aa" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r9aa/stderr"
+(cd "$r9aa" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r9aa/stderr"
 code_research_indented_codeblock=$?
 set -e
 
@@ -691,7 +689,7 @@ cat >"$r9ab/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r9ab" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r9ab/stderr"
+(cd "$r9ab" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r9ab/stderr"
 code_research_html_comment=$?
 set -e
 
@@ -799,7 +797,7 @@ cat >"$r9ac/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r9ac" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r9ac/stderr"
+(cd "$r9ac" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r9ac/stderr"
 code_research_dangling_comment=$?
 set -e
 
@@ -825,7 +823,7 @@ This should be rejected because research artifacts must be date-based.
 EOF
 
 set +e
-(cd "$r9b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r9b/stderr"
+(cd "$r9b" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r9b/stderr"
 code_research_name=$?
 set -e
 
@@ -851,7 +849,7 @@ This file should be rejected; only canonical templates are allowed.
 EOF
 
 set +e
-(cd "$r9d" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r9d/stderr"
+(cd "$r9d" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r9d/stderr"
 code_research_misplaced_tpl=$?
 set -e
 
@@ -957,7 +955,7 @@ cat >"$r9c/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r9c" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r9c/stderr"
+(cd "$r9c" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r9c/stderr"
 code_research_trigger=$?
 set -e
 
@@ -1064,7 +1062,7 @@ cat >"$r10/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r10" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r10/stderr"
+(cd "$r10" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r10/stderr"
 code_research=$?
 set -e
 
@@ -1170,7 +1168,7 @@ cat >"$r11/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r11" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r11/stderr"
+(cd "$r11" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r11/stderr"
 code_research_field=$?
 set -e
 
@@ -1277,7 +1275,7 @@ cat >"$r11b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r11b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r11b/stderr"
+(cd "$r11b" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r11b/stderr"
 code_research_anchored=$?
 set -e
 
@@ -1384,7 +1382,7 @@ cat >"$r14/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r14" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r14/stderr"
+(cd "$r14" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r14/stderr"
 code_evidence=$?
 set -e
 
@@ -1493,7 +1491,7 @@ cat >"$r14b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r14b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r14b/stderr"
+(cd "$r14b" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r14b/stderr"
 code_evidence_scope=$?
 set -e
 
@@ -1599,7 +1597,7 @@ cat >"$r16/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 - ok
 EOF
 
-if ! (cd "$r16" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r16" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK for evidence URL with description"
 	exit 1
 fi
@@ -1702,7 +1700,7 @@ cat >"$r15/docs/research/epic/proj/2026-02-15.md" <<'EOF'
 - Unknown: Yes
 EOF
 
-if ! (cd "$r15" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r15" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK when novelty Yes bullets appear outside novelty section"
 	exit 1
 fi
@@ -1798,7 +1796,7 @@ cat >"$r12/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r12" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r12/stderr"
+(cd "$r12" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r12/stderr"
 code_novelty_yes=$?
 set -e
 
@@ -1920,7 +1918,7 @@ cat >"$r13/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 - ok
 EOF
 
-if ! (cd "$r13" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r13" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK when novelty triggers are Yes and adjacent exploration is filled"
 	exit 1
 fi
@@ -2033,7 +2031,7 @@ cat >"$r13b/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r13b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r13b/stderr"
+(cd "$r13b" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r13b/stderr"
 code_adjacent_scope=$?
 set -e
 
@@ -2168,7 +2166,7 @@ cat >"$r17/docs/research/epic/proj/2026-02-15.md" <<'EOF'
 - 初期費用と運用負荷を重視し OpenAI API を採用
 EOF
 
-if ! (cd "$r17" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r17" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK for epic research with valid external-service comparison gate"
 	exit 1
 fi
@@ -2264,7 +2262,7 @@ cat >"$r18/docs/research/epic/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r18" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r18/stderr"
+(cd "$r18" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r18/stderr"
 code_epic_comparison_missing=$?
 set -e
 
@@ -2374,7 +2372,7 @@ cat >"$r19/docs/research/epic/proj/2026-02-15.md" <<'EOF'
 外部サービス比較ゲート: Skip（コスト比較の対象外）
 EOF
 
-if ! (cd "$r19" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r19" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK for epic research with Skip(reason)"
 	exit 1
 fi
@@ -2475,7 +2473,7 @@ cat >"$r20/docs/research/epic/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r20" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r20/stderr"
+(cd "$r20" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r20/stderr"
 code_epic_required_and_skip=$?
 set -e
 
@@ -2610,7 +2608,7 @@ cat >"$r21/docs/research/epic/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r21" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r21/stderr"
+(cd "$r21" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r21/stderr"
 code_epic_required_empty_reason=$?
 set -e
 
@@ -2717,7 +2715,7 @@ cat >"$r22/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r22" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r22/stderr"
+(cd "$r22" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r22/stderr"
 code_applicability_enum=$?
 set -e
 
@@ -2828,7 +2826,7 @@ cat >"$r23/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r23" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r23/stderr"
+(cd "$r23" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r23/stderr"
 code_applicability_duplicate=$?
 set -e
 
@@ -2939,7 +2937,7 @@ cat >"$r24/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r24" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r24/stderr"
+(cd "$r24" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r24/stderr"
 code_applicability_empty_and_valid=$?
 set -e
 
@@ -3075,7 +3073,7 @@ cat >"$r25/docs/research/epic/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r25" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r25/stderr"
+(cd "$r25" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r25/stderr"
 code_epic_single_cell_header=$?
 set -e
 
@@ -3179,7 +3177,7 @@ cat >"$r26/docs/research/prd/proj/2026-02-15.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r26" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r26/stderr"
+(cd "$r26" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r26/stderr"
 code_missing_reasoning_fields=$?
 set -e
 
@@ -3223,7 +3221,7 @@ cat >"$r27/docs/epics/test.md" <<'EOF'
 - 参照PRD: `docs/prd/test.md`
 EOF
 
-if ! (cd "$r27" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r27" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK for Approved Epic with valid 参照PRD"
 	exit 1
 fi
@@ -3239,7 +3237,7 @@ cat >"$r28/docs/epics/test.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r28" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r28/stderr"
+(cd "$r28" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r28/stderr"
 code_sot_ref_empty=$?
 set -e
 
@@ -3266,7 +3264,7 @@ cat >"$r29/docs/epics/test.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r29" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r29/stderr"
+(cd "$r29" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r29/stderr"
 code_sot_ref_not_prd=$?
 set -e
 
@@ -3297,7 +3295,7 @@ cat >"$r29b/docs/epics/test.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r29b" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r29b/stderr"
+(cd "$r29b" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r29b/stderr"
 code_sot_ref_traversal=$?
 set -e
 
@@ -3324,7 +3322,7 @@ cat >"$r29c/docs/epics/test.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r29c" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r29c/stderr"
+(cd "$r29c" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r29c/stderr"
 code_sot_ref_directory=$?
 set -e
 
@@ -3355,7 +3353,7 @@ cat >"$r29d/docs/epics/test.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r29d" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r29d/stderr"
+(cd "$r29d" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r29d/stderr"
 code_sot_ref_symlink=$?
 set -e
 
@@ -3391,7 +3389,7 @@ cat >"$r30/docs/epics/test.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r30" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r30/stderr"
+(cd "$r30" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r30/stderr"
 code_sot_ref_multiple=$?
 set -e
 
@@ -3418,7 +3416,7 @@ cat >"$r31/docs/epics/test.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r31" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r31/stderr"
+(cd "$r31" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r31/stderr"
 code_sot_ref_not_found=$?
 set -e
 
@@ -3447,7 +3445,7 @@ cat >"$r33/docs/epics/test.md" <<'EOF'
 ```
 EOF
 
-if ! (cd "$r33" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r33" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK for Draft Epic with Approved status only inside fenced code"
 	exit 1
 fi
@@ -3465,7 +3463,7 @@ cat >"$r34/docs/epics/test.md" <<'EOF'
 -->
 EOF
 
-if ! (cd "$r34" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r34" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK for Draft Epic with Approved status only inside HTML comment"
 	exit 1
 fi
@@ -3481,7 +3479,7 @@ cat >"$r35/docs/epics/test.md" <<'EOF'
     - ステータス: Approved
 EOF
 
-if ! (cd "$r35" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r35" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK for Draft Epic with Approved status only inside indented code"
 	exit 1
 fi
@@ -3496,7 +3494,7 @@ cat >"$r36/docs/epics/test.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r36" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r36/stderr"
+(cd "$r36" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r36/stderr"
 code_real_approved=$?
 set -e
 
@@ -3522,14 +3520,14 @@ cat >"$r32/docs/epics/test.md" <<'EOF'
 - 参照PRD:
 EOF
 
-if ! (cd "$r32" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r32" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK for Draft Epic without valid 参照PRD"
 	exit 1
 fi
 
 real_repo_root="$repo_root"
 set +e
-(cd "$real_repo_root" && python3 scripts/lint-sot.py docs) >/dev/null 2>"$tmpdir/real-repo-stderr"
+(cd "$real_repo_root" && python3 scripts/lint/lint_sot.py docs) >/dev/null 2>"$tmpdir/real-repo-stderr"
 code_sot_ref_regression=$?
 set -e
 
@@ -3555,7 +3553,7 @@ EPICEOF
 
 # An Approved Epic without valid 参照PRD must fail lint
 set +e
-(cd "$r37" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r37/stderr"
+(cd "$r37" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r37/stderr"
 code_inline_comment=$?
 set -e
 
@@ -3588,7 +3586,7 @@ HTMLコメントは `<!--` で開始します。
 EPICEOF
 
 set +e
-(cd "$r38" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r38/stderr"
+(cd "$r38" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r38/stderr"
 code_inline_pair=$?
 set -e
 
@@ -3618,7 +3616,7 @@ cat >"$r39/docs/epics/test.md" <<'EOF'
 ~~~
 EOF
 
-if ! (cd "$r39" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r39" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK for Draft Epic with Approved status only inside tilde-fenced code"
 	exit 1
 fi
@@ -3639,7 +3637,7 @@ cat >"$r40/docs/epics/test.md" <<'EOF'
 EOF
 
 set +e
-(cd "$r40" && python3 ./scripts/lint-sot.py docs) >/dev/null 2>"$r40/stderr"
+(cd "$r40" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null 2>"$r40/stderr"
 code_nested_status=$?
 set -e
 
@@ -3671,7 +3669,7 @@ Here is an escaped backtick \`<!-- and another \`
 - ステータス: Approved
 EPICEOF
 
-if ! (cd "$r41" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r41" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK: escaped backticks do not create inline code span, so <!-- starts a real comment that hides Approved status"
 	exit 1
 fi
@@ -3694,7 +3692,7 @@ Example: `\`<!--`
 - ステータス: Approved
 EPICEOF
 
-if ! (cd "$r42" && python3 ./scripts/lint-sot.py docs) >/dev/null; then
+if ! (cd "$r42" && python3 ./scripts/lint/lint_sot.py docs) >/dev/null; then
 	eprint "Expected lint-sot OK: code span closes at inner backtick, <!-- is a real comment that hides Approved status"
 	exit 1
 fi

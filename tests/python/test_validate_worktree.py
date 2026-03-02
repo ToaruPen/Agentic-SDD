@@ -7,7 +7,7 @@ from types import ModuleType
 
 def load_module() -> ModuleType:
     repo_root = Path(__file__).resolve().parents[2]
-    module_path = repo_root / "scripts" / "validate-worktree.py"
+    module_path = repo_root / "scripts" / "gates" / "validate_worktree.py"
     spec = importlib.util.spec_from_file_location("validate_worktree", module_path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Failed to load module spec: {module_path}")

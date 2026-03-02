@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from collections.abc import Generator
 from pathlib import Path
 from types import ModuleType
-from typing import Generator
 
 pytest = importlib.import_module("pytest")
 
@@ -12,7 +12,7 @@ pytest = importlib.import_module("pytest")
 @pytest.fixture(scope="module")
 def bench_module() -> ModuleType:
     repo_root = Path(__file__).resolve().parents[2]
-    module_path = repo_root / "scripts" / "bench-sdd-docs.py"
+    module_path = repo_root / "scripts" / "lint" / "bench_sdd_docs.py"
     spec = importlib.util.spec_from_file_location("bench_sdd_docs", module_path)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Failed to load module spec: {module_path}")
@@ -24,7 +24,7 @@ def bench_module() -> ModuleType:
 @pytest.fixture(scope="module")
 def contract_module() -> Generator[ModuleType, None, None]:
     repo_root = Path(__file__).resolve().parents[2]
-    module_path = repo_root / "scripts" / "context_pack_contract.py"
+    module_path = repo_root / "scripts" / "_lib" / "context_pack_contract.py"
     module_name = "context_pack_contract"
     spec = importlib.util.spec_from_file_location(module_name, module_path)
     if spec is None or spec.loader is None:
@@ -114,7 +114,7 @@ def test_bench_uses_shared_contract(
 
 
 def test_check_output_accepts_research_pack(bench_module: ModuleType) -> None:
-    output = "\n".join(
+    output = "\n".join(  # noqa: FLY002
         [
             "[Context Pack v1]",
             "phase: estimation prep (.agent/commands/research.md)",

@@ -3,17 +3,57 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = [
-  "E4",
-  "E7",
-  "E9",
+  # Core (existing)
+  "E",
+  "W",
   "F",
   "I",
   "S",
+  # Required additions
+  "B",
+  "UP",
+  "RUF",
+  "PLE",
+  # Recommended additions
+  "SIM",
+  "PIE",
+  "PLW",
+  "PLC",
+  "FURB",
+  "PERF",
+  "PGH",
+  "RET",
+  "RSE",
+  "FLY",
+  "PTH",
 ]
 
 ignore = [
   "E501",
+  # Japanese text intentional usage
+  "RUF001",
+  "RUF002",
+  "RUF003",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+"scripts/tests/**" = ["S101"]
+# Backward-compat wrappers use subprocess.run with trusted internal scripts
+"scripts/assemble-sot.py" = ["S603"]
+"scripts/bench-sdd-docs.py" = ["S603"]
+"scripts/check-commit-gate.py" = ["S603"]
+"scripts/check-impl-gate.py" = ["S603"]
+"scripts/create-approval.py" = ["S603"]
+"scripts/extract-epic-config.py" = ["S603"]
+"scripts/extract-issue-files.py" = ["S603"]
+"scripts/generate-project-config.py" = ["S603"]
+"scripts/lint-sot.py" = ["S603"]
+"scripts/resolve-sync-docs-inputs.py" = ["S603"]
+"scripts/validate-approval.py" = ["S603"]
+"scripts/validate-decision-index.py" = ["S603"]
+"scripts/validate-review-json.py" = ["S603"]
+"scripts/validate-worktree.py" = ["S603"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/python"]
@@ -24,10 +64,8 @@ branch = true
 
 [tool.coverage.report]
 include = [
-  "scripts/lint-sot.py",
-  "scripts/validate-worktree.py",
-  "scripts/detect-languages.py",
-  "scripts/lint-setup.py",
+  "scripts/lint/lint_sot.py",
+  "scripts/gates/validate_worktree.py",
 ]
 show_missing = true
 fail_under = 15

@@ -5,7 +5,7 @@ set -euo pipefail
 eprint() { printf '%s\n' "$*" >&2; }
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
-script_src="$repo_root/scripts/test-review.sh"
+script_src="$repo_root/scripts/shell/test-review.sh"
 
 if [[ ! -x "$script_src" ]]; then
   eprint "Missing script or not executable: $script_src"

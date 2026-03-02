@@ -5,7 +5,7 @@ set -euo pipefail
 eprint() { printf '%s\n' "$*" >&2; }
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
-updater="$repo_root/scripts/update-agentic-sdd.sh"
+updater="$repo_root/scripts/shell/update-agentic-sdd.sh"
 
 if [[ ! -x "$updater" ]]; then
   eprint "Missing script or not executable: $updater"

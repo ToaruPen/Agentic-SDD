@@ -198,6 +198,7 @@ while [[ $# -gt 0 ]]; do
 		            ;;
 		        --ref)
 		            REF="$2"
+	                # shellcheck disable=SC2034  # reserved for future ref-source detection
 	                REF_EXPLICIT=true
 		            shift 2
 		            ;;
@@ -366,11 +367,11 @@ if [ "$NO_CACHE" = true ]; then
     repo_dir="$tmpdir/Agentic-SDD"
     fetch_repo_at_sha "$repo_dir" "$REPO" "$sha"
 else
-    repo_dir="$cache_dir/repos/$sha"
-    if [ ! -d "$repo_dir" ] || [ ! -f "$repo_dir/scripts/install-agentic-sdd.sh" ]; then
-        mkdir -p "$cache_dir/repos"
-        tmpdir="$(mktemp_dir)"
-        cleanup_tmp="$tmpdir"
+	repo_dir="$cache_dir/repos/$sha"
+	if [ ! -d "$repo_dir" ] || { [ ! -f "$repo_dir/scripts/shell/install-agentic-sdd.sh" ] && [ ! -f "$repo_dir/scripts/install-agentic-sdd.sh" ]; }; then
+		mkdir -p "$cache_dir/repos"
+		tmpdir="$(mktemp_dir)"
+		cleanup_tmp="$tmpdir"
         partial="$tmpdir/Agentic-SDD"
         fetch_repo_at_sha "$partial" "$REPO" "$sha"
         rm -rf "$repo_dir"
@@ -383,9 +384,14 @@ if [ -n "$cleanup_tmp" ]; then
     trap 'rm -rf "$cleanup_tmp"' EXIT
 fi
 
-installer="$repo_dir/scripts/install-agentic-sdd.sh"
+# Post-reorg layout: scripts/shell/install-agentic-sdd.sh
+# Pre-reorg layout: scripts/install-agentic-sdd.sh
+installer="$repo_dir/scripts/shell/install-agentic-sdd.sh"
 if [ ! -f "$installer" ]; then
-    log_error "Missing installer: $installer"
+    installer="$repo_dir/scripts/install-agentic-sdd.sh"
+fi
+if [ ! -f "$installer" ]; then
+    log_error "Missing installer: expected scripts/shell/install-agentic-sdd.sh or scripts/install-agentic-sdd.sh in $repo_dir"
     exit 1
 fi
 

@@ -76,16 +76,19 @@ Guardrails:
 
 Helper script:
 
+Path policy (正本/互換): examples in this README use the canonical path `./scripts/shell/...`.
+The `./scripts/agentic-sdd/shell/...` path is retained as a backward-compatible wrapper and is mentioned only when relevant.
+
 Note: `worktree.sh new` uses `gh issue develop` to create a linked branch on the Issue as the
 "in progress" source of truth. It fails fast if the Issue already has linked branches.
 
 ```bash
-# Detect overlaps before starting
-./scripts/agentic-sdd/worktree.sh check --issue 123 --issue 124
+# In the target project (after install):
+./scripts/shell/worktree.sh check --issue 123 --issue 124
 
 # Create a worktree per Issue
-./scripts/agentic-sdd/worktree.sh new --issue 123 --desc "add user profile" --tool opencode
-./scripts/agentic-sdd/worktree.sh new --issue 124 --desc "add settings page" --tool opencode
+./scripts/shell/worktree.sh new --issue 123 --desc "add user profile" --tool opencode
+./scripts/shell/worktree.sh new --issue 124 --desc "add settings page" --tool opencode
 ```
 
 Note: worktrees share the same `.git` database. Merge incrementally (finish one, merge one) to reduce conflicts.
@@ -96,13 +99,17 @@ Fixed integration-conflict rule (parallel PRs):
 - If active parallel PRs overlap in actual diff files, run an integration rehearsal on latest `origin/main` (temporary integration branch/worktree) before proceeding.
 - If conflict remains unresolved, remove `parallel-ok`, mark `blocked`, and serialize; do not proceed to `/create-pr`.
 - See `.agent/commands/worktree.md` (Phase 4.5) for the canonical procedure.
-- Optional hard gate: set `AGENTIC_SDD_PARALLEL_ISSUES='<peer-issue>,<peer-issue>'` when running `/create-pr` to enforce `scripts/worktree.sh check` fail-fast.
+- オプションのハードゲート: `/create-pr` 実行時に `AGENTIC_SDD_PARALLEL_ISSUES='<peer-issue>,<peer-issue>'` を設定すると、`scripts/shell/worktree.sh check` による fail-fast を強制できます。
 
 When using the parent-unit model, close child Issues only after their AC is satisfied with evidence from the parent PR, and close the parent Issue after all children are complete. To keep the parent Issue open, use `Refs #<parent>` in the parent PR body (not `Closes/Fixes #<parent>`).
 
 ---
 
 ## Quick Start
+
+### Runtime requirements
+
+- Python `3.10+` (commands in this repo use `python3`)
 
 ### 0) Install (one-time per repo)
 
@@ -130,7 +137,7 @@ To enforce in GitHub, require the check `agentic-sdd-ci / ci` via branch protect
 If you do not have `/agentic-sdd` yet, set it up once by cloning this repo and running:
 
 ```bash
-./scripts/setup-global-agentic-sdd.sh
+./scripts/shell/setup-global-agentic-sdd.sh
 ```
 
 Use `full` instead of `minimal` if you want GitHub issue/PR templates.
@@ -157,7 +164,7 @@ git subtree pull --prefix=.agentic-sdd-upstream https://github.com/ToaruPen/Agen
 This repository also includes a helper script for the pull step:
 
 ```bash
-./.agentic-sdd-upstream/scripts/update-agentic-sdd.sh --ref v0.4.0.0
+./.agentic-sdd-upstream/scripts/shell/update-agentic-sdd.sh --ref v0.4.0.0
 ```
 
 Notes:
@@ -279,7 +286,8 @@ For UI-heavy Issues, run short redesign loops with screenshot evidence:
 Helper script example:
 
 ```bash
-./scripts/agentic-sdd/ui-iterate.sh 99 --route /kiosk \
+# In the target project (after install):
+./scripts/shell/ui-iterate.sh 99 --route /kiosk \
   --check-cmd "<typecheck-command>" \
   --check-cmd "<lint-command>" \
   --check-cmd "<test-command>"
@@ -369,7 +377,7 @@ It also validates `/test-review` metadata for the current branch state
 - Working tree must be clean.
 - Run on the Issue-linked branch/worktree.
 - If this PR is part of a parallel set, ensure integration-conflict check is cleared per `.agent/commands/worktree.md` before creating the PR.
-- If `AGENTIC_SDD_PARALLEL_ISSUES` is set, `/create-pr` will fail-fast on overlap detected by `scripts/worktree.sh check`.
+- `AGENTIC_SDD_PARALLEL_ISSUES` が設定されている場合、`/create-pr` は `scripts/shell/worktree.sh check` で重複が検出されると fail-fast します。
 
 If you enable CI (optional), wait for CI checks and fix failures before merging.
 
@@ -505,33 +513,41 @@ skills/                 # design skills
 └── worktree-parallel.md
 
 scripts/
+├── _lib/
 ├── agentic-sdd              # main CLI
-├── assemble-sot.py
-├── bench-sdd-docs.py
-├── check-commit-gate.py
-├── check-impl-gate.py
-├── cleanup.sh
-├── codex-review-event.sh
-├── create-approval.py
-├── create-pr.sh
-├── extract-epic-config.py
-├── extract-issue-files.py
-├── generate-project-config.py
-├── install-agentic-sdd.sh
-├── lint-sot.py
-├── resolve-sync-docs-inputs.py
-├── review-cycle.sh
-├── setup-githooks.sh
-├── setup-global-agentic-sdd.sh
-├── sot_refs.py
-├── sync-agent-config.sh
-├── test-review.sh
-├── update-agentic-sdd.sh
-├── ui-iterate.sh
-├── validate-approval.py
-├── validate-review-json.py
-├── validate-worktree.py
-├── worktree.sh
+├── approval/
+│   └── create_approval.py
+├── extract/
+│   ├── extract_epic_config.py
+│   ├── extract_issue_files.py
+│   └── resolve_sync_docs_inputs.py
+├── gates/
+│   ├── check_commit_gate.py
+│   ├── check_impl_gate.py
+│   ├── validate_approval.py
+│   ├── validate_decision_index.py
+│   ├── validate_review_json.py
+│   └── validate_worktree.py
+├── generate/
+│   └── generate_project_config.py
+├── lint/
+│   ├── assemble_sot.py
+│   ├── bench_sdd_docs.py
+│   └── lint_sot.py
+├── shell/
+│   ├── cleanup.sh
+│   ├── codex-review-event.sh
+│   ├── create-pr.sh
+│   ├── install-agentic-sdd.sh
+│   ├── review-cycle.sh
+│   ├── setup-githooks.sh
+│   ├── setup-global-agentic-sdd.sh
+│   ├── sync-agent-config.sh
+│   ├── test-review.sh
+│   ├── ui-iterate.sh
+│   ├── update-agentic-sdd.sh
+│   └── worktree.sh
+├── *.py                     # backward-compat wrappers
 └── tests/                   # test scripts
     ├── test-agentic-sdd-latest.sh
     ├── test-agentic-sdd-pr-autofix-gate.sh
@@ -640,8 +656,9 @@ Run the sync script to generate OpenCode configs.
 Note: OpenCode has a built-in `/init` (generates AGENTS.md), so Agentic-SDD's init is exposed as `/sdd-init`.
 
 ```bash
+# In the target project (after install):
 # 1) Sync
-./scripts/agentic-sdd/sync-agent-config.sh opencode
+./scripts/shell/sync-agent-config.sh opencode
 
 # 2) Start OpenCode
 opencode
@@ -661,8 +678,8 @@ to install Agentic-SDD into new projects.
 Setup:
 
 ```bash
-# Clone this repo and run at the repo root
-./scripts/setup-global-agentic-sdd.sh
+# In this repository (development checkout):
+./scripts/shell/setup-global-agentic-sdd.sh
 ```
 
 Existing files are backed up as `.bak.<timestamp>` before overwrite.
@@ -674,8 +691,9 @@ After setup, run `/agentic-sdd` in each tool.
 Run the sync script to generate Codex CLI configs.
 
 ```bash
+# In the target project (after install):
 # 1) Sync
-./scripts/agentic-sdd/sync-agent-config.sh codex
+./scripts/shell/sync-agent-config.sh codex
 
 # 2) Start Codex CLI
 codex
@@ -693,11 +711,11 @@ codex
 If you edit files under `.agent/`, re-run the sync script.
 
 ```bash
-# Sync for all tools
-./scripts/agentic-sdd/sync-agent-config.sh all
+# In the target project (after install):
+./scripts/shell/sync-agent-config.sh all
 
 # Preview (no changes)
-./scripts/agentic-sdd/sync-agent-config.sh --dry-run
+./scripts/shell/sync-agent-config.sh --dry-run
 ```
 
 ### Implementation gate enforcement (recommended)
@@ -708,14 +726,14 @@ To prevent accidental implementation without required gates, Agentic-SDD can enf
 - Approval gate: enforce that `/estimation` has an explicit user approval record.
 
 - Git hooks (tool-agnostic final defense): `.githooks/pre-commit`, `.githooks/pre-push`
-- Enable: `./scripts/agentic-sdd/setup-githooks.sh` (the installer attempts to configure this automatically)
+- Enable: `./scripts/shell/setup-githooks.sh` (the installer attempts to configure this automatically)
 - Claude Code: `.claude/settings.json` (PreToolUse hooks: Edit/Write + git commit/push)
-- OpenCode: `.opencode/plugins/agentic-sdd-gate.js` (generated by `./scripts/agentic-sdd/sync-agent-config.sh opencode`)
+- OpenCode: `.opencode/plugins/agentic-sdd-gate.js` (generated by `./scripts/shell/sync-agent-config.sh opencode`)
 
 Gate scripts:
 
-- `scripts/agentic-sdd/validate-worktree.py`
-- `scripts/agentic-sdd/validate-approval.py`
+- `scripts/gates/validate_worktree.py` (or wrapper: `scripts/validate-worktree.py`)
+- `scripts/gates/validate_approval.py` (or wrapper: `scripts/validate-approval.py`)
 
 Approvals are stored locally (gitignored) under:
 
@@ -726,12 +744,12 @@ After Phase 2.5 is approved, create the record:
 
 ```bash
 # Installed project path
-python3 scripts/agentic-sdd/create-approval.py --issue <n> --mode <impl|tdd|custom> --mode-source <agent-heuristic|user-choice|operator-override> --mode-reason '<reason>'
-python3 scripts/agentic-sdd/validate-approval.py
+python3 scripts/approval/create_approval.py --issue <n> --mode <impl|tdd|custom> --mode-source <agent-heuristic|user-choice|operator-override> --mode-reason '<reason>'
+python3 scripts/gates/validate_approval.py
 
 # This repository checkout path
-python3 scripts/create-approval.py --issue <n> --mode <impl|tdd|custom> --mode-source <agent-heuristic|user-choice|operator-override> --mode-reason '<reason>'
-python3 scripts/validate-approval.py
+python3 scripts/approval/create_approval.py --issue <n> --mode <impl|tdd|custom> --mode-source <agent-heuristic|user-choice|operator-override> --mode-reason '<reason>'
+python3 scripts/gates/validate_approval.py
 ```
 
 Repository quality baseline (this repo itself):
@@ -744,7 +762,7 @@ Repository quality baseline (this repo itself):
 
 ### Docs lint (SoT contract checks)
 
-Agentic-SDD includes a docs linter (`scripts/lint-sot.py`) that checks Markdown documents for SoT contract violations:
+Agentic-SDD には、MarkdownドキュメントのSoT契約違反を検査する docs linter（`scripts/lint/lint_sot.py`）が含まれています:
 
 - Placeholder HTML comments in Approved PRD/Epic
 - Missing or malformed research candidate fields
@@ -754,13 +772,13 @@ Agentic-SDD includes a docs linter (`scripts/lint-sot.py`) that checks Markdown 
 **Local execution:**
 
 ```bash
-python3 scripts/lint-sot.py docs
+python3 scripts/lint/lint_sot.py docs
 ```
 
 Pass additional root paths to lint specific directories:
 
 ```bash
-python3 scripts/lint-sot.py docs templates
+python3 scripts/lint/lint_sot.py docs templates
 ```
 
 **CI execution (GC template):**

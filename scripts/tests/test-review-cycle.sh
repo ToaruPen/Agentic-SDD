@@ -4,15 +4,15 @@ set -euo pipefail
 
 eprint() { printf '%s\n' "$*" >&2; }
 
-# This test suite must be robust even when invoked from `scripts/review-cycle.sh`,
+# This test suite must be robust even when invoked from `scripts/shell/review-cycle.sh`,
 # which sets TEST_COMMAND in the environment.
 unset TEST_COMMAND || true
 
 repo_root="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 schema_src="${repo_root}/.agent/schemas/review.json"
-review_cycle_sh="${repo_root}/scripts/review-cycle.sh"
-assemble_sot_py="${repo_root}/scripts/assemble-sot.py"
-validator_py="${repo_root}/scripts/validate-review-json.py"
+review_cycle_sh="${repo_root}/scripts/shell/review-cycle.sh"
+assemble_sot_py="${repo_root}/scripts/lint/assemble_sot.py"
+validator_py="${repo_root}/scripts/gates/validate_review_json.py"
 
 if [[ ! -f "$schema_src" ]]; then
 	eprint "Missing schema: $schema_src"
@@ -2230,7 +2230,7 @@ PY
 fi
 
 # AC2: create-pr metadata hard check (advisory OFF/ON)
-create_pr_sh="${repo_root}/scripts/create-pr.sh"
+create_pr_sh="${repo_root}/scripts/shell/create-pr.sh"
 if [[ ! -f "$create_pr_sh" || ! -x "$create_pr_sh" ]]; then
 	eprint "Missing script or not executable: $create_pr_sh"
 	exit 1
@@ -2248,8 +2248,8 @@ git -C "$compat_repo" remote add origin "$compat_origin"
 mkdir -p "$compat_repo/.agent/schemas"
 cp -p "$schema_src" "$compat_repo/.agent/schemas/review.json"
 mkdir -p "$compat_repo/docs/prd" "$compat_repo/docs/epics"
-mkdir -p "$compat_repo/scripts" "$compat_repo/docs/decisions"
-cp -p "$repo_root/scripts/validate-decision-index.py" "$compat_repo/scripts/validate-decision-index.py"
+mkdir -p "$compat_repo/scripts/gates" "$compat_repo/docs/decisions"
+cp -p "$repo_root/scripts/gates/validate_decision_index.py" "$compat_repo/scripts/gates/validate_decision_index.py"
 cat >"$compat_repo/docs/decisions/_template.md" <<'EOF'
 ## Decision-ID
 
